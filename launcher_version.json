@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.38",
+  "version": "2026.05.24.39",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Добавлен подробный debug-лог самообновления лаунчера в системный Temp: пути, размеры скачанного и целевого exe, PID и лог копирования."
+  "notes": "Кнопка Играть теперь открывает Mod Organizer 2, а лаунчер автоматически создает ярлык ANTHOLOGY на рабочем столе для прямого запуска обновлений."
 }

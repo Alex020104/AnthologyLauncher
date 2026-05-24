@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.38"
+LAUNCHER_VERSION = "2026.05.24.39"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -110,6 +110,8 @@ TEXT = {
         "cache_missing": "Папка кэша шейдеров не найдена.",
         "cache_done": "Кэш шейдеров удален.",
         "launch_error": "Не удалось запустить игру",
+        "mo2_missing": "Не найден Mod Organizer 2",
+        "mo2_expected": "Mod Organizer 2 должен лежать рядом с папкой игры",
     },
     "en": {
         "play": "Play",
@@ -154,6 +156,8 @@ TEXT = {
         "cache_missing": "Shader cache folder was not found.",
         "cache_done": "Shader cache deleted.",
         "launch_error": "Failed to launch the game",
+        "mo2_missing": "Mod Organizer 2 was not found",
+        "mo2_expected": "Mod Organizer 2 must be next to the game folder",
     },
 }
 
@@ -217,6 +221,7 @@ class LauncherApp(tk.Tk):
         self._load_background()
         self._build_base()
         self.show_home()
+        self.after(800, self.ensure_desktop_shortcut)
         self.after(1500, self.check_launcher_update_async)
 
     def _load_background(self):
@@ -638,6 +643,74 @@ class LauncherApp(tk.Tk):
                 if candidate.exists():
                     return candidate
         return exact
+
+    def _mod_organizer_exe(self):
+        exact = self.root_dir.parent / MODPACK_FOLDER / MOD_ORGANIZER_EXE_NAME
+        if exact.exists():
+            return exact
+        mods_dir = self._modpack_mods_dir()
+        candidate = mods_dir.parent / MOD_ORGANIZER_EXE_NAME
+        if candidate.exists():
+            return candidate
+        search_roots = [self.root_dir.parent, self.root_dir.parent.parent, self.root_dir]
+        seen = set()
+        for root in search_roots:
+            try:
+                root = root.resolve()
+            except OSError:
+                continue
+            if root in seen or not root.exists():
+                continue
+            seen.add(root)
+            for child in root.iterdir():
+                if not child.is_dir():
+                    continue
+                candidate = child / MOD_ORGANIZER_EXE_NAME
+                if candidate.exists():
+                    return candidate
+        return exact
+
+    def _desktop_path(self):
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                buffer = ctypes.create_unicode_buffer(260)
+                if ctypes.windll.shell32.SHGetFolderPathW(None, 0, None, 0, buffer) == 0:
+                    return Path(buffer.value)
+            except Exception:
+                pass
+        return Path.home() / "Desktop"
+
+    def ensure_desktop_shortcut(self):
+        if not getattr(sys, "frozen", False) or sys.platform != "win32":
+            return
+        shortcut = self._desktop_path() / "ANTHOLOGY.lnk"
+        target = Path(sys.executable).resolve()
+        icon = self.assets / "a.ico"
+        icon_path = icon if icon.exists() else target
+        try:
+            script = (
+                "$shell = New-Object -ComObject WScript.Shell; "
+                f"$link = $shell.CreateShortcut('{self._ps_literal(shortcut)}'); "
+                f"$link.TargetPath = '{self._ps_literal(target)}'; "
+                f"$link.WorkingDirectory = '{self._ps_literal(self.root_dir)}'; "
+                f"$link.IconLocation = '{self._ps_literal(icon_path)}'; "
+                "$link.Description = 'ANTHOLOGY Launcher'; "
+                "$link.Save()"
+            )
+            subprocess.run(
+                ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+                cwd=str(self.root_dir),
+                timeout=10,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                env=self._prepare_external_launch(),
+                check=True,
+            )
+        except Exception as exc:
+            self._debug_log(f"desktop shortcut failed: {type(exc).__name__}: {exc}")
+
+    def _ps_literal(self, value):
+        return str(value).replace("'", "''")
 
     def _modpack_missing_message(self, mods_dir):
         root = self.root_dir.parent
@@ -1686,18 +1759,18 @@ class LauncherApp(tk.Tk):
         self.apply_sound_fix()
         if self.reset_user or not (self.root_dir / "appdata" / "user.ltx").exists():
             self.reset_user_ltx_file()
-        exe = "Anomaly" + self.renderer
-        if self.avx:
-            exe += "AVX"
-        exe_path = self.root_dir / "bin" / (exe + ".exe")
-        if not exe_path.exists():
-            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{exe_path}")
+        mo2_path = self._mod_organizer_exe()
+        if not mo2_path.exists():
+            messagebox.showerror(
+                "Anthology Launcher",
+                f"{TEXT[self.lang]['mo2_missing']}:\n{mo2_path}\n\n{TEXT[self.lang]['mo2_expected']}",
+            )
             return
         try:
-            subprocess.Popen([str(exe_path)], cwd=str(self.root_dir), env=self._prepare_external_launch(), close_fds=True)
+            subprocess.Popen([str(mo2_path)], cwd=str(mo2_path.parent), env=self._prepare_external_launch(), close_fds=True)
             self.destroy()
         except Exception as exc:
-            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{exe_path}\n\n{exc}")
+            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{mo2_path}\n\n{exc}")
 
 
 if __name__ == "__main__":
