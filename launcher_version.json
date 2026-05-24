@@ -1,7 +1,7 @@
 {
-  "version": "2026.05.24.14",
-  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/download/launcher-2026.05.24.14/AnomalyLauncher.exe",
-  "notes": "Use a fixed release asset URL for self-update so size and SHA-256 checks cannot race GitHub latest redirects.",
-  "exe_size": 18938047,
-  "exe_sha256": "b2a81f50f4aa7d2efb85c0cc15f34bf6e65e8e56dfaed8b92778d6c151b8c9c8"
+  "version": "2026.05.24.13",
+  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
+  "notes": "Force safe self-update rebuild: verified download, temporary .new replacement, no UPX, and DB update channel.",
+  "exe_size": 18938520,
+  "exe_sha256": "af5a9c90acee21b54febcf126dd995968c1fecc56847d29bfe9db632514a6222"
 }
