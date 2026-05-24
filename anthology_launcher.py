@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.37"
+LAUNCHER_VERSION = "2026.05.24.38"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1117,6 +1117,7 @@ class LauncherApp(tk.Tk):
             threading.Thread(target=self._install_launcher_update_worker, args=(remote,), daemon=True).start()
 
     def _install_launcher_update_worker(self, remote):
+        log_path = self._launcher_update_debug_log_path()
         try:
             url = remote.get("exe_url") or LAUNCHER_EXE_URL
             tmp_base = Path(tempfile.gettempdir()) / "AnthologyLauncherUpdate"
@@ -1124,12 +1125,49 @@ class LauncherApp(tk.Tk):
             tmp_dir = tmp_base / f"launcher_self_update_{os.getpid()}"
             self._reset_directory(tmp_dir)
             new_exe = tmp_dir / LAUNCHER_EXE_NAME
+            self._write_launcher_update_debug(
+                log_path,
+                [
+                    "download start",
+                    f"launcher_version={LAUNCHER_VERSION}",
+                    f"url={url}",
+                    f"root_dir={self.root_dir}",
+                    f"sys_executable={Path(sys.executable).resolve()}",
+                    f"cwd={Path.cwd()}",
+                    f"pid={os.getpid()}",
+                    f"tmp_dir={tmp_dir}",
+                ],
+            )
             self.after(0, lambda: self._set_update_status("Обновление лаунчера...", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             self._download_update_archive(url, new_exe)
+            self._write_launcher_update_debug(
+                log_path,
+                [
+                    "download finished",
+                    f"downloaded_path={new_exe}",
+                    f"downloaded_size={new_exe.stat().st_size if new_exe.exists() else 'missing'}",
+                ],
+            )
             self.after(0, lambda: self._restart_with_launcher_update(new_exe))
         except Exception as exc:
+            self._write_launcher_update_debug(log_path, [f"ERROR={type(exc).__name__}: {exc}"])
             self.after(0, lambda e=exc: messagebox.showerror("Anthology Launcher", f"Не удалось обновить лаунчер:\n{e}"))
+
+    def _launcher_update_debug_log_path(self):
+        return Path(tempfile.gettempdir()) / "AnthologyLauncherUpdate" / "launcher_update_debug.log"
+
+    def _write_launcher_update_debug(self, path, lines):
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(f"[{stamp}]\n")
+                for line in lines:
+                    handle.write(str(line) + "\n")
+                handle.write("\n")
+        except Exception:
+            pass
 
     def _restart_with_launcher_update(self, new_exe):
         current_exe = Path(sys.executable).resolve()
@@ -1147,6 +1185,14 @@ class LauncherApp(tk.Tk):
             f"set \"LOG={updater_log}\"",
             f"set \"PID={os.getpid()}\"",
             "echo updater started > \"%LOG%\"",
+            "echo date=%DATE% time=%TIME% >> \"%LOG%\"",
+            "echo src=%SRC% >> \"%LOG%\"",
+            "echo dst=%DST% >> \"%LOG%\"",
+            "echo dst_dir=%DST_DIR% >> \"%LOG%\"",
+            "echo pid=%PID% >> \"%LOG%\"",
+            "if exist \"%SRC%\" for %%A in (\"%SRC%\") do echo src_size=%%~zA >> \"%LOG%\"",
+            "if exist \"%DST%\" for %%A in (\"%DST%\") do echo dst_size_before=%%~zA >> \"%LOG%\"",
+            "tasklist /FI \"IMAGENAME eq AnomalyLauncher.exe\" >> \"%LOG%\" 2>&1",
             ":wait_loop",
             "tasklist /FI \"PID eq %PID%\" | find \"%PID%\" >nul",
             "if not errorlevel 1 (",
@@ -1163,6 +1209,7 @@ class LauncherApp(tk.Tk):
             "  goto copy_loop",
             ")",
             "echo copy ok >> \"%LOG%\"",
+            "if exist \"%DST%\" for %%A in (\"%DST%\") do echo dst_size_after=%%~zA >> \"%LOG%\"",
             "echo launcher updated; manual restart required >> \"%LOG%\"",
             "timeout /t 2 /nobreak >nul",
             "del /q \"%SRC%\" >> \"%LOG%\" 2>&1",

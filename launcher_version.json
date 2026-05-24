@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.37",
+  "version": "2026.05.24.38",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Тестовая пустая сборка для проверки самообновления лаунчера."
+  "notes": "Добавлен подробный debug-лог самообновления лаунчера в системный Temp: пути, размеры скачанного и целевого exe, PID и лог копирования."
 }
