@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.26"
+LAUNCHER_VERSION = "2026.05.24.27"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1043,18 +1043,19 @@ class LauncherApp(tk.Tk):
             "  goto copy_loop",
             ")",
             "echo copy ok >> \"%LOG%\"",
-            "for /f \"tokens=1 delims==\" %%E in ('set _PYI 2^>nul') do set \"%%E=\"",
-            "for /f \"tokens=1 delims==\" %%E in ('set _MEI 2^>nul') do set \"%%E=\"",
-            "set \"PYINSTALLER_RESET_ENVIRONMENT=1\"",
-            "timeout /t 2 /nobreak >nul",
-            "start \"\" /D \"%DST_DIR%\" \"%DST%\"",
-            "echo launcher updated and restarted >> \"%LOG%\"",
+            "echo launcher updated; manual restart required >> \"%LOG%\"",
             "exit /b 0",
             ":copy_failed",
             "echo copy failed >> \"%LOG%\"",
             "pause",
         ]
         updater.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
+        messagebox.showinfo(
+            "Anthology Launcher",
+            "Обновление лаунчера скачано.\n\n"
+            "После нажатия OK лаунчер закроется и заменит файл.\n"
+            "Откройте лаунчер заново вручную через Mod Organizer 2.",
+        )
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         subprocess.Popen(
             ["cmd.exe", "/c", str(updater)],

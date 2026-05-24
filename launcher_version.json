@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.26",
+  "version": "2026.05.24.27",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Modpack archive downloads now use a longer timeout and more retries for slow GitHub responses."
+  "notes": "Launcher self-update now asks the user to reopen the launcher manually through Mod Organizer 2 after replacement."
 }
