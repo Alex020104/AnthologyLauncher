@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.24"
+LAUNCHER_VERSION = "2026.05.24.25"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -999,7 +999,9 @@ class LauncherApp(tk.Tk):
     def _install_launcher_update_worker(self, remote):
         try:
             url = remote.get("exe_url") or LAUNCHER_EXE_URL
-            tmp_dir = self.root_dir / "webcache" / "launcher_self_update"
+            cache_dir = self.root_dir / "webcache"
+            self._ensure_directory(cache_dir)
+            tmp_dir = cache_dir / "launcher_self_update"
             self._reset_directory(tmp_dir)
             new_exe = tmp_dir / LAUNCHER_EXE_NAME
             self.after(0, lambda: self._set_update_status("Обновление лаунчера...", COLORS["accent_2"]))

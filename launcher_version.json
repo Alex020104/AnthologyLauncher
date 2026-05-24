@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.24",
+  "version": "2026.05.24.25",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Test launcher self-update delivery for the repaired webcache update flow."
+  "notes": "Self-update now creates and repairs the webcache folder before preparing launcher_self_update."
 }
