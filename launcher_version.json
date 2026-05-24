@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.28",
+  "version": "2026.05.24.29",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Короткое окно обновления лаунчера и ручной повторный запуск через MO2 после замены файла."
+  "notes": "Синхронизация модпака теперь замечает удаленные tracked-файлы в live mods и запускает ремонт даже при той же версии."
 }

@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.28"
+LAUNCHER_VERSION = "2026.05.24.29"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -824,15 +824,21 @@ class LauncherApp(tk.Tk):
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
                 return False, f"{t['update_failed']}:\nversion.json has no version"
-            if str(local.get("version", "")).strip() == remote_version:
+            local_version = str(local.get("version", "")).strip()
+            needs_repair = self._modpack_needs_repair(mods_dir)
+            if local_version == remote_version and not needs_repair:
                 return True, f"{t['update_latest']}\n\nVersion: {remote_version}"
 
-            self.after(0, lambda: self._set_update_status(t["update_downloading"], COLORS["accent_2"]))
+            status_text = t["update_downloading"]
+            if local_version == remote_version and needs_repair:
+                status_text = "Modpack repair: downloading missing files..."
+            self.after(0, lambda s=status_text: self._set_update_status(s, COLORS["accent_2"]))
             zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
             tmp_dir = self.root_dir / "webcache" / "launcher_update"
             self._reset_directory(tmp_dir)
             log_path = tmp_dir / "update.log"
             self._write_update_log(log_path, f"mods_dir={mods_dir}")
+            self._write_update_log(log_path, f"remote_version={remote_version} local_version={local_version} needs_repair={needs_repair}")
             zip_path = tmp_dir / "update.zip"
             self._write_update_log(log_path, f"download={zip_url}")
             self._download_update_archive(zip_url, zip_path, attempts=5, timeout=300)
@@ -861,6 +867,30 @@ class LauncherApp(tk.Tk):
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
             return False, message
+
+    def _modpack_needs_repair(self, mods_dir):
+        git_dir = mods_dir / ".git"
+        if not git_dir.exists():
+            return False
+        try:
+            output = subprocess.check_output(
+                ["git", "status", "--porcelain", "--untracked-files=no"],
+                cwd=str(mods_dir),
+                text=True,
+                timeout=30,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            self._debug_log(f"modpack repair check failed: {exc}")
+            return False
+        dirty = bool(output.strip())
+        if dirty:
+            lines = output.splitlines()
+            preview = " | ".join(lines[:10])
+            if len(lines) > 10:
+                preview += f" | ... +{len(lines) - 10}"
+            self._debug_log(f"modpack repair needed: {preview}")
+        return dirty
 
     def _sync_db_update_worker(self):
         ok, message = self._sync_db_update_step()
