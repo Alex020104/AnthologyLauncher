@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.11",
+  "version": "2026.05.24.10",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Rebuild launcher with bundled Python runtime DLLs and DB update channel."
+  "notes": "Add DB update channel: checks anthology-db manifest, removes extra DB archives, and downloads only changed .xdb/.db files by size and SHA-256."
 }
