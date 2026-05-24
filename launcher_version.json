@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.25",
+  "version": "2026.05.24.26",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Self-update now creates and repairs the webcache folder before preparing launcher_self_update."
+  "notes": "Modpack archive downloads now use a longer timeout and more retries for slow GitHub responses."
 }

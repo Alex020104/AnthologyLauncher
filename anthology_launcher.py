@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.25"
+LAUNCHER_VERSION = "2026.05.24.26"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -835,7 +835,7 @@ class LauncherApp(tk.Tk):
             self._write_update_log(log_path, f"mods_dir={mods_dir}")
             zip_path = tmp_dir / "update.zip"
             self._write_update_log(log_path, f"download={zip_url}")
-            self._download_update_archive(zip_url, zip_path)
+            self._download_update_archive(zip_url, zip_path, attempts=5, timeout=300)
             self._write_update_log(log_path, f"downloaded={zip_path} size={zip_path.stat().st_size}")
 
             self.after(0, lambda: self._set_update_status(t["update_applying"], COLORS["accent_2"]))
@@ -1064,13 +1064,13 @@ class LauncherApp(tk.Tk):
         )
         self.destroy()
 
-    def _download_update_archive(self, url, path, attempts=3, status_callback=None, progress_callback=None):
+    def _download_update_archive(self, url, path, attempts=3, timeout=60, status_callback=None, progress_callback=None):
         status_callback = status_callback or self._set_update_status
         progress_callback = progress_callback or self._set_update_progress
         last_error = None
         for attempt in range(1, attempts + 1):
             try:
-                self._download_update_archive_once(url, path, progress_callback)
+                self._download_update_archive_once(url, path, progress_callback, timeout)
                 return
             except Exception as exc:
                 last_error = exc
@@ -1082,13 +1082,13 @@ class LauncherApp(tk.Tk):
                     break
                 status = f"{TEXT[self.lang]['update_downloading']} ({attempt + 1}/{attempts})"
                 self.after(0, lambda s=status, cb=status_callback: cb(s, COLORS["accent_2"]))
-                time.sleep(1.0)
+                time.sleep(2.0)
         raise last_error
 
-    def _download_update_archive_once(self, url, path, progress_callback):
+    def _download_update_archive_once(self, url, path, progress_callback, timeout):
         last = {"value": -1}
         self._ensure_directory(path.parent)
-        with urlopen(url, timeout=60) as response, path.open("wb") as target:
+        with urlopen(url, timeout=timeout) as response, path.open("wb") as target:
             size_header = response.headers.get("Content-Length")
             total_size = int(size_header) if size_header and size_header.isdigit() else 0
             downloaded = 0
