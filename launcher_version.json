@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.23",
+  "version": "2026.05.24.24",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Self-update and modpack update now repair broken webcache paths when a cache folder exists as a file."
+  "notes": "Test launcher self-update delivery for the repaired webcache update flow."
 }
