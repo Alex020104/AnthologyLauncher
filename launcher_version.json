@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.21",
+  "version": "2026.05.24.22",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "DB downloads now recreate the temporary cache folder before each file download."
+  "notes": "DB sync now repairs a broken webcache db_update path when it exists as a file instead of a folder."
 }

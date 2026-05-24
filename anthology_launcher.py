@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.21"
+LAUNCHER_VERSION = "2026.05.24.22"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -882,7 +882,7 @@ class LauncherApp(tk.Tk):
                 return False, f"DB folder was not found:\n{db_dir}"
 
             tmp_dir = self.root_dir / "webcache" / "db_update"
-            tmp_dir.mkdir(parents=True, exist_ok=True)
+            self._ensure_directory(tmp_dir)
             log_path = tmp_dir / "db_update.log"
             self._write_update_log(log_path, f"db_dir={db_dir}")
 
@@ -1089,7 +1089,7 @@ class LauncherApp(tk.Tk):
 
     def _download_update_archive_once(self, url, path, progress_callback):
         last = {"value": -1}
-        path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure_directory(path.parent)
         with urlopen(url, timeout=60) as response, path.open("wb") as target:
             size_header = response.headers.get("Content-Length")
             total_size = int(size_header) if size_header and size_header.isdigit() else 0
@@ -1106,6 +1106,11 @@ class LauncherApp(tk.Tk):
                 if value != last["value"]:
                     last["value"] = value
                     self.after(0, lambda v=value, cb=progress_callback: cb(v, f"{v}%"))
+
+    def _ensure_directory(self, path):
+        if path.exists() and not path.is_dir():
+            path.unlink()
+        path.mkdir(parents=True, exist_ok=True)
 
     def _state_path(self, mods_dir):
         return mods_dir.parent / ".launcher_update_state.json"
