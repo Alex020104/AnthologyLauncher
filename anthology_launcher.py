@@ -28,7 +28,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.8"
+LAUNCHER_VERSION = "2026.05.24.9"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -178,10 +178,15 @@ class LauncherApp(tk.Tk):
         self.drag_y = 0
         self.view = "home"
         self.updating = False
+        self.worker_threads = []
         self.update_status_item = None
         self.update_progress_bg = None
         self.update_progress_fill = None
         self.update_progress_text = None
+        self.engine_status_item = None
+        self.engine_progress_bg = None
+        self.engine_progress_fill = None
+        self.engine_progress_text = None
         self.items = []
         self.view_widgets = []
         self.buttons = {}
@@ -302,6 +307,19 @@ class LauncherApp(tk.Tk):
         self.buttons["save"] = self._button(104, 552, 190, 48, t["save"], self.save_settings, primary=True)
         self.buttons["about"] = self._button(802, 552, 126, 40, t["about"], self.about)
         self.buttons["engine"] = self._button(950, 552, 126, 40, t["engine_button"], self.sync_engine_update)
+        self.engine_status_item = self._add(self.canvas.create_text(
+            802,
+            512,
+            text=self._engine_status_text(),
+            anchor="w",
+            fill=COLORS["muted"],
+            font=("Segoe UI", 9),
+            width=274,
+        ))
+        self.engine_progress_bg = self._add(self.canvas.create_rectangle(802, 532, 1076, 540, fill="#091211", outline="#476760"))
+        self.engine_progress_fill = self._add(self.canvas.create_rectangle(802, 532, 802, 540, fill=COLORS["accent"], outline=""))
+        self.engine_progress_text = self._add(self.canvas.create_text(939, 545, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        self._set_engine_progress(0, "")
 
         self._refresh_all()
 
@@ -590,18 +608,45 @@ class LauncherApp(tk.Tk):
 
     def _set_update_status(self, text, color=None):
         if self.update_status_item:
-            self.canvas.itemconfig(self.update_status_item, text=text, fill=color or COLORS["muted"])
+            try:
+                self.canvas.itemconfig(self.update_status_item, text=text, fill=color or COLORS["muted"])
+            except tk.TclError:
+                self.update_status_item = None
 
     def _set_update_progress(self, value, text=None):
         if not self.update_progress_bg or not self.update_progress_fill:
             return
         value = max(0, min(100, int(value)))
-        x1, y1, x2, y2 = self.canvas.coords(self.update_progress_bg)
+        coords = self.canvas.coords(self.update_progress_bg)
+        if len(coords) != 4:
+            return
+        x1, y1, x2, y2 = coords
         fill_x = x1 + ((x2 - x1) * value / 100.0)
         self.canvas.coords(self.update_progress_fill, x1, y1, fill_x, y2)
         self.canvas.itemconfig(self.update_progress_fill, state="normal" if value > 0 else "hidden")
         if self.update_progress_text is not None:
             self.canvas.itemconfig(self.update_progress_text, text=text if text is not None else (f"{value}%" if value else ""))
+
+    def _set_engine_status(self, text, color=None):
+        if self.engine_status_item:
+            try:
+                self.canvas.itemconfig(self.engine_status_item, text=text, fill=color or COLORS["muted"])
+            except tk.TclError:
+                self.engine_status_item = None
+
+    def _set_engine_progress(self, value, text=None):
+        if not self.engine_progress_bg or not self.engine_progress_fill:
+            return
+        value = max(0, min(100, int(value)))
+        coords = self.canvas.coords(self.engine_progress_bg)
+        if len(coords) != 4:
+            return
+        x1, y1, x2, y2 = coords
+        fill_x = x1 + ((x2 - x1) * value / 100.0)
+        self.canvas.coords(self.engine_progress_fill, x1, y1, fill_x, y2)
+        self.canvas.itemconfig(self.engine_progress_fill, state="normal" if value > 0 else "hidden")
+        if self.engine_progress_text is not None:
+            self.canvas.itemconfig(self.engine_progress_text, text=text if text is not None else (f"{value}%" if value else ""))
 
     def sync_modpack_update(self):
         if self.updating:
@@ -609,50 +654,93 @@ class LauncherApp(tk.Tk):
         self.updating = True
         self._set_update_status(TEXT[self.lang]["update_checking"], COLORS["accent_2"])
         self._set_update_progress(0, "")
-        threading.Thread(target=self._sync_modpack_update_worker, daemon=True).start()
+        self._start_background_worker("modpack-update", self._sync_modpack_update_worker)
 
     def sync_engine_update(self):
         if self.updating:
+            self._debug_log("engine click ignored: update already running")
             return
         choice = messagebox.askyesnocancel(
             "Anthology Launcher",
             "Обновить движок Modded Exes?\n\nДа - MT TEST версия\nНет - обычная версия\nОтмена - не обновлять",
         )
         if choice is None:
+            self._debug_log("engine update cancelled by user")
             return
         mode = "mt" if choice else "regular"
+        self._debug_log(f"engine update requested: mode={mode} root={self.root_dir}")
         self.updating = True
+        self._set_engine_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
+        self._set_engine_progress(0, "")
         self._set_update_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
         self._set_update_progress(0, "")
-        threading.Thread(target=self._sync_engine_update_worker, args=(mode,), daemon=True).start()
+        self._start_background_worker("engine-update", self._sync_engine_update_worker, mode)
+
+    def _start_background_worker(self, name, target, *args):
+        self._debug_log(f"{name}: starting thread")
+
+        def runner():
+            self._debug_log(f"{name}: thread entered")
+            try:
+                target(*args)
+            except BaseException as exc:
+                self._debug_log(f"{name}: thread crashed: {type(exc).__name__}: {exc}")
+                self.after(0, lambda e=exc: self._finish_git_update(False, f"Фоновая задача остановилась:\n{e}"))
+            finally:
+                self._debug_log(f"{name}: thread exited")
+
+        try:
+            thread = threading.Thread(target=runner, name=name)
+            thread.start()
+            self.worker_threads.append(thread)
+            self._debug_log(f"{name}: thread start returned alive={thread.is_alive()}")
+        except BaseException as exc:
+            self._debug_log(f"{name}: failed to start thread: {type(exc).__name__}: {exc}")
+            self._finish_git_update(False, f"Не удалось запустить фоновую задачу:\n{exc}")
 
     def _sync_engine_update_worker(self, mode):
+        self._debug_log(f"engine worker started: mode={mode}")
         log_path = None
         try:
+            self.after(0, lambda: self._set_engine_status("Проверка запущенных процессов...", COLORS["accent_2"]))
+            self._debug_log("engine worker: checking running game processes")
             running = self._running_game_processes()
+            self._debug_log(f"engine worker: running processes={running}")
             if running:
                 names = ", ".join(running)
-                self.after(0, lambda: self._finish_git_update(False, f"Закройте игру перед обновлением движка:\n{names}"))
+                self.after(0, lambda: self._finish_git_update(False, f"Закройте игру перед обновлением движка:\n{names}", operation="engine"))
                 return
 
             url = ENGINE_MT_URL if mode == "mt" else ENGINE_REGULAR_URL
             label = "MT TEST" if mode == "mt" else "обычная"
             tmp_dir = self.root_dir / "webcache" / "engine_update"
+            self._debug_log(f"engine worker: creating tmp_dir={tmp_dir}")
             tmp_dir.mkdir(parents=True, exist_ok=True)
             log_path = tmp_dir / "engine_update.log"
             self._write_update_log(log_path, f"engine mode={mode} version={ENGINE_RELEASE_VERSION}")
             self._write_update_log(log_path, f"download={url}")
+            self._debug_log(f"engine worker: log_path={log_path}")
 
             zip_path = tmp_dir / f"engine_{mode}_{ENGINE_RELEASE_VERSION}.zip"
+            self.after(0, lambda: self._set_engine_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
-            self._download_update_archive(url, zip_path)
+            self._download_update_archive(
+                url,
+                zip_path,
+                status_callback=self._set_engine_status,
+                progress_callback=self._set_engine_progress,
+            )
             self._write_update_log(log_path, f"downloaded={zip_path} size={zip_path.stat().st_size}")
 
+            self.after(0, lambda: self._set_engine_status("Установка движка...", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_status("Установка движка...", COLORS["accent_2"]))
+            self.after(0, lambda: self._set_engine_progress(0, "0%"))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             backup_dir = tmp_dir / f"backup_{time.strftime('%Y%m%d_%H%M%S')}"
             with zipfile.ZipFile(zip_path, "r") as archive:
                 self._install_engine_archive(archive, self.root_dir, backup_dir, log_path)
+            self._save_engine_state(mode, label, backup_dir)
+            self.after(0, self._refresh_engine_status)
 
             message = (
                 f"Движок обновлен.\n\n"
@@ -660,31 +748,35 @@ class LauncherApp(tk.Tk):
                 f"Тип: {label}\n\n"
                 f"Backup: {backup_dir}"
             )
-            self.after(0, lambda: self._finish_git_update(True, message))
+            self.after(0, lambda: self._finish_git_update(True, message, operation="engine"))
         except (URLError, OSError, zipfile.BadZipFile, ValueError) as exc:
+            self._debug_log(f"engine worker expected error: {type(exc).__name__}: {exc}")
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            self.after(0, lambda e=exc: self._finish_git_update(False, f"Не удалось обновить движок:\n{e}"))
+            self.after(0, lambda e=exc: self._finish_git_update(False, f"Не удалось обновить движок:\n{e}", operation="engine"))
         except Exception as exc:
+            self._debug_log(f"engine worker unexpected error: {type(exc).__name__}: {exc}")
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            self.after(0, lambda e=exc: self._finish_git_update(False, f"Не удалось обновить движок:\n{e}"))
+            self.after(0, lambda e=exc: self._finish_git_update(False, f"Не удалось обновить движок:\n{e}", operation="engine"))
 
     def _running_game_processes(self):
         names = []
         try:
             output = subprocess.check_output(
-                ["tasklist", "/FI", "IMAGENAME eq Anomaly*.exe", "/FO", "CSV", "/NH"],
+                ["tasklist", "/FO", "CSV", "/NH"],
                 text=True,
+                timeout=5,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
-        except (OSError, subprocess.CalledProcessError):
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
             return names
         for line in output.splitlines():
             line = line.strip()
             if line and not line.startswith("INFO:"):
                 name = line.split('","', 1)[0].strip('"')
-                if name.lower() != LAUNCHER_EXE_NAME.lower():
+                lower_name = name.lower()
+                if lower_name.startswith("anomaly") and lower_name.endswith(".exe") and lower_name != LAUNCHER_EXE_NAME.lower():
                     names.append(name)
         return names
 
@@ -860,11 +952,13 @@ class LauncherApp(tk.Tk):
         subprocess.Popen(["cmd.exe", "/c", str(updater)], cwd=str(self.root_dir), creationflags=creationflags)
         self.destroy()
 
-    def _download_update_archive(self, url, path, attempts=3):
+    def _download_update_archive(self, url, path, attempts=3, status_callback=None, progress_callback=None):
+        status_callback = status_callback or self._set_update_status
+        progress_callback = progress_callback or self._set_update_progress
         last_error = None
         for attempt in range(1, attempts + 1):
             try:
-                self._download_update_archive_once(url, path)
+                self._download_update_archive_once(url, path, progress_callback)
                 return
             except Exception as exc:
                 last_error = exc
@@ -875,11 +969,11 @@ class LauncherApp(tk.Tk):
                 if attempt >= attempts:
                     break
                 status = f"{TEXT[self.lang]['update_downloading']} ({attempt + 1}/{attempts})"
-                self.after(0, lambda s=status: self._set_update_status(s, COLORS["accent_2"]))
+                self.after(0, lambda s=status, cb=status_callback: cb(s, COLORS["accent_2"]))
                 time.sleep(1.0)
         raise last_error
 
-    def _download_update_archive_once(self, url, path):
+    def _download_update_archive_once(self, url, path, progress_callback):
         last = {"value": -1}
         with urlopen(url, timeout=60) as response, path.open("wb") as target:
             size_header = response.headers.get("Content-Length")
@@ -896,7 +990,7 @@ class LauncherApp(tk.Tk):
                 value = min(100, int(downloaded * 100 / total_size))
                 if value != last["value"]:
                     last["value"] = value
-                    self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+                    self.after(0, lambda v=value, cb=progress_callback: cb(v, f"{v}%"))
 
     def _state_path(self, mods_dir):
         return mods_dir.parent / ".launcher_update_state.json"
@@ -917,12 +1011,62 @@ class LauncherApp(tk.Tk):
         }
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    def _engine_update_dir(self):
+        return self.root_dir / "webcache" / "engine_update"
+
+    def _engine_state_path(self):
+        return self._engine_update_dir() / "engine_state.json"
+
+    def _load_engine_state(self):
+        path = self._engine_state_path()
+        if not path.exists():
+            return {}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def _save_engine_state(self, mode, label, backup_dir):
+        state = {
+            "version": ENGINE_RELEASE_VERSION,
+            "mode": mode,
+            "label": label,
+            "installed_at": time.strftime("%Y-%m-%d %H:%M"),
+            "backup": str(backup_dir),
+        }
+        path = self._engine_state_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _engine_status_text(self):
+        state = self._load_engine_state()
+        if state:
+            version = state.get("version", "unknown")
+            label = state.get("label") or ("MT TEST" if state.get("mode") == "mt" else "обычная")
+            installed = state.get("installed_at", "дата неизвестна")
+            return f"Движок: {version} / {label} / установлен {installed}"
+        return "Движок: не обновлялся через лаунчер"
+
+    def _refresh_engine_status(self):
+        if self.engine_status_item:
+            self.canvas.itemconfig(self.engine_status_item, text=self._engine_status_text(), fill=COLORS["muted"])
+
     def _write_update_log(self, path, text):
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("a", encoding="utf-8") as handle:
                 handle.write(text + "\n")
         except OSError:
+            pass
+
+    def _debug_log(self, text):
+        try:
+            path = self.root_dir / "webcache" / "launcher_debug.log"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(f"{stamp} {text}\n")
+        except Exception:
             pass
 
     def _install_update_archive(self, archive, dst, log_path=None):
@@ -970,6 +1114,7 @@ class LauncherApp(tk.Tk):
             if index == total or index % 2 == 0:
                 value = 50 + int(index * 50 / total)
                 self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+                self.after(0, lambda v=value: self._set_engine_progress(v, f"{v}%"))
 
     def _archive_update_relative(self, name):
         parts = Path(name.replace("\\", "/")).parts
@@ -1000,10 +1145,18 @@ class LauncherApp(tk.Tk):
         except OSError:
             pass
 
-    def _finish_git_update(self, ok, message):
+    def _finish_git_update(self, ok, message, operation="modpack"):
         self.updating = False
-        self._set_update_status(TEXT[self.lang]["update_done" if ok else "update_failed"], COLORS["accent"] if ok else COLORS["danger"])
-        self._set_update_progress(100 if ok else 0, "100%" if ok else "")
+        color = COLORS["accent"] if ok else COLORS["danger"]
+        if operation == "engine":
+            engine_text = self._engine_status_text() if ok else "Не удалось обновить движок"
+            self._set_engine_status(engine_text, color)
+            self._set_engine_progress(100 if ok else 0, "100%" if ok else "")
+            self._set_update_status(TEXT[self.lang]["update_ready"], COLORS["muted"])
+            self._set_update_progress(0, "")
+        else:
+            self._set_update_status(TEXT[self.lang]["update_done" if ok else "update_failed"], color)
+            self._set_update_progress(100 if ok else 0, "100%" if ok else "")
         box = messagebox.showinfo if ok else messagebox.showerror
         box("Anthology Launcher", message)
 
