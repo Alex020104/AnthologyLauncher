@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.36",
+  "version": "2026.05.24.37",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Самообновление лаунчера теперь скачивает временные файлы в системный Temp и запускает применяющий скрипт через Windows Shell, чтобы не попадать в MO2 overwrite."
+  "notes": "Тестовая пустая сборка для проверки самообновления лаунчера."
 }
