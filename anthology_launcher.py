@@ -1236,10 +1236,10 @@ class LauncherApp(tk.Tk):
         if entry.get("url"):
             return str(entry["url"])
         base_url = str(remote.get("base_url", "")).strip()
-        asset_name = str(entry.get("asset_name") or entry["path"].name).strip()
+        asset_name = str(entry.get("asset_name") or entry["path"].as_posix()).strip()
         if not base_url:
             raise ValueError(f"DB file has no url and manifest has no base_url: {entry['path']}")
-        return base_url.rstrip("/") + "/" + quote(asset_name)
+        return base_url.rstrip("/") + "/" + quote(asset_name.replace("\\", "/"), safe="/")
 
     def _engine_update_dir(self):
         return self.root_dir / "webcache" / "engine_update"
