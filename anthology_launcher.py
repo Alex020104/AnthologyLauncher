@@ -1,4 +1,5 @@
 import os
+import hashlib
 import json
 import shutil
 import subprocess
@@ -10,6 +11,7 @@ import webbrowser
 import zipfile
 from pathlib import Path
 from urllib.error import URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 import tkinter as tk
 from tkinter import messagebox
@@ -42,6 +44,9 @@ MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
 UPDATE_ZIP_URL = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/archive/refs/heads/main.zip"
 UPDATE_ALLOWED_PARTS = {"configs", "scripts"}
+DB_REPO = "https://github.com/sysliveprime-ctrl/anthology-db"
+DB_UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-db/main/db_version.json"
+DB_ALLOWED_PARTS = {"configs", "mods"}
 
 COLORS = {
     "bg": "#050807",
@@ -272,6 +277,7 @@ class LauncherApp(tk.Tk):
 
         self._add(self.canvas.create_line(MARGIN, 570, WIDTH - MARGIN, 570, fill=COLORS["accent"], stipple="gray50", width=2))
         self.buttons["settings"] = self._button(966, 592, 162, 46, t["settings"], self.show_settings)
+        self.buttons["db_update"] = self._button(792, 646, 154, 46, "DB", self.sync_db_update)
         self.buttons["update"] = self._button(966, 646, 162, 46, t["update_button"], self.sync_modpack_update)
         self._bottom_update_bar(t)
         self.flag_id = self._add(self.canvas.create_image(914, 606, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
@@ -656,6 +662,14 @@ class LauncherApp(tk.Tk):
         self._set_update_progress(0, "")
         self._start_background_worker("modpack-update", self._sync_modpack_update_worker)
 
+    def sync_db_update(self):
+        if self.updating:
+            return
+        self.updating = True
+        self._set_update_status("DB: checking version...", COLORS["accent_2"])
+        self._set_update_progress(0, "")
+        self._start_background_worker("db-update", self._sync_db_update_worker)
+
     def sync_engine_update(self):
         if self.updating:
             self._debug_log("engine click ignored: update already running")
@@ -836,8 +850,85 @@ class LauncherApp(tk.Tk):
                 self._write_update_log(log_path, f"ERROR={exc}")
             self.after(0, lambda m=message: self._finish_git_update(False, m))
 
+    def _sync_db_update_worker(self):
+        log_path = None
+        try:
+            self.after(0, lambda: self._set_update_status("DB: checking game process...", COLORS["accent_2"]))
+            running = self._running_game_processes()
+            if running:
+                names = ", ".join(running)
+                self.after(0, lambda: self._finish_git_update(False, f"Close the game before DB update:\n{names}"))
+                return
+
+            db_dir = self.root_dir / "db"
+            if not db_dir.exists():
+                self.after(0, lambda: self._finish_git_update(False, f"DB folder was not found:\n{db_dir}"))
+                return
+
+            tmp_dir = self.root_dir / "webcache" / "db_update"
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            log_path = tmp_dir / "db_update.log"
+            self._write_update_log(log_path, f"db_dir={db_dir}")
+
+            remote = self._download_db_update_version()
+            entries = self._db_manifest_entries(remote)
+            remote_version = str(remote.get("version", "")).strip()
+            if not remote_version:
+                self.after(0, lambda: self._finish_git_update(False, "DB update failed:\ndb_version.json has no version"))
+                return
+            if not entries:
+                self.after(0, lambda: self._finish_git_update(False, "DB update failed:\ndb_version.json has no files"))
+                return
+
+            self.after(0, lambda: self._set_update_status("DB: removing extra archives...", COLORS["accent_2"]))
+            deleted = self._mirror_db_archives(entries, log_path)
+
+            changed = self._db_files_needing_download(entries, log_path)
+            if not changed:
+                self._save_db_update_state(remote)
+                message = f"DB is already up to date.\n\nVersion: {remote_version}\nRemoved extra files: {deleted}"
+                self.after(0, lambda: self._finish_git_update(True, message))
+                return
+
+            total = len(changed)
+            self._write_update_log(log_path, f"download files={total}")
+            for index, entry in enumerate(changed, start=1):
+                rel = entry["path"]
+                target = self.root_dir / rel
+                tmp_file = tmp_dir / (target.name + ".download")
+                url = self._db_entry_url(remote, entry)
+                self.after(0, lambda i=index, n=total, p=rel: self._set_update_status(f"DB: downloading {i}/{n} {Path(p).name}", COLORS["accent_2"]))
+                self._write_update_log(log_path, f"download {index}/{total}: {url} -> {target}")
+                self._download_update_archive(url, tmp_file)
+                self._verify_db_file(tmp_file, entry)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                self._make_writable(target)
+                shutil.move(str(tmp_file), str(target))
+                value = int(index * 100 / total)
+                self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+
+            self._save_db_update_state(remote)
+            notes = str(remote.get("notes", "")).strip()
+            message = f"DB updated.\n\nVersion: {remote_version}\nDownloaded files: {total}\nRemoved extra files: {deleted}"
+            if notes:
+                message += f"\n\n{notes}"
+            self.after(0, lambda: self._finish_git_update(True, message))
+        except (URLError, OSError, ValueError) as exc:
+            if log_path:
+                self._write_update_log(log_path, f"ERROR={exc}")
+            self.after(0, lambda e=exc: self._finish_git_update(False, f"DB update failed:\n{e}"))
+        except Exception as exc:
+            if log_path:
+                self._write_update_log(log_path, f"ERROR={exc}")
+            self.after(0, lambda e=exc: self._finish_git_update(False, f"DB update failed:\n{e}"))
+
     def _download_update_version(self):
         url = f"{UPDATE_VERSION_URL}?t={int(time.time())}"
+        with urlopen(url, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8-sig"))
+
+    def _download_db_update_version(self):
+        url = f"{DB_UPDATE_VERSION_URL}?t={int(time.time())}"
         with urlopen(url, timeout=30) as response:
             return json.loads(response.read().decode("utf-8-sig"))
 
@@ -1010,6 +1101,145 @@ class LauncherApp(tk.Tk):
             "repo": MODPACK_REPO,
         }
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _db_state_path(self):
+        return self.root_dir / "webcache" / "db_update" / "db_state.json"
+
+    def _save_db_update_state(self, remote):
+        state = {
+            "version": str(remote.get("version", "")).strip(),
+            "repo": DB_REPO,
+            "updated_at": time.strftime("%Y-%m-%d %H:%M"),
+        }
+        path = self._db_state_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _db_manifest_entries(self, remote):
+        raw_files = remote.get("files")
+        if not isinstance(raw_files, list):
+            raise ValueError("db_version.json files must be a list")
+
+        entries = []
+        seen = set()
+        for item in raw_files:
+            if isinstance(item, str):
+                item = {"path": item}
+            if not isinstance(item, dict):
+                raise ValueError("db_version.json file entry must be an object")
+            path = self._normalize_db_manifest_path(item.get("path", ""))
+            if not path:
+                raise ValueError(f"invalid DB file path: {item.get('path')}")
+            key = path.as_posix().casefold()
+            if key in seen:
+                raise ValueError(f"duplicate DB file path: {path.as_posix()}")
+            seen.add(key)
+            entry = dict(item)
+            entry["path"] = path
+            if "size" in entry and entry["size"] not in ("", None):
+                entry["size"] = int(entry["size"])
+            if entry.get("sha256"):
+                entry["sha256"] = str(entry["sha256"]).strip().lower()
+            entries.append(entry)
+        return entries
+
+    def _normalize_db_manifest_path(self, value):
+        if not isinstance(value, str):
+            return None
+        parts = Path(value.replace("\\", "/")).parts
+        if len(parts) < 3 or parts[0].lower() != "db":
+            return None
+        if parts[1].lower() not in DB_ALLOWED_PARTS:
+            return None
+        if any(part in ("", ".", "..") for part in parts):
+            return None
+        path = Path(*parts)
+        if not self._is_db_archive_file(path):
+            return None
+        return path
+
+    def _is_db_archive_file(self, path):
+        suffix = path.suffix.lower().lstrip(".")
+        if suffix == "db" or suffix == "xdb":
+            return True
+        if suffix.startswith("db") and suffix[2:].isdigit():
+            return True
+        if suffix.startswith("xdb") and suffix[3:].isdigit():
+            return True
+        return False
+
+    def _mirror_db_archives(self, entries, log_path=None):
+        allowed = {entry["path"].as_posix().casefold() for entry in entries}
+        deleted = 0
+        for folder in DB_ALLOWED_PARTS:
+            root = self.root_dir / "db" / folder
+            if not root.exists():
+                continue
+            for path in sorted(root.rglob("*"), key=lambda item: str(item).casefold()):
+                if not path.is_file() or not self._is_db_archive_file(path):
+                    continue
+                rel = path.relative_to(self.root_dir).as_posix().casefold()
+                if rel in allowed:
+                    continue
+                self._make_writable(path)
+                path.unlink()
+                deleted += 1
+                if log_path:
+                    self._write_update_log(log_path, f"delete extra: {path}")
+        return deleted
+
+    def _db_files_needing_download(self, entries, log_path=None):
+        changed = []
+        total = max(1, len(entries))
+        for index, entry in enumerate(entries, start=1):
+            rel = entry["path"]
+            target = self.root_dir / rel
+            self.after(0, lambda i=index, n=total: self._set_update_status(f"DB: checking hashes {i}/{n}", COLORS["accent_2"]))
+            if not self._db_file_matches(target, entry):
+                changed.append(entry)
+                if log_path:
+                    self._write_update_log(log_path, f"needs download: {target}")
+            value = int(index * 35 / total)
+            self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+        return changed
+
+    def _db_file_matches(self, path, entry):
+        if not path.exists():
+            return False
+        expected_size = entry.get("size")
+        if expected_size is not None and path.stat().st_size != expected_size:
+            return False
+        expected_hash = entry.get("sha256")
+        if expected_hash and self._sha256_file(path) != expected_hash:
+            return False
+        return True
+
+    def _sha256_file(self, path):
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            while True:
+                chunk = handle.read(1024 * 1024)
+                if not chunk:
+                    break
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    def _verify_db_file(self, path, entry):
+        expected_size = entry.get("size")
+        if expected_size is not None and path.stat().st_size != expected_size:
+            raise ValueError(f"downloaded size mismatch for {entry['path']}")
+        expected_hash = entry.get("sha256")
+        if expected_hash and self._sha256_file(path) != expected_hash:
+            raise ValueError(f"downloaded sha256 mismatch for {entry['path']}")
+
+    def _db_entry_url(self, remote, entry):
+        if entry.get("url"):
+            return str(entry["url"])
+        base_url = str(remote.get("base_url", "")).strip()
+        asset_name = str(entry.get("asset_name") or entry["path"].name).strip()
+        if not base_url:
+            raise ValueError(f"DB file has no url and manifest has no base_url: {entry['path']}")
+        return base_url.rstrip("/") + "/" + quote(asset_name)
 
     def _engine_update_dir(self):
         return self.root_dir / "webcache" / "engine_update"
