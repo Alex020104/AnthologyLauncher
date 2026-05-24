@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.16"
+LAUNCHER_VERSION = "2026.05.24.17"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1016,11 +1016,6 @@ class LauncherApp(tk.Tk):
             f"set \"LOG={updater_log}\"",
             f"set \"PID={os.getpid()}\"",
             "echo updater started > \"%LOG%\"",
-            "set \"_PYI_APPLICATION_HOME_DIR=\"",
-            "set \"_PYI_ARCHIVE_FILE=\"",
-            "set \"_PYI_PARENT_PROCESS_LEVEL=\"",
-            "set \"_MEIPASS2=\"",
-            "set \"PYINSTALLER_RESET_ENVIRONMENT=1\"",
             ":wait_loop",
             "tasklist /FI \"PID eq %PID%\" | find \"%PID%\" >nul",
             "if not errorlevel 1 (",
@@ -1037,7 +1032,7 @@ class LauncherApp(tk.Tk):
             "  goto copy_loop",
             ")",
             "echo copy ok >> \"%LOG%\"",
-            "start \"\" /D \"%DST_DIR%\" \"%SystemRoot%\\explorer.exe\" \"%DST%\"",
+            "echo launcher updated; manual restart required >> \"%LOG%\"",
             "exit /b 0",
             ":copy_failed",
             "echo copy failed >> \"%LOG%\"",

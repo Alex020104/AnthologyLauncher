@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.16",
+  "version": "2026.05.24.17",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Start the updated launcher through Explorer with PyInstaller reset environment after self-update."
+  "notes": "Self-update now replaces the launcher and exits without auto-starting the new EXE. Start the launcher manually after update."
 }
