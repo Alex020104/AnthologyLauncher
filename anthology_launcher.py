@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.31"
+LAUNCHER_VERSION = "2026.05.24.35"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -377,11 +377,14 @@ class LauncherApp(tk.Tk):
         y = 592
         self.buttons["play"] = self._button(72, y, 158, 42, t["play"], self.play, primary=True)
         self.buttons["cache"] = self._button(248, y, 166, 42, t["cache"], self.delete_shader_cache)
-        self._add(self.canvas.create_text(480, 610, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 10, "bold")))
-        self.update_status_item = self._add(self.canvas.create_text(480, 632, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10), width=458))
-        self.update_progress_bg = self._add(self.canvas.create_rectangle(112, 682, 958, 691, fill="#091211", outline="#476760"))
-        self.update_progress_fill = self._add(self.canvas.create_rectangle(112, 682, 112, 691, fill=COLORS["accent"], outline=""))
-        self.update_progress_text = self._add(self.canvas.create_text(535, 704, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        update_x = 490
+        update_w = 430
+        update_bar_y = 682
+        self._add(self.canvas.create_text(update_x, 604, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 10, "bold")))
+        self.update_status_item = self._add(self.canvas.create_text(update_x, 626, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10), width=update_w))
+        self.update_progress_bg = self._add(self.canvas.create_rectangle(update_x, update_bar_y, update_x + update_w, update_bar_y + 9, fill="#091211", outline="#476760"))
+        self.update_progress_fill = self._add(self.canvas.create_rectangle(update_x, update_bar_y, update_x, update_bar_y + 9, fill=COLORS["accent"], outline=""))
+        self.update_progress_text = self._add(self.canvas.create_text(update_x + update_w / 2, update_bar_y + 22, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
         self._set_update_progress(0, "")
 
     def _panel(self, x, y, w, h, alpha="solid"):
@@ -893,12 +896,13 @@ class LauncherApp(tk.Tk):
             if not remote_version:
                 return False, f"{t['update_failed']}:\nversion.json has no version"
             local_version = str(local.get("version", "")).strip()
-            needs_repair = self._modpack_needs_repair(mods_dir)
-            if local_version == remote_version and not needs_repair:
+            needs_repair = self._modpack_needs_repair(mods_dir, local)
+            needs_manifest_bootstrap = local_version == remote_version and not self._state_file_list(local)
+            if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap:
                 return True, f"{t['update_latest']}\n\nVersion: {remote_version}"
 
             status_text = t["update_downloading"]
-            if local_version == remote_version and needs_repair:
+            if local_version == remote_version and (needs_repair or needs_manifest_bootstrap):
                 status_text = "Modpack repair: downloading missing files..."
             self.after(0, lambda s=status_text: self._set_update_status(s, COLORS["accent_2"]))
             zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
@@ -915,8 +919,8 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._set_update_status(t["update_applying"], COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             with zipfile.ZipFile(zip_path, "r") as archive:
-                self._install_update_archive(archive, mods_dir, log_path)
-            self._save_update_state(mods_dir, remote)
+                installed_files = self._install_update_archive(archive, mods_dir, log_path)
+            self._save_update_state(mods_dir, remote, installed_files)
             self._write_update_log(log_path, "state saved")
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -936,7 +940,20 @@ class LauncherApp(tk.Tk):
                 self._write_update_log(log_path, f"ERROR={exc}")
             return False, message
 
-    def _modpack_needs_repair(self, mods_dir):
+    def _modpack_needs_repair(self, mods_dir, local_state=None):
+        tracked_files = self._state_file_list(local_state or {})
+        if tracked_files:
+            missing = []
+            for rel in tracked_files:
+                if not (mods_dir / rel).is_file():
+                    missing.append(rel.as_posix())
+                    if len(missing) >= 10:
+                        break
+            if missing:
+                self._debug_log(f"modpack repair needed: missing files: {' | '.join(missing)}")
+                return True
+            return False
+
         git_dir = mods_dir / ".git"
         if not git_dir.exists():
             return False
@@ -1044,9 +1061,6 @@ class LauncherApp(tk.Tk):
     def check_launcher_update_async(self):
         if not getattr(sys, "frozen", False):
             return
-        if self._running_mod_organizer_processes():
-            self._debug_log("launcher self-update check skipped: Mod Organizer 2 is running")
-            return
         threading.Thread(target=self._check_launcher_update_worker, daemon=True).start()
 
     def _check_launcher_update_worker(self):
@@ -1097,6 +1111,8 @@ class LauncherApp(tk.Tk):
             "После обновления откройте лаунчер заново через MO2."
         )
         if messagebox.askyesno("Anthology Launcher", message):
+            if self._block_update_if_mod_organizer_running():
+                return
             threading.Thread(target=self._install_launcher_update_worker, args=(remote,), daemon=True).start()
 
     def _install_launcher_update_worker(self, remote):
@@ -1234,11 +1250,28 @@ class LauncherApp(tk.Tk):
         except (OSError, ValueError):
             return {}
 
-    def _save_update_state(self, mods_dir, remote):
+    def _state_file_list(self, state):
+        raw_files = state.get("files")
+        if not isinstance(raw_files, list):
+            return []
+        files = []
+        for item in raw_files:
+            if not isinstance(item, str):
+                continue
+            parts = Path(item.replace("\\", "/")).parts
+            if not parts or any(part in ("", ".", "..") for part in parts):
+                continue
+            files.append(Path(*parts))
+        return files
+
+    def _save_update_state(self, mods_dir, remote, files=None):
         state = {
             "version": str(remote.get("version", "")).strip(),
             "repo": MODPACK_REPO,
+            "updated_at": time.strftime("%Y-%m-%d %H:%M"),
         }
+        if files:
+            state["files"] = sorted({Path(path).as_posix() for path in files}, key=str.casefold)
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _db_state_path(self):
@@ -1447,9 +1480,11 @@ class LauncherApp(tk.Tk):
         if log_path:
             self._write_update_log(log_path, f"install files={len(files)}")
         self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
+        installed = []
         for index, info in enumerate(files, start=1):
             relative = self._archive_update_relative(info.filename)
             target_path = dst / relative
+            installed.append(relative)
             if log_path and (index == 1 or index == total or index % 50 == 0):
                 self._write_update_log(log_path, f"copy {index}/{total}: {target_path}")
             target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1459,6 +1494,7 @@ class LauncherApp(tk.Tk):
             if index == total or index % 10 == 0:
                 value = 50 + int(index * 50 / total)
                 self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+        return installed
 
     def _install_engine_archive(self, archive, dst, backup_dir, log_path=None):
         files = [info for info in archive.infolist() if not info.is_dir() and self._archive_engine_relative(info.filename)]
