@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.39"
+LAUNCHER_VERSION = "2026.05.24.40"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1299,16 +1299,16 @@ class LauncherApp(tk.Tk):
             "После нажатия OK лаунчер закроется и заменит файл.\n"
             "Откройте лаунчер заново вручную через Mod Organizer 2.",
         )
-        self._shell_open_file(updater)
+        self._shell_open_file(updater, show=0)
         self.destroy()
 
-    def _shell_open_file(self, path):
+    def _shell_open_file(self, path, show=1):
         if sys.platform != "win32":
             subprocess.Popen([str(path)], cwd=str(path.parent), env=self._prepare_external_launch())
             return
         try:
             import ctypes
-            result = ctypes.windll.shell32.ShellExecuteW(None, "open", str(path), None, str(path.parent), 0)
+            result = ctypes.windll.shell32.ShellExecuteW(None, "open", str(path), None, str(path.parent), int(show))
             if result <= 32:
                 raise OSError(f"ShellExecuteW failed: {result}")
         except Exception:
@@ -1767,7 +1767,7 @@ class LauncherApp(tk.Tk):
             )
             return
         try:
-            subprocess.Popen([str(mo2_path)], cwd=str(mo2_path.parent), env=self._prepare_external_launch(), close_fds=True)
+            self._shell_open_file(mo2_path)
             self.destroy()
         except Exception as exc:
             messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{mo2_path}\n\n{exc}")
