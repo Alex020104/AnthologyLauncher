@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.2",
+  "version": "2026.05.24.3",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Launcher self-update is now enabled through GitHub Releases."
+  "notes": "Launcher and modpack update checks now bypass GitHub raw cache."
 }

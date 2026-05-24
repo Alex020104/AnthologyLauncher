@@ -28,7 +28,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.2"
+LAUNCHER_VERSION = "2026.05.24.3"
 LAUNCHER_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
@@ -657,7 +657,8 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda m=message: self._finish_git_update(False, m))
 
     def _download_update_version(self):
-        with urlopen(UPDATE_VERSION_URL, timeout=30) as response:
+        url = f"{UPDATE_VERSION_URL}?t={int(time.time())}"
+        with urlopen(url, timeout=30) as response:
             return json.loads(response.read().decode("utf-8-sig"))
 
     def check_launcher_update_async(self):
@@ -676,7 +677,8 @@ class LauncherApp(tk.Tk):
             return
 
     def _download_launcher_version(self):
-        with urlopen(LAUNCHER_VERSION_URL, timeout=20) as response:
+        url = f"{LAUNCHER_VERSION_URL}?t={int(time.time())}"
+        with urlopen(url, timeout=20) as response:
             return json.loads(response.read().decode("utf-8-sig"))
 
     def _is_newer_version(self, remote_version, local_version):
