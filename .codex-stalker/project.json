@@ -1,0 +1,7 @@
+{
+  "name": "AnthologyLauncher",
+  "type": "tool",
+  "description": "Modern Python launcher for Anthology 2.1",
+  "entrypoint": "anthology_launcher.py",
+  "build": "py -3 -m PyInstaller --noconfirm AnthologyLauncherModern.spec"
+}
