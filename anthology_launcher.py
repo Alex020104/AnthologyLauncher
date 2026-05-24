@@ -30,11 +30,12 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.29"
+LAUNCHER_VERSION = "2026.05.24.30"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
+MOD_ORGANIZER_EXE_NAME = "ModOrganizer.exe"
 ENGINE_RELEASE_VERSION = "2026.5.23"
 ENGINE_REGULAR_URL = "https://github.com/themrdemonized/xray-monolith/releases/download/2026.5.23/STALKER-Anomaly-modded-exes_2026.5.23.zip"
 ENGINE_MT_URL = "https://github.com/themrdemonized/xray-monolith/releases/download/2026.5.23/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.23.zip"
@@ -92,6 +93,7 @@ TEXT = {
         "update_missing": "Не найдена папка модпака",
         "update_expected": "Папка модпака должна лежать рядом с папкой игры",
         "update_failed": "Не удалось обновить модпак",
+        "update_blocked_mo2": "Лаунчер запущен через Mod Organizer 2 или Mod Organizer 2 сейчас открыт.\n\nЧтобы избежать повреждения файлов и ошибки \"процесс занят\", обновление отключено.\n\nЗакройте Mod Organizer 2 и запустите лаунчер напрямую для обновления.",
         "news_1": "Подготовка к открытому тестированию",
         "news_1_body": "Сборка готовится к ОБТ. Сейчас лаунчер запускает игру, хранит локальные настройки и подготовлен под будущий сервер обновлений.",
         "news_2": "MO2 профиль Anthology 2.1",
@@ -135,6 +137,7 @@ TEXT = {
         "update_missing": "Modpack folder was not found",
         "update_expected": "The modpack folder must be next to the game folder",
         "update_failed": "Failed to update modpack",
+        "update_blocked_mo2": "The launcher is running through Mod Organizer 2, or Mod Organizer 2 is currently open.\n\nTo avoid file damage and \"process is busy\" errors, updates are disabled.\n\nClose Mod Organizer 2 and run the launcher directly to update.",
         "news_1": "Open beta preparation",
         "news_1_body": "The build is preparing for OBT. The launcher starts the game, stores local settings, and is ready for a future update server.",
         "news_2": "MO2 Anthology 2.1 profile",
@@ -658,6 +661,8 @@ class LauncherApp(tk.Tk):
     def sync_modpack_update(self):
         if self.updating:
             return
+        if self._block_update_if_mod_organizer_running():
+            return
         self.updating = True
         self._set_update_status("DB: checking version...", COLORS["accent_2"])
         self._set_update_progress(0, "")
@@ -665,6 +670,8 @@ class LauncherApp(tk.Tk):
 
     def sync_db_update(self):
         if self.updating:
+            return
+        if self._block_update_if_mod_organizer_running():
             return
         self.updating = True
         self._set_update_status("DB: checking version...", COLORS["accent_2"])
@@ -674,6 +681,8 @@ class LauncherApp(tk.Tk):
     def sync_engine_update(self):
         if self.updating:
             self._debug_log("engine click ignored: update already running")
+            return
+        if self._block_update_if_mod_organizer_running():
             return
         choice = messagebox.askyesnocancel(
             "Anthology Launcher",
@@ -794,6 +803,35 @@ class LauncherApp(tk.Tk):
                 if lower_name.startswith("anomaly") and lower_name.endswith(".exe") and lower_name != LAUNCHER_EXE_NAME.lower():
                     names.append(name)
         return names
+
+    def _running_mod_organizer_processes(self):
+        names = []
+        try:
+            output = subprocess.check_output(
+                ["tasklist", "/FO", "CSV", "/NH"],
+                text=True,
+                timeout=5,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            return names
+        for line in output.splitlines():
+            line = line.strip()
+            if line and not line.startswith("INFO:"):
+                name = line.split('","', 1)[0].strip('"')
+                if name.lower() == MOD_ORGANIZER_EXE_NAME.lower():
+                    names.append(name)
+        return names
+
+    def _block_update_if_mod_organizer_running(self):
+        running = self._running_mod_organizer_processes()
+        if not running:
+            return False
+        self._debug_log(f"update blocked: Mod Organizer 2 is running: {', '.join(running)}")
+        self._set_update_status(TEXT[self.lang]["update_failed"], COLORS["danger"])
+        self._set_update_progress(0, "")
+        messagebox.showerror("Anthology Launcher", TEXT[self.lang]["update_blocked_mo2"])
+        return True
 
     def _sync_combined_update_worker(self):
         db_ok, db_message = self._sync_db_update_step()
@@ -975,6 +1013,9 @@ class LauncherApp(tk.Tk):
 
     def check_launcher_update_async(self):
         if not getattr(sys, "frozen", False):
+            return
+        if self._running_mod_organizer_processes():
+            self._debug_log("launcher self-update check skipped: Mod Organizer 2 is running")
             return
         threading.Thread(target=self._check_launcher_update_worker, daemon=True).start()
 
