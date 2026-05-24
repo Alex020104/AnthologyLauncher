@@ -28,7 +28,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.3"
+LAUNCHER_VERSION = "2026.05.24.4"
 LAUNCHER_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
@@ -722,24 +722,42 @@ class LauncherApp(tk.Tk):
         if current_exe.name.lower() != LAUNCHER_EXE_NAME.lower():
             current_exe = current_exe.with_name(LAUNCHER_EXE_NAME)
         updater = new_exe.parent / "apply_launcher_update.bat"
+        updater_log = new_exe.parent / "apply_launcher_update.log"
         lines = [
             "@echo off",
             "chcp 65001 >nul",
+            "setlocal",
             f"set \"SRC={new_exe}\"",
             f"set \"DST={current_exe}\"",
+            f"set \"DST_DIR={self.root_dir}\"",
+            f"set \"LOG={updater_log}\"",
             f"set \"PID={os.getpid()}\"",
+            "echo updater started > \"%LOG%\"",
             ":wait_loop",
             "tasklist /FI \"PID eq %PID%\" | find \"%PID%\" >nul",
             "if not errorlevel 1 (",
             "  timeout /t 1 /nobreak >nul",
             "  goto wait_loop",
             ")",
-            "copy /Y \"%SRC%\" \"%DST%\" >nul",
-            "start \"\" \"%DST%\"",
-            "del \"%~f0\"",
+            "set /a COPY_TRY=0",
+            ":copy_loop",
+            "set /a COPY_TRY+=1",
+            "copy /Y \"%SRC%\" \"%DST%\" >> \"%LOG%\" 2>&1",
+            "if errorlevel 1 (",
+            "  if %COPY_TRY% GEQ 15 goto copy_failed",
+            "  timeout /t 1 /nobreak >nul",
+            "  goto copy_loop",
+            ")",
+            "echo copy ok >> \"%LOG%\"",
+            "start \"\" /D \"%DST_DIR%\" \"%DST%\"",
+            "exit /b 0",
+            ":copy_failed",
+            "echo copy failed >> \"%LOG%\"",
+            "pause",
         ]
         updater.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
-        subprocess.Popen(["cmd.exe", "/c", "start", "", str(updater)], cwd=str(self.root_dir))
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        subprocess.Popen(["cmd.exe", "/c", str(updater)], cwd=str(self.root_dir), creationflags=creationflags)
         self.destroy()
 
     def _download_update_archive(self, url, path, attempts=3):
