@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.30",
+  "version": "2026.05.24.31",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Обновления теперь блокируются, если лаунчер запущен через Mod Organizer 2 или Mod Organizer 2 открыт. Закройте Mod Organizer 2 и запустите лаунчер напрямую для обновления."
+  "notes": "Нижний блок центра обновлений выровнен по центру, прогресс-полоса расширена, окно лаунчера теперь открывается по центру экрана и не уезжает за его края при перетаскивании."
 }

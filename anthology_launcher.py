@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.30"
+LAUNCHER_VERSION = "2026.05.24.31"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -184,6 +184,8 @@ class LauncherApp(tk.Tk):
         self.avx = False
         self.drag_x = 0
         self.drag_y = 0
+        self.drag_window_x = 0
+        self.drag_window_y = 0
         self.view = "home"
         self.updating = False
         self.worker_threads = []
@@ -202,7 +204,7 @@ class LauncherApp(tk.Tk):
         self.toggle_items = {}
 
         self.overrideredirect(True)
-        self.geometry(f"{WIDTH}x{HEIGHT}+120+80")
+        self._center_window()
         self.resizable(False, False)
         self.configure(bg=COLORS["bg"])
 
@@ -240,6 +242,7 @@ class LauncherApp(tk.Tk):
         self.canvas.tag_bind(self.close_btn, "<Button-1>", lambda _e: self.destroy())
         self.canvas.tag_bind("all", "<ButtonPress-1>", self._start_drag)
         self.canvas.tag_bind("all", "<B1-Motion>", self._drag)
+        self.canvas.tag_bind("all", "<ButtonRelease-1>", self._stop_drag)
 
         self.flag_ru = ImageTk.PhotoImage(Image.open(self.assets / "flag_ru.png").resize((30, 21), Image.Resampling.LANCZOS))
         self.flag_us = ImageTk.PhotoImage(Image.open(self.assets / "flag_us.png").resize((30, 21), Image.Resampling.LANCZOS))
@@ -374,11 +377,11 @@ class LauncherApp(tk.Tk):
         y = 592
         self.buttons["play"] = self._button(72, y, 158, 42, t["play"], self.play, primary=True)
         self.buttons["cache"] = self._button(248, y, 166, 42, t["cache"], self.delete_shader_cache)
-        self._add(self.canvas.create_text(132, 654, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 10, "bold")))
-        self.update_status_item = self._add(self.canvas.create_text(132, 676, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
-        self.update_progress_bg = self._add(self.canvas.create_rectangle(386, 666, 922, 675, fill="#091211", outline="#476760"))
-        self.update_progress_fill = self._add(self.canvas.create_rectangle(386, 666, 386, 675, fill=COLORS["accent"], outline=""))
-        self.update_progress_text = self._add(self.canvas.create_text(654, 688, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        self._add(self.canvas.create_text(480, 610, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 10, "bold")))
+        self.update_status_item = self._add(self.canvas.create_text(480, 632, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10), width=458))
+        self.update_progress_bg = self._add(self.canvas.create_rectangle(112, 682, 958, 691, fill="#091211", outline="#476760"))
+        self.update_progress_fill = self._add(self.canvas.create_rectangle(112, 682, 112, 691, fill=COLORS["accent"], outline=""))
+        self.update_progress_text = self._add(self.canvas.create_text(535, 704, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
         self._set_update_progress(0, "")
 
     def _panel(self, x, y, w, h, alpha="solid"):
@@ -430,12 +433,23 @@ class LauncherApp(tk.Tk):
 
     def _start_drag(self, event):
         if event.y <= TOP_BAR:
-            self.drag_x = event.x
-            self.drag_y = event.y
+            self.drag_x = event.x_root
+            self.drag_y = event.y_root
+            self.drag_window_x = self.winfo_x()
+            self.drag_window_y = self.winfo_y()
+        else:
+            self._stop_drag(event)
 
     def _drag(self, event):
-        if self.drag_y <= TOP_BAR:
-            self.geometry(f"+{self.winfo_x() + event.x - self.drag_x}+{self.winfo_y() + event.y - self.drag_y}")
+        if self.drag_y:
+            x = self.drag_window_x + event.x_root - self.drag_x
+            y = self.drag_window_y + event.y_root - self.drag_y
+            x, y = self._clamp_window_position(x, y)
+            self.geometry(f"+{x}+{y}")
+
+    def _stop_drag(self, _event=None):
+        self.drag_x = 0
+        self.drag_y = 0
 
     def _set_renderer(self, value):
         self.renderer = value
@@ -452,6 +466,22 @@ class LauncherApp(tk.Tk):
     def _shadow_next(self):
         self.shadow = (self.shadow + 1) % len(SHADOWS)
         self._refresh_all()
+
+    def _screen_bounds(self):
+        max_x = max(0, self.winfo_screenwidth() - WIDTH)
+        max_y = max(0, self.winfo_screenheight() - HEIGHT)
+        return max_x, max_y
+
+    def _clamp_window_position(self, x, y):
+        max_x, max_y = self._screen_bounds()
+        return max(0, min(int(x), max_x)), max(0, min(int(y), max_y))
+
+    def _center_window(self):
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() - WIDTH) // 2
+        y = (self.winfo_screenheight() - HEIGHT) // 2
+        x, y = self._clamp_window_position(x, y)
+        self.geometry(f"{WIDTH}x{HEIGHT}+{x}+{y}")
 
     def _refresh_all(self):
         for name, btn in self.render_buttons.items():
