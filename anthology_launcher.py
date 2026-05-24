@@ -28,6 +28,10 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
+LAUNCHER_VERSION = "2026.05.24.1"
+LAUNCHER_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
+LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
+LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
@@ -190,6 +194,7 @@ class LauncherApp(tk.Tk):
         self._load_background()
         self._build_base()
         self.show_home()
+        self.after(1500, self.check_launcher_update_async)
 
     def _load_background(self):
         bg = Image.open(self.assets / "Launcher.png").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
@@ -654,6 +659,86 @@ class LauncherApp(tk.Tk):
     def _download_update_version(self):
         with urlopen(UPDATE_VERSION_URL, timeout=30) as response:
             return json.loads(response.read().decode("utf-8-sig"))
+
+    def check_launcher_update_async(self):
+        if not getattr(sys, "frozen", False):
+            return
+        threading.Thread(target=self._check_launcher_update_worker, daemon=True).start()
+
+    def _check_launcher_update_worker(self):
+        try:
+            remote = self._download_launcher_version()
+            remote_version = str(remote.get("version", "")).strip()
+            if not remote_version or not self._is_newer_version(remote_version, LAUNCHER_VERSION):
+                return
+            self.after(0, lambda: self._confirm_launcher_update(remote))
+        except Exception:
+            return
+
+    def _download_launcher_version(self):
+        with urlopen(LAUNCHER_VERSION_URL, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8-sig"))
+
+    def _is_newer_version(self, remote_version, local_version):
+        def parts(value):
+            result = []
+            for part in str(value).replace("-", ".").split("."):
+                try:
+                    result.append(int(part))
+                except ValueError:
+                    result.append(part)
+            return result
+
+        return parts(remote_version) > parts(local_version)
+
+    def _confirm_launcher_update(self, remote):
+        remote_version = str(remote.get("version", "")).strip()
+        notes = str(remote.get("notes", "")).strip()
+        message = f"Доступна новая версия лаунчера: {remote_version}\nТекущая версия: {LAUNCHER_VERSION}\n\nОбновить сейчас?"
+        if notes:
+            message += f"\n\n{notes}"
+        if messagebox.askyesno("Anthology Launcher", message):
+            threading.Thread(target=self._install_launcher_update_worker, args=(remote,), daemon=True).start()
+
+    def _install_launcher_update_worker(self, remote):
+        try:
+            url = remote.get("exe_url") or LAUNCHER_EXE_URL
+            tmp_dir = self.root_dir / "webcache" / "launcher_self_update"
+            if tmp_dir.exists():
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            new_exe = tmp_dir / LAUNCHER_EXE_NAME
+            self.after(0, lambda: self._set_update_status("Обновление лаунчера...", COLORS["accent_2"]))
+            self.after(0, lambda: self._set_update_progress(0, "0%"))
+            self._download_update_archive(url, new_exe)
+            self.after(0, lambda: self._restart_with_launcher_update(new_exe))
+        except Exception as exc:
+            self.after(0, lambda e=exc: messagebox.showerror("Anthology Launcher", f"Не удалось обновить лаунчер:\n{e}"))
+
+    def _restart_with_launcher_update(self, new_exe):
+        current_exe = Path(sys.executable).resolve()
+        if current_exe.name.lower() != LAUNCHER_EXE_NAME.lower():
+            current_exe = current_exe.with_name(LAUNCHER_EXE_NAME)
+        updater = new_exe.parent / "apply_launcher_update.bat"
+        lines = [
+            "@echo off",
+            "chcp 65001 >nul",
+            f"set \"SRC={new_exe}\"",
+            f"set \"DST={current_exe}\"",
+            f"set \"PID={os.getpid()}\"",
+            ":wait_loop",
+            "tasklist /FI \"PID eq %PID%\" | find \"%PID%\" >nul",
+            "if not errorlevel 1 (",
+            "  timeout /t 1 /nobreak >nul",
+            "  goto wait_loop",
+            ")",
+            "copy /Y \"%SRC%\" \"%DST%\" >nul",
+            "start \"\" \"%DST%\"",
+            "del \"%~f0\"",
+        ]
+        updater.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
+        subprocess.Popen(["cmd.exe", "/c", "start", "", str(updater)], cwd=str(self.root_dir))
+        self.destroy()
 
     def _download_update_archive(self, url, path, attempts=3):
         last_error = None
