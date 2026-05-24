@@ -28,7 +28,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.6"
+LAUNCHER_VERSION = "2026.05.24.7"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -214,7 +214,6 @@ class LauncherApp(tk.Tk):
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(0, 0, image=self.bg_img, anchor="nw")
         self.canvas.create_rectangle(0, 0, WIDTH, HEIGHT, fill="#020504", stipple="gray50", outline="")
-        self.canvas.create_rectangle(0, 0, WIDTH, HEIGHT, outline="#2c4942", width=1)
         self.canvas.create_rectangle(0, 0, WIDTH, TOP_BAR, fill=COLORS["glass"], stipple="gray50", outline="")
         self.canvas.create_line(MARGIN, TOP_BAR - 1, WIDTH - MARGIN, TOP_BAR - 1, fill="#9ee9dc")
         self.canvas.create_text(MARGIN, 36, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
@@ -261,7 +260,6 @@ class LauncherApp(tk.Tk):
         self.buttons["discord"] = self._button(1018, 92, 108, 34, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
         self.buttons["support"] = self._button(790, 140, 336, 36, t["support"], self.show_support)
 
-        self._panel(64, 132, 404, 356, alpha="frameless")
         self._section_label(104, 174, t["news"])
         self._news_item(104, 230, t["news_1"], t["news_1_body"], width=312)
         self._add(self.canvas.create_line(104, 322, 428, 322, fill="#ffffff", stipple="gray25"))
@@ -279,7 +277,7 @@ class LauncherApp(tk.Tk):
         self._clear_view()
         t = TEXT[self.lang]
 
-        self._panel(64, 92, 1052, 536, alpha="solid")
+        self._panel(64, 92, 1052, 536, alpha="surface")
         self._section_label(104, 134, t["settings"])
         self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_home)
 
@@ -310,7 +308,7 @@ class LauncherApp(tk.Tk):
         self._clear_view()
         t = TEXT[self.lang]
 
-        self._panel(64, 92, 1052, 536, alpha="solid")
+        self._panel(64, 92, 1052, 536, alpha="surface")
         self._section_label(104, 134, t["support"])
         self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_home)
 
@@ -349,8 +347,8 @@ class LauncherApp(tk.Tk):
         self.buttons["play"] = self._button(64, y, 178, 46, t["play"], self.play, primary=True)
         self.buttons["cache"] = self._button(258, y, 180, 46, t["cache"], self.delete_shader_cache)
         self._panel(462, y, 666, 46, alpha="bar")
-        self.buttons["engine"] = self._button(818, y + 7, 106, 32, t["engine_button"], self.sync_engine_update)
-        self.buttons["update"] = self._button(936, y + 7, 166, 32, t["update_button"], self.sync_modpack_update)
+        self.buttons["engine"] = self._button(810, y + 7, 124, 32, t["engine_button"], self.sync_engine_update)
+        self.buttons["update"] = self._button(948, y + 7, 166, 32, t["update_button"], self.sync_modpack_update)
         self._add(self.canvas.create_text(488, y + 15, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 8, "bold")))
         self.update_status_item = self._add(self.canvas.create_text(488, y + 32, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 8)))
         self.update_progress_bg = self._add(self.canvas.create_rectangle(676, y + 20, 798, y + 27, fill="#091211", outline="#476760"))
@@ -359,15 +357,21 @@ class LauncherApp(tk.Tk):
         self._set_update_progress(0, "")
 
     def _panel(self, x, y, w, h, alpha="solid"):
-        fill = {"solid": COLORS["glass"], "light": COLORS["glass_soft"], "bar": COLORS["glass"], "frameless": COLORS["glass_soft"]}[alpha]
-        outline = {"solid": "#8ed6c9", "light": "#7ab6aa", "bar": "#63847d", "frameless": ""}[alpha]
-        self._add(self.canvas.create_rectangle(x + 10, y + 12, x + w + 10, y + h + 12, fill="#010302", stipple="gray50", outline=""))
-        stipple = {"solid": "gray50", "light": "gray25", "bar": "gray50", "frameless": "gray25"}[alpha]
+        if alpha == "frameless":
+            return
+        if alpha == "surface":
+            self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill="#020706", stipple="gray75", outline=""))
+            return
+        fill = {"solid": COLORS["glass"], "light": COLORS["glass_soft"], "bar": COLORS["glass"]}[alpha]
+        outline = {"solid": "#8ed6c9", "light": "#7ab6aa", "bar": "#63847d"}[alpha]
+        if alpha != "bar":
+            self._add(self.canvas.create_rectangle(x + 10, y + 12, x + w + 10, y + h + 12, fill="#010302", stipple="gray50", outline=""))
+        stipple = {"solid": "gray50", "light": "gray25", "bar": "gray50"}[alpha]
         kwargs = {"fill": fill, "outline": outline, "width": 1}
         if stipple:
             kwargs["stipple"] = stipple
         self._add(self.canvas.create_rectangle(x, y, x + w, y + h, **kwargs))
-        if alpha != "frameless":
+        if alpha != "bar":
             self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50", width=1))
 
     def _section_label(self, x, y, text):

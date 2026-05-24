@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.6",
+  "version": "2026.05.24.7",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Launcher self-update manifest now uses GitHub API to avoid raw cache delays."
+  "notes": "Cleaner frameless layout for news and settings."
 }
