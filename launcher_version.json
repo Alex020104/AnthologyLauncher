@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.35",
+  "version": "2026.05.24.36",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Синхронизация модпака теперь сохраняет список установленных файлов и чинит удаленные configs/scripts без установленного Git у пользователя."
+  "notes": "Самообновление лаунчера теперь скачивает временные файлы в системный Temp и запускает применяющий скрипт через Windows Shell, чтобы не попадать в MO2 overwrite."
 }
