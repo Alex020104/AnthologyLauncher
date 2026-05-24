@@ -11,7 +11,7 @@ py -3 -m PyInstaller --noconfirm AnthologyLauncherModern.spec
 The built executable is created at:
 
 ```text
-dist\AnthologyLauncherModern.exe
+dist\AnomalyLauncher.exe
 ```
 
-For release packaging, rename or copy it as `AnomalyLauncher.exe` into the game folder.
+For release packaging, copy it into the game folder.
