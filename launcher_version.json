@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.19",
+  "version": "2026.05.24.20",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Self-update now restarts the launcher with a clean PyInstaller environment to avoid stale _MEI python DLL errors."
+  "notes": "Sync button now checks DB first and then checks the modpack in one sequential operation."
 }

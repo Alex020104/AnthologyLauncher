@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.19"
+LAUNCHER_VERSION = "2026.05.24.20"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -277,7 +277,6 @@ class LauncherApp(tk.Tk):
 
         self._add(self.canvas.create_line(MARGIN, 570, WIDTH - MARGIN, 570, fill=COLORS["accent"], stipple="gray50", width=2))
         self.buttons["settings"] = self._button(966, 592, 162, 46, t["settings"], self.show_settings)
-        self.buttons["db_update"] = self._button(792, 646, 154, 46, "DB", self.sync_db_update)
         self.buttons["update"] = self._button(966, 646, 162, 46, t["update_button"], self.sync_modpack_update)
         self._bottom_update_bar(t)
         self.flag_id = self._add(self.canvas.create_image(914, 606, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
@@ -660,9 +659,9 @@ class LauncherApp(tk.Tk):
         if self.updating:
             return
         self.updating = True
-        self._set_update_status(TEXT[self.lang]["update_checking"], COLORS["accent_2"])
+        self._set_update_status("DB: checking version...", COLORS["accent_2"])
         self._set_update_progress(0, "")
-        self._start_background_worker("modpack-update", self._sync_modpack_update_worker)
+        self._start_background_worker("sync-update", self._sync_combined_update_worker)
 
     def sync_db_update(self):
         if self.updating:
@@ -796,24 +795,37 @@ class LauncherApp(tk.Tk):
                     names.append(name)
         return names
 
+    def _sync_combined_update_worker(self):
+        db_ok, db_message = self._sync_db_update_step()
+        if not db_ok:
+            self.after(0, lambda m=db_message: self._finish_git_update(False, m))
+            return
+
+        self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_checking"], COLORS["accent_2"]))
+        self.after(0, lambda: self._set_update_progress(0, ""))
+        mod_ok, mod_message = self._sync_modpack_update_step()
+        combined_message = f"{db_message}\n\n{mod_message}"
+        self.after(0, lambda ok=mod_ok, m=combined_message: self._finish_git_update(ok, m))
+
     def _sync_modpack_update_worker(self):
+        ok, message = self._sync_modpack_update_step()
+        self.after(0, lambda: self._finish_git_update(ok, message))
+
+    def _sync_modpack_update_step(self):
         t = TEXT[self.lang]
         log_path = None
         try:
             mods_dir = self._modpack_mods_dir()
             if not mods_dir.exists():
-                self.after(0, lambda: self._finish_git_update(False, self._modpack_missing_message(mods_dir)))
-                return
+                return False, self._modpack_missing_message(mods_dir)
 
             remote = self._download_update_version()
             local = self._load_update_state(mods_dir)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
-                self.after(0, lambda: self._finish_git_update(False, f"{t['update_failed']}:\nversion.json has no version"))
-                return
+                return False, f"{t['update_failed']}:\nversion.json has no version"
             if str(local.get("version", "")).strip() == remote_version:
-                self.after(0, lambda: self._finish_git_update(True, f"{t['update_latest']}\n\nVersion: {remote_version}"))
-                return
+                return True, f"{t['update_latest']}\n\nVersion: {remote_version}"
 
             self.after(0, lambda: self._set_update_status(t["update_downloading"], COLORS["accent_2"]))
             zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
@@ -840,32 +852,34 @@ class LauncherApp(tk.Tk):
             message = f"{t['update_done']}\n\nVersion: {remote_version}"
             if notes:
                 message += f"\n\n{notes}"
-            self.after(0, lambda: self._finish_git_update(True, message))
+            return True, message
         except (URLError, OSError, zipfile.BadZipFile, ValueError) as exc:
             message = f"{t['update_failed']}:\n{exc}"
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            self.after(0, lambda m=message: self._finish_git_update(False, m))
+            return False, message
         except Exception as exc:
             message = f"{t['update_failed']}:\n{exc}"
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            self.after(0, lambda m=message: self._finish_git_update(False, m))
+            return False, message
 
     def _sync_db_update_worker(self):
+        ok, message = self._sync_db_update_step()
+        self.after(0, lambda: self._finish_git_update(ok, message))
+
+    def _sync_db_update_step(self):
         log_path = None
         try:
             self.after(0, lambda: self._set_update_status("DB: checking game process...", COLORS["accent_2"]))
             running = self._running_game_processes()
             if running:
                 names = ", ".join(running)
-                self.after(0, lambda: self._finish_git_update(False, f"Close the game before DB update:\n{names}"))
-                return
+                return False, f"Close the game before DB update:\n{names}"
 
             db_dir = self.root_dir / "db"
             if not db_dir.exists():
-                self.after(0, lambda: self._finish_git_update(False, f"DB folder was not found:\n{db_dir}"))
-                return
+                return False, f"DB folder was not found:\n{db_dir}"
 
             tmp_dir = self.root_dir / "webcache" / "db_update"
             tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -876,11 +890,9 @@ class LauncherApp(tk.Tk):
             entries = self._db_manifest_entries(remote)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
-                self.after(0, lambda: self._finish_git_update(False, "DB update failed:\ndb_version.json has no version"))
-                return
+                return False, "DB update failed:\ndb_version.json has no version"
             if not entries:
-                self.after(0, lambda: self._finish_git_update(False, "DB update failed:\ndb_version.json has no files"))
-                return
+                return False, "DB update failed:\ndb_version.json has no files"
 
             self.after(0, lambda: self._set_update_status("DB: removing extra archives...", COLORS["accent_2"]))
             deleted = self._mirror_db_archives(entries, log_path)
@@ -889,8 +901,7 @@ class LauncherApp(tk.Tk):
             if not changed:
                 self._save_db_update_state(remote)
                 message = f"DB is already up to date.\n\nVersion: {remote_version}\nRemoved extra files: {deleted}"
-                self.after(0, lambda: self._finish_git_update(True, message))
-                return
+                return True, message
 
             total = len(changed)
             self._write_update_log(log_path, f"download files={total}")
@@ -914,15 +925,15 @@ class LauncherApp(tk.Tk):
             message = f"DB updated.\n\nVersion: {remote_version}\nDownloaded files: {total}\nRemoved extra files: {deleted}"
             if notes:
                 message += f"\n\n{notes}"
-            self.after(0, lambda: self._finish_git_update(True, message))
+            return True, message
         except (URLError, OSError, ValueError) as exc:
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            self.after(0, lambda e=exc: self._finish_git_update(False, f"DB update failed:\n{e}"))
+            return False, f"DB update failed:\n{exc}"
         except Exception as exc:
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            self.after(0, lambda e=exc: self._finish_git_update(False, f"DB update failed:\n{e}"))
+            return False, f"DB update failed:\n{exc}"
 
     def _download_update_version(self):
         url = f"{UPDATE_VERSION_URL}?t={int(time.time())}"
