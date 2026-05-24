@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.11"
+LAUNCHER_VERSION = "2026.05.24.12"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -996,6 +996,12 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._set_update_status("Обновление лаунчера...", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             self._download_update_archive(url, new_exe)
+            expected_size = int(remote.get("exe_size") or 0)
+            expected_hash = str(remote.get("exe_sha256") or "").strip().lower()
+            if expected_size and new_exe.stat().st_size != expected_size:
+                raise ValueError("downloaded launcher size mismatch")
+            if expected_hash and self._sha256_file(new_exe) != expected_hash:
+                raise ValueError("downloaded launcher SHA-256 mismatch")
             self.after(0, lambda: self._restart_with_launcher_update(new_exe))
         except Exception as exc:
             self.after(0, lambda e=exc: messagebox.showerror("Anthology Launcher", f"Не удалось обновить лаунчер:\n{e}"))
@@ -1012,10 +1018,12 @@ class LauncherApp(tk.Tk):
             "setlocal",
             f"set \"SRC={new_exe}\"",
             f"set \"DST={current_exe}\"",
+            f"set \"TMP={current_exe}.new\"",
             f"set \"DST_DIR={self.root_dir}\"",
             f"set \"LOG={updater_log}\"",
             f"set \"PID={os.getpid()}\"",
             "echo updater started > \"%LOG%\"",
+            "for %%A in (\"%SRC%\") do set \"SRC_SIZE=%%~zA\"",
             ":wait_loop",
             "tasklist /FI \"PID eq %PID%\" | find \"%PID%\" >nul",
             "if not errorlevel 1 (",
@@ -1025,13 +1033,27 @@ class LauncherApp(tk.Tk):
             "set /a COPY_TRY=0",
             ":copy_loop",
             "set /a COPY_TRY+=1",
-            "copy /Y \"%SRC%\" \"%DST%\" >> \"%LOG%\" 2>&1",
+            "del /F /Q \"%TMP%\" >> \"%LOG%\" 2>&1",
+            "copy /Y \"%SRC%\" \"%TMP%\" >> \"%LOG%\" 2>&1",
             "if errorlevel 1 (",
             "  if %COPY_TRY% GEQ 15 goto copy_failed",
             "  timeout /t 1 /nobreak >nul",
             "  goto copy_loop",
             ")",
-            "echo copy ok >> \"%LOG%\"",
+            "for %%A in (\"%TMP%\") do set \"TMP_SIZE=%%~zA\"",
+            "if not \"%SRC_SIZE%\"==\"%TMP_SIZE%\" (",
+            "  echo size mismatch src=%SRC_SIZE% tmp=%TMP_SIZE% >> \"%LOG%\"",
+            "  if %COPY_TRY% GEQ 15 goto copy_failed",
+            "  timeout /t 1 /nobreak >nul",
+            "  goto copy_loop",
+            ")",
+            "move /Y \"%TMP%\" \"%DST%\" >> \"%LOG%\" 2>&1",
+            "if errorlevel 1 (",
+            "  if %COPY_TRY% GEQ 15 goto copy_failed",
+            "  timeout /t 1 /nobreak >nul",
+            "  goto copy_loop",
+            ")",
+            "echo replace ok >> \"%LOG%\"",
             "start \"\" /D \"%DST_DIR%\" \"%DST%\"",
             "exit /b 0",
             ":copy_failed",

@@ -1,5 +1,7 @@
 {
-  "version": "2026.05.24.11",
+  "version": "2026.05.24.12",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Rebuild launcher with bundled Python runtime DLLs and DB update channel."
+  "notes": "Make launcher self-update safer: verify downloaded EXE, replace through a temporary .new file, disable UPX, and unpack runtime beside the launcher instead of Temp.",
+  "exe_size": 18939226,
+  "exe_sha256": "868f08a25151f714458fd6d81fea239886b44b94ca6ee8aa75daff97962f7d3a"
 }
