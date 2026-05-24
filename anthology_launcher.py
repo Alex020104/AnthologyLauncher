@@ -28,10 +28,14 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.4"
+LAUNCHER_VERSION = "2026.05.24.5"
 LAUNCHER_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
+ENGINE_RELEASE_VERSION = "2026.5.23"
+ENGINE_REGULAR_URL = "https://github.com/themrdemonized/xray-monolith/releases/download/2026.5.23/STALKER-Anomaly-modded-exes_2026.5.23.zip"
+ENGINE_MT_URL = "https://github.com/themrdemonized/xray-monolith/releases/download/2026.5.23/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.23.zip"
+ENGINE_ALLOWED_PARTS = {"bin", "db"}
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
@@ -71,6 +75,7 @@ TEXT = {
         "channel": "Open Beta",
         "server": "Сервер обновлений будет подключен позже",
         "update_button": "Синхронизация",
+        "engine_button": "Движок",
         "update_ready": "Готово к проверке обновлений",
         "update_checking": "Проверка версии...",
         "update_downloading": "Скачивание обновления...",
@@ -113,6 +118,7 @@ TEXT = {
         "channel": "Open Beta",
         "server": "Update server will be connected later",
         "update_button": "Sync",
+        "engine_button": "Engine",
         "update_ready": "Ready to check updates",
         "update_checking": "Checking version...",
         "update_downloading": "Downloading update...",
@@ -342,12 +348,13 @@ class LauncherApp(tk.Tk):
         self.buttons["play"] = self._button(64, y, 178, 46, t["play"], self.play, primary=True)
         self.buttons["cache"] = self._button(258, y, 180, 46, t["cache"], self.delete_shader_cache)
         self._panel(462, y, 666, 46, alpha="bar")
+        self.buttons["engine"] = self._button(818, y + 7, 106, 32, t["engine_button"], self.sync_engine_update)
         self.buttons["update"] = self._button(936, y + 7, 166, 32, t["update_button"], self.sync_modpack_update)
         self._add(self.canvas.create_text(488, y + 15, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 8, "bold")))
         self.update_status_item = self._add(self.canvas.create_text(488, y + 32, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 8)))
-        self.update_progress_bg = self._add(self.canvas.create_rectangle(676, y + 20, 914, y + 27, fill="#091211", outline="#476760"))
+        self.update_progress_bg = self._add(self.canvas.create_rectangle(676, y + 20, 798, y + 27, fill="#091211", outline="#476760"))
         self.update_progress_fill = self._add(self.canvas.create_rectangle(676, y + 20, 676, y + 27, fill=COLORS["accent"], outline=""))
-        self.update_progress_text = self._add(self.canvas.create_text(795, y + 33, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        self.update_progress_text = self._add(self.canvas.create_text(737, y + 33, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
         self._set_update_progress(0, "")
 
     def _panel(self, x, y, w, h, alpha="solid"):
@@ -600,6 +607,83 @@ class LauncherApp(tk.Tk):
         self._set_update_progress(0, "")
         threading.Thread(target=self._sync_modpack_update_worker, daemon=True).start()
 
+    def sync_engine_update(self):
+        if self.updating:
+            return
+        choice = messagebox.askyesnocancel(
+            "Anthology Launcher",
+            "Обновить движок Modded Exes?\n\nДа - MT TEST версия\nНет - обычная версия\nОтмена - не обновлять",
+        )
+        if choice is None:
+            return
+        mode = "mt" if choice else "regular"
+        self.updating = True
+        self._set_update_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
+        self._set_update_progress(0, "")
+        threading.Thread(target=self._sync_engine_update_worker, args=(mode,), daemon=True).start()
+
+    def _sync_engine_update_worker(self, mode):
+        log_path = None
+        try:
+            running = self._running_game_processes()
+            if running:
+                names = ", ".join(running)
+                self.after(0, lambda: self._finish_git_update(False, f"Закройте игру перед обновлением движка:\n{names}"))
+                return
+
+            url = ENGINE_MT_URL if mode == "mt" else ENGINE_REGULAR_URL
+            label = "MT TEST" if mode == "mt" else "обычная"
+            tmp_dir = self.root_dir / "webcache" / "engine_update"
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            log_path = tmp_dir / "engine_update.log"
+            self._write_update_log(log_path, f"engine mode={mode} version={ENGINE_RELEASE_VERSION}")
+            self._write_update_log(log_path, f"download={url}")
+
+            zip_path = tmp_dir / f"engine_{mode}_{ENGINE_RELEASE_VERSION}.zip"
+            self.after(0, lambda: self._set_update_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
+            self._download_update_archive(url, zip_path)
+            self._write_update_log(log_path, f"downloaded={zip_path} size={zip_path.stat().st_size}")
+
+            self.after(0, lambda: self._set_update_status("Установка движка...", COLORS["accent_2"]))
+            self.after(0, lambda: self._set_update_progress(0, "0%"))
+            backup_dir = tmp_dir / f"backup_{time.strftime('%Y%m%d_%H%M%S')}"
+            with zipfile.ZipFile(zip_path, "r") as archive:
+                self._install_engine_archive(archive, self.root_dir, backup_dir, log_path)
+
+            message = (
+                f"Движок обновлен.\n\n"
+                f"Версия: {ENGINE_RELEASE_VERSION}\n"
+                f"Тип: {label}\n\n"
+                f"Backup: {backup_dir}"
+            )
+            self.after(0, lambda: self._finish_git_update(True, message))
+        except (URLError, OSError, zipfile.BadZipFile, ValueError) as exc:
+            if log_path:
+                self._write_update_log(log_path, f"ERROR={exc}")
+            self.after(0, lambda e=exc: self._finish_git_update(False, f"Не удалось обновить движок:\n{e}"))
+        except Exception as exc:
+            if log_path:
+                self._write_update_log(log_path, f"ERROR={exc}")
+            self.after(0, lambda e=exc: self._finish_git_update(False, f"Не удалось обновить движок:\n{e}"))
+
+    def _running_game_processes(self):
+        names = []
+        try:
+            output = subprocess.check_output(
+                ["tasklist", "/FI", "IMAGENAME eq Anomaly*.exe", "/FO", "CSV", "/NH"],
+                text=True,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except (OSError, subprocess.CalledProcessError):
+            return names
+        for line in output.splitlines():
+            line = line.strip()
+            if line and not line.startswith("INFO:"):
+                name = line.split('","', 1)[0].strip('"')
+                if name.lower() != LAUNCHER_EXE_NAME.lower():
+                    names.append(name)
+        return names
+
     def _sync_modpack_update_worker(self):
         t = TEXT[self.lang]
         log_path = None
@@ -847,6 +931,30 @@ class LauncherApp(tk.Tk):
                 value = 50 + int(index * 50 / total)
                 self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
 
+    def _install_engine_archive(self, archive, dst, backup_dir, log_path=None):
+        files = [info for info in archive.infolist() if not info.is_dir() and self._archive_engine_relative(info.filename)]
+        total = max(1, len(files))
+        if not files:
+            raise ValueError("Engine archive has no bin/db files")
+        if log_path:
+            self._write_update_log(log_path, f"install engine files={len(files)}")
+        for index, info in enumerate(files, start=1):
+            relative = self._archive_engine_relative(info.filename)
+            target_path = dst / relative
+            backup_path = backup_dir / relative
+            if log_path and (index == 1 or index == total or index % 10 == 0):
+                self._write_update_log(log_path, f"copy {index}/{total}: {target_path}")
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            if target_path.exists():
+                backup_path.parent.mkdir(parents=True, exist_ok=True)
+                self._make_writable(target_path)
+                shutil.copy2(target_path, backup_path)
+            with archive.open(info, "r") as source, target_path.open("wb") as target:
+                shutil.copyfileobj(source, target, length=1024 * 1024)
+            if index == total or index % 2 == 0:
+                value = 50 + int(index * 50 / total)
+                self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+
     def _archive_update_relative(self, name):
         parts = Path(name.replace("\\", "/")).parts
         if ".git" in parts or ".github" in parts or ".vscode" in parts or "version.json" in parts:
@@ -859,6 +967,14 @@ class LauncherApp(tk.Tk):
         if index == 0:
             return None
         return Path(*parts[1:])
+
+    def _archive_engine_relative(self, name):
+        parts = Path(name.replace("\\", "/")).parts
+        if not parts or parts[0].lower() not in ENGINE_ALLOWED_PARTS:
+            return None
+        if any(part.lower().endswith(".pdb") for part in parts):
+            return None
+        return Path(*parts)
 
     def _make_writable(self, path):
         if not path.exists():

@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.4",
+  "version": "2026.05.24.5",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Launcher self-update apply script is more reliable and no longer deletes itself while running."
+  "notes": "Added engine updater for regular and MT Modded Exes release 2026.5.23."
 }
