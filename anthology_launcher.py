@@ -28,7 +28,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.8"
+LAUNCHER_VERSION = "2026.05.24.10"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -182,6 +182,10 @@ class LauncherApp(tk.Tk):
         self.update_progress_bg = None
         self.update_progress_fill = None
         self.update_progress_text = None
+        self.engine_status_item = None
+        self.engine_progress_bg = None
+        self.engine_progress_fill = None
+        self.engine_progress_text = None
         self.items = []
         self.view_widgets = []
         self.buttons = {}
@@ -241,6 +245,10 @@ class LauncherApp(tk.Tk):
         self.buttons = {}
         self.render_buttons = {}
         self.toggle_items = {}
+        self.engine_status_item = None
+        self.engine_progress_bg = None
+        self.engine_progress_fill = None
+        self.engine_progress_text = None
 
     def _add(self, item):
         self.items.append(item)
@@ -302,6 +310,19 @@ class LauncherApp(tk.Tk):
         self.buttons["save"] = self._button(104, 552, 190, 48, t["save"], self.save_settings, primary=True)
         self.buttons["about"] = self._button(802, 552, 126, 40, t["about"], self.about)
         self.buttons["engine"] = self._button(950, 552, 126, 40, t["engine_button"], self.sync_engine_update)
+        self.engine_status_item = self._add(self.canvas.create_text(
+            802,
+            512,
+            text=self._engine_status_text(),
+            anchor="w",
+            fill=COLORS["muted"],
+            font=("Segoe UI", 9),
+            width=274,
+        ))
+        self.engine_progress_bg = self._add(self.canvas.create_rectangle(802, 532, 1076, 540, fill="#091211", outline="#476760"))
+        self.engine_progress_fill = self._add(self.canvas.create_rectangle(802, 532, 802, 540, fill=COLORS["accent"], outline=""))
+        self.engine_progress_text = self._add(self.canvas.create_text(939, 545, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        self._set_engine_progress(0, "")
 
         self._refresh_all()
 
@@ -594,14 +615,29 @@ class LauncherApp(tk.Tk):
 
     def _set_update_progress(self, value, text=None):
         if not self.update_progress_bg or not self.update_progress_fill:
+            self._set_engine_progress(value, text)
             return
         value = max(0, min(100, int(value)))
-        x1, y1, x2, y2 = self.canvas.coords(self.update_progress_bg)
+        self._set_progress_items(self.update_progress_bg, self.update_progress_fill, self.update_progress_text, value, text)
+        self._set_engine_progress(value, text)
+
+    def _set_engine_status(self, text, color=None):
+        if self.engine_status_item:
+            self.canvas.itemconfig(self.engine_status_item, text=text, fill=color or COLORS["muted"])
+
+    def _set_engine_progress(self, value, text=None):
+        if not self.engine_progress_bg or not self.engine_progress_fill:
+            return
+        value = max(0, min(100, int(value)))
+        self._set_progress_items(self.engine_progress_bg, self.engine_progress_fill, self.engine_progress_text, value, text)
+
+    def _set_progress_items(self, bg, fill, label, value, text=None):
+        x1, y1, x2, y2 = self.canvas.coords(bg)
         fill_x = x1 + ((x2 - x1) * value / 100.0)
-        self.canvas.coords(self.update_progress_fill, x1, y1, fill_x, y2)
-        self.canvas.itemconfig(self.update_progress_fill, state="normal" if value > 0 else "hidden")
-        if self.update_progress_text is not None:
-            self.canvas.itemconfig(self.update_progress_text, text=text if text is not None else (f"{value}%" if value else ""))
+        self.canvas.coords(fill, x1, y1, fill_x, y2)
+        self.canvas.itemconfig(fill, state="normal" if value > 0 else "hidden")
+        if label is not None:
+            self.canvas.itemconfig(label, text=text if text is not None else (f"{value}%" if value else ""))
 
     def sync_modpack_update(self):
         if self.updating:
@@ -622,6 +658,8 @@ class LauncherApp(tk.Tk):
             return
         mode = "mt" if choice else "regular"
         self.updating = True
+        self._set_engine_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
+        self._set_engine_progress(0, "")
         self._set_update_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
         self._set_update_progress(0, "")
         threading.Thread(target=self._sync_engine_update_worker, args=(mode,), daemon=True).start()
@@ -644,15 +682,20 @@ class LauncherApp(tk.Tk):
             self._write_update_log(log_path, f"download={url}")
 
             zip_path = tmp_dir / f"engine_{mode}_{ENGINE_RELEASE_VERSION}.zip"
+            self.after(0, lambda: self._set_engine_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
             self._download_update_archive(url, zip_path)
             self._write_update_log(log_path, f"downloaded={zip_path} size={zip_path.stat().st_size}")
 
+            self.after(0, lambda: self._set_engine_status("Установка движка...", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_status("Установка движка...", COLORS["accent_2"]))
+            self.after(0, lambda: self._set_engine_progress(0, "0%"))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             backup_dir = tmp_dir / f"backup_{time.strftime('%Y%m%d_%H%M%S')}"
             with zipfile.ZipFile(zip_path, "r") as archive:
                 self._install_engine_archive(archive, self.root_dir, backup_dir, log_path)
+            self._save_engine_state(mode, label, backup_dir)
+            self.after(0, self._refresh_engine_status)
 
             message = (
                 f"Движок обновлен.\n\n"
@@ -917,6 +960,70 @@ class LauncherApp(tk.Tk):
         }
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    def _engine_update_dir(self):
+        return self.root_dir / "webcache" / "engine_update"
+
+    def _engine_state_path(self):
+        return self._engine_update_dir() / "engine_state.json"
+
+    def _load_engine_state(self):
+        path = self._engine_state_path()
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                pass
+        return self._load_engine_state_from_log()
+
+    def _load_engine_state_from_log(self):
+        log_path = self._engine_update_dir() / "engine_update.log"
+        if not log_path.exists():
+            return {}
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            return {}
+        state = {}
+        for line in lines:
+            if line.startswith("engine mode="):
+                parts = dict(part.split("=", 1) for part in line.split() if "=" in part)
+                mode = parts.get("mode")
+                version = parts.get("version")
+                if mode and version:
+                    state = {
+                        "version": version,
+                        "mode": mode,
+                        "label": "MT TEST" if mode == "mt" else "обычная",
+                        "installed_at": time.strftime("%Y-%m-%d %H:%M", time.localtime(log_path.stat().st_mtime)),
+                        "source": "log",
+                    }
+        return state
+
+    def _save_engine_state(self, mode, label, backup_dir):
+        state = {
+            "version": ENGINE_RELEASE_VERSION,
+            "mode": mode,
+            "label": label,
+            "installed_at": time.strftime("%Y-%m-%d %H:%M"),
+            "backup": str(backup_dir),
+        }
+        path = self._engine_state_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _engine_status_text(self):
+        state = self._load_engine_state()
+        if state:
+            version = state.get("version", "unknown")
+            label = state.get("label") or ("MT TEST" if state.get("mode") == "mt" else "обычная")
+            installed = state.get("installed_at", "дата неизвестна")
+            return f"Движок: {version} / {label} / установлен {installed}"
+        return "Движок: не обновлялся через лаунчер"
+
+    def _refresh_engine_status(self):
+        if self.engine_status_item:
+            self.canvas.itemconfig(self.engine_status_item, text=self._engine_status_text())
+
     def _write_update_log(self, path, text):
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -1004,6 +1111,7 @@ class LauncherApp(tk.Tk):
         self.updating = False
         self._set_update_status(TEXT[self.lang]["update_done" if ok else "update_failed"], COLORS["accent"] if ok else COLORS["danger"])
         self._set_update_progress(100 if ok else 0, "100%" if ok else "")
+        self._set_engine_progress(100 if ok else 0, "100%" if ok else "")
         box = messagebox.showinfo if ok else messagebox.showerror
         box("Anthology Launcher", message)
 
