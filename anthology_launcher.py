@@ -565,8 +565,10 @@ class LauncherApp(tk.Tk):
 
     def _prepare_external_launch(self):
         env = os.environ.copy()
-        for key in ("_PYI_APPLICATION_HOME_DIR", "_PYI_ARCHIVE_FILE", "_PYI_PARENT_PROCESS_LEVEL", "_MEIPASS2"):
-            env.pop(key, None)
+        for key in list(env):
+            if key.startswith("_PYI_") or key.startswith("_MEI"):
+                env.pop(key, None)
+        env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
         if sys.platform == "win32" and getattr(sys, "frozen", False):
             try:
                 import ctypes
@@ -1032,7 +1034,12 @@ class LauncherApp(tk.Tk):
             "  goto copy_loop",
             ")",
             "echo copy ok >> \"%LOG%\"",
-            "echo launcher updated; manual restart required >> \"%LOG%\"",
+            "for /f \"tokens=1 delims==\" %%E in ('set _PYI 2^>nul') do set \"%%E=\"",
+            "for /f \"tokens=1 delims==\" %%E in ('set _MEI 2^>nul') do set \"%%E=\"",
+            "set \"PYINSTALLER_RESET_ENVIRONMENT=1\"",
+            "timeout /t 2 /nobreak >nul",
+            "start \"\" /D \"%DST_DIR%\" \"%DST%\"",
+            "echo launcher updated and restarted >> \"%LOG%\"",
             "exit /b 0",
             ":copy_failed",
             "echo copy failed >> \"%LOG%\"",

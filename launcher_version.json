@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.18",
+  "version": "2026.05.24.19",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Self-update waits longer for the old launcher EXE to unlock, then replaces it and exits without auto-starting."
+  "notes": "Self-update now restarts the launcher with a clean PyInstaller environment to avoid stale _MEI python DLL errors."
 }
