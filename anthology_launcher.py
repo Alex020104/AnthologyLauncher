@@ -30,7 +30,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.22"
+LAUNCHER_VERSION = "2026.05.24.23"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -730,7 +730,7 @@ class LauncherApp(tk.Tk):
             label = "MT TEST" if mode == "mt" else "обычная"
             tmp_dir = self.root_dir / "webcache" / "engine_update"
             self._debug_log(f"engine worker: creating tmp_dir={tmp_dir}")
-            tmp_dir.mkdir(parents=True, exist_ok=True)
+            self._ensure_directory(tmp_dir)
             log_path = tmp_dir / "engine_update.log"
             self._write_update_log(log_path, f"engine mode={mode} version={ENGINE_RELEASE_VERSION}")
             self._write_update_log(log_path, f"download={url}")
@@ -830,9 +830,7 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._set_update_status(t["update_downloading"], COLORS["accent_2"]))
             zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
             tmp_dir = self.root_dir / "webcache" / "launcher_update"
-            if tmp_dir.exists():
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-            tmp_dir.mkdir(parents=True, exist_ok=True)
+            self._reset_directory(tmp_dir)
             log_path = tmp_dir / "update.log"
             self._write_update_log(log_path, f"mods_dir={mods_dir}")
             zip_path = tmp_dir / "update.zip"
@@ -1002,9 +1000,7 @@ class LauncherApp(tk.Tk):
         try:
             url = remote.get("exe_url") or LAUNCHER_EXE_URL
             tmp_dir = self.root_dir / "webcache" / "launcher_self_update"
-            if tmp_dir.exists():
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-            tmp_dir.mkdir(parents=True, exist_ok=True)
+            self._reset_directory(tmp_dir)
             new_exe = tmp_dir / LAUNCHER_EXE_NAME
             self.after(0, lambda: self._set_update_status("Обновление лаунчера...", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
@@ -1110,6 +1106,14 @@ class LauncherApp(tk.Tk):
     def _ensure_directory(self, path):
         if path.exists() and not path.is_dir():
             path.unlink()
+        path.mkdir(parents=True, exist_ok=True)
+
+    def _reset_directory(self, path):
+        if path.exists():
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+            else:
+                path.unlink()
         path.mkdir(parents=True, exist_ok=True)
 
     def _state_path(self, mods_dir):
