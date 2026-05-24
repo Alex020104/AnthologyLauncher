@@ -18,8 +18,8 @@ from PIL import Image, ImageEnhance, ImageTk
 
 WIDTH = 1180
 HEIGHT = 720
-TOP_BAR = 72
-MARGIN = 64
+TOP_BAR = 96
+MARGIN = 72
 RENDERERS = ["DX11", "DX10", "DX9", "DX8"]
 RENDER_LABELS = {
     "DX11": "DirectX 11 / R4",
@@ -28,7 +28,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.24.7"
+LAUNCHER_VERSION = "2026.05.24.8"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -216,13 +216,13 @@ class LauncherApp(tk.Tk):
         self.canvas.create_rectangle(0, 0, WIDTH, HEIGHT, fill="#020504", stipple="gray50", outline="")
         self.canvas.create_rectangle(0, 0, WIDTH, TOP_BAR, fill=COLORS["glass"], stipple="gray50", outline="")
         self.canvas.create_line(MARGIN, TOP_BAR - 1, WIDTH - MARGIN, TOP_BAR - 1, fill="#9ee9dc")
-        self.canvas.create_text(MARGIN, 36, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
-        self.canvas.create_text(MARGIN + 128, 37, text="LAUNCHER", anchor="w", fill=COLORS["muted"], font=("Segoe UI", 9))
-        self.canvas.create_rectangle(MARGIN + 216, 25, MARGIN + 280, 47, fill=COLORS["glass_lift"], stipple="gray50", outline="#6d8982")
-        self.canvas.create_text(MARGIN + 248, 36, text="2.1 OBT", anchor="center", fill=COLORS["accent_2"], font=("Segoe UI Semibold", 8, "bold"))
+        self.canvas.create_text(MARGIN, 55, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
+        self.canvas.create_text(MARGIN + 128, 56, text="LAUNCHER", anchor="w", fill=COLORS["muted"], font=("Segoe UI", 9))
+        self.canvas.create_rectangle(MARGIN + 216, 44, MARGIN + 280, 66, fill=COLORS["glass_lift"], stipple="gray50", outline="#6d8982")
+        self.canvas.create_text(MARGIN + 248, 55, text="2.1 OBT", anchor="center", fill=COLORS["accent_2"], font=("Segoe UI Semibold", 8, "bold"))
 
-        self.min_btn = self.canvas.create_text(WIDTH - 74, 36, text="-", fill=COLORS["muted"], font=("Segoe UI", 18))
-        self.close_btn = self.canvas.create_text(WIDTH - 38, 36, text="x", fill=COLORS["muted"], font=("Segoe UI", 13, "bold"))
+        self.min_btn = self.canvas.create_text(WIDTH - 74, 55, text="-", fill=COLORS["muted"], font=("Segoe UI", 18))
+        self.close_btn = self.canvas.create_text(WIDTH - 38, 55, text="x", fill=COLORS["muted"], font=("Segoe UI", 13, "bold"))
         self.canvas.tag_bind(self.min_btn, "<Button-1>", lambda _e: self.iconify())
         self.canvas.tag_bind(self.close_btn, "<Button-1>", lambda _e: self.destroy())
         self.canvas.tag_bind("all", "<ButtonPress-1>", self._start_drag)
@@ -255,21 +255,21 @@ class LauncherApp(tk.Tk):
         self._clear_view()
         t = TEXT[self.lang]
 
-        self.buttons["youtube"] = self._button(790, 92, 108, 34, "YouTube", lambda: webbrowser.open("https://youtube.com/@Sys-live-prime"))
-        self.buttons["vk"] = self._button(910, 92, 96, 34, "VK", lambda: webbrowser.open("https://vk.com/club219667646"))
-        self.buttons["discord"] = self._button(1018, 92, 108, 34, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
-        self.buttons["support"] = self._button(790, 140, 336, 36, t["support"], self.show_support)
+        self.buttons["youtube"] = self._button(792, 118, 108, 36, "YouTube", lambda: webbrowser.open("https://youtube.com/@Sys-live-prime"))
+        self.buttons["vk"] = self._button(912, 118, 96, 36, "VK", lambda: webbrowser.open("https://vk.com/club219667646"))
+        self.buttons["discord"] = self._button(1020, 118, 108, 36, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
+        self.buttons["support"] = self._button(792, 174, 336, 38, t["support"], self.show_support)
 
-        self._section_label(104, 174, t["news"])
-        self._news_item(104, 230, t["news_1"], t["news_1_body"], width=312)
-        self._add(self.canvas.create_line(104, 322, 428, 322, fill="#ffffff", stipple="gray25"))
-        self._news_item(104, 366, t["news_2"], t["news_2_body"], width=312)
+        self._section_label(112, 206, t["news"])
+        self._news_item(112, 272, t["news_1"], t["news_1_body"], width=328)
+        self._add(self.canvas.create_line(112, 382, 452, 382, fill="#ffffff", stipple="gray25"))
+        self._news_item(112, 428, t["news_2"], t["news_2_body"], width=328)
 
-        self.buttons["settings"] = self._button(964, 516, 164, 42, t["settings"], self.show_settings)
-        self.buttons["about"] = self._button(802, 516, 142, 42, t["about"], self.about)
-
+        self._add(self.canvas.create_line(MARGIN, 570, WIDTH - MARGIN, 570, fill=COLORS["accent"], stipple="gray50", width=2))
+        self.buttons["settings"] = self._button(966, 592, 162, 46, t["settings"], self.show_settings)
+        self.buttons["update"] = self._button(966, 646, 162, 46, t["update_button"], self.sync_modpack_update)
         self._bottom_update_bar(t)
-        self.flag_id = self._add(self.canvas.create_image(748, 526, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
+        self.flag_id = self._add(self.canvas.create_image(914, 606, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
         self.canvas.tag_bind(self.flag_id, "<Button-1>", lambda _e: self.toggle_language())
 
     def show_settings(self):
@@ -300,6 +300,8 @@ class LauncherApp(tk.Tk):
         self.buttons["shadow_minus"] = self._button(574, 486, 74, 40, "<", self._shadow_prev)
         self.buttons["shadow_plus"] = self._button(662, 486, 74, 40, ">", self._shadow_next)
         self.buttons["save"] = self._button(104, 552, 190, 48, t["save"], self.save_settings, primary=True)
+        self.buttons["about"] = self._button(802, 552, 126, 40, t["about"], self.about)
+        self.buttons["engine"] = self._button(950, 552, 126, 40, t["engine_button"], self.sync_engine_update)
 
         self._refresh_all()
 
@@ -343,17 +345,14 @@ class LauncherApp(tk.Tk):
         self._add_widget(frame, 104, 214, 972, 366)
 
     def _bottom_update_bar(self, t):
-        y = 616
-        self.buttons["play"] = self._button(64, y, 178, 46, t["play"], self.play, primary=True)
-        self.buttons["cache"] = self._button(258, y, 180, 46, t["cache"], self.delete_shader_cache)
-        self._panel(462, y, 666, 46, alpha="bar")
-        self.buttons["engine"] = self._button(810, y + 7, 124, 32, t["engine_button"], self.sync_engine_update)
-        self.buttons["update"] = self._button(948, y + 7, 166, 32, t["update_button"], self.sync_modpack_update)
-        self._add(self.canvas.create_text(488, y + 15, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 8, "bold")))
-        self.update_status_item = self._add(self.canvas.create_text(488, y + 32, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 8)))
-        self.update_progress_bg = self._add(self.canvas.create_rectangle(676, y + 20, 798, y + 27, fill="#091211", outline="#476760"))
-        self.update_progress_fill = self._add(self.canvas.create_rectangle(676, y + 20, 676, y + 27, fill=COLORS["accent"], outline=""))
-        self.update_progress_text = self._add(self.canvas.create_text(737, y + 33, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        y = 592
+        self.buttons["play"] = self._button(72, y, 158, 42, t["play"], self.play, primary=True)
+        self.buttons["cache"] = self._button(248, y, 166, 42, t["cache"], self.delete_shader_cache)
+        self._add(self.canvas.create_text(132, 654, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 10, "bold")))
+        self.update_status_item = self._add(self.canvas.create_text(132, 676, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
+        self.update_progress_bg = self._add(self.canvas.create_rectangle(386, 666, 922, 675, fill="#091211", outline="#476760"))
+        self.update_progress_fill = self._add(self.canvas.create_rectangle(386, 666, 386, 675, fill=COLORS["accent"], outline=""))
+        self.update_progress_text = self._add(self.canvas.create_text(654, 688, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
         self._set_update_progress(0, "")
 
     def _panel(self, x, y, w, h, alpha="solid"):

@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.7",
+  "version": "2026.05.24.8",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Cleaner frameless layout for news and settings."
+  "notes": "Home screen layout rebuilt from the new mockup; About and Engine moved to Settings."
 }
