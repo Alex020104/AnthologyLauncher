@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.24.40",
+  "version": "2026.05.25.1",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Запуск Mod Organizer 2 с кнопки Играть переведен на Windows ShellExecute, чтобы корректно проходить требование повышенных прав."
+  "notes": "Тестовое фейковое обновление для проверки механики самообновления лаунчера."
 }
