@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.6",
+  "version": "2026.05.25.7",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Исправлены верхние кнопки окна: добавлены нормальные зоны клика, закрытие не цепляет перетаскивание, а сворачивание выполняется через Windows ShowWindow."
+  "notes": "Проверка автообновления"
 }
