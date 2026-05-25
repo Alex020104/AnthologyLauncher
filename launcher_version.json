@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.18",
+  "version": "2026.05.25.19",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Rename synchronization button to Update in Russian UI."
+  "notes": "Automatically repair Mod Organizer executable paths for the current Anthology install location."
 }

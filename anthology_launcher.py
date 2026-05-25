@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.18"
+LAUNCHER_VERSION = "2026.05.25.19"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -787,6 +787,97 @@ class LauncherApp(tk.Tk):
                 if candidate.exists():
                     return candidate
         return exact
+
+    def _path_for_mo2(self, path):
+        return str(Path(path)).replace("\\", "/")
+
+    def _path_for_qt_bytearray(self, path):
+        return str(Path(path)).replace("\\", "\\\\")
+
+    def _path_for_qt_quoted_argument(self, path):
+        return f'\\"{self._path_for_qt_bytearray(path)}\\"'
+
+    def _sync_mod_organizer_paths(self, mo2_path):
+        if self._running_mod_organizer_processes():
+            self._debug_log("MO2 path sync skipped: Mod Organizer is already running")
+            return
+
+        game_dir = self.root_dir.resolve()
+        mo2_dir = mo2_path.parent.resolve()
+        ini_path = mo2_dir / "ModOrganizer.ini"
+        if not ini_path.exists():
+            self._debug_log(f"MO2 path sync skipped: missing {ini_path}")
+            return
+
+        bin_dir = game_dir / "bin"
+        explorer_dir = mo2_dir / "explorer++"
+        executables = {
+            "Anomaly (DX11-AVX)": (bin_dir / "AnomalyDX11AVX.exe", bin_dir, None),
+            "Anomaly (DX11)": (bin_dir / "AnomalyDX11.exe", bin_dir, None),
+            "Anomaly (DX10-AVX)": (bin_dir / "AnomalyDX10AVX.exe", bin_dir, None),
+            "Anomaly (DX10)": (bin_dir / "AnomalyDX10.exe", bin_dir, None),
+            "Anomaly (DX9-AVX)": (bin_dir / "AnomalyDX9AVX.exe", bin_dir, None),
+            "Anomaly (DX9)": (bin_dir / "AnomalyDX9.exe", bin_dir, None),
+            "Anomaly (DX8-AVX)": (bin_dir / "AnomalyDX8AVX.exe", bin_dir, None),
+            "Anomaly (DX8)": (bin_dir / "AnomalyDX8.exe", bin_dir, None),
+            "Anomaly Launcher": (game_dir / LAUNCHER_EXE_NAME, game_dir, None),
+            "Explore Virtual Folder": (
+                explorer_dir / "Explorer++.exe",
+                explorer_dir,
+                self._path_for_qt_quoted_argument(game_dir),
+            ),
+        }
+
+        lines = ini_path.read_text(encoding="utf-8-sig").splitlines(keepends=True)
+        title_to_index = {}
+        for line in lines:
+            body = line.rstrip("\r\n")
+            if "\\title=" not in body:
+                continue
+            prefix, title = body.split("\\title=", 1)
+            if prefix.isdigit():
+                title_to_index[title] = prefix
+
+        updates = {}
+        for title, (binary, working_dir, arguments) in executables.items():
+            index = title_to_index.get(title)
+            if not index:
+                continue
+            updates[(index, "binary")] = self._path_for_mo2(binary)
+            updates[(index, "workingDirectory")] = self._path_for_mo2(working_dir)
+            if arguments is not None:
+                updates[(index, "arguments")] = arguments
+
+        changed = False
+        new_lines = []
+        for line in lines:
+            ending = "\r\n" if line.endswith("\r\n") else "\n" if line.endswith("\n") else ""
+            body = line[: len(line) - len(ending)] if ending else line
+            replacement = None
+            if body.startswith("gamePath="):
+                replacement = f"gamePath=@ByteArray({self._path_for_qt_bytearray(game_dir)})"
+            elif "=" in body:
+                left, _value = body.split("=", 1)
+                if "\\" in left:
+                    index, key = left.split("\\", 1)
+                    replacement_value = updates.get((index, key))
+                    if replacement_value is not None:
+                        replacement = f"{left}={replacement_value}"
+
+            if replacement is not None and replacement != body:
+                new_lines.append(replacement + ending)
+                changed = True
+            else:
+                new_lines.append(line)
+
+        if not changed:
+            self._debug_log("MO2 path sync: paths already correct")
+            return
+
+        backup = ini_path.with_suffix(f".ini.bak_{time.strftime('%Y%m%d_%H%M%S')}")
+        shutil.copy2(ini_path, backup)
+        ini_path.write_text("".join(new_lines), encoding="utf-8")
+        self._debug_log(f"MO2 path sync updated {ini_path}; backup={backup}")
 
     def _desktop_path(self):
         if sys.platform == "win32":
@@ -2051,6 +2142,7 @@ class LauncherApp(tk.Tk):
             )
             return
         try:
+            self._sync_mod_organizer_paths(mo2_path)
             self._shell_open_file(mo2_path)
             self.destroy()
         except Exception as exc:
