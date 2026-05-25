@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.15",
+  "version": "2026.05.25.16",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Make donation and community links clickable in the support screen."
+  "notes": "Install PDB debug symbols from engine archives."
 }
