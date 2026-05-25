@@ -31,15 +31,14 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.12"
+LAUNCHER_VERSION = "2026.05.25.13"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
 MOD_ORGANIZER_EXE_NAME = "ModOrganizer.exe"
-ENGINE_RELEASE_VERSION = "2026.5.23"
-ENGINE_REGULAR_URL = "https://github.com/themrdemonized/xray-monolith/releases/download/2026.5.23/STALKER-Anomaly-modded-exes_2026.5.23.zip"
-ENGINE_MT_URL = "https://github.com/themrdemonized/xray-monolith/releases/download/2026.5.23/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.23.zip"
+ENGINE_RELEASE_VERSION = "2026.5.8"
+ENGINE_MT_URL = "https://github.com/sysliveprime-ctrl/xray-monolith/releases/download/2026.5.8/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.8.zip"
 ENGINE_ALLOWED_PARTS = {"bin", "db"}
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
@@ -92,14 +91,32 @@ TEXT = {
         "update_ready": "Готово к проверке обновлений",
         "update_checking": "Проверка версии...",
         "update_downloading": "Скачивание обновления...",
+        "update_available": "Доступно обновление, можно скачать.",
+        "update_available_downloading": "Доступно обновление, скачивание...",
         "update_applying": "Установка обновления...",
         "update_preparing": "Подготовка файлов...",
         "update_done": "Модпак обновлен.",
         "update_latest": "Уже установлена последняя версия.",
+        "update_repair": "Восстановление модпака: скачивание недостающих файлов...",
         "update_missing": "Не найдена папка модпака",
         "update_expected": "Папка модпака должна лежать рядом с папкой игры",
         "update_failed": "Не удалось обновить модпак",
         "update_blocked_mo2": "Лаунчер запущен через Mod Organizer 2 или Mod Organizer 2 сейчас открыт.\n\nЧтобы избежать повреждения файлов и ошибки \"процесс занят\", обновление отключено.\n\nЗакройте Mod Organizer 2 и запустите лаунчер напрямую для обновления.",
+        "db_checking_process": "DB: проверка запущенной игры...",
+        "db_close_game": "Закройте игру перед обновлением DB",
+        "db_missing": "Папка DB не найдена",
+        "db_failed": "Не удалось обновить DB",
+        "db_no_version": "db_version.json не содержит версию",
+        "db_no_files": "db_version.json не содержит файлов",
+        "db_removing_extra": "DB: удаление лишних архивов...",
+        "db_latest": "DB уже обновлена.",
+        "db_done": "DB обновлена.",
+        "db_checking_hashes": "DB: проверка хэшей",
+        "db_downloading": "DB: скачивание",
+        "label_version": "Версия",
+        "label_removed_files": "Удалено лишних файлов",
+        "label_removed_old_files": "Удалено старых файлов",
+        "label_downloaded_files": "Скачано файлов",
         "news_1": "Anthology 2.1",
         "news_1_body": "Лаунчер запускает игру, хранит локальные настройки и помогает синхронизировать обновления сборки.",
         "news_2": "MO2 профиль Anthology 2.1",
@@ -139,14 +156,32 @@ TEXT = {
         "update_ready": "Ready to check updates",
         "update_checking": "Checking version...",
         "update_downloading": "Downloading update...",
+        "update_available": "Update available, ready to download.",
+        "update_available_downloading": "Update available, downloading...",
         "update_applying": "Applying update...",
         "update_preparing": "Preparing files...",
         "update_done": "Modpack updated.",
         "update_latest": "The latest version is already installed.",
+        "update_repair": "Modpack repair: downloading missing files...",
         "update_missing": "Modpack folder was not found",
         "update_expected": "The modpack folder must be next to the game folder",
         "update_failed": "Failed to update modpack",
         "update_blocked_mo2": "The launcher is running through Mod Organizer 2, or Mod Organizer 2 is currently open.\n\nTo avoid file damage and \"process is busy\" errors, updates are disabled.\n\nClose Mod Organizer 2 and run the launcher directly to update.",
+        "db_checking_process": "DB: checking game process...",
+        "db_close_game": "Close the game before DB update",
+        "db_missing": "DB folder was not found",
+        "db_failed": "DB update failed",
+        "db_no_version": "db_version.json has no version",
+        "db_no_files": "db_version.json has no files",
+        "db_removing_extra": "DB: removing extra archives...",
+        "db_latest": "DB is already up to date.",
+        "db_done": "DB updated.",
+        "db_checking_hashes": "DB: checking hashes",
+        "db_downloading": "DB: downloading",
+        "label_version": "Version",
+        "label_removed_files": "Removed extra files",
+        "label_removed_old_files": "Removed old files",
+        "label_downloaded_files": "Downloaded files",
         "news_1": "Anthology 2.1",
         "news_1_body": "The launcher starts the game, stores local settings, and helps synchronize build updates.",
         "news_2": "MO2 Anthology 2.1 profile",
@@ -857,7 +892,7 @@ class LauncherApp(tk.Tk):
         if self._block_update_if_mod_organizer_running():
             return
         self.updating = True
-        self._set_update_status("DB: checking version...", COLORS["accent_2"])
+        self._set_update_status("DB: проверка версии..." if self.lang == "ru" else "DB: checking version...", COLORS["accent_2"])
         self._set_update_progress(0, "")
         self._start_background_worker("sync-update", self._sync_combined_update_worker)
 
@@ -867,7 +902,7 @@ class LauncherApp(tk.Tk):
         if self._block_update_if_mod_organizer_running():
             return
         self.updating = True
-        self._set_update_status("DB: checking version...", COLORS["accent_2"])
+        self._set_update_status("DB: проверка версии..." if self.lang == "ru" else "DB: checking version...", COLORS["accent_2"])
         self._set_update_progress(0, "")
         self._start_background_worker("db-update", self._sync_db_update_worker)
 
@@ -877,21 +912,19 @@ class LauncherApp(tk.Tk):
             return
         if self._block_update_if_mod_organizer_running():
             return
-        choice = messagebox.askyesnocancel(
+        if not messagebox.askyesno(
             "Anthology Launcher",
-            "Обновить движок Modded Exes?\n\nДа - MT TEST версия\nНет - обычная версия\nОтмена - не обновлять",
-        )
-        if choice is None:
+            f"Обновить движок MT до версии {ENGINE_RELEASE_VERSION}?",
+        ):
             self._debug_log("engine update cancelled by user")
             return
-        mode = "mt" if choice else "regular"
-        self._debug_log(f"engine update requested: mode={mode} root={self.root_dir}")
+        self._debug_log(f"engine update requested: mode=mt root={self.root_dir}")
         self.updating = True
         self._set_engine_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
         self._set_engine_progress(0, "")
         self._set_update_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
         self._set_update_progress(0, "")
-        self._start_background_worker("engine-update", self._sync_engine_update_worker, mode)
+        self._start_background_worker("engine-update", self._sync_engine_update_worker)
 
     def _start_background_worker(self, name, target, *args):
         self._debug_log(f"{name}: starting thread")
@@ -915,7 +948,8 @@ class LauncherApp(tk.Tk):
             self._debug_log(f"{name}: failed to start thread: {type(exc).__name__}: {exc}")
             self._finish_git_update(False, f"Не удалось запустить фоновую задачу:\n{exc}")
 
-    def _sync_engine_update_worker(self, mode):
+    def _sync_engine_update_worker(self):
+        mode = "mt"
         self._debug_log(f"engine worker started: mode={mode}")
         log_path = None
         try:
@@ -928,8 +962,8 @@ class LauncherApp(tk.Tk):
                 self.after(0, lambda: self._finish_git_update(False, f"Закройте игру перед обновлением движка:\n{names}", operation="engine"))
                 return
 
-            url = ENGINE_MT_URL if mode == "mt" else ENGINE_REGULAR_URL
-            label = "MT TEST" if mode == "mt" else "обычная"
+            url = ENGINE_MT_URL
+            label = "MT TEST"
             tmp_dir = self.root_dir / "webcache" / "engine_update"
             self._debug_log(f"engine worker: creating tmp_dir={tmp_dir}")
             self._ensure_directory(tmp_dir)
@@ -1059,11 +1093,11 @@ class LauncherApp(tk.Tk):
             needs_repair = self._modpack_needs_repair(mods_dir, local)
             needs_manifest_bootstrap = local_version == remote_version and not self._state_file_list(local)
             if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap:
-                return True, f"{t['update_latest']}\n\nVersion: {remote_version}"
+                return True, f"{t['update_latest']}\n\n{t['label_version']}: {remote_version}"
 
-            status_text = t["update_downloading"]
+            status_text = t["update_available_downloading"]
             if local_version == remote_version and (needs_repair or needs_manifest_bootstrap):
-                status_text = "Modpack repair: downloading missing files..."
+                status_text = t["update_repair"]
             self.after(0, lambda s=status_text: self._set_update_status(s, COLORS["accent_2"]))
             zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
             tmp_dir = self.root_dir / "webcache" / "launcher_update"
@@ -1086,9 +1120,9 @@ class LauncherApp(tk.Tk):
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
             notes = remote.get("notes", "")
-            message = f"{t['update_done']}\n\nVersion: {remote_version}"
+            message = f"{t['update_done']}\n\n{t['label_version']}: {remote_version}"
             if deleted_files:
-                message += f"\nRemoved old files: {deleted_files}"
+                message += f"\n{t['label_removed_old_files']}: {deleted_files}"
             if notes:
                 message += f"\n\n{notes}"
             return True, message
@@ -1145,17 +1179,18 @@ class LauncherApp(tk.Tk):
         self.after(0, lambda: self._finish_git_update(ok, message))
 
     def _sync_db_update_step(self):
+        t = TEXT[self.lang]
         log_path = None
         try:
-            self.after(0, lambda: self._set_update_status("DB: checking game process...", COLORS["accent_2"]))
+            self.after(0, lambda: self._set_update_status(t["db_checking_process"], COLORS["accent_2"]))
             running = self._running_game_processes()
             if running:
                 names = ", ".join(running)
-                return False, f"Close the game before DB update:\n{names}"
+                return False, f"{t['db_close_game']}:\n{names}"
 
             db_dir = self.root_dir / "db"
             if not db_dir.exists():
-                return False, f"DB folder was not found:\n{db_dir}"
+                return False, f"{t['db_missing']}:\n{db_dir}"
 
             tmp_dir = self.root_dir / "webcache" / "db_update"
             self._ensure_directory(tmp_dir)
@@ -1166,17 +1201,17 @@ class LauncherApp(tk.Tk):
             entries = self._db_manifest_entries(remote)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
-                return False, "DB update failed:\ndb_version.json has no version"
+                return False, f"{t['db_failed']}:\n{t['db_no_version']}"
             if not entries:
-                return False, "DB update failed:\ndb_version.json has no files"
+                return False, f"{t['db_failed']}:\n{t['db_no_files']}"
 
-            self.after(0, lambda: self._set_update_status("DB: removing extra archives...", COLORS["accent_2"]))
+            self.after(0, lambda: self._set_update_status(t["db_removing_extra"], COLORS["accent_2"]))
             deleted = self._mirror_db_archives(entries, log_path)
 
             changed = self._db_files_needing_download(entries, log_path)
             if not changed:
                 self._save_db_update_state(remote)
-                message = f"DB is already up to date.\n\nVersion: {remote_version}\nRemoved extra files: {deleted}"
+                message = f"{t['db_latest']}\n\n{t['label_version']}: {remote_version}\n{t['label_removed_files']}: {deleted}"
                 return True, message
 
             total = len(changed)
@@ -1186,7 +1221,7 @@ class LauncherApp(tk.Tk):
                 target = self.root_dir / rel
                 tmp_file = tmp_dir / (target.name + ".download")
                 url = self._db_entry_url(remote, entry)
-                self.after(0, lambda i=index, n=total, p=rel: self._set_update_status(f"DB: downloading {i}/{n} {Path(p).name}", COLORS["accent_2"]))
+                self.after(0, lambda i=index, n=total, p=rel: self._set_update_status(f"{t['db_downloading']} {i}/{n} {Path(p).name}", COLORS["accent_2"]))
                 self._write_update_log(log_path, f"download {index}/{total}: {url} -> {target}")
                 self._download_update_archive(url, tmp_file)
                 self._verify_db_file(tmp_file, entry)
@@ -1198,18 +1233,18 @@ class LauncherApp(tk.Tk):
 
             self._save_db_update_state(remote)
             notes = str(remote.get("notes", "")).strip()
-            message = f"DB updated.\n\nVersion: {remote_version}\nDownloaded files: {total}\nRemoved extra files: {deleted}"
+            message = f"{t['db_done']}\n\n{t['label_version']}: {remote_version}\n{t['label_downloaded_files']}: {total}\n{t['label_removed_files']}: {deleted}"
             if notes:
                 message += f"\n\n{notes}"
             return True, message
         except (URLError, OSError, ValueError) as exc:
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            return False, f"DB update failed:\n{exc}"
+            return False, f"{t['db_failed']}:\n{exc}"
         except Exception as exc:
             if log_path:
                 self._write_update_log(log_path, f"ERROR={exc}")
-            return False, f"DB update failed:\n{exc}"
+            return False, f"{t['db_failed']}:\n{exc}"
 
     def _download_update_version(self):
         url = f"{UPDATE_VERSION_URL}?t={int(time.time())}"
@@ -1648,12 +1683,13 @@ class LauncherApp(tk.Tk):
         return deleted
 
     def _db_files_needing_download(self, entries, log_path=None):
+        t = TEXT[self.lang]
         changed = []
         total = max(1, len(entries))
         for index, entry in enumerate(entries, start=1):
             rel = entry["path"]
             target = self.root_dir / rel
-            self.after(0, lambda i=index, n=total: self._set_update_status(f"DB: checking hashes {i}/{n}", COLORS["accent_2"]))
+            self.after(0, lambda i=index, n=total: self._set_update_status(f"{t['db_checking_hashes']} {i}/{n}", COLORS["accent_2"]))
             if not self._db_file_matches(target, entry):
                 changed.append(entry)
                 if log_path:
@@ -1840,14 +1876,27 @@ class LauncherApp(tk.Tk):
     def _finish_git_update(self, ok, message, operation="modpack"):
         self.updating = False
         color = COLORS["accent"] if ok else COLORS["danger"]
+        t = TEXT[self.lang]
         if operation == "engine":
             engine_text = self._engine_status_text() if ok else "Не удалось обновить движок"
             self._set_engine_status(engine_text, color)
             self._set_engine_progress(100 if ok else 0, "100%" if ok else "")
-            self._set_update_status(TEXT[self.lang]["update_ready"], COLORS["muted"])
+            self._set_update_status(t["update_ready"], COLORS["muted"])
             self._set_update_progress(0, "")
         else:
-            self._set_update_status(TEXT[self.lang]["update_done" if ok else "update_failed"], color)
+            if not ok:
+                status_text = t["update_failed"]
+            elif t["update_done"] in message:
+                status_text = t["update_done"]
+            elif t["db_done"] in message:
+                status_text = t["db_done"]
+            elif t["update_latest"] in message:
+                status_text = t["update_latest"]
+            elif t["db_latest"] in message:
+                status_text = t["db_latest"]
+            else:
+                status_text = t["update_done"]
+            self._set_update_status(status_text, color)
             self._set_update_progress(100 if ok else 0, "100%" if ok else "")
         box = messagebox.showinfo if ok else messagebox.showerror
         box("Anthology Launcher", message)

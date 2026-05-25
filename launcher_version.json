@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.12",
+  "version": "2026.05.25.13",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Fix shortcut icon persistence, prevent dev shortcut overwrite, taskbar title, remove OBT copy, and add logs folder button."
+  "notes": "Russian update messages and pinned MT engine update to Anthology 2026.5.8."
 }
