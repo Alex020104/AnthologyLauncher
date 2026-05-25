@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.17"
+LAUNCHER_VERSION = "2026.05.25.18"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -86,7 +86,7 @@ TEXT = {
         "build": "ANTHOLOGY 2.1",
         "channel": "Open Beta",
         "server": "Сервер обновлений будет подключен позже",
-        "update_button": "Синхронизация",
+        "update_button": "Обновить",
         "engine_button": "Движок",
         "update_ready": "Готово к проверке обновлений",
         "update_checking": "Проверка версии...",
