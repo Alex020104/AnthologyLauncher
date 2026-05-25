@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.1"
+LAUNCHER_VERSION = "2026.05.25.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1181,12 +1181,9 @@ class LauncherApp(tk.Tk):
         message = (
             f"Доступна новая версия лаунчера: {remote_version}\n"
             f"Текущая версия: {LAUNCHER_VERSION}\n\n"
-            "Обновить сейчас?\n\n"
-            "После обновления откройте лаунчер заново через MO2."
+            "Обновить сейчас?"
         )
         if messagebox.askyesno("Anthology Launcher", message):
-            if self._block_update_if_mod_organizer_running():
-                return
             threading.Thread(target=self._install_launcher_update_worker, args=(remote,), daemon=True).start()
 
     def _install_launcher_update_worker(self, remote):
@@ -1283,8 +1280,11 @@ class LauncherApp(tk.Tk):
             ")",
             "echo copy ok >> \"%LOG%\"",
             "if exist \"%DST%\" for %%A in (\"%DST%\") do echo dst_size_after=%%~zA >> \"%LOG%\"",
-            "echo launcher updated; manual restart required >> \"%LOG%\"",
+            "echo launcher updated; restarting >> \"%LOG%\"",
             "timeout /t 2 /nobreak >nul",
+            "start \"\" /D \"%DST_DIR%\" \"%DST%\"",
+            "echo restart requested >> \"%LOG%\"",
+            "timeout /t 3 /nobreak >nul",
             "del /q \"%SRC%\" >> \"%LOG%\" 2>&1",
             "del /q \"%~f0\" >nul 2>&1",
             "exit /b 0",
@@ -1297,7 +1297,7 @@ class LauncherApp(tk.Tk):
             "Anthology Launcher",
             "Обновление лаунчера скачано.\n\n"
             "После нажатия OK лаунчер закроется и заменит файл.\n"
-            "Откройте лаунчер заново вручную через Mod Organizer 2.",
+            "После обновления лаунчер запустится автоматически.",
         )
         self._shell_open_file(updater, show=0)
         self.destroy()

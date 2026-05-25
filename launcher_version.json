@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.1",
+  "version": "2026.05.25.2",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Тестовое фейковое обновление для проверки механики самообновления лаунчера."
+  "notes": "Самообновление лаунчера снова перезапускает лаунчер автоматически после замены файла; блокировка по открытому Mod Organizer 2 для обновления лаунчера убрана."
 }
