@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.19",
+  "version": "2026.05.25.20",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Automatically repair Mod Organizer executable paths for the current Anthology install location."
+  "notes": "Add separate modpack and original Anthology launch modes; use DB-only sync when the modpack folder is absent."
 }

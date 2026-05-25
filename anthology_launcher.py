@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.19"
+LAUNCHER_VERSION = "2026.05.25.20"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -71,7 +71,8 @@ COLORS = {
 
 TEXT = {
     "ru": {
-        "play": "Играть",
+        "play": "Играть с модпаком в Антологию",
+        "play_original": "Играть в Антологию оригинал",
         "settings": "Настройки",
         "back": "Назад",
         "save": "Сохранить",
@@ -138,7 +139,8 @@ TEXT = {
         "mo2_expected": "Mod Organizer 2 должен лежать рядом с папкой игры",
     },
     "en": {
-        "play": "Play",
+        "play": "Play Anthology with modpack",
+        "play_original": "Play original Anthology",
         "settings": "Settings",
         "back": "Back",
         "save": "Save",
@@ -468,9 +470,10 @@ class LauncherApp(tk.Tk):
 
     def _bottom_update_bar(self, t):
         y = 592
-        self.buttons["play"] = self._button(72, y, 158, 42, t["play"], self.play, primary=True)
-        self.buttons["cache"] = self._button(248, y, 166, 42, t["cache"], self.delete_shader_cache)
-        self.buttons["logs"] = self._button(248, 646, 166, 42, t["logs"], self.open_logs_folder)
+        self.buttons["play"] = self._button(72, y, 342, 42, t["play"], self.play, primary=True)
+        self.buttons["play_original"] = self._button(72, 646, 342, 42, t["play_original"], self.play_original, primary=True)
+        self.buttons["cache"] = self._button(792, y, 156, 42, t["cache"], self.delete_shader_cache)
+        self.buttons["logs"] = self._button(792, 646, 156, 42, t["logs"], self.open_logs_folder)
         update_x = 490
         update_w = 430
         update_bar_y = 682
@@ -513,7 +516,8 @@ class LauncherApp(tk.Tk):
         outline = COLORS["accent"] if primary else "#829d96"
         rect = self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill=fill, stipple="gray50", outline=outline, width=1))
         self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50"))
-        label = self._add(self.canvas.create_text(x + w / 2, y + h / 2, text=text, fill=COLORS["text"], font=("Segoe UI Semibold", 15 if primary else 10, "bold")))
+        font_size = 13 if primary and len(text) > 22 else 15 if primary else 10
+        label = self._add(self.canvas.create_text(x + w / 2, y + h / 2, text=text, fill=COLORS["text"], font=("Segoe UI Semibold", font_size, "bold"), width=max(20, w - 16)))
         for item in (rect, label):
             self.canvas.tag_bind(item, "<Button-1>", lambda _e, cmd=command: cmd())
             self.canvas.tag_bind(item, "<Enter>", lambda _e, r=rect, c=hover: self.canvas.itemconfig(r, fill=c))
@@ -787,6 +791,13 @@ class LauncherApp(tk.Tk):
                 if candidate.exists():
                     return candidate
         return exact
+
+    def _modpack_available(self):
+        return self._modpack_mods_dir().exists()
+
+    def _selected_game_exe(self):
+        suffix = f"{self.renderer}{'AVX' if self.avx else ''}"
+        return self.root_dir / "bin" / f"Anomaly{suffix}.exe"
 
     def _path_for_mo2(self, path):
         return str(Path(path)).replace("\\", "/")
@@ -1163,6 +1174,11 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda m=db_message: self._finish_git_update(False, m))
             return
 
+        if not self._modpack_available():
+            self._debug_log("sync-update: modpack folder missing, DB-only update mode")
+            self.after(0, lambda m=db_message: self._finish_git_update(True, m))
+            return
+
         self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_checking"], COLORS["accent_2"]))
         self.after(0, lambda: self._set_update_progress(0, ""))
         mod_ok, mod_message = self._sync_modpack_update_step()
@@ -1189,11 +1205,13 @@ class LauncherApp(tk.Tk):
             local_version = str(local.get("version", "")).strip()
             needs_repair = self._modpack_needs_repair(mods_dir, local)
             needs_manifest_bootstrap = local_version == remote_version and not self._state_file_list(local)
-            if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap:
+            manifest_removed_files = self._manifest_removed_files(remote)
+            needs_manifest_cleanup = any((mods_dir / rel).is_file() for rel in manifest_removed_files)
+            if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap and not needs_manifest_cleanup:
                 return True, f"{t['update_latest']}\n\n{t['label_version']}: {remote_version}"
 
             status_text = t["update_available_downloading"]
-            if local_version == remote_version and (needs_repair or needs_manifest_bootstrap):
+            if local_version == remote_version and (needs_repair or needs_manifest_bootstrap or needs_manifest_cleanup):
                 status_text = t["update_repair"]
             self.after(0, lambda s=status_text: self._set_update_status(s, COLORS["accent_2"]))
             zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
@@ -1212,6 +1230,7 @@ class LauncherApp(tk.Tk):
             with zipfile.ZipFile(zip_path, "r") as archive:
                 installed_files = self._install_update_archive(archive, mods_dir, log_path)
             deleted_files = self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path)
+            deleted_files += self._remove_manifest_files(mods_dir, manifest_removed_files, log_path)
             self._save_update_state(mods_dir, remote, installed_files)
             self._write_update_log(log_path, "state saved")
             shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -1300,7 +1319,7 @@ class LauncherApp(tk.Tk):
     def _modpack_update_available(self):
         mods_dir = self._modpack_mods_dir()
         if not mods_dir.exists():
-            return True
+            return False
 
         remote = self._download_update_version()
         remote_version = str(remote.get("version", "")).strip()
@@ -1730,6 +1749,44 @@ class LauncherApp(tk.Tk):
                     self._write_update_log(log_path, f"delete stale failed: {target}: {exc}")
         return deleted
 
+    def _manifest_removed_files(self, remote):
+        raw_files = remote.get("removed_files", [])
+        if raw_files in ("", None):
+            return []
+        if not isinstance(raw_files, list):
+            raise ValueError("version.json removed_files must be a list")
+        files = []
+        seen = set()
+        for item in raw_files:
+            if not isinstance(item, str):
+                raise ValueError("version.json removed_files entries must be strings")
+            rel = Path(item.replace("\\", "/"))
+            key = rel.as_posix().casefold()
+            if key in seen:
+                continue
+            if self._should_preserve_update_path(rel) or not self._is_update_relative_allowed(rel):
+                raise ValueError(f"invalid removed file path: {item}")
+            seen.add(key)
+            files.append(rel)
+        return files
+
+    def _remove_manifest_files(self, mods_dir, files, log_path=None):
+        deleted = 0
+        for rel in files:
+            target = mods_dir / rel
+            try:
+                if not target.is_file() or not self._is_relative_to(target.resolve(), mods_dir.resolve()):
+                    continue
+                self._make_writable(target)
+                target.unlink()
+                deleted += 1
+                if log_path:
+                    self._write_update_log(log_path, f"delete manifest removed_file: {target}")
+            except OSError as exc:
+                if log_path:
+                    self._write_update_log(log_path, f"delete manifest removed_file failed: {target}: {exc}")
+        return deleted
+
     def _is_relative_to(self, path, parent):
         try:
             path.relative_to(parent)
@@ -1738,7 +1795,10 @@ class LauncherApp(tk.Tk):
             return False
 
     def _is_update_relative_allowed(self, path):
-        parts = Path(path).parts
+        path = Path(path)
+        if path.is_absolute():
+            return False
+        parts = path.parts
         if not parts or any(part in ("", ".", "..") for part in parts):
             return False
         lowered = [part.lower() for part in parts]
@@ -2129,11 +2189,7 @@ class LauncherApp(tk.Tk):
         put("Сбербанк: 2202 2088 4315 3975\n")
 
     def play(self):
-        self.write_config()
-        self.write_commandline()
-        self.apply_sound_fix()
-        if self.reset_user or not (self.root_dir / "appdata" / "user.ltx").exists():
-            self.reset_user_ltx_file()
+        self._prepare_game_launch()
         mo2_path = self._mod_organizer_exe()
         if not mo2_path.exists():
             messagebox.showerror(
@@ -2147,6 +2203,30 @@ class LauncherApp(tk.Tk):
             self.destroy()
         except Exception as exc:
             messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{mo2_path}\n\n{exc}")
+
+    def play_original(self):
+        self._prepare_game_launch()
+        game_exe = self._selected_game_exe()
+        if not game_exe.exists():
+            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{game_exe}")
+            return
+        try:
+            subprocess.Popen(
+                [str(game_exe)],
+                cwd=str(game_exe.parent),
+                env=self._prepare_external_launch(),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            self.destroy()
+        except Exception as exc:
+            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{game_exe}\n\n{exc}")
+
+    def _prepare_game_launch(self):
+        self.write_config()
+        self.write_commandline()
+        self.apply_sound_fix()
+        if self.reset_user or not (self.root_dir / "appdata" / "user.ltx").exists():
+            self.reset_user_ltx_file()
 
 
 if __name__ == "__main__":
