@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.16"
+LAUNCHER_VERSION = "2026.05.25.17"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1204,7 +1204,7 @@ class LauncherApp(tk.Tk):
             self.update_probe_running = False
 
     def _content_updates_available(self):
-        return self._modpack_update_available() or self._db_update_available()
+        return self._modpack_update_available() or self._db_update_available() or self._engine_update_available()
 
     def _modpack_update_available(self):
         mods_dir = self._modpack_mods_dir()
@@ -1235,6 +1235,10 @@ class LauncherApp(tk.Tk):
 
         local = self._load_json_file(self._db_state_path())
         return remote_version != str(local.get("version", "")).strip()
+
+    def _engine_update_available(self):
+        state = self._load_engine_state()
+        return str(state.get("version", "")).strip() != ENGINE_RELEASE_VERSION
 
     def _sync_db_update_step(self):
         t = TEXT[self.lang]
