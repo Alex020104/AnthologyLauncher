@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.4",
+  "version": "2026.05.25.5",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Автоперезапуск после самообновления очищает служебные PyInstaller переменные окружения, чтобы новая версия не пыталась загрузиться из удаленной _MEI temp-папки."
+  "notes": "Диагностическая сборка самообновления: логирует PyInstaller env до и после очистки, команду автозапуска и список процессов после старта."
 }
