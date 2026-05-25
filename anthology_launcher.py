@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.25"
+LAUNCHER_VERSION = "2026.05.25.26"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -129,8 +129,8 @@ TEXT = {
         "label_removed_files": "Удалено лишних файлов",
         "label_removed_old_files": "Удалено старых файлов",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Anthology 2.1",
-        "news_1_body": "Лаунчер запускает игру, хранит локальные настройки и помогает синхронизировать обновления сборки.",
+        "news_1": "ReShade в лаунчере",
+        "news_1_body": "В настройках появился переключатель ReShade. Лаунчер скачивает пакет один раз и включает или отключает его без лишних загрузок.",
         "news_2": "MO2 профиль Anthology 2.1",
         "news_2_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
         "debug": "Режим отладки",
@@ -201,8 +201,8 @@ TEXT = {
         "label_removed_files": "Removed extra files",
         "label_removed_old_files": "Removed old files",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "Anthology 2.1",
-        "news_1_body": "The launcher starts the game, stores local settings, and helps synchronize build updates.",
+        "news_1": "ReShade in launcher",
+        "news_1_body": "Settings now include a ReShade toggle. The launcher downloads the package once and enables or disables it without extra downloads.",
         "news_2": "MO2 Anthology 2.1 profile",
         "news_2_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
         "debug": "Debug mode",
