@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.22"
+LAUNCHER_VERSION = "2026.05.25.23"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -40,6 +40,10 @@ MOD_ORGANIZER_EXE_NAME = "ModOrganizer.exe"
 ENGINE_RELEASE_VERSION = "2026.5.8"
 ENGINE_MT_URL = "https://github.com/sysliveprime-ctrl/xray-monolith/releases/download/2026.5.8/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.8.zip"
 ENGINE_ALLOWED_PARTS = {"bin", "db"}
+RESHADE_VERSION = "2026.05.25.1"
+RESHADE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/Reshade_ANTHOLOGY_2.1.zip"
+RESHADE_FILES = ("dxgi.dll", "ReShade.ini", "ReShadePreset.ini", "ANTHOLOGY 2.1.ini")
+RESHADE_DIRS = ("reshade-shaders",)
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
@@ -81,6 +85,10 @@ TEXT = {
         "about": "О проекте",
         "support": "Поддержать проект",
         "quit": "Выход",
+        "reshade": "ReShade",
+        "reshade_installed": "ReShade установлен.",
+        "reshade_removed": "ReShade удален.",
+        "reshade_failed": "Не удалось обработать ReShade",
         "news": "Новости проекта",
         "update": "Центр обновлений",
         "ready": "Готово к запуску",
@@ -149,6 +157,10 @@ TEXT = {
         "about": "About",
         "support": "Support project",
         "quit": "Exit",
+        "reshade": "ReShade",
+        "reshade_installed": "ReShade installed.",
+        "reshade_removed": "ReShade removed.",
+        "reshade_failed": "Failed to process ReShade",
         "news": "Project news",
         "update": "Update center",
         "ready": "Ready to launch",
@@ -411,12 +423,13 @@ class LauncherApp(tk.Tk):
             "prefetch": self._toggle(104, 438, t["prefetch"], lambda: self._flip("prefetch")),
             "reset": self._toggle(574, 330, t["reset"], lambda: self._flip("reset_user")),
             "avx": self._toggle(574, 384, t["avx"], lambda: self._flip("avx")),
+            "reshade": self._toggle(574, 438, t["reshade"], self.toggle_reshade),
         }
 
-        self._add(self.canvas.create_text(574, 450, text=t["shadow"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
-        self.shadow_value = self._add(self.canvas.create_text(724, 450, text=str(SHADOWS[self.shadow]), anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 15, "bold")))
-        self.buttons["shadow_minus"] = self._button(574, 486, 74, 40, "<", self._shadow_prev)
-        self.buttons["shadow_plus"] = self._button(662, 486, 74, 40, ">", self._shadow_next)
+        self._add(self.canvas.create_text(574, 474, text=t["shadow"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
+        self.shadow_value = self._add(self.canvas.create_text(724, 474, text=str(SHADOWS[self.shadow]), anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 15, "bold")))
+        self.buttons["shadow_minus"] = self._button(574, 506, 74, 36, "<", self._shadow_prev)
+        self.buttons["shadow_plus"] = self._button(662, 506, 74, 36, ">", self._shadow_next)
         self.buttons["save"] = self._button(104, 552, 190, 48, t["save"], self.save_settings, primary=True)
         self.buttons["about"] = self._button(802, 552, 126, 40, t["about"], self.about)
         self.buttons["engine"] = self._button(950, 552, 126, 40, t["engine_button"], self.sync_engine_update)
@@ -586,6 +599,14 @@ class LauncherApp(tk.Tk):
         setattr(self, name, not getattr(self, name))
         self._refresh_all()
 
+    def toggle_reshade(self):
+        if self.updating:
+            return
+        if self._reshade_installed():
+            self.remove_reshade()
+        else:
+            self.install_reshade()
+
     def _shadow_prev(self):
         self.shadow = (self.shadow - 1) % len(SHADOWS)
         self._refresh_all()
@@ -621,6 +642,7 @@ class LauncherApp(tk.Tk):
             "prefetch": self.prefetch,
             "reset": self.reset_user,
             "avx": self.avx,
+            "reshade": self._reshade_installed(),
         }
         for key, item in self.toggle_items.items():
             active = values[key]
@@ -729,6 +751,81 @@ class LauncherApp(tk.Tk):
 
     def support_project(self):
         self.show_support()
+
+    def install_reshade(self):
+        if self.updating:
+            return
+        self.updating = True
+        self._set_update_status(TEXT[self.lang]["update_downloading"], COLORS["accent_2"])
+        self._set_update_progress(0, "")
+        self._start_background_worker("reshade-install", self._install_reshade_worker)
+
+    def _install_reshade_worker(self):
+        try:
+            bin_dir = self.root_dir / "bin"
+            if not bin_dir.exists():
+                raise FileNotFoundError(bin_dir)
+            tmp_dir = self.root_dir / "webcache" / "reshade"
+            self._reset_directory(tmp_dir)
+            archive_path = tmp_dir / f"Reshade_ANTHOLOGY_2.1_{RESHADE_VERSION}.zip"
+            self._download_update_archive(RESHADE_URL, archive_path, attempts=3, timeout=180)
+            self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
+            self.after(0, lambda: self._set_update_progress(0, "0%"))
+            with zipfile.ZipFile(archive_path, "r") as archive:
+                self._install_reshade_archive(archive, bin_dir)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            self.after(0, lambda: self._finish_reshade(True, TEXT[self.lang]["reshade_installed"]))
+        except Exception as exc:
+            self.after(0, lambda e=exc: self._finish_reshade(False, f"{TEXT[self.lang]['reshade_failed']}:\n{e}"))
+
+    def remove_reshade(self):
+        if self.updating:
+            return
+        self.updating = True
+        try:
+            bin_dir = self.root_dir / "bin"
+            if not bin_dir.exists():
+                raise FileNotFoundError(bin_dir)
+            for name in RESHADE_FILES:
+                path = bin_dir / name
+                if path.exists():
+                    self._make_writable(path)
+                    path.unlink()
+            for name in RESHADE_DIRS:
+                path = bin_dir / name
+                if path.exists():
+                    shutil.rmtree(path, ignore_errors=True)
+            self._set_update_status(TEXT[self.lang]["reshade_removed"], COLORS["accent"])
+            self._set_update_progress(0, "")
+            messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["reshade_removed"])
+        except Exception as exc:
+            self._set_update_status(TEXT[self.lang]["reshade_failed"], COLORS["danger"])
+            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['reshade_failed']}:\n{exc}")
+        finally:
+            self.updating = False
+            self._refresh_all()
+
+    def _finish_reshade(self, ok, message):
+        self.updating = False
+        if ok:
+            self._set_update_status(message, COLORS["accent"])
+            self._set_update_progress(100, "100%")
+            messagebox.showinfo("Anthology Launcher", message)
+        else:
+            self._set_update_status(TEXT[self.lang]["reshade_failed"], COLORS["danger"])
+            self._set_update_progress(0, "")
+            messagebox.showerror("Anthology Launcher", message)
+        self._refresh_all()
+
+    def _reshade_installed(self):
+        bin_dir = self.root_dir / "bin"
+        for name in RESHADE_FILES:
+            if (bin_dir / name).exists():
+                return True
+        for name in RESHADE_DIRS:
+            if (bin_dir / name).exists():
+                return True
+        return False
 
     def _prepare_external_launch(self):
         env = os.environ.copy()
@@ -2047,6 +2144,22 @@ class LauncherApp(tk.Tk):
                 self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
         return installed
 
+    def _install_reshade_archive(self, archive, bin_dir):
+        files = [info for info in archive.infolist() if not info.is_dir() and self._archive_reshade_relative(info.filename)]
+        total = max(1, len(files))
+        if not files:
+            raise ValueError("ReShade archive has no installable files")
+        for index, info in enumerate(files, start=1):
+            relative = self._archive_reshade_relative(info.filename)
+            target_path = bin_dir / relative
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            self._make_writable(target_path)
+            with archive.open(info, "r") as source, target_path.open("wb") as target:
+                shutil.copyfileobj(source, target, length=1024 * 1024)
+            if index == total or index % 5 == 0:
+                value = int(index * 100 / total)
+                self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
+
     def _install_engine_archive(self, archive, dst, backup_dir, log_path=None):
         files = [info for info in archive.infolist() if not info.is_dir() and self._archive_engine_relative(info.filename)]
         total = max(1, len(files))
@@ -2090,6 +2203,17 @@ class LauncherApp(tk.Tk):
         if not parts or parts[0].lower() not in ENGINE_ALLOWED_PARTS:
             return None
         return Path(*parts)
+
+    def _archive_reshade_relative(self, name):
+        parts = Path(name.replace("\\", "/")).parts
+        if not parts or any(part in ("", ".", "..") for part in parts):
+            return None
+        first = parts[0]
+        if len(parts) == 1 and first in RESHADE_FILES:
+            return Path(first)
+        if first in RESHADE_DIRS:
+            return Path(*parts)
+        return None
 
     def _make_writable(self, path):
         if not path.exists():

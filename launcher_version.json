@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.22",
+  "version": "2026.05.25.23",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Prevent repeated engine downloads when the current engine version is already installed."
+  "notes": "Add optional ReShade install/remove toggle."
 }
