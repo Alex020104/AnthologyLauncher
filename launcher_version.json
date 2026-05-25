@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.2",
+  "version": "2026.05.25.3",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Самообновление лаунчера снова перезапускает лаунчер автоматически после замены файла; блокировка по открытому Mod Organizer 2 для обновления лаунчера убрана."
+  "notes": "Окно лаунчера теперь регистрируется в Windows как отдельное приложение и должно показывать значок на панели задач."
 }

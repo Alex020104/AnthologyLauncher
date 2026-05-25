@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.2"
+LAUNCHER_VERSION = "2026.05.25.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -209,6 +209,7 @@ class LauncherApp(tk.Tk):
         self.toggle_items = {}
 
         self.overrideredirect(True)
+        self._register_windows_app_identity()
         self._center_window()
         self.resizable(False, False)
         self.configure(bg=COLORS["bg"])
@@ -221,6 +222,7 @@ class LauncherApp(tk.Tk):
         self._load_background()
         self._build_base()
         self.show_home()
+        self.after(300, self._show_on_taskbar)
         self.after(800, self.ensure_desktop_shortcut)
         self.after(1500, self.check_launcher_update_async)
 
@@ -229,6 +231,36 @@ class LauncherApp(tk.Tk):
         bg = ImageEnhance.Brightness(bg).enhance(0.72)
         bg = ImageEnhance.Contrast(bg).enhance(0.96)
         self.bg_img = ImageTk.PhotoImage(bg)
+
+    def _register_windows_app_identity(self):
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("SYS.Anthology.Launcher")
+        except Exception:
+            pass
+
+    def _show_on_taskbar(self):
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            user32 = ctypes.windll.user32
+            hwnd = self.winfo_id()
+            parent = user32.GetParent(hwnd)
+            if parent:
+                hwnd = parent
+            gwl_exstyle = -20
+            ws_ex_appwindow = 0x00040000
+            ws_ex_toolwindow = 0x00000080
+            style = user32.GetWindowLongW(hwnd, gwl_exstyle)
+            style = (style | ws_ex_appwindow) & ~ws_ex_toolwindow
+            user32.SetWindowLongW(hwnd, gwl_exstyle, style)
+            self.withdraw()
+            self.after(10, self.deiconify)
+        except Exception as exc:
+            self._debug_log(f"taskbar icon failed: {type(exc).__name__}: {exc}")
 
     def _build_base(self):
         self.canvas = tk.Canvas(self, width=WIDTH, height=HEIGHT, highlightthickness=0, bd=0, bg=COLORS["bg"])
