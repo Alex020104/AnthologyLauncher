@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.8"
+LAUNCHER_VERSION = "2026.05.25.9"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1056,12 +1056,15 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             with zipfile.ZipFile(zip_path, "r") as archive:
                 installed_files = self._install_update_archive(archive, mods_dir, log_path)
+            deleted_files = self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path)
             self._save_update_state(mods_dir, remote, installed_files)
             self._write_update_log(log_path, "state saved")
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
             notes = remote.get("notes", "")
             message = f"{t['update_done']}\n\nVersion: {remote_version}"
+            if deleted_files:
+                message += f"\nRemoved old files: {deleted_files}"
             if notes:
                 message += f"\n\n{notes}"
             return True, message
@@ -1479,6 +1482,44 @@ class LauncherApp(tk.Tk):
         if files:
             state["files"] = sorted({Path(path).as_posix() for path in files}, key=str.casefold)
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _remove_stale_update_files(self, mods_dir, previous_files, current_files, log_path=None):
+        current = {Path(path).as_posix().casefold() for path in current_files}
+        deleted = 0
+        for rel in previous_files:
+            rel_key = rel.as_posix().casefold()
+            if rel_key in current or not self._is_update_relative_allowed(rel):
+                continue
+            target = mods_dir / rel
+            try:
+                if not target.is_file() or not self._is_relative_to(target.resolve(), mods_dir.resolve()):
+                    continue
+                self._make_writable(target)
+                target.unlink()
+                deleted += 1
+                if log_path:
+                    self._write_update_log(log_path, f"delete stale: {target}")
+            except OSError as exc:
+                if log_path:
+                    self._write_update_log(log_path, f"delete stale failed: {target}: {exc}")
+        return deleted
+
+    def _is_relative_to(self, path, parent):
+        try:
+            path.relative_to(parent)
+            return True
+        except ValueError:
+            return False
+
+    def _is_update_relative_allowed(self, path):
+        parts = Path(path).parts
+        if not parts or any(part in ("", ".", "..") for part in parts):
+            return False
+        lowered = [part.lower() for part in parts]
+        if "gamedata" not in lowered:
+            return False
+        index = lowered.index("gamedata")
+        return index + 1 < len(parts) and lowered[index + 1] in UPDATE_ALLOWED_PARTS
 
     def _db_state_path(self):
         return self.root_dir / "webcache" / "db_update" / "db_state.json"

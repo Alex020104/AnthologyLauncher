@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.8",
+  "version": "2026.05.25.9",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Release pipeline test: launcher self-update verification."
+  "notes": "Updater now removes modpack files deleted from the published archive."
 }
