@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.13"
+LAUNCHER_VERSION = "2026.05.25.14"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -91,8 +91,10 @@ TEXT = {
         "update_ready": "Готово к проверке обновлений",
         "update_checking": "Проверка версии...",
         "update_downloading": "Скачивание обновления...",
-        "update_available": "Доступно обновление, можно скачать.",
+        "update_available": "Есть обновление",
         "update_available_downloading": "Доступно обновление, скачивание...",
+        "update_none": "Обновлений нет",
+        "update_check_failed": "Не удалось проверить обновления",
         "update_applying": "Установка обновления...",
         "update_preparing": "Подготовка файлов...",
         "update_done": "Модпак обновлен.",
@@ -156,8 +158,10 @@ TEXT = {
         "update_ready": "Ready to check updates",
         "update_checking": "Checking version...",
         "update_downloading": "Downloading update...",
-        "update_available": "Update available, ready to download.",
+        "update_available": "Update available",
         "update_available_downloading": "Update available, downloading...",
+        "update_none": "No updates",
+        "update_check_failed": "Failed to check updates",
         "update_applying": "Applying update...",
         "update_preparing": "Preparing files...",
         "update_done": "Modpack updated.",
@@ -235,6 +239,7 @@ class LauncherApp(tk.Tk):
         self.drag_window_y = 0
         self.view = "home"
         self.updating = False
+        self.update_probe_running = False
         self.worker_threads = []
         self.update_status_item = None
         self.update_progress_bg = None
@@ -267,6 +272,7 @@ class LauncherApp(tk.Tk):
         self.after(300, self._show_on_taskbar)
         self.after(800, self.ensure_desktop_shortcut)
         self.after(1500, self.check_launcher_update_async)
+        self.after(1800, self.check_content_updates_async)
 
     def _load_background(self):
         bg = Image.open(self.assets / "Launcher.png").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
@@ -1178,6 +1184,58 @@ class LauncherApp(tk.Tk):
         ok, message = self._sync_db_update_step()
         self.after(0, lambda: self._finish_git_update(ok, message))
 
+    def check_content_updates_async(self):
+        if self.updating or self.update_probe_running:
+            return
+        self.update_probe_running = True
+        self._set_update_status(TEXT[self.lang]["update_checking"], COLORS["accent_2"])
+        threading.Thread(target=self._check_content_updates_worker, daemon=True).start()
+
+    def _check_content_updates_worker(self):
+        try:
+            has_updates = self._content_updates_available()
+            key = "update_available" if has_updates else "update_none"
+            color = COLORS["accent_2"] if has_updates else COLORS["muted"]
+            self.after(0, lambda k=key, c=color: None if self.updating else self._set_update_status(TEXT[self.lang][k], c))
+        except Exception as exc:
+            self._debug_log(f"content update check failed: {type(exc).__name__}: {exc}")
+            self.after(0, lambda: None if self.updating else self._set_update_status(TEXT[self.lang]["update_check_failed"], COLORS["danger"]))
+        finally:
+            self.update_probe_running = False
+
+    def _content_updates_available(self):
+        return self._modpack_update_available() or self._db_update_available()
+
+    def _modpack_update_available(self):
+        mods_dir = self._modpack_mods_dir()
+        if not mods_dir.exists():
+            return True
+
+        remote = self._download_update_version()
+        remote_version = str(remote.get("version", "")).strip()
+        if not remote_version:
+            return False
+
+        local = self._load_update_state(mods_dir)
+        local_version = str(local.get("version", "")).strip()
+        if remote_version != local_version:
+            return True
+
+        return self._modpack_needs_repair(mods_dir, local) or not self._state_file_list(local)
+
+    def _db_update_available(self):
+        db_dir = self.root_dir / "db"
+        if not db_dir.exists():
+            return True
+
+        remote = self._download_db_update_version()
+        remote_version = str(remote.get("version", "")).strip()
+        if not remote_version:
+            return False
+
+        local = self._load_json_file(self._db_state_path())
+        return remote_version != str(local.get("version", "")).strip()
+
     def _sync_db_update_step(self):
         t = TEXT[self.lang]
         log_path = None
@@ -1510,6 +1568,14 @@ class LauncherApp(tk.Tk):
             path.unlink()
         path.mkdir(parents=True, exist_ok=True)
 
+    def _load_json_file(self, path):
+        if not path.exists():
+            return {}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
     def _reset_directory(self, path):
         if path.exists():
             if path.is_dir():
@@ -1522,13 +1588,7 @@ class LauncherApp(tk.Tk):
         return mods_dir.parent / ".launcher_update_state.json"
 
     def _load_update_state(self, mods_dir):
-        path = self._state_path(mods_dir)
-        if not path.exists():
-            return {}
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return {}
+        return self._load_json_file(self._state_path(mods_dir))
 
     def _state_file_list(self, state):
         raw_files = state.get("files")
