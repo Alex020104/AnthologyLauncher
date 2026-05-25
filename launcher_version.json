@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.7",
+  "version": "2026.05.25.8",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Проверка автообновления"
+  "notes": "Release pipeline test: launcher self-update verification."
 }
