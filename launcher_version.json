@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.3",
+  "version": "2026.05.25.4",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Окно лаунчера теперь регистрируется в Windows как отдельное приложение и должно показывать значок на панели задач."
+  "notes": "Автоперезапуск после самообновления очищает служебные PyInstaller переменные окружения, чтобы новая версия не пыталась загрузиться из удаленной _MEI temp-папки."
 }
