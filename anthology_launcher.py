@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.20"
+LAUNCHER_VERSION = "2026.05.25.21"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -71,8 +71,8 @@ COLORS = {
 
 TEXT = {
     "ru": {
-        "play": "Играть с модпаком в Антологию",
-        "play_original": "Играть в Антологию оригинал",
+        "play": "Играть с модпаком",
+        "play_original": "Играть в оригинал",
         "settings": "Настройки",
         "back": "Назад",
         "save": "Сохранить",
@@ -139,8 +139,8 @@ TEXT = {
         "mo2_expected": "Mod Organizer 2 должен лежать рядом с папкой игры",
     },
     "en": {
-        "play": "Play Anthology with modpack",
-        "play_original": "Play original Anthology",
+        "play": "Play with modpack",
+        "play_original": "Play original",
         "settings": "Settings",
         "back": "Back",
         "save": "Save",
@@ -319,14 +319,20 @@ class LauncherApp(tk.Tk):
         self.canvas.create_image(0, 0, image=self.bg_img, anchor="nw")
         self.canvas.create_rectangle(0, 0, WIDTH, HEIGHT, fill="#020504", stipple="gray50", outline="")
         self.canvas.create_rectangle(0, 0, WIDTH, TOP_BAR, fill=COLORS["glass"], stipple="gray50", outline="")
-        self.canvas.create_line(MARGIN, TOP_BAR - 1, WIDTH - MARGIN, TOP_BAR - 1, fill="#9ee9dc")
-        self.canvas.create_text(MARGIN, 55, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
-        self.canvas.create_text(MARGIN + 128, 56, text="LAUNCHER", anchor="w", fill=COLORS["muted"], font=("Segoe UI", 9))
+        self.canvas.create_line(67, TOP_BAR - 1, 1103, TOP_BAR - 1, fill="#9ee9dc")
+        self.canvas.create_text(68, 55, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
+        self.canvas.create_text(195, 56, text="LAUNCHER", anchor="w", fill=COLORS["muted"], font=("Segoe UI", 9))
 
+        self.settings_hit = self.canvas.create_rectangle(WIDTH - 128, 38, WIDTH - 96, 72, fill=COLORS["glass"], stipple="gray50", outline="")
         self.min_hit = self.canvas.create_rectangle(WIDTH - 92, 38, WIDTH - 60, 72, fill=COLORS["glass"], stipple="gray50", outline="")
         self.close_hit = self.canvas.create_rectangle(WIDTH - 56, 38, WIDTH - 22, 72, fill=COLORS["glass"], stipple="gray50", outline="")
+        self.settings_btn = self.canvas.create_text(WIDTH - 112, 55, text="⚙", fill=COLORS["muted"], font=("Segoe UI Symbol", 13, "bold"))
         self.min_btn = self.canvas.create_text(WIDTH - 74, 55, text="-", fill=COLORS["muted"], font=("Segoe UI", 18))
         self.close_btn = self.canvas.create_text(WIDTH - 38, 55, text="x", fill=COLORS["muted"], font=("Segoe UI", 13, "bold"))
+        for item in (self.settings_hit, self.settings_btn):
+            self.canvas.tag_bind(item, "<Button-1>", lambda _e: self.show_settings())
+            self.canvas.tag_bind(item, "<Enter>", lambda _e, r=self.settings_hit: self.canvas.itemconfig(r, fill=COLORS["glass_lift"]))
+            self.canvas.tag_bind(item, "<Leave>", lambda _e, r=self.settings_hit: self.canvas.itemconfig(r, fill=COLORS["glass"]))
         for item in (self.min_hit, self.min_btn):
             self.canvas.tag_bind(item, "<Button-1>", self._minimize_window)
             self.canvas.tag_bind(item, "<Enter>", lambda _e, r=self.min_hit: self.canvas.itemconfig(r, fill=COLORS["glass_lift"]))
@@ -366,21 +372,22 @@ class LauncherApp(tk.Tk):
         self._clear_view()
         t = TEXT[self.lang]
 
-        self.buttons["youtube"] = self._button(792, 118, 108, 36, "YouTube", lambda: webbrowser.open("https://youtube.com/@Sys-live-prime"))
-        self.buttons["vk"] = self._button(912, 118, 96, 36, "VK", lambda: webbrowser.open("https://vk.com/club219667646"))
-        self.buttons["discord"] = self._button(1020, 118, 108, 36, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
-        self.buttons["support"] = self._button(792, 174, 336, 38, t["support"], self.show_support)
+        self.buttons["youtube"] = self._button(710, 118, 118, 38, "YouTube", lambda: webbrowser.open("https://youtube.com/@Sys-live-prime"))
+        self.buttons["vk"] = self._button(836, 118, 118, 38, "VK", lambda: webbrowser.open("https://vk.com/club219667646"))
+        self.buttons["discord"] = self._button(961, 118, 118, 38, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
+        self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
 
-        self._section_label(112, 206, t["news"])
-        self._news_item(112, 272, t["news_1"], t["news_1_body"], width=328)
-        self._add(self.canvas.create_line(112, 382, 452, 382, fill="#ffffff", stipple="gray25"))
-        self._news_item(112, 428, t["news_2"], t["news_2_body"], width=328)
+        self._section_label(108, 206, t["news"])
+        self._news_item(108, 272, t["news_1"], t["news_1_body"], width=328)
+        self._add(self.canvas.create_line(108, 382, 477, 382, fill="#ffffff", stipple="gray25"))
+        self._news_item(108, 428, t["news_2"], t["news_2_body"], width=328)
 
-        self._add(self.canvas.create_line(MARGIN, 570, WIDTH - MARGIN, 570, fill=COLORS["accent"], stipple="gray50", width=2))
-        self.buttons["settings"] = self._button(966, 592, 162, 46, t["settings"], self.show_settings)
-        self.buttons["update"] = self._button(966, 646, 162, 46, t["update_button"], self.sync_modpack_update)
+        self._add(self.canvas.create_line(67, 573, 1103, 573, fill=COLORS["accent"], stipple="gray50", width=2))
+        self.buttons["logs"] = self._button(715, 604, 177, 38, t["logs"], self.open_logs_folder)
+        self.buttons["cache"] = self._button(904, 604, 176, 38, t["cache"], self.delete_shader_cache)
+        self.buttons["update"] = self._button(904, 654, 176, 38, t["update_button"], self.sync_modpack_update)
         self._bottom_update_bar(t)
-        self.flag_id = self._add(self.canvas.create_image(914, 606, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
+        self.flag_id = self._add(self.canvas.create_image(668, 126, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
         self.canvas.tag_bind(self.flag_id, "<Button-1>", lambda _e: self.toggle_language())
 
     def show_settings(self):
@@ -469,19 +476,16 @@ class LauncherApp(tk.Tk):
         self._add_widget(frame, 104, 214, 972, 366)
 
     def _bottom_update_bar(self, t):
-        y = 592
-        self.buttons["play"] = self._button(72, y, 342, 42, t["play"], self.play, primary=True)
-        self.buttons["play_original"] = self._button(72, 646, 342, 42, t["play_original"], self.play_original, primary=True)
-        self.buttons["cache"] = self._button(792, y, 156, 42, t["cache"], self.delete_shader_cache)
-        self.buttons["logs"] = self._button(792, 646, 156, 42, t["logs"], self.open_logs_folder)
-        update_x = 490
-        update_w = 430
-        update_bar_y = 682
+        self.buttons["play"] = self._button(87, 604, 260, 38, t["play"], self.play, primary=True)
+        self.buttons["play_original"] = self._button(87, 654, 260, 38, t["play_original"], self.play_original, primary=True)
+        update_x = 382
+        update_w = 509
+        update_bar_y = 663
         self._add(self.canvas.create_text(update_x, 604, text=t["update"].upper(), anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 10, "bold")))
-        self.update_status_item = self._add(self.canvas.create_text(update_x, 626, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10), width=update_w))
-        self.update_progress_bg = self._add(self.canvas.create_rectangle(update_x, update_bar_y, update_x + update_w, update_bar_y + 9, fill="#091211", outline="#476760"))
+        self.update_status_item = self._add(self.canvas.create_text(update_x, 629, text=t["update_ready"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10), width=update_w))
+        self.update_progress_bg = self._add(self.canvas.create_rectangle(update_x, update_bar_y, update_x + update_w, update_bar_y + 14, fill="#091211", outline="#5e8d84", width=1))
         self.update_progress_fill = self._add(self.canvas.create_rectangle(update_x, update_bar_y, update_x, update_bar_y + 9, fill=COLORS["accent"], outline=""))
-        self.update_progress_text = self._add(self.canvas.create_text(update_x + update_w / 2, update_bar_y + 22, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        self.update_progress_text = self._add(self.canvas.create_text(update_x + update_w / 2, update_bar_y + 26, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
         self._set_update_progress(0, "")
 
     def _panel(self, x, y, w, h, alpha="solid"):
@@ -516,7 +520,7 @@ class LauncherApp(tk.Tk):
         outline = COLORS["accent"] if primary else "#829d96"
         rect = self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill=fill, stipple="gray50", outline=outline, width=1))
         self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50"))
-        font_size = 13 if primary and len(text) > 22 else 15 if primary else 10
+        font_size = 13 if primary and (h <= 36 or len(text) > 22) else 15 if primary else 10
         label = self._add(self.canvas.create_text(x + w / 2, y + h / 2, text=text, fill=COLORS["text"], font=("Segoe UI Semibold", font_size, "bold"), width=max(20, w - 16)))
         for item in (rect, label):
             self.canvas.tag_bind(item, "<Button-1>", lambda _e, cmd=command: cmd())

@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.20",
+  "version": "2026.05.25.21",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Add separate modpack and original Anthology launch modes; use DB-only sync when the modpack folder is absent."
+  "notes": "Polish launcher home layout and align launch/update controls."
 }
