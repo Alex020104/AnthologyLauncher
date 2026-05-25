@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.11"
+LAUNCHER_VERSION = "2026.05.25.12"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -77,13 +77,14 @@ TEXT = {
         "back": "Назад",
         "save": "Сохранить",
         "cache": "Очистить кэш",
+        "logs": "Открыть логи",
         "about": "О проекте",
         "support": "Поддержать проект",
         "quit": "Выход",
         "news": "Новости проекта",
         "update": "Центр обновлений",
         "ready": "Готово к запуску",
-        "build": "ANTHOLOGY 2.1 OBT",
+        "build": "ANTHOLOGY 2.1",
         "channel": "Open Beta",
         "server": "Сервер обновлений будет подключен позже",
         "update_button": "Синхронизация",
@@ -99,8 +100,8 @@ TEXT = {
         "update_expected": "Папка модпака должна лежать рядом с папкой игры",
         "update_failed": "Не удалось обновить модпак",
         "update_blocked_mo2": "Лаунчер запущен через Mod Organizer 2 или Mod Organizer 2 сейчас открыт.\n\nЧтобы избежать повреждения файлов и ошибки \"процесс занят\", обновление отключено.\n\nЗакройте Mod Organizer 2 и запустите лаунчер напрямую для обновления.",
-        "news_1": "Подготовка к открытому тестированию",
-        "news_1_body": "Сборка готовится к ОБТ. Сейчас лаунчер запускает игру, хранит локальные настройки и подготовлен под будущий сервер обновлений.",
+        "news_1": "Anthology 2.1",
+        "news_1_body": "Лаунчер запускает игру, хранит локальные настройки и помогает синхронизировать обновления сборки.",
         "news_2": "MO2 профиль Anthology 2.1",
         "news_2_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
         "debug": "Режим отладки",
@@ -123,13 +124,14 @@ TEXT = {
         "back": "Back",
         "save": "Save",
         "cache": "Clear cache",
+        "logs": "Open logs",
         "about": "About",
         "support": "Support project",
         "quit": "Exit",
         "news": "Project news",
         "update": "Update center",
         "ready": "Ready to launch",
-        "build": "ANTHOLOGY 2.1 OBT",
+        "build": "ANTHOLOGY 2.1",
         "channel": "Open Beta",
         "server": "Update server will be connected later",
         "update_button": "Sync",
@@ -145,8 +147,8 @@ TEXT = {
         "update_expected": "The modpack folder must be next to the game folder",
         "update_failed": "Failed to update modpack",
         "update_blocked_mo2": "The launcher is running through Mod Organizer 2, or Mod Organizer 2 is currently open.\n\nTo avoid file damage and \"process is busy\" errors, updates are disabled.\n\nClose Mod Organizer 2 and run the launcher directly to update.",
-        "news_1": "Open beta preparation",
-        "news_1_body": "The build is preparing for OBT. The launcher starts the game, stores local settings, and is ready for a future update server.",
+        "news_1": "Anthology 2.1",
+        "news_1_body": "The launcher starts the game, stores local settings, and helps synchronize build updates.",
         "news_2": "MO2 Anthology 2.1 profile",
         "news_2_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
         "debug": "Debug mode",
@@ -180,7 +182,8 @@ def asset_dir():
 
 class LauncherApp(tk.Tk):
     def __init__(self):
-        super().__init__()
+        super().__init__(className="ANTHOLOGYLauncher")
+        self.title("ANTHOLOGY Launcher")
         self.root_dir = app_dir()
         self.assets = asset_dir()
         self.lang = "ru"
@@ -255,6 +258,7 @@ class LauncherApp(tk.Tk):
             parent = user32.GetParent(hwnd)
             if parent:
                 hwnd = parent
+            user32.SetWindowTextW(hwnd, "ANTHOLOGY Launcher")
             gwl_exstyle = -20
             ws_ex_appwindow = 0x00040000
             ws_ex_toolwindow = 0x00000080
@@ -275,8 +279,6 @@ class LauncherApp(tk.Tk):
         self.canvas.create_line(MARGIN, TOP_BAR - 1, WIDTH - MARGIN, TOP_BAR - 1, fill="#9ee9dc")
         self.canvas.create_text(MARGIN, 55, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
         self.canvas.create_text(MARGIN + 128, 56, text="LAUNCHER", anchor="w", fill=COLORS["muted"], font=("Segoe UI", 9))
-        self.canvas.create_rectangle(MARGIN + 216, 44, MARGIN + 280, 66, fill=COLORS["glass_lift"], stipple="gray50", outline="#6d8982")
-        self.canvas.create_text(MARGIN + 248, 55, text="2.1 OBT", anchor="center", fill=COLORS["accent_2"], font=("Segoe UI Semibold", 8, "bold"))
 
         self.min_hit = self.canvas.create_rectangle(WIDTH - 92, 38, WIDTH - 60, 72, fill=COLORS["glass"], stipple="gray50", outline="")
         self.close_hit = self.canvas.create_rectangle(WIDTH - 56, 38, WIDTH - 22, 72, fill=COLORS["glass"], stipple="gray50", outline="")
@@ -427,6 +429,7 @@ class LauncherApp(tk.Tk):
         y = 592
         self.buttons["play"] = self._button(72, y, 158, 42, t["play"], self.play, primary=True)
         self.buttons["cache"] = self._button(248, y, 166, 42, t["cache"], self.delete_shader_cache)
+        self.buttons["logs"] = self._button(248, 646, 166, 42, t["logs"], self.open_logs_folder)
         update_x = 490
         update_w = 430
         update_bar_y = 682
@@ -660,12 +663,20 @@ class LauncherApp(tk.Tk):
         shutil.rmtree(cache)
         messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["cache_done"])
 
+    def open_logs_folder(self):
+        logs = self.root_dir / "appdata" / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        if sys.platform == "win32":
+            os.startfile(logs)
+        else:
+            webbrowser.open(logs.as_uri())
+
     def save_settings(self):
         self.write_config()
         messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["saved"])
 
     def about(self):
-        messagebox.showinfo("Anthology Launcher", "Anthology Launcher\nModern Python UI\nA.N.T.H.O.L.O.G.Y 2.1 OBT")
+        messagebox.showinfo("Anthology Launcher", "Anthology Launcher\nModern Python UI\nA.N.T.H.O.L.O.G.Y 2.1")
 
     def support_project(self):
         self.show_support()
@@ -750,17 +761,19 @@ class LauncherApp(tk.Tk):
     def ensure_desktop_shortcut(self):
         if not getattr(sys, "frozen", False) or sys.platform != "win32":
             return
+        if not self._is_game_install_dir():
+            self._debug_log(f"desktop shortcut skipped outside game root: {self.root_dir}")
+            return
         shortcut = self._desktop_path() / "ANTHOLOGY.lnk"
         target = Path(sys.executable).resolve()
-        icon = self.assets / "a.ico"
-        icon_path = icon if icon.exists() else target
+        icon_location = f"{target},0"
         try:
             script = (
                 "$shell = New-Object -ComObject WScript.Shell; "
                 f"$link = $shell.CreateShortcut('{self._ps_literal(shortcut)}'); "
                 f"$link.TargetPath = '{self._ps_literal(target)}'; "
                 f"$link.WorkingDirectory = '{self._ps_literal(self.root_dir)}'; "
-                f"$link.IconLocation = '{self._ps_literal(icon_path)}'; "
+                f"$link.IconLocation = '{self._ps_literal(icon_location)}'; "
                 "$link.Description = 'ANTHOLOGY Launcher'; "
                 "$link.Save()"
             )
@@ -774,6 +787,13 @@ class LauncherApp(tk.Tk):
             )
         except Exception as exc:
             self._debug_log(f"desktop shortcut failed: {type(exc).__name__}: {exc}")
+
+    def _is_game_install_dir(self):
+        return (
+            (self.root_dir / "fsgame.ltx").exists()
+            and (self.root_dir / "bin").is_dir()
+            and (self.root_dir / "db").is_dir()
+        )
 
     def _ps_literal(self, value):
         return str(value).replace("'", "''")

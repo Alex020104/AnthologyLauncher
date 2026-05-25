@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.11",
+  "version": "2026.05.25.12",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Fetch DB manifest through GitHub API to avoid stale raw cache during cleanup."
+  "notes": "Fix shortcut icon persistence, prevent dev shortcut overwrite, taskbar title, remove OBT copy, and add logs folder button."
 }
