@@ -40,5 +40,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=[str(project_root / 'assets' / 'a.ico')],
+    icon=[str(project_root / 'assets' / 'launcher_radioactive_icon_round.ico')],
 )
