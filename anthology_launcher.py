@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.23"
+LAUNCHER_VERSION = "2026.05.25.24"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -407,44 +407,44 @@ class LauncherApp(tk.Tk):
         self._clear_view()
         t = TEXT[self.lang]
 
-        self._panel(64, 92, 1052, 536, alpha="surface")
-        self._section_label(104, 134, t["settings"])
-        self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_home)
+        self._panel(56, 92, 1056, 536, alpha="surface")
+        self._section_label(96, 132, t["settings"])
+        self.buttons["back"] = self._button(973, 113, 112, 37, t["back"], self.show_home)
 
-        self._add(self.canvas.create_text(104, 190, text=t["renderer"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
-        x = 104
+        self._add(self.canvas.create_text(96, 188, text=t["renderer"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
+        x = 96
         for renderer in RENDERERS:
-            self.render_buttons[renderer] = self._button(x, 222, 184, 42, RENDER_LABELS[renderer], lambda r=renderer: self._set_renderer(r))
-            x += 202
+            self.render_buttons[renderer] = self._button(x, 220, 188, 43, RENDER_LABELS[renderer], lambda r=renderer: self._set_renderer(r))
+            x += 206
 
         self.toggle_items = {
-            "debug": self._toggle(104, 330, t["debug"], lambda: self._flip("debug")),
-            "sound_fix": self._toggle(104, 384, t["sound_fix"], lambda: self._flip("sound_fix")),
-            "prefetch": self._toggle(104, 438, t["prefetch"], lambda: self._flip("prefetch")),
-            "reset": self._toggle(574, 330, t["reset"], lambda: self._flip("reset_user")),
-            "avx": self._toggle(574, 384, t["avx"], lambda: self._flip("avx")),
-            "reshade": self._toggle(574, 438, t["reshade"], self.toggle_reshade),
+            "debug": self._toggle(96, 330, t["debug"], lambda: self._flip("debug")),
+            "sound_fix": self._toggle(96, 384, t["sound_fix"], lambda: self._flip("sound_fix")),
+            "prefetch": self._toggle(96, 438, t["prefetch"], lambda: self._flip("prefetch")),
+            "reset": self._toggle(455, 330, t["reset"], lambda: self._flip("reset_user")),
+            "avx": self._toggle(455, 384, t["avx"], lambda: self._flip("avx")),
+            "reshade": self._toggle(455, 438, t["reshade"], self.toggle_reshade),
         }
 
-        self._add(self.canvas.create_text(574, 474, text=t["shadow"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
-        self.shadow_value = self._add(self.canvas.create_text(724, 474, text=str(SHADOWS[self.shadow]), anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 15, "bold")))
-        self.buttons["shadow_minus"] = self._button(574, 506, 74, 36, "<", self._shadow_prev)
-        self.buttons["shadow_plus"] = self._button(662, 506, 74, 36, ">", self._shadow_next)
-        self.buttons["save"] = self._button(104, 552, 190, 48, t["save"], self.save_settings, primary=True)
-        self.buttons["about"] = self._button(802, 552, 126, 40, t["about"], self.about)
-        self.buttons["engine"] = self._button(950, 552, 126, 40, t["engine_button"], self.sync_engine_update)
+        self._add(self.canvas.create_text(805, 334, text=t["shadow"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
+        self.shadow_value = self._add(self.canvas.create_text(919, 334, text=str(SHADOWS[self.shadow]), anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 17, "bold")))
+        self.buttons["shadow_minus"] = self._button(805, 357, 78, 25, "<", self._shadow_prev)
+        self.buttons["shadow_plus"] = self._button(896, 357, 78, 25, ">", self._shadow_next)
+        self.buttons["save"] = self._button(96, 556, 194, 48, t["save"], self.save_settings, primary=True)
+        self.buttons["about"] = self._button(805, 556, 130, 42, t["about"], self.about)
+        self.buttons["engine"] = self._button(956, 556, 130, 42, t["engine_button"], self.sync_engine_update)
         self.engine_status_item = self._add(self.canvas.create_text(
-            802,
-            512,
+            805,
+            504,
             text=self._engine_status_text(),
             anchor="w",
             fill=COLORS["muted"],
             font=("Segoe UI", 9),
-            width=274,
+            width=280,
         ))
-        self.engine_progress_bg = self._add(self.canvas.create_rectangle(802, 532, 1076, 540, fill="#091211", outline="#476760"))
-        self.engine_progress_fill = self._add(self.canvas.create_rectangle(802, 532, 802, 540, fill=COLORS["accent"], outline=""))
-        self.engine_progress_text = self._add(self.canvas.create_text(939, 545, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
+        self.engine_progress_bg = self._add(self.canvas.create_rectangle(805, 535, 1085, 544, fill="#091211", outline="#476760"))
+        self.engine_progress_fill = self._add(self.canvas.create_rectangle(805, 535, 805, 544, fill=COLORS["accent"], outline=""))
+        self.engine_progress_text = self._add(self.canvas.create_text(945, 548, text="", anchor="center", fill=COLORS["muted"], font=("Segoe UI", 7)))
         self._set_engine_progress(0, "")
 
         self._refresh_all()
