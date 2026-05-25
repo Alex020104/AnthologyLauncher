@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.5",
+  "version": "2026.05.25.6",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Диагностическая сборка самообновления: логирует PyInstaller env до и после очистки, команду автозапуска и список процессов после старта."
+  "notes": "Исправлены верхние кнопки окна: добавлены нормальные зоны клика, закрытие не цепляет перетаскивание, а сворачивание выполняется через Windows ShowWindow."
 }

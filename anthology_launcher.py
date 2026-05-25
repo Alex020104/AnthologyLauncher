@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.5"
+LAUNCHER_VERSION = "2026.05.25.6"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -274,10 +274,18 @@ class LauncherApp(tk.Tk):
         self.canvas.create_rectangle(MARGIN + 216, 44, MARGIN + 280, 66, fill=COLORS["glass_lift"], stipple="gray50", outline="#6d8982")
         self.canvas.create_text(MARGIN + 248, 55, text="2.1 OBT", anchor="center", fill=COLORS["accent_2"], font=("Segoe UI Semibold", 8, "bold"))
 
+        self.min_hit = self.canvas.create_rectangle(WIDTH - 92, 38, WIDTH - 60, 72, fill=COLORS["glass"], stipple="gray50", outline="")
+        self.close_hit = self.canvas.create_rectangle(WIDTH - 56, 38, WIDTH - 22, 72, fill=COLORS["glass"], stipple="gray50", outline="")
         self.min_btn = self.canvas.create_text(WIDTH - 74, 55, text="-", fill=COLORS["muted"], font=("Segoe UI", 18))
         self.close_btn = self.canvas.create_text(WIDTH - 38, 55, text="x", fill=COLORS["muted"], font=("Segoe UI", 13, "bold"))
-        self.canvas.tag_bind(self.min_btn, "<Button-1>", lambda _e: self.iconify())
-        self.canvas.tag_bind(self.close_btn, "<Button-1>", lambda _e: self.destroy())
+        for item in (self.min_hit, self.min_btn):
+            self.canvas.tag_bind(item, "<Button-1>", self._minimize_window)
+            self.canvas.tag_bind(item, "<Enter>", lambda _e, r=self.min_hit: self.canvas.itemconfig(r, fill=COLORS["glass_lift"]))
+            self.canvas.tag_bind(item, "<Leave>", lambda _e, r=self.min_hit: self.canvas.itemconfig(r, fill=COLORS["glass"]))
+        for item in (self.close_hit, self.close_btn):
+            self.canvas.tag_bind(item, "<Button-1>", self._close_window)
+            self.canvas.tag_bind(item, "<Enter>", lambda _e, r=self.close_hit: self.canvas.itemconfig(r, fill=COLORS["glass_lift"]))
+            self.canvas.tag_bind(item, "<Leave>", lambda _e, r=self.close_hit: self.canvas.itemconfig(r, fill=COLORS["glass"]))
         self.canvas.tag_bind("all", "<ButtonPress-1>", self._start_drag)
         self.canvas.tag_bind("all", "<B1-Motion>", self._drag)
         self.canvas.tag_bind("all", "<ButtonRelease-1>", self._stop_drag)
@@ -473,7 +481,7 @@ class LauncherApp(tk.Tk):
         return {"box": box, "knob": knob, "label": text, "x": x, "y": y}
 
     def _start_drag(self, event):
-        if event.y <= TOP_BAR:
+        if event.y <= TOP_BAR and event.x < WIDTH - 112:
             self.drag_x = event.x_root
             self.drag_y = event.y_root
             self.drag_window_x = self.winfo_x()
@@ -491,6 +499,28 @@ class LauncherApp(tk.Tk):
     def _stop_drag(self, _event=None):
         self.drag_x = 0
         self.drag_y = 0
+
+    def _close_window(self, _event=None):
+        self._stop_drag()
+        self.destroy()
+        return "break"
+
+    def _minimize_window(self, _event=None):
+        self._stop_drag()
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                hwnd = self.winfo_id()
+                parent = user32.GetParent(hwnd)
+                if parent:
+                    hwnd = parent
+                user32.ShowWindow(hwnd, 6)
+                return "break"
+            except Exception as exc:
+                self._debug_log(f"minimize failed: {type(exc).__name__}: {exc}")
+        self.iconify()
+        return "break"
 
     def _set_renderer(self, value):
         self.renderer = value
