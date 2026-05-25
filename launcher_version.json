@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.21",
+  "version": "2026.05.25.22",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Polish launcher home layout and align launch/update controls."
+  "notes": "Prevent repeated engine downloads when the current engine version is already installed."
 }
