@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.14"
+LAUNCHER_VERSION = "2026.05.25.15"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1968,21 +1968,37 @@ class LauncherApp(tk.Tk):
         body.tag_configure("detail", foreground=COLORS["text"], font=("Segoe UI", 10), lmargin1=14, lmargin2=14)
         body.tag_configure("link", foreground="#8beedb", underline=True, font=("Segoe UI Semibold", 10, "bold"))
         body.tag_configure("note", foreground=COLORS["accent_2"], font=("Segoe UI Semibold", 10, "bold"), spacing3=12)
+        link_urls = {}
 
         def put(text, tag="detail"):
             body.insert("end", text, tag)
 
         def put_link(label, url):
             put(f"{label}: ", "detail")
-            start = body.index("end")
-            put(url, "link")
-            end = body.index("end")
-            tag = f"link_{len(body.tag_names())}_{start.replace('.', '_')}"
+            start = body.index("end-1c")
+            tag = f"link_{len(link_urls)}"
+            body.insert("end", url, ("link", tag))
+            end = body.index("end-1c")
             body.tag_add(tag, start, end)
-            body.tag_bind(tag, "<Button-1>", lambda _e, u=url: webbrowser.open(u))
-            body.tag_bind(tag, "<Enter>", lambda _e: body.configure(cursor="hand2"))
-            body.tag_bind(tag, "<Leave>", lambda _e: body.configure(cursor="arrow"))
+            link_urls[tag] = url
             put("\n")
+
+        def open_link(event):
+            index = body.index(f"@{event.x},{event.y}")
+            for tag in body.tag_names(index):
+                if tag in link_urls:
+                    webbrowser.open_new_tab(link_urls[tag])
+                    return "break"
+            return None
+
+        def update_cursor(event):
+            index = body.index(f"@{event.x},{event.y}")
+            cursor = "hand2" if any(tag in link_urls for tag in body.tag_names(index)) else "arrow"
+            body.configure(cursor=cursor)
+
+        body.bind("<Button-1>", open_link)
+        body.bind("<Motion>", update_cursor)
+        body.bind("<Leave>", lambda _e: body.configure(cursor="arrow"))
 
         put("Реквизиты для пожертвований - Details for donations\n", "section")
         put("Это лучший человек: если бы его не было, не было бы и Anthology. Поддержите лучше его!\n", "note")
