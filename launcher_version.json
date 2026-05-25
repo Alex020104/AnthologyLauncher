@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.24",
+  "version": "2026.05.25.25",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Refine settings layout and move shadow map controls."
+  "notes": "Cache ReShade package and disable it without deleting files."
 }

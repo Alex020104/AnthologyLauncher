@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.25.24"
+LAUNCHER_VERSION = "2026.05.25.25"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -44,6 +44,7 @@ RESHADE_VERSION = "2026.05.25.1"
 RESHADE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/Reshade_ANTHOLOGY_2.1.zip"
 RESHADE_FILES = ("dxgi.dll", "ReShade.ini", "ReShadePreset.ini", "ANTHOLOGY 2.1.ini")
 RESHADE_DIRS = ("reshade-shaders",)
+RESHADE_DISABLED_DLL = "dxgi.dll.launcher_disabled"
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
@@ -87,7 +88,7 @@ TEXT = {
         "quit": "Выход",
         "reshade": "ReShade",
         "reshade_installed": "ReShade установлен.",
-        "reshade_removed": "ReShade удален.",
+        "reshade_removed": "ReShade отключен.",
         "reshade_failed": "Не удалось обработать ReShade",
         "news": "Новости проекта",
         "update": "Центр обновлений",
@@ -159,7 +160,7 @@ TEXT = {
         "quit": "Exit",
         "reshade": "ReShade",
         "reshade_installed": "ReShade installed.",
-        "reshade_removed": "ReShade removed.",
+        "reshade_removed": "ReShade disabled.",
         "reshade_failed": "Failed to process ReShade",
         "news": "Project news",
         "update": "Update center",
@@ -765,15 +766,21 @@ class LauncherApp(tk.Tk):
             bin_dir = self.root_dir / "bin"
             if not bin_dir.exists():
                 raise FileNotFoundError(bin_dir)
-            tmp_dir = self.root_dir / "webcache" / "reshade"
-            self._reset_directory(tmp_dir)
-            archive_path = tmp_dir / f"Reshade_ANTHOLOGY_2.1_{RESHADE_VERSION}.zip"
-            self._download_update_archive(RESHADE_URL, archive_path, attempts=3, timeout=180)
+            disabled_dll = bin_dir / RESHADE_DISABLED_DLL
+            active_dll = bin_dir / "dxgi.dll"
+            if disabled_dll.exists() and not active_dll.exists():
+                self._make_writable(disabled_dll)
+                disabled_dll.replace(active_dll)
+                self.after(0, lambda: self._finish_reshade(True, TEXT[self.lang]["reshade_installed"]))
+                return
+            archive_path = self._ensure_reshade_archive()
             self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_progress(0, "0%"))
+            if disabled_dll.exists():
+                self._make_writable(disabled_dll)
+                disabled_dll.unlink()
             with zipfile.ZipFile(archive_path, "r") as archive:
                 self._install_reshade_archive(archive, bin_dir)
-            shutil.rmtree(tmp_dir, ignore_errors=True)
             self.after(0, lambda: self._finish_reshade(True, TEXT[self.lang]["reshade_installed"]))
         except Exception as exc:
             self.after(0, lambda e=exc: self._finish_reshade(False, f"{TEXT[self.lang]['reshade_failed']}:\n{e}"))
@@ -786,15 +793,14 @@ class LauncherApp(tk.Tk):
             bin_dir = self.root_dir / "bin"
             if not bin_dir.exists():
                 raise FileNotFoundError(bin_dir)
-            for name in RESHADE_FILES:
-                path = bin_dir / name
-                if path.exists():
-                    self._make_writable(path)
-                    path.unlink()
-            for name in RESHADE_DIRS:
-                path = bin_dir / name
-                if path.exists():
-                    shutil.rmtree(path, ignore_errors=True)
+            active_dll = bin_dir / "dxgi.dll"
+            disabled_dll = bin_dir / RESHADE_DISABLED_DLL
+            if active_dll.exists():
+                self._make_writable(active_dll)
+                if disabled_dll.exists():
+                    self._make_writable(disabled_dll)
+                    disabled_dll.unlink()
+                active_dll.replace(disabled_dll)
             self._set_update_status(TEXT[self.lang]["reshade_removed"], COLORS["accent"])
             self._set_update_progress(0, "")
             messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["reshade_removed"])
@@ -819,13 +825,36 @@ class LauncherApp(tk.Tk):
 
     def _reshade_installed(self):
         bin_dir = self.root_dir / "bin"
-        for name in RESHADE_FILES:
-            if (bin_dir / name).exists():
-                return True
-        for name in RESHADE_DIRS:
-            if (bin_dir / name).exists():
-                return True
-        return False
+        return (bin_dir / "dxgi.dll").exists()
+
+    def _reshade_archive_path(self):
+        return self.root_dir / "webcache" / "reshade" / f"Reshade_ANTHOLOGY_2.1_{RESHADE_VERSION}.zip"
+
+    def _reshade_archive_valid(self, archive_path):
+        if not archive_path.exists() or archive_path.stat().st_size <= 0:
+            return False
+        try:
+            with zipfile.ZipFile(archive_path, "r") as archive:
+                names = {Path(info.filename.replace("\\", "/")).as_posix() for info in archive.infolist() if not info.is_dir()}
+                return all(name in names for name in RESHADE_FILES)
+        except zipfile.BadZipFile:
+            return False
+
+    def _ensure_reshade_archive(self):
+        archive_path = self._reshade_archive_path()
+        if self._reshade_archive_valid(archive_path):
+            self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
+            self.after(0, lambda: self._set_update_progress(0, ""))
+            return archive_path
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        if archive_path.exists():
+            self._make_writable(archive_path)
+            archive_path.unlink()
+        self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_downloading"], COLORS["accent_2"]))
+        self._download_update_archive(RESHADE_URL, archive_path, attempts=3, timeout=180)
+        if not self._reshade_archive_valid(archive_path):
+            raise ValueError("Downloaded ReShade archive is invalid")
+        return archive_path
 
     def _prepare_external_launch(self):
         env = os.environ.copy()
