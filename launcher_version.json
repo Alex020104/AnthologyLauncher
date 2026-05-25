@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.25.9",
+  "version": "2026.05.25.10",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Updater now removes modpack files deleted from the published archive."
+  "notes": "Preserve local R.A.K weapon pack folders when they are removed from the modpack update archive."
 }
