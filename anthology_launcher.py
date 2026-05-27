@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.27.1"
+LAUNCHER_VERSION = "2026.05.27.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -39,6 +39,8 @@ LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
 MOD_ORGANIZER_EXE_NAME = "ModOrganizer.exe"
 ENGINE_RELEASE_VERSION = "2026.5.8-nanfix"
 ENGINE_MT_URL = "https://github.com/sysliveprime-ctrl/xray-monolith/releases/download/2026.5.8-nanfix/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.8-nanfix.zip"
+ENGINE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/xray-monolith/contents/engine_version.json?ref=anthology-2026.5.8-mt-nanfix"
+ENGINE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/xray-monolith/anthology-2026.5.8-mt-nanfix/engine_version.json"
 ENGINE_ALLOWED_PARTS = {"bin", "db"}
 RESHADE_VERSION = "2026.05.25.1"
 RESHADE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/Reshade_ANTHOLOGY_2.1.zip"
@@ -255,6 +257,7 @@ class LauncherApp(tk.Tk):
         self.view = "home"
         self.updating = False
         self.update_probe_running = False
+        self.engine_update_manifest = None
         self.worker_threads = []
         self.update_status_item = None
         self.update_progress_bg = None
@@ -1150,26 +1153,30 @@ class LauncherApp(tk.Tk):
             return
         if self._block_update_if_mod_organizer_running():
             return
-        if not self._engine_update_available():
-            self._debug_log(f"engine update skipped: already at {ENGINE_RELEASE_VERSION}")
+        manifest = self._engine_manifest()
+        version = self._engine_manifest_version(manifest)
+        label = self._engine_manifest_label(manifest)
+        if not self._engine_update_available(manifest):
+            self._debug_log(f"engine update skipped: already at {version}")
             self._set_engine_status(self._engine_status_text(), COLORS["accent"])
             self._set_engine_progress(100, "100%")
             messagebox.showinfo(
                 "Anthology Launcher",
-                f"Движок уже обновлен.\n\nВерсия: {ENGINE_RELEASE_VERSION}",
+                f"Движок уже обновлен.\n\nВерсия: {version}",
             )
             return
         if not messagebox.askyesno(
             "Anthology Launcher",
-            f"Обновить движок MT до версии {ENGINE_RELEASE_VERSION}?",
+            f"Обновить движок {label} до версии {version}?",
         ):
             self._debug_log("engine update cancelled by user")
             return
         self._debug_log(f"engine update requested: mode=mt root={self.root_dir}")
         self.updating = True
-        self._set_engine_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
+        self.engine_update_manifest = manifest
+        self._set_engine_status(f"Проверка движка {version}...", COLORS["accent_2"])
         self._set_engine_progress(0, "")
-        self._set_update_status(f"Проверка движка {ENGINE_RELEASE_VERSION}...", COLORS["accent_2"])
+        self._set_update_status(f"Проверка движка {version}...", COLORS["accent_2"])
         self._set_update_progress(0, "")
         self._start_background_worker("engine-update", self._sync_engine_update_worker)
 
@@ -1209,17 +1216,20 @@ class LauncherApp(tk.Tk):
                 self.after(0, lambda: self._finish_git_update(False, f"Закройте игру перед обновлением движка:\n{names}", operation="engine"))
                 return
 
-            url = ENGINE_MT_URL
-            label = "MT TEST"
+            manifest = self.engine_update_manifest or self._engine_manifest()
+            version = self._engine_manifest_version(manifest)
+            url = self._engine_manifest_url(manifest)
+            mode = str(manifest.get("mode") or mode).strip() or "mt"
+            label = self._engine_manifest_label(manifest)
             tmp_dir = self.root_dir / "webcache" / "engine_update"
             self._debug_log(f"engine worker: creating tmp_dir={tmp_dir}")
             self._ensure_directory(tmp_dir)
             log_path = tmp_dir / "engine_update.log"
-            self._write_update_log(log_path, f"engine mode={mode} version={ENGINE_RELEASE_VERSION}")
+            self._write_update_log(log_path, f"engine mode={mode} version={version}")
             self._write_update_log(log_path, f"download={url}")
             self._debug_log(f"engine worker: log_path={log_path}")
 
-            zip_path = tmp_dir / f"engine_{mode}_{ENGINE_RELEASE_VERSION}.zip"
+            zip_path = tmp_dir / f"engine_{mode}_{version}.zip"
             self.after(0, lambda: self._set_engine_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
             self.after(0, lambda: self._set_update_status(f"Скачивание движка: {label}", COLORS["accent_2"]))
             self._download_update_archive(
@@ -1237,12 +1247,12 @@ class LauncherApp(tk.Tk):
             backup_dir = tmp_dir / f"backup_{time.strftime('%Y%m%d_%H%M%S')}"
             with zipfile.ZipFile(zip_path, "r") as archive:
                 self._install_engine_archive(archive, self.root_dir, backup_dir, log_path)
-            self._save_engine_state(mode, label, backup_dir)
+            self._save_engine_state(mode, label, backup_dir, version, url)
             self.after(0, self._refresh_engine_status)
 
             message = (
                 f"Движок обновлен.\n\n"
-                f"Версия: {ENGINE_RELEASE_VERSION}\n"
+                f"Версия: {version}\n"
                 f"Тип: {label}\n\n"
                 f"Backup: {backup_dir}"
             )
@@ -1442,10 +1452,10 @@ class LauncherApp(tk.Tk):
 
     def _check_content_updates_worker(self):
         try:
-            has_updates = self._content_updates_available()
-            key = "update_available" if has_updates else "update_none"
-            color = COLORS["accent_2"] if has_updates else COLORS["muted"]
-            self.after(0, lambda k=key, c=color: None if self.updating else self._set_update_status(TEXT[self.lang][k], c))
+            updates = self._available_update_names()
+            text = self._updates_status_text(updates)
+            color = COLORS["accent_2"] if updates else COLORS["muted"]
+            self.after(0, lambda s=text, c=color: None if self.updating else self._set_update_status(s, c))
         except Exception as exc:
             self._debug_log(f"content update check failed: {type(exc).__name__}: {exc}")
             self.after(0, lambda: None if self.updating else self._set_update_status(TEXT[self.lang]["update_check_failed"], COLORS["danger"]))
@@ -1453,7 +1463,28 @@ class LauncherApp(tk.Tk):
             self.update_probe_running = False
 
     def _content_updates_available(self):
-        return self._modpack_update_available() or self._db_update_available() or self._engine_update_available()
+        return bool(self._available_update_names())
+
+    def _available_update_names(self):
+        updates = []
+        checks = (
+            ("modpack", "игра" if self.lang == "ru" else "game", self._modpack_update_available),
+            ("db", "DB", self._db_update_available),
+            ("engine", "движок" if self.lang == "ru" else "engine", self._engine_update_available),
+        )
+        for key, name, check in checks:
+            try:
+                if check():
+                    updates.append(name)
+            except Exception as exc:
+                self._debug_log(f"{key} update check failed: {type(exc).__name__}: {exc}")
+        return updates
+
+    def _updates_status_text(self, updates):
+        if not updates:
+            return TEXT[self.lang]["update_none"]
+        prefix = "Есть обновление:" if self.lang == "ru" else "Update available:"
+        return f"{prefix} {', '.join(updates)}"
 
     def _modpack_update_available(self):
         mods_dir = self._modpack_mods_dir()
@@ -1485,9 +1516,35 @@ class LauncherApp(tk.Tk):
         local = self._load_json_file(self._db_state_path())
         return remote_version != str(local.get("version", "")).strip()
 
-    def _engine_update_available(self):
+    def _engine_manifest(self):
+        try:
+            manifest = self._download_engine_version()
+        except Exception as exc:
+            self._debug_log(f"engine manifest fallback: {type(exc).__name__}: {exc}")
+            manifest = {}
+        if not isinstance(manifest, dict):
+            manifest = {}
+        manifest.setdefault("version", ENGINE_RELEASE_VERSION)
+        manifest.setdefault("mode", "mt")
+        manifest.setdefault("label", "MT TEST")
+        manifest.setdefault("url", ENGINE_MT_URL)
+        self.engine_update_manifest = manifest
+        return manifest
+
+    def _engine_manifest_version(self, manifest):
+        return str(manifest.get("version") or ENGINE_RELEASE_VERSION).strip() or ENGINE_RELEASE_VERSION
+
+    def _engine_manifest_url(self, manifest):
+        return str(manifest.get("url") or ENGINE_MT_URL).strip() or ENGINE_MT_URL
+
+    def _engine_manifest_label(self, manifest):
+        return str(manifest.get("label") or "MT TEST").strip() or "MT TEST"
+
+    def _engine_update_available(self, manifest=None):
+        manifest = manifest or self._engine_manifest()
+        version = self._engine_manifest_version(manifest)
         state = self._load_engine_state()
-        return str(state.get("version", "")).strip() != ENGINE_RELEASE_VERSION
+        return str(state.get("version", "")).strip() != version
 
     def _sync_db_update_step(self):
         t = TEXT[self.lang]
@@ -1577,6 +1634,23 @@ class LauncherApp(tk.Tk):
         except Exception:
             url = f"{DB_UPDATE_VERSION_RAW_URL}?t={int(time.time())}"
             with urlopen(url, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+
+    def _download_engine_version(self):
+        try:
+            request = Request(
+                ENGINE_VERSION_URL,
+                headers={
+                    "Accept": "application/vnd.github.raw",
+                    "Cache-Control": "no-cache",
+                    "User-Agent": "AnthologyLauncher",
+                },
+            )
+            with urlopen(request, timeout=20) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
+            url = f"{ENGINE_VERSION_RAW_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=20) as response:
                 return json.loads(response.read().decode("utf-8-sig"))
 
     def check_launcher_update_async(self):
@@ -2105,11 +2179,12 @@ class LauncherApp(tk.Tk):
         except (OSError, ValueError):
             return {}
 
-    def _save_engine_state(self, mode, label, backup_dir):
+    def _save_engine_state(self, mode, label, backup_dir, version=None, url=None):
         state = {
-            "version": ENGINE_RELEASE_VERSION,
+            "version": version or ENGINE_RELEASE_VERSION,
             "mode": mode,
             "label": label,
+            "url": url or ENGINE_MT_URL,
             "installed_at": time.strftime("%Y-%m-%d %H:%M"),
             "backup": str(backup_dir),
         }
