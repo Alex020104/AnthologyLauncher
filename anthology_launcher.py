@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.27.4"
+LAUNCHER_VERSION = "2026.05.27.5"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -2372,6 +2372,7 @@ class LauncherApp(tk.Tk):
         dialog.overrideredirect(True)
         dialog.transient(self)
         dialog.configure(bg=COLORS["bg"])
+        dialog.attributes("-topmost", True)
 
         width = 520
         rows = self._update_result_rows(message, ok)
@@ -2385,6 +2386,7 @@ class LauncherApp(tk.Tk):
         canvas.create_rectangle(1, 1, width - 2, height - 2, outline=COLORS["accent"], width=1)
         canvas.create_rectangle(18, 18, width - 18, height - 18, outline=COLORS["line_soft"], fill=COLORS["glass_soft"], stipple="gray25")
         canvas.create_text(34, 36, text="ЦЕНТР ОБНОВЛЕНИЙ", anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 12, "bold"))
+        close_box = canvas.create_text(width - 42, 36, text="X", anchor="center", fill=COLORS["accent"], font=("Segoe UI Semibold", 11, "bold"))
         title = "Обновление завершено" if ok else "Обновление не завершено"
         subtitle = "Все операции выполнены." if ok else "Проверьте детали ниже."
         canvas.create_text(34, 66, text=title, anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 16, "bold"))
@@ -2405,10 +2407,6 @@ class LauncherApp(tk.Tk):
         label = canvas.create_text(bx1 + button_w / 2, by1 + button_h / 2, text="OK", fill=COLORS["text"], font=("Segoe UI Semibold", 10, "bold"))
 
         def close(_event=None):
-            try:
-                dialog.grab_release()
-            except tk.TclError:
-                pass
             dialog.destroy()
 
         def start_drag(event):
@@ -2418,16 +2416,16 @@ class LauncherApp(tk.Tk):
         def drag(event):
             dialog.geometry(f"+{dialog.winfo_x() + event.x - dialog._drag_x}+{dialog.winfo_y() + event.y - dialog._drag_y}")
 
-        for item in (button, label):
+        for item in (button, label, close_box):
             canvas.tag_bind(item, "<Button-1>", close)
+        for item in (button, label):
             canvas.tag_bind(item, "<Enter>", lambda _e: canvas.itemconfig(button, fill=COLORS["glass"]))
             canvas.tag_bind(item, "<Leave>", lambda _e: canvas.itemconfig(button, fill=COLORS["glass_lift"]))
         canvas.bind("<ButtonPress-1>", start_drag)
         canvas.bind("<B1-Motion>", drag)
         dialog.bind("<Escape>", close)
-        dialog.grab_set()
         dialog.focus_force()
-        self.wait_window(dialog)
+        dialog.after(200, lambda: dialog.attributes("-topmost", False) if dialog.winfo_exists() else None)
 
     def _update_result_rows(self, message, ok):
         if not ok:

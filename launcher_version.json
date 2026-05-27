@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.27.4",
+  "version": "2026.05.27.5",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Replace update result messagebox with styled update center dialog."
+  "notes": "Fix styled update dialog blocking launcher input."
 }
