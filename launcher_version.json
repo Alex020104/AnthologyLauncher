@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.27.6",
+  "version": "2026.05.27.7",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Fix update dialog layout and use styled dialog for engine up-to-date message."
+  "notes": "Fix wrapped lines in styled update result dialog."
 }

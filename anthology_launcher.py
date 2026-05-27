@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.27.6"
+LAUNCHER_VERSION = "2026.05.27.7"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -2372,9 +2372,10 @@ class LauncherApp(tk.Tk):
         dialog.attributes("-topmost", True)
 
         width = 520
+        text_width = width - 92
         rows = self._update_result_rows(message, ok)
-        content_height = sum(self._update_result_row_height(kind) for kind, _text in rows)
-        height = min(620, max(300, 176 + content_height))
+        content_height = sum(self._update_result_row_height(kind, text, text_width) for kind, text in rows)
+        height = min(680, max(320, 196 + content_height))
         x = self.winfo_rootx() + max(0, (self.winfo_width() - width) // 2)
         y = self.winfo_rooty() + max(0, (self.winfo_height() - height) // 2)
         dialog.geometry(f"{width}x{height}+{x}+{y}")
@@ -2393,12 +2394,12 @@ class LauncherApp(tk.Tk):
         y_pos = 126
         for kind, text in rows:
             if kind == "spacer":
-                y_pos += self._update_result_row_height(kind)
+                y_pos += self._update_result_row_height(kind, text, text_width)
                 continue
             fill = COLORS["accent"] if kind == "section" else COLORS["muted"] if kind == "detail" else COLORS["text"]
             font = ("Segoe UI Semibold", 11, "bold") if kind == "section" else ("Segoe UI", 10)
-            canvas.create_text(42, y_pos, text=text, anchor="w", fill=fill, font=font, width=width - 92)
-            y_pos += self._update_result_row_height(kind)
+            canvas.create_text(42, y_pos, text=text, anchor="w", fill=fill, font=font, width=text_width)
+            y_pos += self._update_result_row_height(kind, text, text_width)
 
         button_w = 128
         button_h = 38
@@ -2466,15 +2467,19 @@ class LauncherApp(tk.Tk):
                     prefix = "Заметка модпака"
                 elif last_section == "engine":
                     prefix = "Заметка движка"
-                rows.append(("detail", f"{prefix}: {block}"))
+                note = self._friendly_update_note(block)
+                if note:
+                    rows.append(("detail", f"{prefix}: {note}"))
         return rows or [("section", "Готово"), ("detail", "Обновления обработаны.")]
 
-    def _update_result_row_height(self, kind):
+    def _update_result_row_height(self, kind, text="", text_width=428):
         if kind == "section":
             return 32
         if kind == "spacer":
             return 14
-        return 24
+        chars_per_line = max(24, int(text_width / 7))
+        visual_lines = max(1, (len(str(text)) + chars_per_line - 1) // chars_per_line)
+        return 22 * visual_lines + 4
 
     def _friendly_update_status(self, text, subject):
         lowered = text.casefold()
@@ -2485,6 +2490,9 @@ class LauncherApp(tk.Tk):
         return text
 
     def _friendly_update_line(self, line):
+        if line.startswith("Backup:"):
+            backup_name = Path(line.split(":", 1)[1].strip()).name
+            return f"Резервная копия: {backup_name}"
         replacements = {
             "Удалено лишних файлов": "Лишних файлов удалено",
             "Удалено старых файлов": "Старых файлов удалено",
@@ -2494,6 +2502,11 @@ class LauncherApp(tk.Tk):
             if line.startswith(source):
                 return line.replace(source, target, 1)
         return line
+
+    def _friendly_update_note(self, text):
+        if text.startswith("Backup:"):
+            return ""
+        return text
 
     def _fill_donation_body(self, body):
         body.tag_configure("intro", foreground=COLORS["text"], font=("Segoe UI", 10))
