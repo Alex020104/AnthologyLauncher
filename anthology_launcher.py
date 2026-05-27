@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.27.3"
+LAUNCHER_VERSION = "2026.05.27.4"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -2365,8 +2365,112 @@ class LauncherApp(tk.Tk):
                 status_text = t["update_done"]
             self._set_update_status(status_text, color)
             self._set_update_progress(100 if ok else 0, "100%" if ok else "")
-        box = messagebox.showinfo if ok else messagebox.showerror
-        box("Anthology Launcher", message)
+        self._show_update_result_dialog(ok, message)
+
+    def _show_update_result_dialog(self, ok, message):
+        dialog = tk.Toplevel(self)
+        dialog.overrideredirect(True)
+        dialog.transient(self)
+        dialog.configure(bg=COLORS["bg"])
+
+        width = 520
+        rows = self._update_result_rows(message, ok)
+        height = min(560, max(260, 132 + len(rows) * 28))
+        x = self.winfo_rootx() + max(0, (self.winfo_width() - width) // 2)
+        y = self.winfo_rooty() + max(0, (self.winfo_height() - height) // 2)
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+
+        canvas = tk.Canvas(dialog, width=width, height=height, bg=COLORS["bg"], highlightthickness=0)
+        canvas.pack(fill="both", expand=True)
+        canvas.create_rectangle(1, 1, width - 2, height - 2, outline=COLORS["accent"], width=1)
+        canvas.create_rectangle(18, 18, width - 18, height - 18, outline=COLORS["line_soft"], fill=COLORS["glass_soft"], stipple="gray25")
+        canvas.create_text(34, 36, text="ЦЕНТР ОБНОВЛЕНИЙ", anchor="w", fill=COLORS["accent"], font=("Segoe UI Semibold", 12, "bold"))
+        title = "Обновление завершено" if ok else "Обновление не завершено"
+        subtitle = "Все операции выполнены." if ok else "Проверьте детали ниже."
+        canvas.create_text(34, 66, text=title, anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 16, "bold"))
+        canvas.create_text(34, 92, text=subtitle, anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10))
+
+        y_pos = 126
+        for kind, text in rows:
+            fill = COLORS["accent"] if kind == "section" else COLORS["muted"] if kind == "detail" else COLORS["text"]
+            font = ("Segoe UI Semibold", 11, "bold") if kind == "section" else ("Segoe UI", 10)
+            canvas.create_text(42, y_pos, text=text, anchor="w", fill=fill, font=font, width=width - 84)
+            y_pos += 30 if kind == "section" else 24
+
+        button_w = 128
+        button_h = 38
+        bx1 = width - button_w - 34
+        by1 = height - button_h - 30
+        button = canvas.create_rectangle(bx1, by1, bx1 + button_w, by1 + button_h, outline=COLORS["accent"], fill=COLORS["glass_lift"], width=1)
+        label = canvas.create_text(bx1 + button_w / 2, by1 + button_h / 2, text="OK", fill=COLORS["text"], font=("Segoe UI Semibold", 10, "bold"))
+
+        def close(_event=None):
+            try:
+                dialog.grab_release()
+            except tk.TclError:
+                pass
+            dialog.destroy()
+
+        def start_drag(event):
+            dialog._drag_x = event.x
+            dialog._drag_y = event.y
+
+        def drag(event):
+            dialog.geometry(f"+{dialog.winfo_x() + event.x - dialog._drag_x}+{dialog.winfo_y() + event.y - dialog._drag_y}")
+
+        for item in (button, label):
+            canvas.tag_bind(item, "<Button-1>", close)
+            canvas.tag_bind(item, "<Enter>", lambda _e: canvas.itemconfig(button, fill=COLORS["glass"]))
+            canvas.tag_bind(item, "<Leave>", lambda _e: canvas.itemconfig(button, fill=COLORS["glass_lift"]))
+        canvas.bind("<ButtonPress-1>", start_drag)
+        canvas.bind("<B1-Motion>", drag)
+        dialog.bind("<Escape>", close)
+        dialog.grab_set()
+        dialog.focus_force()
+        self.wait_window(dialog)
+
+    def _update_result_rows(self, message, ok):
+        if not ok:
+            return [("section", "Ошибка"), ("body", message.strip() or "Неизвестная ошибка")]
+
+        rows = []
+        blocks = [block.strip() for block in message.split("\n\n") if block.strip()]
+        for block in blocks:
+            lines = [line.strip() for line in block.splitlines() if line.strip()]
+            if not lines:
+                continue
+            head = lines[0].rstrip(".")
+            if "DB" in head:
+                rows.append(("section", f"DB: {self._friendly_update_status(head, 'db')}"))
+                rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
+            elif "Модпак" in head or "Modpack" in head:
+                rows.append(("section", f"Модпак: {self._friendly_update_status(head, 'modpack')}"))
+                rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
+            elif "Движок" in head or "Engine" in head:
+                rows.append(("section", f"Движок: {self._friendly_update_status(head, 'engine')}"))
+                rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
+            else:
+                rows.append(("detail", f"Примечание: {block}"))
+        return rows or [("section", "Готово"), ("detail", "Обновления обработаны.")]
+
+    def _friendly_update_status(self, text, subject):
+        lowered = text.casefold()
+        if "уже" in lowered or "latest" in lowered or "up to date" in lowered:
+            return "актуальна" if subject == "db" else "актуален"
+        if "обнов" in lowered or "updated" in lowered:
+            return "обновлена" if subject == "db" else "обновлён"
+        return text
+
+    def _friendly_update_line(self, line):
+        replacements = {
+            "Удалено лишних файлов": "Лишних файлов удалено",
+            "Удалено старых файлов": "Старых файлов удалено",
+            "Скачано файлов": "Файлов скачано",
+        }
+        for source, target in replacements.items():
+            if line.startswith(source):
+                return line.replace(source, target, 1)
+        return line
 
     def _fill_donation_body(self, body):
         body.tag_configure("intro", foreground=COLORS["text"], font=("Segoe UI", 10))
