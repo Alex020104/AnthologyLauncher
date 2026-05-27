@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.27.2",
+  "version": "2026.05.27.3",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Show update categories and load engine updates from manifest."
+  "notes": "Read modpack version through GitHub API to avoid raw CDN delay."
 }
