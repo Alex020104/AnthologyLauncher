@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.27.5"
+LAUNCHER_VERSION = "2026.05.27.6"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1161,10 +1161,7 @@ class LauncherApp(tk.Tk):
             self._debug_log(f"engine update skipped: already at {version}")
             self._set_engine_status(self._engine_status_text(), COLORS["accent"])
             self._set_engine_progress(100, "100%")
-            messagebox.showinfo(
-                "Anthology Launcher",
-                f"Движок уже обновлен.\n\nВерсия: {version}",
-            )
+            self._show_update_result_dialog(True, f"Движок уже обновлен.\n\nВерсия: {version}")
             return
         if not messagebox.askyesno(
             "Anthology Launcher",
@@ -2376,7 +2373,8 @@ class LauncherApp(tk.Tk):
 
         width = 520
         rows = self._update_result_rows(message, ok)
-        height = min(560, max(260, 132 + len(rows) * 28))
+        content_height = sum(self._update_result_row_height(kind) for kind, _text in rows)
+        height = min(620, max(300, 176 + content_height))
         x = self.winfo_rootx() + max(0, (self.winfo_width() - width) // 2)
         y = self.winfo_rooty() + max(0, (self.winfo_height() - height) // 2)
         dialog.geometry(f"{width}x{height}+{x}+{y}")
@@ -2394,10 +2392,13 @@ class LauncherApp(tk.Tk):
 
         y_pos = 126
         for kind, text in rows:
+            if kind == "spacer":
+                y_pos += self._update_result_row_height(kind)
+                continue
             fill = COLORS["accent"] if kind == "section" else COLORS["muted"] if kind == "detail" else COLORS["text"]
             font = ("Segoe UI Semibold", 11, "bold") if kind == "section" else ("Segoe UI", 10)
-            canvas.create_text(42, y_pos, text=text, anchor="w", fill=fill, font=font, width=width - 84)
-            y_pos += 30 if kind == "section" else 24
+            canvas.create_text(42, y_pos, text=text, anchor="w", fill=fill, font=font, width=width - 92)
+            y_pos += self._update_result_row_height(kind)
 
         button_w = 128
         button_h = 38
@@ -2433,23 +2434,47 @@ class LauncherApp(tk.Tk):
 
         rows = []
         blocks = [block.strip() for block in message.split("\n\n") if block.strip()]
+        last_section = None
         for block in blocks:
             lines = [line.strip() for line in block.splitlines() if line.strip()]
             if not lines:
                 continue
             head = lines[0].rstrip(".")
             if "DB" in head:
+                if rows:
+                    rows.append(("spacer", ""))
+                last_section = "db"
                 rows.append(("section", f"DB: {self._friendly_update_status(head, 'db')}"))
                 rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
             elif "Модпак" in head or "Modpack" in head:
+                if rows:
+                    rows.append(("spacer", ""))
+                last_section = "modpack"
                 rows.append(("section", f"Модпак: {self._friendly_update_status(head, 'modpack')}"))
                 rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
             elif "Движок" in head or "Engine" in head:
+                if rows:
+                    rows.append(("spacer", ""))
+                last_section = "engine"
                 rows.append(("section", f"Движок: {self._friendly_update_status(head, 'engine')}"))
                 rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
             else:
-                rows.append(("detail", f"Примечание: {block}"))
+                prefix = "Примечание"
+                if last_section == "db":
+                    prefix = "Заметка DB"
+                elif last_section == "modpack":
+                    prefix = "Заметка модпака"
+                elif last_section == "engine":
+                    prefix = "Заметка движка"
+                rows.append(("detail", f"{prefix}: {block}"))
         return rows or [("section", "Готово"), ("detail", "Обновления обработаны.")]
+
+    def _update_result_row_height(self, kind):
+        if kind == "section":
+            return 32
+        if kind == "spacer":
+            return 14
+        return 24
 
     def _friendly_update_status(self, text, subject):
         lowered = text.casefold()
