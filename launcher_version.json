@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.27.7",
+  "version": "2026.05.28.1",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Fix wrapped lines in styled update result dialog."
+  "notes": "Install modpack texture files from gamedata/textures."
 }

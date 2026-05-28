@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.27.7"
+LAUNCHER_VERSION = "2026.05.28.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -52,7 +52,7 @@ MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
 UPDATE_VERSION_API_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-mo2-modpack/contents/version.json?ref=main"
 UPDATE_ZIP_URL = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/archive/refs/heads/main.zip"
-UPDATE_ALLOWED_PARTS = {"configs", "scripts"}
+UPDATE_ALLOWED_PARTS = {"configs", "scripts", "textures"}
 UPDATE_PRESERVE_PATH_MARKERS = (
     "r.a.k weapon pack adaptation",
 )
@@ -2238,7 +2238,7 @@ class LauncherApp(tk.Tk):
         files = [info for info in archive.infolist() if not info.is_dir() and self._archive_update_relative(info.filename)]
         total = max(1, len(files))
         if not files:
-            raise ValueError("Update archive has no configs/scripts files")
+            raise ValueError("Update archive has no configs/scripts/textures files")
         if log_path:
             self._write_update_log(log_path, f"install files={len(files)}")
         self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
