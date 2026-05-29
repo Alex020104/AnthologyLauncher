@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.29.2"
+LAUNCHER_VERSION = "2026.05.29.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -123,8 +123,8 @@ TEXT = {
         "label_removed_files": "Удалено лишних файлов",
         "label_removed_old_files": "Удалено старых файлов",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "MO2 профиль Anthology 2.1",
-        "news_1_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
+        "news_1": "Тестовый движок MT",
+        "news_1_body": "Новая версия движка - альфа-бета-гамма тест. Ставить только на свой страх и риск: возможны вылеты, баги и поломки.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -189,8 +189,8 @@ TEXT = {
         "label_removed_files": "Removed extra files",
         "label_removed_old_files": "Removed old files",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "MO2 Anthology 2.1 profile",
-        "news_1_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
+        "news_1": "Experimental MT engine",
+        "news_1_body": "The new engine build is an alpha-beta-gamma test. Install it only at your own risk: crashes, bugs, and broken behavior are possible.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
