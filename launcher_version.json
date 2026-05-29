@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.29.4",
+  "version": "2026.05.29.5",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Polish experimental engine news wording."
+  "notes": "Keep previous project news and add engine update notice."
 }
