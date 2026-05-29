@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.28.1"
+LAUNCHER_VERSION = "2026.05.29.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -42,11 +42,6 @@ ENGINE_MT_URL = "https://github.com/sysliveprime-ctrl/xray-monolith/releases/dow
 ENGINE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/xray-monolith/contents/engine_version.json?ref=anthology-2026.5.8-mt-nanfix"
 ENGINE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/xray-monolith/anthology-2026.5.8-mt-nanfix/engine_version.json"
 ENGINE_ALLOWED_PARTS = {"bin", "db"}
-RESHADE_VERSION = "2026.05.25.1"
-RESHADE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/Reshade_ANTHOLOGY_2.1.zip"
-RESHADE_FILES = ("dxgi.dll", "ReShade.ini", "ReShadePreset.ini", "ANTHOLOGY 2.1.ini")
-RESHADE_DIRS = ("reshade-shaders",)
-RESHADE_DISABLED_DLL = "dxgi.dll.launcher_disabled"
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
@@ -89,10 +84,6 @@ TEXT = {
         "about": "О проекте",
         "support": "Поддержать проект",
         "quit": "Выход",
-        "reshade": "ReShade",
-        "reshade_installed": "ReShade установлен.",
-        "reshade_removed": "ReShade отключен.",
-        "reshade_failed": "Не удалось обработать ReShade",
         "news": "Новости проекта",
         "update": "Центр обновлений",
         "ready": "Готово к запуску",
@@ -132,10 +123,8 @@ TEXT = {
         "label_removed_files": "Удалено лишних файлов",
         "label_removed_old_files": "Удалено старых файлов",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "ReShade в лаунчере",
-        "news_1_body": "В настройках появился переключатель ReShade. Лаунчер скачивает пакет один раз и включает или отключает его без лишних загрузок.",
-        "news_2": "MO2 профиль Anthology 2.1",
-        "news_2_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
+        "news_1": "MO2 профиль Anthology 2.1",
+        "news_1_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -161,10 +150,6 @@ TEXT = {
         "about": "About",
         "support": "Support project",
         "quit": "Exit",
-        "reshade": "ReShade",
-        "reshade_installed": "ReShade installed.",
-        "reshade_removed": "ReShade disabled.",
-        "reshade_failed": "Failed to process ReShade",
         "news": "Project news",
         "update": "Update center",
         "ready": "Ready to launch",
@@ -204,10 +189,8 @@ TEXT = {
         "label_removed_files": "Removed extra files",
         "label_removed_old_files": "Removed old files",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "ReShade in launcher",
-        "news_1_body": "Settings now include a ReShade toggle. The launcher downloads the package once and enables or disables it without extra downloads.",
-        "news_2": "MO2 Anthology 2.1 profile",
-        "news_2_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
+        "news_1": "MO2 Anthology 2.1 profile",
+        "news_1_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
@@ -396,8 +379,6 @@ class LauncherApp(tk.Tk):
 
         self._section_label(108, 206, t["news"])
         self._news_item(108, 272, t["news_1"], t["news_1_body"], width=328)
-        self._add(self.canvas.create_line(108, 382, 477, 382, fill="#ffffff", stipple="gray25"))
-        self._news_item(108, 428, t["news_2"], t["news_2_body"], width=328)
 
         self._add(self.canvas.create_line(67, 573, 1103, 573, fill=COLORS["accent"], stipple="gray50", width=2))
         self.buttons["logs"] = self._button(715, 604, 177, 38, t["logs"], self.open_logs_folder)
@@ -428,7 +409,6 @@ class LauncherApp(tk.Tk):
             "prefetch": self._toggle(96, 438, t["prefetch"], lambda: self._flip("prefetch")),
             "reset": self._toggle(455, 330, t["reset"], lambda: self._flip("reset_user")),
             "avx": self._toggle(455, 384, t["avx"], lambda: self._flip("avx")),
-            "reshade": self._toggle(455, 438, t["reshade"], self.toggle_reshade),
         }
 
         self._add(self.canvas.create_text(805, 334, text=t["shadow"], anchor="w", fill=COLORS["muted"], font=("Segoe UI", 10)))
@@ -604,14 +584,6 @@ class LauncherApp(tk.Tk):
         setattr(self, name, not getattr(self, name))
         self._refresh_all()
 
-    def toggle_reshade(self):
-        if self.updating:
-            return
-        if self._reshade_installed():
-            self.remove_reshade()
-        else:
-            self.install_reshade()
-
     def _shadow_prev(self):
         self.shadow = (self.shadow - 1) % len(SHADOWS)
         self._refresh_all()
@@ -647,7 +619,6 @@ class LauncherApp(tk.Tk):
             "prefetch": self.prefetch,
             "reset": self.reset_user,
             "avx": self.avx,
-            "reshade": self._reshade_installed(),
         }
         for key, item in self.toggle_items.items():
             active = values[key]
@@ -756,109 +727,6 @@ class LauncherApp(tk.Tk):
 
     def support_project(self):
         self.show_support()
-
-    def install_reshade(self):
-        if self.updating:
-            return
-        self.updating = True
-        self._set_update_status(TEXT[self.lang]["update_downloading"], COLORS["accent_2"])
-        self._set_update_progress(0, "")
-        self._start_background_worker("reshade-install", self._install_reshade_worker)
-
-    def _install_reshade_worker(self):
-        try:
-            bin_dir = self.root_dir / "bin"
-            if not bin_dir.exists():
-                raise FileNotFoundError(bin_dir)
-            disabled_dll = bin_dir / RESHADE_DISABLED_DLL
-            active_dll = bin_dir / "dxgi.dll"
-            if disabled_dll.exists() and not active_dll.exists():
-                self._make_writable(disabled_dll)
-                disabled_dll.replace(active_dll)
-                self.after(0, lambda: self._finish_reshade(True, TEXT[self.lang]["reshade_installed"]))
-                return
-            archive_path = self._ensure_reshade_archive()
-            self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
-            self.after(0, lambda: self._set_update_progress(0, "0%"))
-            if disabled_dll.exists():
-                self._make_writable(disabled_dll)
-                disabled_dll.unlink()
-            with zipfile.ZipFile(archive_path, "r") as archive:
-                self._install_reshade_archive(archive, bin_dir)
-            self.after(0, lambda: self._finish_reshade(True, TEXT[self.lang]["reshade_installed"]))
-        except Exception as exc:
-            self.after(0, lambda e=exc: self._finish_reshade(False, f"{TEXT[self.lang]['reshade_failed']}:\n{e}"))
-
-    def remove_reshade(self):
-        if self.updating:
-            return
-        self.updating = True
-        try:
-            bin_dir = self.root_dir / "bin"
-            if not bin_dir.exists():
-                raise FileNotFoundError(bin_dir)
-            active_dll = bin_dir / "dxgi.dll"
-            disabled_dll = bin_dir / RESHADE_DISABLED_DLL
-            if active_dll.exists():
-                self._make_writable(active_dll)
-                if disabled_dll.exists():
-                    self._make_writable(disabled_dll)
-                    disabled_dll.unlink()
-                active_dll.replace(disabled_dll)
-            self._set_update_status(TEXT[self.lang]["reshade_removed"], COLORS["accent"])
-            self._set_update_progress(0, "")
-            messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["reshade_removed"])
-        except Exception as exc:
-            self._set_update_status(TEXT[self.lang]["reshade_failed"], COLORS["danger"])
-            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['reshade_failed']}:\n{exc}")
-        finally:
-            self.updating = False
-            self._refresh_all()
-
-    def _finish_reshade(self, ok, message):
-        self.updating = False
-        if ok:
-            self._set_update_status(message, COLORS["accent"])
-            self._set_update_progress(100, "100%")
-            messagebox.showinfo("Anthology Launcher", message)
-        else:
-            self._set_update_status(TEXT[self.lang]["reshade_failed"], COLORS["danger"])
-            self._set_update_progress(0, "")
-            messagebox.showerror("Anthology Launcher", message)
-        self._refresh_all()
-
-    def _reshade_installed(self):
-        bin_dir = self.root_dir / "bin"
-        return (bin_dir / "dxgi.dll").exists()
-
-    def _reshade_archive_path(self):
-        return self.root_dir / "webcache" / "reshade" / f"Reshade_ANTHOLOGY_2.1_{RESHADE_VERSION}.zip"
-
-    def _reshade_archive_valid(self, archive_path):
-        if not archive_path.exists() or archive_path.stat().st_size <= 0:
-            return False
-        try:
-            with zipfile.ZipFile(archive_path, "r") as archive:
-                names = {Path(info.filename.replace("\\", "/")).as_posix() for info in archive.infolist() if not info.is_dir()}
-                return all(name in names for name in RESHADE_FILES)
-        except zipfile.BadZipFile:
-            return False
-
-    def _ensure_reshade_archive(self):
-        archive_path = self._reshade_archive_path()
-        if self._reshade_archive_valid(archive_path):
-            self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_applying"], COLORS["accent_2"]))
-            self.after(0, lambda: self._set_update_progress(0, ""))
-            return archive_path
-        archive_path.parent.mkdir(parents=True, exist_ok=True)
-        if archive_path.exists():
-            self._make_writable(archive_path)
-            archive_path.unlink()
-        self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_downloading"], COLORS["accent_2"]))
-        self._download_update_archive(RESHADE_URL, archive_path, attempts=3, timeout=180)
-        if not self._reshade_archive_valid(archive_path):
-            raise ValueError("Downloaded ReShade archive is invalid")
-        return archive_path
 
     def _prepare_external_launch(self):
         env = os.environ.copy()
@@ -2258,22 +2126,6 @@ class LauncherApp(tk.Tk):
                 self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
         return installed
 
-    def _install_reshade_archive(self, archive, bin_dir):
-        files = [info for info in archive.infolist() if not info.is_dir() and self._archive_reshade_relative(info.filename)]
-        total = max(1, len(files))
-        if not files:
-            raise ValueError("ReShade archive has no installable files")
-        for index, info in enumerate(files, start=1):
-            relative = self._archive_reshade_relative(info.filename)
-            target_path = bin_dir / relative
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            self._make_writable(target_path)
-            with archive.open(info, "r") as source, target_path.open("wb") as target:
-                shutil.copyfileobj(source, target, length=1024 * 1024)
-            if index == total or index % 5 == 0:
-                value = int(index * 100 / total)
-                self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
-
     def _install_engine_archive(self, archive, dst, backup_dir, log_path=None):
         files = [info for info in archive.infolist() if not info.is_dir() and self._archive_engine_relative(info.filename)]
         total = max(1, len(files))
@@ -2317,17 +2169,6 @@ class LauncherApp(tk.Tk):
         if not parts or parts[0].lower() not in ENGINE_ALLOWED_PARTS:
             return None
         return Path(*parts)
-
-    def _archive_reshade_relative(self, name):
-        parts = Path(name.replace("\\", "/")).parts
-        if not parts or any(part in ("", ".", "..") for part in parts):
-            return None
-        first = parts[0]
-        if len(parts) == 1 and first in RESHADE_FILES:
-            return Path(first)
-        if first in RESHADE_DIRS:
-            return Path(*parts)
-        return None
 
     def _make_writable(self, path):
         if not path.exists():
