@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.29.6"
+LAUNCHER_VERSION = "2026.05.29.7"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -386,9 +386,7 @@ class LauncherApp(tk.Tk):
         self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
 
         self._section_label(108, 206, t["news"])
-        self._news_item(108, 272, t["news_1"], t["news_1_body"], width=328)
-        self._news_item(108, 368, t["news_2"], t["news_2_body"], width=328)
-        self._news_item(108, 476, t["news_3"], t["news_3_body"], width=328)
+        self._news_feed(108, 254, 366, 296, t)
 
         self._add(self.canvas.create_line(67, 573, 1103, 573, fill=COLORS["accent"], stipple="gray50", width=2))
         self.buttons["logs"] = self._button(715, 604, 177, 38, t["logs"], self.open_logs_folder)
@@ -521,6 +519,50 @@ class LauncherApp(tk.Tk):
     def _news_item(self, x, y, title, body, width=336):
         self._add(self.canvas.create_text(x, y, text=title, anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 13, "bold")))
         self._add(self.canvas.create_text(x, y + 30, text=body, anchor="nw", fill=COLORS["muted"], font=("Segoe UI", 10), width=width))
+
+    def _news_feed(self, x, y, w, h, t):
+        frame = tk.Frame(self.canvas, bg=COLORS["bg"])
+        body = tk.Text(
+            frame,
+            bg=COLORS["bg"],
+            fg=COLORS["muted"],
+            insertbackground=COLORS["text"],
+            selectbackground="#24534c",
+            bd=0,
+            highlightthickness=0,
+            padx=0,
+            pady=0,
+            wrap="word",
+            cursor="arrow",
+        )
+        scroll = tk.Scrollbar(
+            frame,
+            orient="vertical",
+            command=body.yview,
+            bg=COLORS["glass_lift"],
+            troughcolor=COLORS["bg"],
+            activebackground=COLORS["accent"],
+            relief="flat",
+            bd=0,
+            width=10,
+        )
+        body.configure(yscrollcommand=scroll.set)
+        body.tag_configure("title", foreground=COLORS["text"], font=("Segoe UI Semibold", 13, "bold"), spacing1=8, spacing3=12)
+        body.tag_configure("body", foreground=COLORS["muted"], font=("Segoe UI", 10), spacing3=16)
+        for index in range(1, 8):
+            title = t.get(f"news_{index}")
+            text = t.get(f"news_{index}_body")
+            if not title or not text:
+                continue
+            if index > 1:
+                body.insert("end", "\n")
+            body.insert("end", f"{title}\n", "title")
+            body.insert("end", text, "body")
+        body.configure(state="disabled")
+        body.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
+        body.bind("<MouseWheel>", lambda event: body.yview_scroll(int(-1 * (event.delta / 120)), "units"))
+        self._add_widget(frame, x, y, w, h)
 
     def _button(self, x, y, w, h, text, command, primary=False):
         fill = "#173a35" if primary else COLORS["glass_lift"]
