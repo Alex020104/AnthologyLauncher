@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.29.1"
+LAUNCHER_VERSION = "2026.05.29.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1122,6 +1122,9 @@ class LauncherApp(tk.Tk):
                 f"Тип: {label}\n\n"
                 f"Backup: {backup_dir}"
             )
+            notes = str(manifest.get("notes", "")).strip()
+            if notes:
+                message += f"\n\n{notes}"
             self.after(0, lambda: self._finish_git_update(True, message, operation="engine"))
         except (URLError, OSError, zipfile.BadZipFile, ValueError) as exc:
             self._debug_log(f"engine worker expected error: {type(exc).__name__}: {exc}")
