@@ -1,5 +1,5 @@
 {
-  "version": "2026.05.31.2",
+  "version": "2026.05.31.3",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Remove manual shader cache button; cache is cleaned automatically before launch."
+  "notes": "Move logs button into the former shader cache button slot."
 }

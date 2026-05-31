@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.31.2"
+LAUNCHER_VERSION = "2026.05.31.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -389,7 +389,7 @@ class LauncherApp(tk.Tk):
         self._news_feed(108, 254, 366, 296, t)
 
         self._add(self.canvas.create_line(67, 573, 1103, 573, fill=COLORS["accent"], stipple="gray50", width=2))
-        self.buttons["logs"] = self._button(715, 604, 177, 38, t["logs"], self.open_logs_folder)
+        self.buttons["logs"] = self._button(904, 604, 176, 38, t["logs"], self.open_logs_folder)
         self.buttons["update"] = self._button(904, 654, 176, 38, t["update_button"], self.sync_modpack_update)
         self._bottom_update_bar(t)
         self.flag_id = self._add(self.canvas.create_image(668, 126, anchor="nw", image=self.flag_us if self.lang == "ru" else self.flag_ru))
