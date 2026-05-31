@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.31.3"
+LAUNCHER_VERSION = "2026.05.31.4"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -123,12 +123,14 @@ TEXT = {
         "label_removed_files": "Удалено лишних файлов",
         "label_removed_old_files": "Удалено старых файлов",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Требуется новая игра",
-        "news_1_body": "После этого обновления необходимо начать новую игру: был заменен all.spawn. Старые сохранения могут работать некорректно.",
-        "news_2": "MO2 профиль Anthology 2.1",
-        "news_2_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
-        "news_3": "Тестовое обновление движка",
-        "news_3_body": "Доступна экспериментальная версия MT-движка. Устанавливайте её только если готовы к возможной нестабильности; перед обновлением рекомендуется сохранить резервную копию.",
+        "news_1": "Тестовое сообщение!",
+        "news_1_body": "Авто настройка новостей в проекте Anthology 2.1",
+        "news_2": "Требуется новая игра",
+        "news_2_body": "После этого обновления необходимо начать новую игру: был заменен all.spawn. Старые сохранения могут работать некорректно.",
+        "news_3": "MO2 профиль Anthology 2.1",
+        "news_3_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
+        "news_4": "Тестовое обновление движка",
+        "news_4_body": "Доступна экспериментальная версия MT-движка. Устанавливайте её только если готовы к возможной нестабильности; перед обновлением рекомендуется сохранить резервную копию.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -193,12 +195,14 @@ TEXT = {
         "label_removed_files": "Removed extra files",
         "label_removed_old_files": "Removed old files",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "New game required",
-        "news_1_body": "This update requires starting a new game because all.spawn was replaced. Old saves may not work correctly.",
-        "news_2": "MO2 Anthology 2.1 profile",
-        "news_2_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
-        "news_3": "Experimental engine update",
-        "news_3_body": "An experimental MT engine build is available. Install it only if you are ready for possible instability; making a backup before updating is recommended.",
+        "news_1": "Тестовое сообщение!",
+        "news_1_body": "Авто настройка новостей в проекте Anthology 2.1",
+        "news_2": "New game required",
+        "news_2_body": "This update requires starting a new game because all.spawn was replaced. Old saves may not work correctly.",
+        "news_3": "MO2 Anthology 2.1 profile",
+        "news_3_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
+        "news_4": "Experimental engine update",
+        "news_4_body": "An experimental MT engine build is available. Install it only if you are ready for possible instability; making a backup before updating is recommended.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
