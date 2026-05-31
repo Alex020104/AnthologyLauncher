@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.05.29.7"
+LAUNCHER_VERSION = "2026.05.31.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -754,13 +754,33 @@ class LauncherApp(tk.Tk):
             user.rename(old)
         shutil.copyfile(self.assets / "default_user_ltx.txt", user)
 
-    def delete_shader_cache(self):
-        cache = self.root_dir / "appdata" / "shaders_cache"
+    def _shader_cache_path(self):
+        return self.root_dir / "appdata" / "shaders_cache"
+
+    def _delete_shader_cache(self, show_message=False):
+        cache = self._shader_cache_path()
         if not cache.exists():
-            messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["cache_missing"])
-            return
-        shutil.rmtree(cache)
-        messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["cache_done"])
+            if show_message:
+                messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["cache_missing"])
+            return False
+
+        try:
+            if cache.is_symlink() or not cache.is_dir():
+                cache.unlink()
+            else:
+                shutil.rmtree(cache)
+            self._debug_log(f"shader cache deleted: {cache}")
+            if show_message:
+                messagebox.showinfo("Anthology Launcher", TEXT[self.lang]["cache_done"])
+            return True
+        except OSError as exc:
+            self._debug_log(f"shader cache delete failed: {type(exc).__name__}: {exc}")
+            if show_message:
+                messagebox.showerror("Anthology Launcher", f"Failed to delete shader cache:\n{exc}")
+            return False
+
+    def delete_shader_cache(self):
+        self._delete_shader_cache(show_message=True)
 
     def open_logs_folder(self):
         logs = self.root_dir / "appdata" / "logs"
@@ -2515,6 +2535,7 @@ class LauncherApp(tk.Tk):
         self.write_config()
         self.write_commandline()
         self.apply_sound_fix()
+        self._delete_shader_cache()
         if self.reset_user or not (self.root_dir / "appdata" / "user.ltx").exists():
             self.reset_user_ltx_file()
 
