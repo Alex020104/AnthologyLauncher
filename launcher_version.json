@@ -1,5 +1,5 @@
 {
-  "version": "2026.06.02.1",
+  "version": "2026.06.02.2",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Новость лаунчера: Исправлен редкий визуальный баг с мерцанием"
+  "notes": "DB update no longer deletes engine DB file."
 }
