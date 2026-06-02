@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.02.3"
+LAUNCHER_VERSION = "2026.06.03.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -51,6 +51,9 @@ UPDATE_ALLOWED_PARTS = {"configs", "scripts", "textures"}
 UPDATE_PRESERVE_PATH_MARKERS = (
     "r.a.k weapon pack adaptation",
 )
+UPDATE_LEGACY_REMOVE_PATHS = {
+    "plugins/SetAnomalyCPUAffinity.py",
+}
 DB_REPO = "https://github.com/sysliveprime-ctrl/anthology-db"
 DB_UPDATE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-db/contents/db_version.json?ref=main"
 DB_UPDATE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-db/main/db_version.json"
@@ -1310,7 +1313,9 @@ class LauncherApp(tk.Tk):
             needs_manifest_bootstrap = local_version == remote_version and not self._state_file_list(local)
             manifest_removed_files = self._manifest_removed_files(remote)
             needs_manifest_cleanup = any((mods_dir / rel).is_file() for rel in manifest_removed_files)
-            if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap and not needs_manifest_cleanup:
+            legacy_removed_files = self._legacy_update_removed_files()
+            needs_legacy_cleanup = any((mods_dir.parent / rel).is_file() for rel in legacy_removed_files)
+            if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap and not needs_manifest_cleanup and not needs_legacy_cleanup:
                 return True, f"{t['update_latest']}\n\n{t['label_version']}: {remote_version}"
 
             status_text = t["update_available_downloading"]
@@ -1334,6 +1339,7 @@ class LauncherApp(tk.Tk):
                 installed_files = self._install_update_archive(archive, mods_dir, log_path)
             deleted_files = self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path)
             deleted_files += self._remove_manifest_files(mods_dir, manifest_removed_files, log_path)
+            deleted_files += self._remove_legacy_update_files(mods_dir, legacy_removed_files, log_path)
             self._save_update_state(mods_dir, remote, installed_files)
             self._write_update_log(log_path, "state saved")
             shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -1949,6 +1955,9 @@ class LauncherApp(tk.Tk):
             files.append(rel)
         return files
 
+    def _legacy_update_removed_files(self):
+        return [Path(path) for path in sorted(UPDATE_LEGACY_REMOVE_PATHS, key=str.casefold)]
+
     def _remove_manifest_files(self, mods_dir, files, log_path=None):
         deleted = 0
         for rel in files:
@@ -1964,6 +1973,24 @@ class LauncherApp(tk.Tk):
             except OSError as exc:
                 if log_path:
                     self._write_update_log(log_path, f"delete manifest removed_file failed: {target}: {exc}")
+        return deleted
+
+    def _remove_legacy_update_files(self, mods_dir, files, log_path=None):
+        mo2_root = mods_dir.parent
+        deleted = 0
+        for rel in files:
+            target = mo2_root / rel
+            try:
+                if not target.is_file() or not self._is_relative_to(target.resolve(), mo2_root.resolve()):
+                    continue
+                self._make_writable(target)
+                target.unlink()
+                deleted += 1
+                if log_path:
+                    self._write_update_log(log_path, f"delete legacy removed_file: {target}")
+            except OSError as exc:
+                if log_path:
+                    self._write_update_log(log_path, f"delete legacy removed_file failed: {target}: {exc}")
         return deleted
 
     def _is_relative_to(self, path, parent):
