@@ -1,5 +1,5 @@
 {
-  "version": "2026.06.02.2",
+  "version": "2026.06.02.3",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "DB update no longer deletes engine DB file."
+  "notes": "DB update supports root shaders_anthology archive."
 }
