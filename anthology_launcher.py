@@ -31,7 +31,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.03.2"
+LAUNCHER_VERSION = "2026.06.03.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -138,12 +138,10 @@ TEXT = {
         "news_2_body": "пропаданием травы у части игроков. Проблема была связана с многопоточным расчётом видимости растительности в движке.  Если вы сталкивались с таким мерцанием, обновите движок через лаунчер и проверьте игру на том же месте/сейве.",
         "news_3": "Тестовое сообщение!",
         "news_3_body": "Авто настройка новостей в проекте Anthology 2.1",
-        "news_4": "Требуется новая игра",
-        "news_4_body": "После этого обновления необходимо начать новую игру: был заменен all.spawn. Старые сохранения могут работать некорректно.",
-        "news_5": "MO2 профиль Anthology 2.1",
-        "news_5_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
-        "news_6": "Тестовое обновление движка",
-        "news_6_body": "Доступна экспериментальная версия MT-движка. Устанавливайте её только если готовы к возможной нестабильности; перед обновлением рекомендуется сохранить резервную копию.",
+        "news_4": "MO2 профиль Anthology 2.1",
+        "news_4_body": "Основной запуск рассчитан на чистый профиль Mod Organizer 2. Сторонние аддоны лучше не ставить поверх оружейной экосистемы.",
+        "news_5": "Тестовое обновление движка",
+        "news_5_body": "Доступна экспериментальная версия MT-движка. Устанавливайте её только если готовы к возможной нестабильности; перед обновлением рекомендуется сохранить резервную копию.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -214,12 +212,10 @@ TEXT = {
         "news_2_body": "пропаданием травы у части игроков. Проблема была связана с многопоточным расчётом видимости растительности в движке.  Если вы сталкивались с таким мерцанием, обновите движок через лаунчер и проверьте игру на том же месте/сейве.",
         "news_3": "Тестовое сообщение!",
         "news_3_body": "Авто настройка новостей в проекте Anthology 2.1",
-        "news_4": "New game required",
-        "news_4_body": "This update requires starting a new game because all.spawn was replaced. Old saves may not work correctly.",
-        "news_5": "MO2 Anthology 2.1 profile",
-        "news_5_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
-        "news_6": "Experimental engine update",
-        "news_6_body": "An experimental MT engine build is available. Install it only if you are ready for possible instability; making a backup before updating is recommended.",
+        "news_4": "MO2 Anthology 2.1 profile",
+        "news_4_body": "Main startup is intended for a clean Mod Organizer 2 profile. Third-party addons should not be installed on top of the weapon ecosystem.",
+        "news_5": "Experimental engine update",
+        "news_5_body": "An experimental MT engine build is available. Install it only if you are ready for possible instability; making a backup before updating is recommended.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",

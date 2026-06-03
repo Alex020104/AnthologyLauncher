@@ -1,5 +1,5 @@
 {
-  "version": "2026.06.03.2",
+  "version": "2026.06.03.3",
   "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe",
-  "notes": "Новость лаунчера: Вылет при переходе на локацию!"
+  "notes": "Управление новостями лаунчера."
 }
