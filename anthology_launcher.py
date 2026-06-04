@@ -395,7 +395,7 @@ class LauncherApp(tk.Tk):
         self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
 
         self._section_label(108, 206, t["news"])
-        self._news_feed(108, 254, 366, 296, t)
+        self._news_feed(108, 254, 540, 296, t)
 
         self._add(self.canvas.create_line(67, 573, 1103, 573, fill=COLORS["accent"], stipple="gray50", width=2))
         self.buttons["logs"] = self._button(904, 604, 176, 38, t["logs"], self.open_logs_folder)
