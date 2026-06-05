@@ -34,7 +34,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.05.1"
+LAUNCHER_VERSION = "2026.06.05.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -134,6 +134,7 @@ TEXT = {
         "label_version": "Версия",
         "label_removed_files": "Удалено лишних файлов",
         "label_removed_old_files": "Удалено старых файлов",
+        "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
         "news_1": "Адаптивный размер!",
         "news_1_body": "Лаунчер теперь автоматически подстраивает размер окна под экран. На Steam Deck и небольших разрешениях интерфейс должен аккуратно помещаться без обрезания.",
@@ -206,6 +207,7 @@ TEXT = {
         "label_version": "Version",
         "label_removed_files": "Removed extra files",
         "label_removed_old_files": "Removed old files",
+        "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
         "news_1": "Adaptive window size!",
         "news_1_body": "The launcher now automatically fits its window to the screen. On Steam Deck and smaller resolutions, the interface should fit cleanly without being cut off.",
@@ -335,7 +337,7 @@ class LauncherApp(tk.Tk):
         for option in ("width", "height"):
             try:
                 value = self.canvas.itemcget(item, option)
-                if value:
+                if value and float(value) > 0:
                     self.canvas.itemconfig(item, **{option: max(1, int(float(value) * self.ui_scale))})
             except Exception:
                 pass
@@ -1380,9 +1382,11 @@ class LauncherApp(tk.Tk):
             self.after(0, lambda: self._set_update_progress(0, "0%"))
             with zipfile.ZipFile(zip_path, "r") as archive:
                 installed_files = self._install_update_archive(archive, mods_dir, log_path)
-            deleted_files = self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path)
-            deleted_files += self._remove_manifest_files(mods_dir, manifest_removed_files, log_path)
-            deleted_files += self._remove_legacy_update_files(mods_dir, legacy_removed_files, log_path)
+            cleanup_dirs = set()
+            deleted_files = self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path, cleanup_dirs)
+            deleted_files += self._remove_manifest_files(mods_dir, manifest_removed_files, log_path, cleanup_dirs)
+            deleted_files += self._remove_legacy_update_files(mods_dir, legacy_removed_files, log_path, cleanup_dirs)
+            deleted_dirs = self._remove_empty_update_dirs(cleanup_dirs, mods_dir.parent, log_path)
             self._save_update_state(mods_dir, remote, installed_files)
             self._write_update_log(log_path, "state saved")
             shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -1391,6 +1395,8 @@ class LauncherApp(tk.Tk):
             message = f"{t['update_done']}\n\n{t['label_version']}: {remote_version}"
             if deleted_files:
                 message += f"\n{t['label_removed_old_files']}: {deleted_files}"
+            if deleted_dirs:
+                message += f"\n{t['label_removed_empty_dirs']}: {deleted_dirs}"
             if notes:
                 message += f"\n\n{notes}"
             return True, message
@@ -1956,7 +1962,7 @@ class LauncherApp(tk.Tk):
             state["files"] = sorted({Path(path).as_posix() for path in files}, key=str.casefold)
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def _remove_stale_update_files(self, mods_dir, previous_files, current_files, log_path=None):
+    def _remove_stale_update_files(self, mods_dir, previous_files, current_files, log_path=None, cleanup_dirs=None):
         current = {Path(path).as_posix().casefold() for path in current_files}
         deleted = 0
         for rel in previous_files:
@@ -1969,6 +1975,8 @@ class LauncherApp(tk.Tk):
                     continue
                 self._make_writable(target)
                 target.unlink()
+                if cleanup_dirs is not None:
+                    cleanup_dirs.add(target.parent)
                 deleted += 1
                 if log_path:
                     self._write_update_log(log_path, f"delete stale: {target}")
@@ -2001,7 +2009,7 @@ class LauncherApp(tk.Tk):
     def _legacy_update_removed_files(self):
         return [Path(path) for path in sorted(UPDATE_LEGACY_REMOVE_PATHS, key=str.casefold)]
 
-    def _remove_manifest_files(self, mods_dir, files, log_path=None):
+    def _remove_manifest_files(self, mods_dir, files, log_path=None, cleanup_dirs=None):
         deleted = 0
         for rel in files:
             target = mods_dir / rel
@@ -2010,6 +2018,8 @@ class LauncherApp(tk.Tk):
                     continue
                 self._make_writable(target)
                 target.unlink()
+                if cleanup_dirs is not None:
+                    cleanup_dirs.add(target.parent)
                 deleted += 1
                 if log_path:
                     self._write_update_log(log_path, f"delete manifest removed_file: {target}")
@@ -2018,7 +2028,7 @@ class LauncherApp(tk.Tk):
                     self._write_update_log(log_path, f"delete manifest removed_file failed: {target}: {exc}")
         return deleted
 
-    def _remove_legacy_update_files(self, mods_dir, files, log_path=None):
+    def _remove_legacy_update_files(self, mods_dir, files, log_path=None, cleanup_dirs=None):
         mo2_root = mods_dir.parent
         deleted = 0
         for rel in files:
@@ -2028,12 +2038,43 @@ class LauncherApp(tk.Tk):
                     continue
                 self._make_writable(target)
                 target.unlink()
+                if cleanup_dirs is not None:
+                    cleanup_dirs.add(target.parent)
                 deleted += 1
                 if log_path:
                     self._write_update_log(log_path, f"delete legacy removed_file: {target}")
             except OSError as exc:
                 if log_path:
                     self._write_update_log(log_path, f"delete legacy removed_file failed: {target}: {exc}")
+        return deleted
+
+    def _remove_empty_update_dirs(self, directories, boundary, log_path=None):
+        boundary = boundary.resolve()
+        deleted = 0
+        pending = sorted({Path(path) for path in directories}, key=lambda path: len(path.parts), reverse=True)
+        deleted_paths = set()
+        for directory in pending:
+            current = directory
+            while True:
+                try:
+                    resolved = current.resolve()
+                except OSError:
+                    break
+                key = str(resolved).casefold()
+                if key in deleted_paths or resolved == boundary or not self._is_relative_to(resolved, boundary):
+                    break
+                rel = resolved.relative_to(boundary)
+                if self._should_preserve_update_path(rel):
+                    break
+                try:
+                    current.rmdir()
+                    deleted_paths.add(key)
+                    deleted += 1
+                    if log_path:
+                        self._write_update_log(log_path, f"delete empty dir: {current}")
+                except OSError:
+                    break
+                current = current.parent
         return deleted
 
     def _is_relative_to(self, path, parent):
