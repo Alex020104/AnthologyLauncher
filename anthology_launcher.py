@@ -22,6 +22,8 @@ from PIL import Image, ImageEnhance, ImageTk
 
 WIDTH = 1180
 HEIGHT = 720
+SCREEN_PADDING = 24
+MIN_UI_SCALE = 0.72
 TOP_BAR = 96
 MARGIN = 72
 RENDERERS = ["DX11", "DX10", "DX9", "DX8"]
@@ -32,7 +34,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.04.3"
+LAUNCHER_VERSION = "2026.06.05.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -133,12 +135,14 @@ TEXT = {
         "label_removed_files": "Удалено лишних файлов",
         "label_removed_old_files": "Удалено старых файлов",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Исправлен вылет после сна!",
-        "news_1_body": "Исправлен массовый вылет, который мог происходить после сна, особенно после фаст-тревела или перехода на другую базу. Мир после сна теперь прогружается стабильнее, без повторного спавна уже существующих объектов.",
-        "news_2": "Исправлен вылет при переходе на локацию!",
-        "news_2_body": "Движковое исправление: AI-зрение больше не падает на временных объектах без collision form. Это исправляет вылет, который мог происходить сразу после загрузки/перехода на локацию.",
-        "news_3": "Исправлен редкий визуальный баг с мерцанием",
-        "news_3_body": "Движковое исправление: устранён редкий баг с мерцанием и пропаданием травы у части игроков. Проблема была связана с многопоточным расчётом видимости растительности.",
+        "news_1": "Адаптивный размер!",
+        "news_1_body": "Лаунчер теперь автоматически подстраивает размер окна под экран. На Steam Deck и небольших разрешениях интерфейс должен аккуратно помещаться без обрезания.",
+        "news_2": "Исправлен вылет после сна!",
+        "news_2_body": "Исправлен массовый вылет, который мог происходить после сна, особенно после фаст-тревела или перехода на другую базу. Мир после сна теперь прогружается стабильнее, без повторного спавна уже существующих объектов.",
+        "news_3": "Исправлен вылет при переходе на локацию!",
+        "news_3_body": "Движковое исправление: AI-зрение больше не падает на временных объектах без collision form. Это исправляет вылет, который мог происходить сразу после загрузки/перехода на локацию.",
+        "news_4": "Исправлен редкий визуальный баг с мерцанием",
+        "news_4_body": "Движковое исправление: устранён редкий баг с мерцанием и пропаданием травы у части игроков. Проблема была связана с многопоточным расчётом видимости растительности.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -203,12 +207,14 @@ TEXT = {
         "label_removed_files": "Removed extra files",
         "label_removed_old_files": "Removed old files",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "Fixed crash after sleeping!",
-        "news_1_body": "Fixed a common crash that could happen after sleeping, especially after fast travel or moving to another base. The world now wakes up more safely after sleep, without trying to spawn already existing objects again.",
-        "news_2": "Fixed crash when entering a location!",
-        "news_2_body": "Engine fix: AI vision no longer crashes on temporary objects without a collision form. This fixes a crash that could happen right after loading or entering a location.",
-        "news_3": "Fixed a rare visual flickering bug",
-        "news_3_body": "Engine fix: resolved a rare issue where grass could flicker or disappear for some players. The problem was related to multithreaded vegetation visibility calculations.",
+        "news_1": "Adaptive window size!",
+        "news_1_body": "The launcher now automatically fits its window to the screen. On Steam Deck and smaller resolutions, the interface should fit cleanly without being cut off.",
+        "news_2": "Fixed crash after sleeping!",
+        "news_2_body": "Fixed a common crash that could happen after sleeping, especially after fast travel or moving to another base. The world now wakes up more safely after sleep, without trying to spawn already existing objects again.",
+        "news_3": "Fixed crash when entering a location!",
+        "news_3_body": "Engine fix: AI vision no longer crashes on temporary objects without a collision form. This fixes a crash that could happen right after loading or entering a location.",
+        "news_4": "Fixed a rare visual flickering bug",
+        "news_4_body": "Engine fix: resolved a rare issue where grass could flicker or disappear for some players. The problem was related to multithreaded vegetation visibility calculations.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
@@ -274,6 +280,10 @@ class LauncherApp(tk.Tk):
         self.buttons = {}
         self.render_buttons = {}
         self.toggle_items = {}
+        self.ui_scale = self._calculate_ui_scale()
+        self.window_width = max(1, int(WIDTH * self.ui_scale))
+        self.window_height = max(1, int(HEIGHT * self.ui_scale))
+        self._apply_tk_scale()
 
         self.overrideredirect(True)
         self._register_windows_app_identity()
@@ -295,10 +305,53 @@ class LauncherApp(tk.Tk):
         self.after(1800, self.check_content_updates_async)
 
     def _load_background(self):
-        bg = Image.open(self.assets / "Launcher.png").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+        bg = Image.open(self.assets / "Launcher.png").resize((self.window_width, self.window_height), Image.Resampling.LANCZOS)
         bg = ImageEnhance.Brightness(bg).enhance(0.72)
         bg = ImageEnhance.Contrast(bg).enhance(0.96)
         self.bg_img = ImageTk.PhotoImage(bg)
+
+    def _calculate_ui_scale(self):
+        self.update_idletasks()
+        screen_w = max(1, self.winfo_screenwidth())
+        screen_h = max(1, self.winfo_screenheight())
+        available_w = max(1, screen_w - SCREEN_PADDING)
+        available_h = max(1, screen_h - SCREEN_PADDING)
+        scale = min(1.0, available_w / WIDTH, available_h / HEIGHT)
+        return max(MIN_UI_SCALE, scale)
+
+    def _apply_tk_scale(self):
+        if self.ui_scale >= 0.999:
+            return
+        try:
+            current = float(self.tk.call("tk", "scaling"))
+            self.tk.call("tk", "scaling", current * self.ui_scale)
+        except Exception:
+            pass
+
+    def _scale_item(self, item):
+        if self.ui_scale >= 0.999:
+            return item
+        self.canvas.scale(item, 0, 0, self.ui_scale, self.ui_scale)
+        for option in ("width", "height"):
+            try:
+                value = self.canvas.itemcget(item, option)
+                if value:
+                    self.canvas.itemconfig(item, **{option: max(1, int(float(value) * self.ui_scale))})
+            except Exception:
+                pass
+        return item
+
+    def _scale_canvas(self):
+        if self.ui_scale >= 0.999:
+            return
+        for item in self.canvas.find_all():
+            self._scale_item(item)
+
+    def _sx(self, value):
+        return value * self.ui_scale
+
+    def _sy(self, value):
+        return value * self.ui_scale
 
     def _register_windows_app_identity(self):
         if sys.platform != "win32":
@@ -332,7 +385,7 @@ class LauncherApp(tk.Tk):
             self._debug_log(f"taskbar icon failed: {type(exc).__name__}: {exc}")
 
     def _build_base(self):
-        self.canvas = tk.Canvas(self, width=WIDTH, height=HEIGHT, highlightthickness=0, bd=0, bg=COLORS["bg"])
+        self.canvas = tk.Canvas(self, width=self.window_width, height=self.window_height, highlightthickness=0, bd=0, bg=COLORS["bg"])
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(0, 0, image=self.bg_img, anchor="nw")
         self.canvas.create_rectangle(0, 0, WIDTH, HEIGHT, fill="#020504", stipple="gray50", outline="")
@@ -365,6 +418,7 @@ class LauncherApp(tk.Tk):
 
         self.flag_ru = ImageTk.PhotoImage(Image.open(self.assets / "flag_ru.png").resize((30, 21), Image.Resampling.LANCZOS))
         self.flag_us = ImageTk.PhotoImage(Image.open(self.assets / "flag_us.png").resize((30, 21), Image.Resampling.LANCZOS))
+        self._scale_canvas()
 
     def _clear_view(self):
         for widget in self.view_widgets:
@@ -378,6 +432,7 @@ class LauncherApp(tk.Tk):
         self.toggle_items = {}
 
     def _add(self, item):
+        self._scale_item(item)
         self.items.append(item)
         return item
 
@@ -585,7 +640,7 @@ class LauncherApp(tk.Tk):
         return {"box": box, "knob": knob, "label": text, "x": x, "y": y}
 
     def _start_drag(self, event):
-        if event.y <= TOP_BAR and event.x < WIDTH - 112:
+        if event.y <= self._sy(TOP_BAR) and event.x < self._sx(WIDTH - 112):
             self.drag_x = event.x_root
             self.drag_y = event.y_root
             self.drag_window_x = self.winfo_x()
@@ -643,8 +698,8 @@ class LauncherApp(tk.Tk):
         self._refresh_all()
 
     def _screen_bounds(self):
-        max_x = max(0, self.winfo_screenwidth() - WIDTH)
-        max_y = max(0, self.winfo_screenheight() - HEIGHT)
+        max_x = max(0, self.winfo_screenwidth() - self.window_width)
+        max_y = max(0, self.winfo_screenheight() - self.window_height)
         return max_x, max_y
 
     def _clamp_window_position(self, x, y):
@@ -653,10 +708,10 @@ class LauncherApp(tk.Tk):
 
     def _center_window(self):
         self.update_idletasks()
-        x = (self.winfo_screenwidth() - WIDTH) // 2
-        y = (self.winfo_screenheight() - HEIGHT) // 2
+        x = (self.winfo_screenwidth() - self.window_width) // 2
+        y = (self.winfo_screenheight() - self.window_height) // 2
         x, y = self._clamp_window_position(x, y)
-        self.geometry(f"{WIDTH}x{HEIGHT}+{x}+{y}")
+        self.geometry(f"{self.window_width}x{self.window_height}+{x}+{y}")
 
     def _refresh_all(self):
         for name, btn in self.render_buttons.items():
@@ -674,7 +729,13 @@ class LauncherApp(tk.Tk):
             active = values[key]
             x, y = item["x"], item["y"]
             self.canvas.itemconfig(item["box"], fill="#1c554d" if active else COLORS["glass_lift"], outline=COLORS["accent"] if active else "#829d96")
-            self.canvas.coords(item["knob"], x + (29 if active else 5), y + 5, x + (43 if active else 19), y + 19)
+            self.canvas.coords(
+                item["knob"],
+                self._sx(x + (29 if active else 5)),
+                self._sy(y + 5),
+                self._sx(x + (43 if active else 19)),
+                self._sy(y + 19),
+            )
             self.canvas.itemconfig(item["knob"], fill="#e8fff7" if active else COLORS["faint"])
         if hasattr(self, "shadow_value"):
             self.canvas.itemconfig(self.shadow_value, text=str(SHADOWS[self.shadow]))
