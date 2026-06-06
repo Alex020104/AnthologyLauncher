@@ -34,7 +34,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.06.1"
+LAUNCHER_VERSION = "2026.06.07.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -51,6 +51,9 @@ UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthol
 UPDATE_VERSION_API_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-mo2-modpack/contents/version.json?ref=main"
 UPDATE_ZIP_URL = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/archive/refs/heads/main.zip"
 UPDATE_ALLOWED_PARTS = {"configs", "scripts", "textures"}
+UPDATE_MANAGED_FULL_FOLDERS = {
+    "[wpn][100][spl][r.a.k. weapon pack adaptation global simple patch]",
+}
 UPDATE_PRESERVE_PATH_MARKERS = (
     "r.a.k weapon pack adaptation",
 )
@@ -2096,6 +2099,8 @@ class LauncherApp(tk.Tk):
         parts = path.parts
         if not parts or any(part in ("", ".", "..") for part in parts):
             return False
+        if parts[0].casefold() in UPDATE_MANAGED_FULL_FOLDERS:
+            return True
         lowered = [part.lower() for part in parts]
         if "gamedata" not in lowered:
             return False
@@ -2103,6 +2108,9 @@ class LauncherApp(tk.Tk):
         return index + 1 < len(parts) and lowered[index + 1] in UPDATE_ALLOWED_PARTS
 
     def _should_preserve_update_path(self, path):
+        parts = Path(path).parts
+        if parts and parts[0].casefold() in UPDATE_MANAGED_FULL_FOLDERS:
+            return False
         normalized = Path(path).as_posix().casefold()
         return any(marker in normalized for marker in UPDATE_PRESERVE_PATH_MARKERS)
 
@@ -2368,6 +2376,8 @@ class LauncherApp(tk.Tk):
         parts = Path(name.replace("\\", "/")).parts
         if ".git" in parts or ".github" in parts or ".vscode" in parts or "version.json" in parts:
             return None
+        if len(parts) > 1 and parts[1].casefold() in UPDATE_MANAGED_FULL_FOLDERS:
+            return Path(*parts[1:])
         if "gamedata" not in parts:
             return None
         index = parts.index("gamedata")
