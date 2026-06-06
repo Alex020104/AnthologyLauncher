@@ -1,5 +1,5 @@
 {
-  "version": "2026.06.05.2",
-  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe?v=2026.06.05.2",
-  "notes": "Обновление лаунчера."
+  "version": "2026.06.06.1",
+  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe?v=2026.06.06.1",
+  "notes": "Разрешены DB texture archives textures_trees.xdb0/xdb1/xdb3."
 }

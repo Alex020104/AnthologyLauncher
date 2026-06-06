@@ -34,7 +34,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.05.2"
+LAUNCHER_VERSION = "2026.06.06.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -63,6 +63,11 @@ DB_UPDATE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl
 DB_ALLOWED_PARTS = {"configs", "mods"}
 DB_ROOT_FILES = {
     "shaders_anthology.xdb0",
+}
+DB_ALLOWED_FILES = {
+    "db/textures/textures_trees.xdb0",
+    "db/textures/textures_trees.xdb1",
+    "db/textures/textures_trees.xdb3",
 }
 DB_PRESERVE_PATHS = {
     "db/mods/00_modded_exes_gamedata.db0",
@@ -2150,6 +2155,12 @@ class LauncherApp(tk.Tk):
             return None
         if any(part in ("", ".", "..") for part in parts):
             return None
+        key = Path(*parts).as_posix().casefold()
+        if key in DB_ALLOWED_FILES:
+            path = Path(*parts)
+            if not self._is_db_archive_file(path):
+                return None
+            return path
         if len(parts) == 2:
             if parts[1].lower() not in DB_ROOT_FILES:
                 return None
