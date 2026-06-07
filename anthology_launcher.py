@@ -20,6 +20,27 @@ from tkinter import messagebox
 from PIL import Image, ImageEnhance, ImageTk
 
 
+def bundled_asset_dir():
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS")) / "assets"
+    return Path(__file__).resolve().parent / "assets"
+
+
+def read_update_rules():
+    path = bundled_asset_dir() / "update_rules.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
+
+
+UPDATE_RULES = read_update_rules()
+MO2_RULES = UPDATE_RULES.get("mo2", {})
+DB_RULES = UPDATE_RULES.get("db", {})
+
+
 WIDTH = 1180
 HEIGHT = 720
 SCREEN_PADDING = 24
@@ -34,7 +55,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.07.3"
+LAUNCHER_VERSION = "2026.06.07.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -50,10 +71,12 @@ MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
 UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
 UPDATE_VERSION_API_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-mo2-modpack/contents/version.json?ref=main"
 UPDATE_ZIP_URL = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/archive/refs/heads/main.zip"
-UPDATE_ALLOWED_PARTS = {"configs", "scripts", "textures"}
-UPDATE_MANAGED_FULL_FOLDERS = {
-    "[wpn][100][spl][r.a.k. weapon pack adaptation global simple patch]",
-}
+UPDATE_ALLOWED_PARTS = set(MO2_RULES.get("allowed_parts", ["configs", "scripts", "textures"]))
+UPDATE_MANAGED_STANDARD_FOLDERS = {name.casefold() for name in MO2_RULES.get("managed_standard_folders", [])}
+UPDATE_MANAGED_FULL_FOLDERS = {name.casefold() for name in MO2_RULES.get("managed_full_folders", [
+    "[WPN][100][SPL][R.A.K. Weapon Pack Adaptation Global Simple Patch]",
+])}
+UPDATE_MANAGED_FOLDERS = UPDATE_MANAGED_STANDARD_FOLDERS | UPDATE_MANAGED_FULL_FOLDERS
 UPDATE_PRESERVE_PATH_MARKERS = (
     "r.a.k weapon pack adaptation",
 )
@@ -72,6 +95,7 @@ DB_ALLOWED_FILES = {
     "db/textures/textures_trees.xdb1",
     "db/textures/textures_trees.xdb3",
 }
+DB_ALLOWED_FILES.update(path.casefold() for path in DB_RULES.get("source_files", {}))
 DB_PRESERVE_PATHS = {
     "db/mods/00_modded_exes_gamedata.db0",
 }
@@ -1592,6 +1616,7 @@ class LauncherApp(tk.Tk):
 
             self.after(0, lambda: self._set_update_status(t["db_removing_extra"], COLORS["accent_2"]))
             deleted = self._mirror_db_archives(entries, log_path)
+            deleted += self._remove_db_removed_files(self._db_removed_files(remote), log_path)
 
             changed = self._db_files_needing_download(entries, log_path)
             if not changed:
@@ -2109,7 +2134,7 @@ class LauncherApp(tk.Tk):
 
     def _should_preserve_update_path(self, path):
         parts = Path(path).parts
-        if parts and parts[0].casefold() in UPDATE_MANAGED_FULL_FOLDERS:
+        if parts and parts[0].casefold() in UPDATE_MANAGED_FOLDERS:
             return False
         normalized = Path(path).as_posix().casefold()
         return any(marker in normalized for marker in UPDATE_PRESERVE_PATH_MARKERS)
@@ -2154,6 +2179,31 @@ class LauncherApp(tk.Tk):
                 entry["sha256"] = str(entry["sha256"]).strip().lower()
             entries.append(entry)
         return entries
+
+    def _db_removed_files(self, remote):
+        raw_files = remote.get("removed_files", [])
+        if raw_files in ("", None):
+            return []
+        if not isinstance(raw_files, list):
+            raise ValueError("db_version.json removed_files must be a list")
+        files = []
+        seen = set()
+        for item in raw_files:
+            if not isinstance(item, str):
+                raise ValueError("db_version.json removed_files entries must be strings")
+            parts = Path(item.replace("\\", "/")).parts
+            if len(parts) < 2 or parts[0].lower() != "db":
+                raise ValueError(f"invalid DB removed file path: {item}")
+            if any(part in ("", ".", "..") for part in parts):
+                raise ValueError(f"invalid DB removed file path: {item}")
+            path = Path(*parts)
+            if not self._is_db_archive_file(path):
+                raise ValueError(f"invalid DB removed file path: {item}")
+            key = path.as_posix().casefold()
+            if key not in seen:
+                seen.add(key)
+                files.append(path)
+        return files
 
     def _normalize_db_manifest_path(self, value):
         if not isinstance(value, str):
@@ -2207,6 +2257,23 @@ class LauncherApp(tk.Tk):
                 deleted += 1
                 if log_path:
                     self._write_update_log(log_path, f"delete extra: {path}")
+        return deleted
+
+    def _remove_db_removed_files(self, files, log_path=None):
+        deleted = 0
+        for rel in files:
+            target = self.root_dir / rel
+            try:
+                if not target.is_file() or not self._is_relative_to(target.resolve(), self.root_dir.resolve()):
+                    continue
+                self._make_writable(target)
+                target.unlink()
+                deleted += 1
+                if log_path:
+                    self._write_update_log(log_path, f"delete DB removed_file: {target}")
+            except OSError as exc:
+                if log_path:
+                    self._write_update_log(log_path, f"delete DB removed_file failed: {target}: {exc}")
         return deleted
 
     def _db_files_needing_download(self, entries, log_path=None):
