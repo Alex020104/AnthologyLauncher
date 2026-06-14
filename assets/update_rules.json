@@ -26,6 +26,7 @@
       "db/mods/00_modded_exes_gamedata.db0"
     ],
     "removed_files": [
+      "db/mods/zhopa.xdb0",
       "db/textures/textures_actors_gnra.xdb1"
     ]
   }
