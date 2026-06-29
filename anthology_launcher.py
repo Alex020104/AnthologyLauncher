@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.29.4"
+LAUNCHER_VERSION = "2026.06.29.6"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -171,16 +171,14 @@ TEXT = {
         "label_downloaded_files": "Скачано файлов",
         "news_1": "Новейшие Катчи",
         "news_1_body": "Фиксы:\n1. Для сюжета ЗОВ ПРИПЯТИ: Проблема с отрядом военных на локации Окраина Припяти была решена, также с Проповодником тоже.\n2. Починены патрули на локации Посёлок Южный\n3. Починен вылет после выхода из X15",
-        "news_2": "Проверка установки обновлений",
-        "news_2_body": "Сейчас поставил тестовый аддон на руки из GFY(очень просили), это тестовая загрузка и обновление лаунчера.Ничего сломаться не должно",
-        "news_3": "В сюжетке ТЕНЬ ЧЕРНОБЫЛЯ устранен баг.",
-        "news_3_body": "В сюжетке ТЧ устранен баг с не срабатыванием растяжки и появлением Доктора в тайнике Стрелка после разговора с Проводником на ферме Кордона.\nНужно переиграть с сохранения перед разговором с Проводником.",
-        "news_4": "Адаптивный размер!",
-        "news_4_body": "Лаунчер теперь автоматически подстраивает размер окна под экран. На Steam Deck и небольших разрешениях интерфейс должен аккуратно помещаться без обрезания.",
-        "news_5": "Исправлен вылет после сна!",
-        "news_5_body": "Исправлен массовый вылет, который мог происходить после сна, особенно после фаст-тревела или перехода на другую базу. Мир после сна теперь прогружается стабильнее, без повторного спавна уже существующих объектов.",
-        "news_6": "Исправлен вылет при переходе на локацию!",
-        "news_6_body": "Движковое исправление: AI-зрение больше не падает на временных объектах без collision form. Это исправляет вылет, который мог происходить сразу после загрузки/перехода на локацию.",
+        "news_2": "В сюжетке ТЕНЬ ЧЕРНОБЫЛЯ устранен баг.",
+        "news_2_body": "В сюжетке ТЧ устранен баг с не срабатыванием растяжки и появлением Доктора в тайнике Стрелка после разговора с Проводником на ферме Кордона.\nНужно переиграть с сохранения перед разговором с Проводником.",
+        "news_3": "Адаптивный размер!",
+        "news_3_body": "Лаунчер теперь автоматически подстраивает размер окна под экран. На Steam Deck и небольших разрешениях интерфейс должен аккуратно помещаться без обрезания.",
+        "news_4": "Исправлен вылет после сна!",
+        "news_4_body": "Исправлен массовый вылет, который мог происходить после сна, особенно после фаст-тревела или перехода на другую базу. Мир после сна теперь прогружается стабильнее, без повторного спавна уже существующих объектов.",
+        "news_5": "Исправлен вылет при переходе на локацию!",
+        "news_5_body": "Движковое исправление: AI-зрение больше не падает на временных объектах без collision form. Это исправляет вылет, который мог происходить сразу после загрузки/перехода на локацию.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -248,16 +246,14 @@ TEXT = {
         "label_downloaded_files": "Downloaded files",
         "news_1": "Latest Katchi",
         "news_1_body": "Fixes:\n1. For the CALL OF PRIPYAT storyline: The issue with the military detachment in the Pripyat Outskirts location has been resolved, as has the issue with the Preacher.\n2. Patrols in the Yuzhny Settlement location have been fixed.\n3. A crash after exiting X15 has been fixed.",
-        "news_2": "Checking for installation of updates",
-        "news_2_body": "I just installed the test add-on from GFY (requested), this is a test download and launcher update. Nothing should break.",
-        "news_3": "A bug has been fixed in the SHADOW OF CHERNOBYL storyline.",
-        "news_3_body": "In the SHADOW OF CHERNOBYL storyline, a bug has been fixed where the tripwire wouldn't activate and the Doctor would appear in Strelok's stash after talking to the Guide at Cordon's farm.\nYou must replay from a save before talking to the Guide.",
-        "news_4": "Adaptive window size!",
-        "news_4_body": "The launcher now automatically fits its window to the screen. On Steam Deck and smaller resolutions, the interface should fit cleanly without being cut off.",
-        "news_5": "Fixed crash after sleeping!",
-        "news_5_body": "Fixed a common crash that could happen after sleeping, especially after fast travel or moving to another base. The world now wakes up more safely after sleep, without trying to spawn already existing objects again.",
-        "news_6": "Fixed crash when entering a location!",
-        "news_6_body": "Engine fix: AI vision no longer crashes on temporary objects without a collision form. This fixes a crash that could happen right after loading or entering a location.",
+        "news_2": "A bug has been fixed in the SHADOW OF CHERNOBYL storyline.",
+        "news_2_body": "In the SHADOW OF CHERNOBYL storyline, a bug has been fixed where the tripwire wouldn't activate and the Doctor would appear in Strelok's stash after talking to the Guide at Cordon's farm.\nYou must replay from a save before talking to the Guide.",
+        "news_3": "Adaptive window size!",
+        "news_3_body": "The launcher now automatically fits its window to the screen. On Steam Deck and smaller resolutions, the interface should fit cleanly without being cut off.",
+        "news_4": "Fixed crash after sleeping!",
+        "news_4_body": "Fixed a common crash that could happen after sleeping, especially after fast travel or moving to another base. The world now wakes up more safely after sleep, without trying to spawn already existing objects again.",
+        "news_5": "Fixed crash when entering a location!",
+        "news_5_body": "Engine fix: AI vision no longer crashes on temporary objects without a collision form. This fixes a crash that could happen right after loading or entering a location.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
@@ -1650,42 +1646,53 @@ class LauncherApp(tk.Tk):
 
             remote = self._download_db_update_version()
             entries = self._db_manifest_entries(remote)
+            removed_entries = self._db_removed_files(remote)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
                 return False, f"{t['db_failed']}:\n{t['db_no_version']}"
             if not entries:
                 return False, f"{t['db_failed']}:\n{t['db_no_files']}"
-
-            self.after(0, lambda: self._set_update_status(t["db_removing_extra"], COLORS["accent_2"]))
-            deleted = self._mirror_db_archives(entries, log_path)
-            deleted += self._remove_db_removed_files(self._db_removed_files(remote), log_path)
+            self._validate_db_manifest_transition(entries, removed_entries)
 
             changed = self._db_files_needing_download(entries, log_path)
-            if not changed:
-                self._save_db_update_state(remote)
-                message = f"{t['db_latest']}\n\n{t['label_version']}: {remote_version}\n{t['label_removed_files']}: {deleted}"
-                return True, message
-
             total = len(changed)
+            staged = []
             self._write_update_log(log_path, f"download files={total}")
             for index, entry in enumerate(changed, start=1):
                 rel = entry["path"]
                 target = self.root_dir / rel
-                tmp_file = tmp_dir / (target.name + ".download")
+                tmp_file = tmp_dir / f"{index:04d}-{target.name}.download"
+                tmp_file.unlink(missing_ok=True)
                 url = self._db_entry_url(remote, entry)
                 self.after(0, lambda i=index, n=total, p=rel: self._set_update_status(f"{t['db_downloading']} {i}/{n} {Path(p).name}", COLORS["accent_2"]))
                 self._write_update_log(log_path, f"download {index}/{total}: {url} -> {target}")
                 self._download_update_archive(url, tmp_file)
                 self._verify_db_file(tmp_file, entry)
+                staged.append((entry, tmp_file, target))
+
+            backup_root = self._db_backup_root(remote_version)
+            self.after(0, lambda: self._set_update_status(t["db_removing_extra"], COLORS["accent_2"]))
+            deleted = self._mirror_db_archives(entries, log_path, backup_root)
+            deleted += self._remove_db_removed_files(removed_entries, log_path, backup_root)
+
+            for index, (_entry, tmp_file, target) in enumerate(staged, start=1):
+                self._backup_db_file(target, backup_root, log_path)
                 target.parent.mkdir(parents=True, exist_ok=True)
-                self._make_writable(target)
                 shutil.move(str(tmp_file), str(target))
-                value = int(index * 100 / total)
+                value = int(index * 100 / max(1, total))
                 self.after(0, lambda v=value: self._set_update_progress(v, f"{v}%"))
 
             self._save_db_update_state(remote)
+            self._prune_db_backups()
+            if not changed:
+                message = f"{t['db_latest']}\n\n{t['label_version']}: {remote_version}\n{t['label_removed_files']}: {deleted}"
+                if backup_root.exists():
+                    message += f"\nBackup: {backup_root}"
+                return True, message
             notes = str(remote.get("notes", "")).strip()
             message = f"{t['db_done']}\n\n{t['label_version']}: {remote_version}\n{t['label_downloaded_files']}: {total}\n{t['label_removed_files']}: {deleted}"
+            if backup_root.exists():
+                message += f"\nBackup: {backup_root}"
             if notes:
                 message += f"\n\n{notes}"
             return True, message
@@ -2400,14 +2407,82 @@ class LauncherApp(tk.Tk):
         return self.root_dir / "webcache" / "db_update" / "db_state.json"
 
     def _save_db_update_state(self, remote):
+        manifest_files = [
+            entry["path"].as_posix()
+            for entry in self._db_manifest_entries(remote)
+        ]
         state = {
             "version": str(remote.get("version", "")).strip(),
             "repo": DB_REPO,
             "updated_at": time.strftime("%Y-%m-%d %H:%M"),
+            "files": sorted(set(manifest_files), key=str.casefold),
         }
         path = self._db_state_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _validate_db_manifest_transition(self, entries, removed_files):
+        current = {entry["path"].as_posix().casefold() for entry in entries}
+        removed = {Path(path).as_posix().casefold() for path in removed_files}
+        overlap = sorted(current & removed)
+        if overlap:
+            raise ValueError(
+                "DB manifest lists the same paths in files and removed_files: "
+                + ", ".join(overlap[:8])
+            )
+
+        previous_raw = self._load_json_file(self._db_state_path()).get("files", [])
+        if not isinstance(previous_raw, list):
+            return
+        previous = set()
+        for value in previous_raw:
+            path = self._normalize_db_manifest_path(value)
+            if path:
+                previous.add(path.as_posix().casefold())
+        unexpected = sorted(previous - current - removed)
+        if unexpected:
+            raise ValueError(
+                "DB manifest unexpectedly dropped files without removed_files: "
+                + ", ".join(unexpected[:8])
+            )
+
+    def _db_backup_root(self, version):
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        safe_version = re.sub(r"[^0-9A-Za-z._-]+", "_", str(version)).strip("_") or "unknown"
+        return self.root_dir / "webcache" / "db_update" / "backups" / f"{stamp}_{safe_version}"
+
+    def _backup_db_file(self, target, backup_root, log_path=None):
+        target = Path(target)
+        if not target.is_file():
+            return False
+        root = self.root_dir.resolve()
+        resolved = target.resolve()
+        if not self._is_relative_to(resolved, root):
+            raise ValueError(f"refusing to back up DB file outside game root: {target}")
+        relative = resolved.relative_to(root)
+        destination = backup_root / relative
+        if destination.exists():
+            raise ValueError(f"duplicate DB backup destination: {destination}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        self._make_writable(target)
+        shutil.move(str(target), str(destination))
+        if log_path:
+            self._write_update_log(log_path, f"backup DB file: {target} -> {destination}")
+        return True
+
+    def _prune_db_backups(self, keep=3):
+        root = self.root_dir / "webcache" / "db_update" / "backups"
+        if not root.is_dir():
+            return
+        resolved_root = root.resolve()
+        folders = sorted(
+            (path for path in root.iterdir() if path.is_dir()),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for path in folders[keep:]:
+            if self._is_relative_to(path.resolve(), resolved_root):
+                shutil.rmtree(path, ignore_errors=True)
 
     def _db_manifest_entries(self, remote):
         raw_files = remote.get("files")
@@ -2496,7 +2571,7 @@ class LauncherApp(tk.Tk):
             return True
         return False
 
-    def _mirror_db_archives(self, entries, log_path=None):
+    def _mirror_db_archives(self, entries, log_path=None, backup_root=None):
         allowed = {entry["path"].as_posix().casefold() for entry in entries}
         deleted = 0
         for folder in DB_ALLOWED_PARTS:
@@ -2509,25 +2584,31 @@ class LauncherApp(tk.Tk):
                 rel = path.relative_to(self.root_dir).as_posix().casefold()
                 if rel in allowed or rel in DB_PRESERVE_PATHS:
                     continue
-                self._make_writable(path)
-                path.unlink()
+                if backup_root is not None:
+                    self._backup_db_file(path, backup_root, log_path)
+                else:
+                    self._make_writable(path)
+                    path.unlink()
                 deleted += 1
                 if log_path:
-                    self._write_update_log(log_path, f"delete extra: {path}")
+                    self._write_update_log(log_path, f"remove extra: {path}")
         return deleted
 
-    def _remove_db_removed_files(self, files, log_path=None):
+    def _remove_db_removed_files(self, files, log_path=None, backup_root=None):
         deleted = 0
         for rel in files:
             target = self.root_dir / rel
             try:
                 if not target.is_file() or not self._is_relative_to(target.resolve(), self.root_dir.resolve()):
                     continue
-                self._make_writable(target)
-                target.unlink()
+                if backup_root is not None:
+                    self._backup_db_file(target, backup_root, log_path)
+                else:
+                    self._make_writable(target)
+                    target.unlink()
                 deleted += 1
                 if log_path:
-                    self._write_update_log(log_path, f"delete DB removed_file: {target}")
+                    self._write_update_log(log_path, f"remove DB removed_file: {target}")
             except OSError as exc:
                 if log_path:
                     self._write_update_log(log_path, f"delete DB removed_file failed: {target}: {exc}")
