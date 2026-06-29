@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.29.2"
+LAUNCHER_VERSION = "2026.06.29.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -244,8 +244,8 @@ TEXT = {
         "label_removed_old_files": "Removed old files",
         "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "Проверка установки обновлений",
-        "news_1_body": "Сейчас поставил тестовый аддон на руки из GFY(очень просили), это тестовая загрузка и обновление лаунчера.Ничего сломаться не должно",
+        "news_1": "Checking for installation of updates",
+        "news_1_body": "I just installed the test add-on from GFY (requested), this is a test download and launcher update. Nothing should break.",
         "news_2": "A bug has been fixed in the SHADOW OF CHERNOBYL storyline.",
         "news_2_body": "In the SHADOW OF CHERNOBYL storyline, a bug has been fixed where the tripwire wouldn't activate and the Doctor would appear in Strelok's stash after talking to the Guide at Cordon's farm.\nYou must replay from a save before talking to the Guide.",
         "news_3": "Adaptive window size!",
