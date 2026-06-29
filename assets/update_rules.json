@@ -20,7 +20,9 @@
       "db/textures/textures_trees.xdb0": "D:\\Games\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_trees.xdb0",
       "db/textures/textures_trees.xdb1": "D:\\Games\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_trees.xdb1",
       "db/textures/textures_trees.xdb3": "D:\\Games\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_trees.xdb3",
-      "db/textures/textures_actors_gnra.xdb0": "D:\\Games\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_actors_gnra.xdb0"
+      "db/textures/textures_actors_gnra.xdb0": "D:\\Games\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_actors_gnra.xdb0",
+      "db/configs/configs_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\configs_anthology.xdb0",
+      "db/configs/scripts_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\scripts_anthology.xdb0"
     },
     "excluded_rel_paths": [
       "db/mods/00_modded_exes_gamedata.db0"
