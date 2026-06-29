@@ -1,6 +1,7 @@
 import os
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import stat
@@ -55,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.06.14.2"
+LAUNCHER_VERSION = "2026.06.29.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1392,39 +1393,69 @@ class LauncherApp(tk.Tk):
             needs_manifest_cleanup = any((mods_dir / rel).is_file() for rel in manifest_removed_files)
             legacy_removed_files = self._legacy_update_removed_files()
             needs_legacy_cleanup = any((mods_dir.parent / rel).is_file() for rel in legacy_removed_files)
-            if local_version == remote_version and not needs_repair and not needs_manifest_bootstrap and not needs_manifest_cleanup and not needs_legacy_cleanup:
+            folder_packages = self._folder_packages(remote)
+            pending_folder_packages = self._pending_folder_packages(mods_dir, folder_packages)
+            full_update_needed = (
+                local_version != remote_version
+                or needs_repair
+                or needs_manifest_bootstrap
+                or needs_manifest_cleanup
+                or needs_legacy_cleanup
+            )
+            if not full_update_needed and not pending_folder_packages:
                 return True, f"{t['update_latest']}\n\n{t['label_version']}: {remote_version}"
 
             status_text = t["update_available_downloading"]
-            if local_version == remote_version and (needs_repair or needs_manifest_bootstrap or needs_manifest_cleanup):
+            if not full_update_needed and pending_folder_packages:
+                status_text = "Скачивание отдельного мода/фикса" if self.lang == "ru" else "Downloading folder package"
+            elif local_version == remote_version and (needs_repair or needs_manifest_bootstrap or needs_manifest_cleanup):
                 status_text = t["update_repair"]
             self.after(0, lambda s=status_text: self._set_update_status(s, COLORS["accent_2"]))
-            zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
             tmp_dir = self.root_dir / "webcache" / "launcher_update"
             self._reset_directory(tmp_dir)
             log_path = tmp_dir / "update.log"
             self._write_update_log(log_path, f"mods_dir={mods_dir}")
-            self._write_update_log(log_path, f"remote_version={remote_version} local_version={local_version} needs_repair={needs_repair}")
-            zip_path = tmp_dir / "update.zip"
-            self._write_update_log(log_path, f"download={zip_url}")
-            self._download_update_archive(zip_url, zip_path, attempts=5, timeout=300)
-            self._write_update_log(log_path, f"downloaded={zip_path} size={zip_path.stat().st_size}")
+            self._write_update_log(
+                log_path,
+                f"remote_version={remote_version} local_version={local_version} needs_repair={needs_repair} folder_packages={len(pending_folder_packages)}",
+            )
+            deleted_files = 0
+            deleted_dirs = 0
+            if full_update_needed:
+                zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
+                zip_path = tmp_dir / "update.zip"
+                self._write_update_log(log_path, f"download={zip_url}")
+                self._download_update_archive(zip_url, zip_path, attempts=5, timeout=300)
+                self._write_update_log(log_path, f"downloaded={zip_path} size={zip_path.stat().st_size}")
 
-            self.after(0, lambda: self._set_update_status(t["update_applying"], COLORS["accent_2"]))
-            self.after(0, lambda: self._set_update_progress(0, "0%"))
-            with zipfile.ZipFile(zip_path, "r") as archive:
-                installed_files = self._install_update_archive(archive, mods_dir, log_path)
-            cleanup_dirs = set()
-            deleted_files = self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path, cleanup_dirs)
-            deleted_files += self._remove_manifest_files(mods_dir, manifest_removed_files, log_path, cleanup_dirs)
-            deleted_files += self._remove_legacy_update_files(mods_dir, legacy_removed_files, log_path, cleanup_dirs)
-            deleted_dirs = self._remove_empty_update_dirs(cleanup_dirs, mods_dir.parent, log_path)
-            self._save_update_state(mods_dir, remote, installed_files)
-            self._write_update_log(log_path, "state saved")
+                self.after(0, lambda: self._set_update_status(t["update_applying"], COLORS["accent_2"]))
+                self.after(0, lambda: self._set_update_progress(0, "0%"))
+                with zipfile.ZipFile(zip_path, "r") as archive:
+                    installed_files = self._install_update_archive(archive, mods_dir, log_path)
+                cleanup_dirs = set()
+                deleted_files += self._remove_stale_update_files(mods_dir, self._state_file_list(local), installed_files, log_path, cleanup_dirs)
+                deleted_files += self._remove_manifest_files(mods_dir, manifest_removed_files, log_path, cleanup_dirs)
+                deleted_files += self._remove_legacy_update_files(mods_dir, legacy_removed_files, log_path, cleanup_dirs)
+                deleted_dirs += self._remove_empty_update_dirs(cleanup_dirs, mods_dir.parent, log_path)
+                self._save_update_state(mods_dir, remote, installed_files)
+                self._write_update_log(log_path, "main state saved")
+
+            applied_packages = []
+            if pending_folder_packages:
+                applied_packages, package_deleted = self._apply_folder_packages(
+                    mods_dir,
+                    pending_folder_packages,
+                    tmp_dir,
+                    log_path,
+                )
+                deleted_files += package_deleted
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
             notes = remote.get("notes", "")
             message = f"{t['update_done']}\n\n{t['label_version']}: {remote_version}"
+            if applied_packages:
+                label = "Отдельные пакеты" if self.lang == "ru" else "Folder packages"
+                message += f"\n{label}: {', '.join(applied_packages)}"
             if deleted_files:
                 message += f"\n{t['label_removed_old_files']}: {deleted_files}"
             if deleted_dirs:
@@ -1540,6 +1571,9 @@ class LauncherApp(tk.Tk):
         local = self._load_update_state(mods_dir)
         local_version = str(local.get("version", "")).strip()
         if remote_version != local_version:
+            return True
+
+        if self._pending_folder_packages(mods_dir, self._folder_packages(remote)):
             return True
 
         return self._modpack_needs_repair(mods_dir, local) or not self._state_file_list(local)
@@ -1994,6 +2028,221 @@ class LauncherApp(tk.Tk):
         if files:
             state["files"] = sorted({Path(path).as_posix() for path in files}, key=str.casefold)
         self._state_path(mods_dir).write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _folder_package_state_path(self, mods_dir):
+        return mods_dir.parent / ".launcher_folder_packages_state.json"
+
+    def _load_folder_package_state(self, mods_dir):
+        state = self._load_json_file(self._folder_package_state_path(mods_dir))
+        if not isinstance(state.get("packages"), dict):
+            state["packages"] = {}
+        return state
+
+    def _save_folder_package_state(self, mods_dir, state):
+        state["updated_at"] = time.strftime("%Y-%m-%d %H:%M")
+        self._folder_package_state_path(mods_dir).write_text(
+            json.dumps(state, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def _folder_package_relative_allowed(self, path, package, allow_full=False):
+        path = Path(path)
+        if path.is_absolute():
+            return False
+        parts = path.parts
+        if not parts or any(part in ("", ".", "..") for part in parts):
+            return False
+        if parts[0].casefold() != package["folder"].casefold():
+            return False
+        if allow_full or package["mode"] == "full":
+            return len(parts) > 1
+        lowered = [part.casefold() for part in parts]
+        if len(parts) < 4 or lowered[1] != "gamedata":
+            return False
+        return lowered[2] in UPDATE_ALLOWED_PARTS
+
+    def _folder_package_paths(self, values, package, field):
+        if values in (None, ""):
+            return []
+        if not isinstance(values, list):
+            raise ValueError(f"folder package {field} must be a list")
+        paths = []
+        seen = set()
+        for value in values:
+            if not isinstance(value, str):
+                raise ValueError(f"folder package {field} entries must be strings")
+            path = Path(value.replace("\\", "/"))
+            key = path.as_posix().casefold()
+            if key in seen:
+                continue
+            if not self._folder_package_relative_allowed(path, package, allow_full=(field == "removed_files")):
+                raise ValueError(f"folder package has invalid {field} path: {value}")
+            seen.add(key)
+            paths.append(path)
+        return paths
+
+    def _folder_packages(self, remote):
+        raw = remote.get("folder_packages", [])
+        if raw in (None, ""):
+            return []
+        if not isinstance(raw, list):
+            raise ValueError("version.json folder_packages must be a list")
+        packages = []
+        seen = set()
+        allowed_url = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/"
+        for index, item in enumerate(raw, start=1):
+            if not isinstance(item, dict):
+                raise ValueError(f"folder package #{index} must be an object")
+            package_id = str(item.get("id", "")).strip()
+            folder = str(item.get("folder", "")).strip().replace("\\", "/")
+            version = str(item.get("version", "")).strip()
+            url = str(item.get("url", "")).strip()
+            mode = str(item.get("mode", "standard")).strip().casefold()
+            folder_path = Path(folder)
+            if not package_id or not re.fullmatch(r"[a-z0-9-]+", package_id):
+                raise ValueError(f"folder package #{index} has invalid id")
+            if package_id in seen:
+                raise ValueError(f"duplicate folder package id: {package_id}")
+            if len(folder_path.parts) != 1 or folder_path.is_absolute() or folder_path.parts[0] in (".", ".."):
+                raise ValueError(f"folder package #{index} must target one top-level mods folder")
+            if not version:
+                raise ValueError(f"folder package #{index} has no version")
+            if mode not in {"standard", "full"}:
+                raise ValueError(f"folder package #{index} has invalid mode: {mode}")
+            if not url.startswith(allowed_url):
+                raise ValueError(f"folder package #{index} has an untrusted URL")
+            package = dict(item)
+            package.update({"id": package_id, "folder": folder_path.as_posix(), "version": version, "url": url, "mode": mode})
+            package["_files"] = self._folder_package_paths(item.get("files"), package, "files")
+            package["_removed_files"] = self._folder_package_paths(item.get("removed_files"), package, "removed_files")
+            if not package["_files"]:
+                raise ValueError(f"folder package #{index} has no files")
+            size = item.get("size")
+            if size is not None:
+                try:
+                    package["size"] = int(size)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(f"folder package #{index} has invalid size") from exc
+            digest = str(item.get("sha256", "")).strip().casefold()
+            if digest and not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValueError(f"folder package #{index} has invalid sha256")
+            package["sha256"] = digest
+            packages.append(package)
+            seen.add(package_id)
+        return packages
+
+    def _pending_folder_packages(self, mods_dir, packages):
+        state = self._load_folder_package_state(mods_dir).get("packages", {})
+        pending = []
+        for package in packages:
+            installed = state.get(package["id"], {})
+            installed_version = str(installed.get("version", "")).strip()
+            expected_missing = any(not (mods_dir / path).is_file() for path in package["_files"])
+            removed_present = any((mods_dir / path).is_file() for path in package["_removed_files"])
+            if installed_version != package["version"] or expected_missing or removed_present:
+                pending.append(package)
+        return pending
+
+    def _folder_package_archive_relative(self, name, package):
+        normalized = name.replace("\\", "/")
+        if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
+            return None
+        path = Path(normalized)
+        if not self._folder_package_relative_allowed(path, package):
+            return None
+        return path
+
+    def _install_folder_package_archive(self, archive, mods_dir, package, log_path=None):
+        entries = []
+        seen = set()
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            relative = self._folder_package_archive_relative(info.filename, package)
+            if relative is None:
+                raise ValueError(f"folder package contains an invalid path: {info.filename}")
+            key = relative.as_posix().casefold()
+            if key in seen:
+                raise ValueError(f"folder package contains a duplicate path: {relative}")
+            seen.add(key)
+            entries.append((info, relative))
+        expected = {path.as_posix().casefold() for path in package["_files"]}
+        if seen != expected:
+            missing = sorted(expected - seen)
+            extra = sorted(seen - expected)
+            raise ValueError(f"folder package file list mismatch (missing={len(missing)}, extra={len(extra)})")
+        total = max(1, len(entries))
+        installed = []
+        for index, (info, relative) in enumerate(entries, start=1):
+            target = mods_dir / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            self._make_writable(target)
+            with archive.open(info, "r") as source, target.open("wb") as output:
+                shutil.copyfileobj(source, output, length=1024 * 1024)
+            installed.append(relative)
+            if log_path and (index == 1 or index == total or index % 25 == 0):
+                self._write_update_log(log_path, f"folder package copy {index}/{total}: {target}")
+        return installed
+
+    def _remove_folder_package_files(self, mods_dir, paths, package, keep=None, log_path=None, cleanup_dirs=None):
+        keep_keys = {Path(path).as_posix().casefold() for path in (keep or [])}
+        deleted = 0
+        for relative in paths:
+            relative = Path(relative)
+            if relative.as_posix().casefold() in keep_keys or not self._folder_package_relative_allowed(relative, package, allow_full=True):
+                continue
+            target = mods_dir / relative
+            try:
+                if not target.is_file() or not self._is_relative_to(target.resolve(), mods_dir.resolve()):
+                    continue
+                self._make_writable(target)
+                target.unlink()
+                deleted += 1
+                if cleanup_dirs is not None:
+                    cleanup_dirs.add(target.parent)
+                if log_path:
+                    self._write_update_log(log_path, f"folder package delete: {target}")
+            except OSError as exc:
+                if log_path:
+                    self._write_update_log(log_path, f"folder package delete failed: {target}: {exc}")
+        return deleted
+
+    def _apply_folder_packages(self, mods_dir, packages, tmp_dir, log_path=None):
+        state = self._load_folder_package_state(mods_dir)
+        package_state = state.setdefault("packages", {})
+        applied = []
+        deleted = 0
+        for index, package in enumerate(packages, start=1):
+            label = f"{package['folder']} {package['version']}"
+            status = f"Установка мода/фикса: {label}" if self.lang == "ru" else f"Installing folder package: {label}"
+            self.after(0, lambda s=status: self._set_update_status(s, COLORS["accent_2"]))
+            zip_path = tmp_dir / f"folder-package-{package['id']}.zip"
+            self._write_update_log(log_path, f"folder package download={package['url']}")
+            self._download_update_archive(package["url"], zip_path, attempts=5, timeout=300)
+            expected_size = package.get("size")
+            if expected_size is not None and zip_path.stat().st_size != expected_size:
+                raise ValueError(f"folder package size mismatch: {package['folder']}")
+            if package.get("sha256") and self._sha256_file(zip_path).casefold() != package["sha256"]:
+                raise ValueError(f"folder package sha256 mismatch: {package['folder']}")
+            with zipfile.ZipFile(zip_path, "r") as archive:
+                installed = self._install_folder_package_archive(archive, mods_dir, package, log_path)
+            previous = package_state.get(package["id"], {})
+            previous_files = [Path(path) for path in previous.get("files", []) if isinstance(path, str)]
+            cleanup_dirs = set()
+            deleted += self._remove_folder_package_files(mods_dir, previous_files, package, installed, log_path, cleanup_dirs)
+            deleted += self._remove_folder_package_files(mods_dir, package["_removed_files"], package, installed, log_path, cleanup_dirs)
+            self._remove_empty_update_dirs(cleanup_dirs, mods_dir, log_path)
+            package_state[package["id"]] = {
+                "folder": package["folder"],
+                "mode": package["mode"],
+                "version": package["version"],
+                "files": sorted({path.as_posix() for path in installed}, key=str.casefold),
+                "installed_at": time.strftime("%Y-%m-%d %H:%M"),
+            }
+            self._save_folder_package_state(mods_dir, state)
+            applied.append(label)
+            self.after(0, lambda v=int(index * 100 / max(1, len(packages))): self._set_update_progress(v, f"{v}%"))
+        return applied, deleted
 
     def _remove_stale_update_files(self, mods_dir, previous_files, current_files, log_path=None, cleanup_dirs=None):
         current = {Path(path).as_posix().casefold() for path in current_files}
