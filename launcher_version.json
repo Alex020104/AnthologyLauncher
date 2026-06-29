@@ -1,5 +1,5 @@
 {
-  "version": "2026.06.29.6",
-  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe?v=2026.06.29.6",
-  "notes": "Обновление новостей лаунчера."
+  "version": "2026.06.29.7",
+  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe?v=2026.06.29.7",
+  "notes": "DB updater safety: use GitHub API only for DB manifest and avoid stale raw fallback."
 }
