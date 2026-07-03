@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.03.3"
+LAUNCHER_VERSION = "2026.07.03.4"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -171,14 +171,12 @@ TEXT = {
         "label_downloaded_files": "Скачано файлов",
         "news_1": "Новейшие Катчи",
         "news_1_body": "Фиксы:\n1. Для сюжета ЗОВ ПРИПЯТИ: Проблема с отрядом военных на локации Окраина Припяти была решена, также с Проповодником тоже.\n2. Починены патрули на локации Посёлок Южный\n3. Починен вылет после выхода из X15",
-        "news_2": "В сюжетке ТЕНЬ ЧЕРНОБЫЛЯ устранен баг.",
-        "news_2_body": "В сюжетке ТЧ устранен баг с не срабатыванием растяжки и появлением Доктора в тайнике Стрелка после разговора с Проводником на ферме Кордона.\nНужно переиграть с сохранения перед разговором с Проводником.",
-        "news_3": "Адаптивный размер!",
-        "news_3_body": "Лаунчер теперь автоматически подстраивает размер окна под экран. На Steam Deck и небольших разрешениях интерфейс должен аккуратно помещаться без обрезания.",
-        "news_4": "Исправлен вылет после сна!",
-        "news_4_body": "Исправлен массовый вылет, который мог происходить после сна, особенно после фаст-тревела или перехода на другую базу. Мир после сна теперь прогружается стабильнее, без повторного спавна уже существующих объектов.",
-        "news_5": "Исправлен вылет при переходе на локацию!",
-        "news_5_body": "Движковое исправление: AI-зрение больше не падает на временных объектах без collision form. Это исправляет вылет, который мог происходить сразу после загрузки/перехода на локацию.",
+        "news_2": "Адаптивный размер!",
+        "news_2_body": "Лаунчер теперь автоматически подстраивает размер окна под экран. На Steam Deck и небольших разрешениях интерфейс должен аккуратно помещаться без обрезания.",
+        "news_3": "Исправлен вылет после сна!",
+        "news_3_body": "Исправлен массовый вылет, который мог происходить после сна, особенно после фаст-тревела или перехода на другую базу. Мир после сна теперь прогружается стабильнее, без повторного спавна уже существующих объектов.",
+        "news_4": "Исправлен вылет при переходе на локацию!",
+        "news_4_body": "Движковое исправление: AI-зрение больше не падает на временных объектах без collision form. Это исправляет вылет, который мог происходить сразу после загрузки/перехода на локацию.",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -246,14 +244,12 @@ TEXT = {
         "label_downloaded_files": "Downloaded files",
         "news_1": "Latest Katchi",
         "news_1_body": "Fixes:\n1. For the CALL OF PRIPYAT storyline: The issue with the military detachment in the Pripyat Outskirts location has been resolved, as has the issue with the Preacher.\n2. Patrols in the Yuzhny Settlement location have been fixed.\n3. A crash after exiting X15 has been fixed.",
-        "news_2": "A bug has been fixed in the SHADOW OF CHERNOBYL storyline.",
-        "news_2_body": "In the SHADOW OF CHERNOBYL storyline, a bug has been fixed where the tripwire wouldn't activate and the Doctor would appear in Strelok's stash after talking to the Guide at Cordon's farm.\nYou must replay from a save before talking to the Guide.",
-        "news_3": "Adaptive window size!",
-        "news_3_body": "The launcher now automatically fits its window to the screen. On Steam Deck and smaller resolutions, the interface should fit cleanly without being cut off.",
-        "news_4": "Fixed crash after sleeping!",
-        "news_4_body": "Fixed a common crash that could happen after sleeping, especially after fast travel or moving to another base. The world now wakes up more safely after sleep, without trying to spawn already existing objects again.",
-        "news_5": "Fixed crash when entering a location!",
-        "news_5_body": "Engine fix: AI vision no longer crashes on temporary objects without a collision form. This fixes a crash that could happen right after loading or entering a location.",
+        "news_2": "Adaptive window size!",
+        "news_2_body": "The launcher now automatically fits its window to the screen. On Steam Deck and smaller resolutions, the interface should fit cleanly without being cut off.",
+        "news_3": "Fixed crash after sleeping!",
+        "news_3_body": "Fixed a common crash that could happen after sleeping, especially after fast travel or moving to another base. The world now wakes up more safely after sleep, without trying to spawn already existing objects again.",
+        "news_4": "Fixed crash when entering a location!",
+        "news_4_body": "Engine fix: AI vision no longer crashes on temporary objects without a collision form. This fixes a crash that could happen right after loading or entering a location.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
