@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.04.2"
+LAUNCHER_VERSION = "2026.07.04.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -169,10 +169,12 @@ TEXT = {
         "label_removed_old_files": "Удалено старых файлов",
         "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Иконка",
-        "news_1_body": "Изменения положения иконки при надетом фильтре",
-        "news_2": "Новейшие Катчи",
-        "news_2_body": "Фиксы:\n1. Для сюжета ЗОВ ПРИПЯТИ: Проблема с отрядом военных на локации Окраина Припяти была решена, также с Проповодником тоже.\n2. Починены патрули на локации Посёлок Южный\n3. Починен вылет после выхода из X15",
+        "news_1": "Восстановление балонов и газиков",
+        "news_1_body": "Были ошибочно удалены балны и газики",
+        "news_2": "Иконка",
+        "news_2_body": "Изменения положения иконки при надетом фильтре",
+        "news_3": "Новейшие Катчи",
+        "news_3_body": "Фиксы:\n1. Для сюжета ЗОВ ПРИПЯТИ: Проблема с отрядом военных на локации Окраина Припяти была решена, также с Проповодником тоже.\n2. Починены патрули на локации Посёлок Южный\n3. Починен вылет после выхода из X15",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -238,10 +240,12 @@ TEXT = {
         "label_removed_old_files": "Removed old files",
         "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "Иконка",
-        "news_1_body": "Изменения положения иконки при надетом фильтре",
-        "news_2": "Latest Katchi",
-        "news_2_body": "Fixes:\n1. For the CALL OF PRIPYAT storyline: The issue with the military detachment in the Pripyat Outskirts location has been resolved, as has the issue with the Preacher.\n2. Patrols in the Yuzhny Settlement location have been fixed.\n3. A crash after exiting X15 has been fixed.",
+        "news_1": "Восстановление балонов и газиков",
+        "news_1_body": "Были ошибочно удалены балны и газики",
+        "news_2": "Иконка",
+        "news_2_body": "Изменения положения иконки при надетом фильтре",
+        "news_3": "Latest Katchi",
+        "news_3_body": "Fixes:\n1. For the CALL OF PRIPYAT storyline: The issue with the military detachment in the Pripyat Outskirts location has been resolved, as has the issue with the Preacher.\n2. Patrols in the Yuzhny Settlement location have been fixed.\n3. A crash after exiting X15 has been fixed.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
