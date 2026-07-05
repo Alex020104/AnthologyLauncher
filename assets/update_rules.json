@@ -18,18 +18,17 @@
       "mods": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods"
     },
     "source_files": {
-      "db/configs/configs_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\configs_anthology.xdb0",
-      "db/configs/scripts_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\scripts_anthology.xdb0",
-      "db/mods/[ANT] Sota ui for Anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\[ANT] Sota ui for Anthology.xdb0",
-      "db/textures/textures_fix.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_fix.xdb0",
       "db/configs/ai.db0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\ai.db0",
       "db/configs/configs.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\configs.xdb0",
+      "db/configs/configs_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\configs_anthology.xdb0",
       "db/configs/configs_deanon_artefact.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\configs_deanon_artefact.xdb0",
       "db/configs/configs_gnra.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\configs_gnra.xdb0",
       "db/configs/scripts.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\scripts.xdb0",
+      "db/configs/scripts_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\scripts_anthology.xdb0",
       "db/configs/scripts_smart_covers_cs.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\scripts_smart_covers_cs.xdb0",
       "db/configs/spawns.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\configs\\spawns.xdb0",
       "db/mods/[ANT] Mod Configuration Menu.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\[ANT] Mod Configuration Menu.xdb0",
+      "db/mods/[ANT] Sota ui for Anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\[ANT] Sota ui for Anthology.xdb0",
       "db/mods/00_modded_exes_gamedata.db0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\00_modded_exes_gamedata.db0",
       "db/mods/alarm_wake_up.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\alarm_wake_up.xdb0",
       "db/mods/Anomaly_Real_Distant_Mutants_Sounds.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\Anomaly_Real_Distant_Mutants_Sounds.xdb0",
@@ -47,7 +46,8 @@
       "db/mods/trader_autoinject.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\mods\\trader_autoinject.xdb0",
       "db/files.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\files.xdb0",
       "db/shaders.db0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\shaders.db0",
-      "db/shaders_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\shaders_anthology.xdb0"
+      "db/shaders_anthology.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\shaders_anthology.xdb0",
+      "db/textures/textures_fix.xdb0": "X:\\S.T.A.L.K.E.R\\A.N.T.H.O.L.O.G.Y\\ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1\\db\\textures\\textures_fix.xdb0"
     },
     "excluded_rel_paths": [
       "db/mods/00_modded_exes_gamedata.db0"
