@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.05.7"
+LAUNCHER_VERSION = "2026.07.05.8"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -169,8 +169,8 @@ TEXT = {
         "label_removed_old_files": "Удалено старых файлов",
         "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Удаление лишних файлов из [100]",
-        "news_1_body": "ТЕСТ",
+        "news_1": "Обновление [100] Оружейки",
+        "news_1_body": "Исправлен вылет по АК-50",
         "news_2": "Восстановление балонов и газиков",
         "news_2_body": "Были ошибочно удалены балоны и газики и возвращение функционала репозитория(были проблемы)",
         "news_3": "Новейшие Катчи",
