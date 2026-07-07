@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.07.3",
-  "exe_url": "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/download/2026.07.07.3/AnomalyLauncher.exe",
-  "notes": "Стабильная ссылка загрузки лаунчера по тегу версии."
+  "version": "2026.07.07.4",
+  "exe_url": "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=2026.07.07.4",
+  "notes": "Выдача лаунчера через raw repository file вместо GitHub Release download."
 }
