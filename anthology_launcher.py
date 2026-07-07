@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.07.5"
+LAUNCHER_VERSION = "2026.07.07.6"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -1367,8 +1367,14 @@ class LauncherApp(tk.Tk):
             return
 
         if not self._modpack_available():
-            self._debug_log("sync-update: modpack folder missing, DB-only update mode")
-            self.after(0, lambda m=db_message: self._finish_git_update(True, m))
+            self._debug_log("sync-update: modpack folder missing, checking game packages")
+            mod_ok, mod_message = self._sync_modpack_update_step()
+            if mod_ok:
+                combined_message = f"{db_message}\n\n{mod_message}"
+                self.after(0, lambda m=combined_message: self._finish_git_update(True, m))
+            else:
+                self._debug_log("sync-update: no modpack/game package update, DB-only update mode")
+                self.after(0, lambda m=db_message: self._finish_git_update(True, m))
             return
 
         self.after(0, lambda: self._set_update_status(TEXT[self.lang]["update_checking"], COLORS["accent_2"]))
@@ -1386,35 +1392,44 @@ class LauncherApp(tk.Tk):
         log_path = None
         try:
             mods_dir = self._modpack_mods_dir()
-            if not mods_dir.exists():
-                return False, self._modpack_missing_message(mods_dir)
-
             remote = self._download_update_version()
-            local = self._load_update_state(mods_dir)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
                 return False, f"{t['update_failed']}:\nversion.json has no version"
+
+            game_packages = self._game_packages(remote)
+            pending_game_packages = self._pending_game_packages(game_packages)
+            modpack_exists = mods_dir.exists()
+            local = self._load_update_state(mods_dir) if modpack_exists else {}
             local_version = str(local.get("version", "")).strip()
-            needs_repair = self._modpack_needs_repair(mods_dir, local)
-            needs_manifest_bootstrap = local_version == remote_version and not self._state_file_list(local)
-            manifest_removed_files = self._manifest_removed_files(remote)
-            needs_manifest_cleanup = any((mods_dir / rel).is_file() for rel in manifest_removed_files)
-            legacy_removed_files = self._legacy_update_removed_files()
-            needs_legacy_cleanup = any((mods_dir.parent / rel).is_file() for rel in legacy_removed_files)
-            folder_packages = self._folder_packages(remote)
-            pending_folder_packages = self._pending_folder_packages(mods_dir, folder_packages)
+            needs_repair = self._modpack_needs_repair(mods_dir, local) if modpack_exists else False
+            needs_manifest_bootstrap = local_version == remote_version and not self._state_file_list(local) if modpack_exists else False
+            manifest_removed_files = self._manifest_removed_files(remote) if modpack_exists else []
+            needs_manifest_cleanup = any((mods_dir / rel).is_file() for rel in manifest_removed_files) if modpack_exists else False
+            legacy_removed_files = self._legacy_update_removed_files() if modpack_exists else []
+            needs_legacy_cleanup = any((mods_dir.parent / rel).is_file() for rel in legacy_removed_files) if modpack_exists else False
+            folder_packages = self._folder_packages(remote) if modpack_exists else []
+            pending_folder_packages = self._pending_folder_packages(mods_dir, folder_packages) if modpack_exists else []
             full_update_needed = (
-                local_version != remote_version
-                or needs_repair
-                or needs_manifest_bootstrap
-                or needs_manifest_cleanup
-                or needs_legacy_cleanup
+                modpack_exists
+                and (
+                    local_version != remote_version
+                    or needs_repair
+                    or needs_manifest_bootstrap
+                    or needs_manifest_cleanup
+                    or needs_legacy_cleanup
+                )
             )
-            if not full_update_needed and not pending_folder_packages:
+            if not modpack_exists and not pending_game_packages:
+                return False, self._modpack_missing_message(mods_dir)
+
+            if not full_update_needed and not pending_folder_packages and not pending_game_packages:
                 return True, f"{t['update_latest']}\n\n{t['label_version']}: {remote_version}"
 
             status_text = t["update_available_downloading"]
-            if not full_update_needed and pending_folder_packages:
+            if not full_update_needed and pending_game_packages and not pending_folder_packages:
+                status_text = "Скачивание пакета файлов игры" if self.lang == "ru" else "Downloading game package"
+            elif not full_update_needed and pending_folder_packages:
                 status_text = "Скачивание отдельного мода/фикса" if self.lang == "ru" else "Downloading folder package"
             elif local_version == remote_version and (needs_repair or needs_manifest_bootstrap or needs_manifest_cleanup):
                 status_text = t["update_repair"]
@@ -1425,11 +1440,11 @@ class LauncherApp(tk.Tk):
             self._write_update_log(log_path, f"mods_dir={mods_dir}")
             self._write_update_log(
                 log_path,
-                f"remote_version={remote_version} local_version={local_version} needs_repair={needs_repair} folder_packages={len(pending_folder_packages)}",
+                f"remote_version={remote_version} local_version={local_version} needs_repair={needs_repair} folder_packages={len(pending_folder_packages)} game_packages={len(pending_game_packages)}",
             )
             deleted_files = 0
             deleted_dirs = 0
-            if full_update_needed:
+            if modpack_exists and full_update_needed:
                 zip_url = remote.get("zip_url") or UPDATE_ZIP_URL
                 zip_path = tmp_dir / "update.zip"
                 self._write_update_log(log_path, f"download={zip_url}")
@@ -1457,6 +1472,15 @@ class LauncherApp(tk.Tk):
                     log_path,
                 )
                 deleted_files += package_deleted
+            applied_game_packages = []
+            if pending_game_packages:
+                applied_game_packages, game_deleted = self._apply_game_packages(
+                    self.root_dir,
+                    pending_game_packages,
+                    tmp_dir,
+                    log_path,
+                )
+                deleted_files += game_deleted
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
             notes = remote.get("notes", "")
@@ -1464,6 +1488,9 @@ class LauncherApp(tk.Tk):
             if applied_packages:
                 label = "Отдельные пакеты" if self.lang == "ru" else "Folder packages"
                 message += f"\n{label}: {', '.join(applied_packages)}"
+            if applied_game_packages:
+                label = "Файлы игры" if self.lang == "ru" else "Game files"
+                message += f"\n{label}: {', '.join(applied_game_packages)}"
             if deleted_files:
                 message += f"\n{t['label_removed_old_files']}: {deleted_files}"
             if deleted_dirs:
@@ -1568,12 +1595,15 @@ class LauncherApp(tk.Tk):
 
     def _modpack_update_available(self):
         mods_dir = self._modpack_mods_dir()
-        if not mods_dir.exists():
-            return False
-
         remote = self._download_update_version()
         remote_version = str(remote.get("version", "")).strip()
         if not remote_version:
+            return False
+
+        if self._pending_game_packages(self._game_packages(remote)):
+            return True
+
+        if not mods_dir.exists():
             return False
 
         local = self._load_update_state(mods_dir)
@@ -1595,6 +1625,9 @@ class LauncherApp(tk.Tk):
         remote_version = str(remote.get("version", "")).strip()
         if not remote_version:
             return False
+
+        if self._pending_game_packages(self._game_packages(remote)):
+            return True
 
         local = self._load_json_file(self._db_state_path())
         return remote_version != str(local.get("version", "")).strip()
@@ -1651,6 +1684,8 @@ class LauncherApp(tk.Tk):
             remote = self._download_db_update_version()
             entries = self._db_manifest_entries(remote)
             removed_entries = self._db_removed_files(remote)
+            game_packages = self._game_packages(remote)
+            pending_game_packages = self._pending_game_packages(game_packages)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
                 return False, f"{t['db_failed']}:\n{t['db_no_version']}"
@@ -1688,13 +1723,26 @@ class LauncherApp(tk.Tk):
 
             self._save_db_update_state(remote)
             self._prune_db_backups()
-            if not changed:
+            applied_game_packages = []
+            if pending_game_packages:
+                applied_game_packages, game_deleted = self._apply_game_packages(
+                    self.root_dir,
+                    pending_game_packages,
+                    tmp_dir,
+                    log_path,
+                )
+                deleted += game_deleted
+
+            if not changed and not applied_game_packages:
                 message = f"{t['db_latest']}\n\n{t['label_version']}: {remote_version}\n{t['label_removed_files']}: {deleted}"
                 if backup_root.exists():
                     message += f"\nBackup: {backup_root}"
                 return True, message
             notes = str(remote.get("notes", "")).strip()
             message = f"{t['db_done']}\n\n{t['label_version']}: {remote_version}\n{t['label_downloaded_files']}: {total}\n{t['label_removed_files']}: {deleted}"
+            if applied_game_packages:
+                label = "Файлы игры" if self.lang == "ru" else "Game files"
+                message += f"\n{label}: {', '.join(applied_game_packages)}"
             if backup_root.exists():
                 message += f"\nBackup: {backup_root}"
             if notes:
@@ -2059,6 +2107,21 @@ class LauncherApp(tk.Tk):
             encoding="utf-8",
         )
 
+    def _game_package_state_path(self):
+        return self.root_dir / "webcache" / "game_packages_state.json"
+
+    def _load_game_package_state(self):
+        state = self._load_json_file(self._game_package_state_path())
+        if not isinstance(state.get("packages"), dict):
+            state["packages"] = {}
+        return state
+
+    def _save_game_package_state(self, state):
+        state["updated_at"] = time.strftime("%Y-%m-%d %H:%M")
+        path = self._game_package_state_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
     def _folder_package_relative_allowed(self, path, package, allow_full=False):
         path = Path(path)
         if path.is_absolute():
@@ -2091,6 +2154,36 @@ class LauncherApp(tk.Tk):
                 continue
             if not self._folder_package_relative_allowed(path, package, allow_full=(field == "removed_files")):
                 raise ValueError(f"folder package has invalid {field} path: {value}")
+            seen.add(key)
+            paths.append(path)
+        return paths
+
+    def _game_package_relative_allowed(self, path):
+        path = Path(path)
+        if path.is_absolute():
+            return False
+        parts = path.parts
+        if not parts or any(part in ("", ".", "..") for part in parts):
+            return False
+        blocked = {".git", ".github", ".vscode", "__pycache__", "webcache"}
+        return not any(part.casefold() in blocked for part in parts)
+
+    def _game_package_paths(self, values, field):
+        if values in (None, ""):
+            return []
+        if not isinstance(values, list):
+            raise ValueError(f"game package {field} must be a list")
+        paths = []
+        seen = set()
+        for value in values:
+            if not isinstance(value, str):
+                raise ValueError(f"game package {field} entries must be strings")
+            path = Path(value.replace("\\", "/"))
+            key = path.as_posix().casefold()
+            if key in seen:
+                continue
+            if not self._game_package_relative_allowed(path):
+                raise ValueError(f"game package has invalid {field} path: {value}")
             seen.add(key)
             paths.append(path)
         return paths
@@ -2145,6 +2238,53 @@ class LauncherApp(tk.Tk):
             seen.add(package_id)
         return packages
 
+    def _game_packages(self, remote):
+        raw = remote.get("game_packages", [])
+        if raw in (None, ""):
+            return []
+        if not isinstance(raw, list):
+            raise ValueError("version.json game_packages must be a list")
+        packages = []
+        seen = set()
+        allowed_urls = (
+            "https://github.com/sysliveprime-ctrl/anthology-db/releases/download/",
+            "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/",
+        )
+        for index, item in enumerate(raw, start=1):
+            if not isinstance(item, dict):
+                raise ValueError(f"game package #{index} must be an object")
+            package_id = str(item.get("id", "")).strip()
+            name = str(item.get("name", "")).strip() or package_id
+            version = str(item.get("version", "")).strip()
+            url = str(item.get("url", "")).strip()
+            if not package_id or not re.fullmatch(r"[a-z0-9-]+", package_id):
+                raise ValueError(f"game package #{index} has invalid id")
+            if package_id in seen:
+                raise ValueError(f"duplicate game package id: {package_id}")
+            if not version:
+                raise ValueError(f"game package #{index} has no version")
+            if not any(url.startswith(prefix) for prefix in allowed_urls):
+                raise ValueError(f"game package #{index} has an untrusted URL")
+            package = dict(item)
+            package.update({"id": package_id, "name": name, "version": version, "url": url})
+            package["_files"] = self._game_package_paths(item.get("files"), "files")
+            package["_removed_files"] = self._game_package_paths(item.get("removed_files"), "removed_files")
+            if not package["_files"]:
+                raise ValueError(f"game package #{index} has no files")
+            size = item.get("size")
+            if size is not None:
+                try:
+                    package["size"] = int(size)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(f"game package #{index} has invalid size") from exc
+            digest = str(item.get("sha256", "")).strip().casefold()
+            if digest and not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValueError(f"game package #{index} has invalid sha256")
+            package["sha256"] = digest
+            packages.append(package)
+            seen.add(package_id)
+        return packages
+
     def _pending_folder_packages(self, mods_dir, packages):
         state = self._load_folder_package_state(mods_dir).get("packages", {})
         pending = []
@@ -2157,12 +2297,33 @@ class LauncherApp(tk.Tk):
                 pending.append(package)
         return pending
 
+    def _pending_game_packages(self, packages):
+        state = self._load_game_package_state().get("packages", {})
+        pending = []
+        for package in packages:
+            installed = state.get(package["id"], {})
+            installed_version = str(installed.get("version", "")).strip()
+            expected_missing = any(not (self.root_dir / path).is_file() for path in package["_files"])
+            removed_present = any((self.root_dir / path).is_file() for path in package["_removed_files"])
+            if installed_version != package["version"] or expected_missing or removed_present:
+                pending.append(package)
+        return pending
+
     def _folder_package_archive_relative(self, name, package):
         normalized = name.replace("\\", "/")
         if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
             return None
         path = Path(normalized)
         if not self._folder_package_relative_allowed(path, package):
+            return None
+        return path
+
+    def _game_package_archive_relative(self, name):
+        normalized = name.replace("\\", "/")
+        if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
+            return None
+        path = Path(normalized)
+        if not self._game_package_relative_allowed(path):
             return None
         return path
 
@@ -2198,6 +2359,43 @@ class LauncherApp(tk.Tk):
                 self._write_update_log(log_path, f"folder package copy {index}/{total}: {target}")
         return installed
 
+    def _install_game_package_archive(self, archive, root_dir, package, log_path=None):
+        entries = []
+        seen = set()
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            relative = self._game_package_archive_relative(info.filename)
+            if relative is None:
+                raise ValueError(f"game package contains an invalid path: {info.filename}")
+            key = relative.as_posix().casefold()
+            if key in seen:
+                raise ValueError(f"game package contains a duplicate path: {relative}")
+            seen.add(key)
+            entries.append((info, relative))
+        expected = {path.as_posix().casefold() for path in package["_files"]}
+        if seen != expected:
+            missing = sorted(expected - seen)
+            extra = sorted(seen - expected)
+            raise ValueError(f"game package file list mismatch (missing={len(missing)}, extra={len(extra)})")
+        total = max(1, len(entries))
+        installed = []
+        backup_root = root_dir / "webcache" / "game_packages" / "backups" / f"{package['id']}-{package['version']}"
+        for index, (info, relative) in enumerate(entries, start=1):
+            target = root_dir / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                backup = backup_root / relative
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                self._make_writable(target)
+                shutil.copy2(target, backup)
+            with archive.open(info, "r") as source, target.open("wb") as output:
+                shutil.copyfileobj(source, output, length=1024 * 1024)
+            installed.append(relative)
+            if log_path and (index == 1 or index == total or index % 25 == 0):
+                self._write_update_log(log_path, f"game package copy {index}/{total}: {target}")
+        return installed
+
     def _remove_folder_package_files(self, mods_dir, paths, package, keep=None, log_path=None, cleanup_dirs=None):
         keep_keys = {Path(path).as_posix().casefold() for path in (keep or [])}
         deleted = 0
@@ -2219,6 +2417,33 @@ class LauncherApp(tk.Tk):
             except OSError as exc:
                 if log_path:
                     self._write_update_log(log_path, f"folder package delete failed: {target}: {exc}")
+        return deleted
+
+    def _remove_game_package_files(self, root_dir, paths, keep=None, log_path=None, cleanup_dirs=None):
+        keep_keys = {Path(path).as_posix().casefold() for path in (keep or [])}
+        deleted = 0
+        backup_root = root_dir / "webcache" / "game_packages" / "removed_backups" / time.strftime("%Y%m%d-%H%M%S")
+        for relative in paths:
+            relative = Path(relative)
+            if relative.as_posix().casefold() in keep_keys or not self._game_package_relative_allowed(relative):
+                continue
+            target = root_dir / relative
+            try:
+                if not target.is_file() or not self._is_relative_to(target.resolve(), root_dir.resolve()):
+                    continue
+                backup = backup_root / relative
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                self._make_writable(target)
+                shutil.copy2(target, backup)
+                target.unlink()
+                deleted += 1
+                if cleanup_dirs is not None:
+                    cleanup_dirs.add(target.parent)
+                if log_path:
+                    self._write_update_log(log_path, f"game package delete: {target}")
+            except OSError as exc:
+                if log_path:
+                    self._write_update_log(log_path, f"game package delete failed: {target}: {exc}")
         return deleted
 
     def _apply_folder_packages(self, mods_dir, packages, tmp_dir, log_path=None):
@@ -2254,6 +2479,42 @@ class LauncherApp(tk.Tk):
                 "installed_at": time.strftime("%Y-%m-%d %H:%M"),
             }
             self._save_folder_package_state(mods_dir, state)
+            applied.append(label)
+            self.after(0, lambda v=int(index * 100 / max(1, len(packages))): self._set_update_progress(v, f"{v}%"))
+        return applied, deleted
+
+    def _apply_game_packages(self, root_dir, packages, tmp_dir, log_path=None):
+        state = self._load_game_package_state()
+        package_state = state.setdefault("packages", {})
+        applied = []
+        deleted = 0
+        for index, package in enumerate(packages, start=1):
+            label = f"{package['name']} {package['version']}"
+            status = f"Установка файлов игры: {label}" if self.lang == "ru" else f"Installing game files: {label}"
+            self.after(0, lambda s=status: self._set_update_status(s, COLORS["accent_2"]))
+            zip_path = tmp_dir / f"game-package-{package['id']}.zip"
+            self._write_update_log(log_path, f"game package download={package['url']}")
+            self._download_update_archive(package["url"], zip_path, attempts=5, timeout=300)
+            expected_size = package.get("size")
+            if expected_size is not None and zip_path.stat().st_size != expected_size:
+                raise ValueError(f"game package size mismatch: {package['name']}")
+            if package.get("sha256") and self._sha256_file(zip_path).casefold() != package["sha256"]:
+                raise ValueError(f"game package sha256 mismatch: {package['name']}")
+            with zipfile.ZipFile(zip_path, "r") as archive:
+                installed = self._install_game_package_archive(archive, root_dir, package, log_path)
+            previous = package_state.get(package["id"], {})
+            previous_files = [Path(path) for path in previous.get("files", []) if isinstance(path, str)]
+            cleanup_dirs = set()
+            deleted += self._remove_game_package_files(root_dir, previous_files, installed, log_path, cleanup_dirs)
+            deleted += self._remove_game_package_files(root_dir, package["_removed_files"], installed, log_path, cleanup_dirs)
+            self._remove_empty_update_dirs(cleanup_dirs, root_dir, log_path)
+            package_state[package["id"]] = {
+                "name": package["name"],
+                "version": package["version"],
+                "files": sorted({path.as_posix() for path in installed}, key=str.casefold),
+                "installed_at": time.strftime("%Y-%m-%d %H:%M"),
+            }
+            self._save_game_package_state(state)
             applied.append(label)
             self.after(0, lambda v=int(index * 100 / max(1, len(packages))): self._set_update_progress(v, f"{v}%"))
         return applied, deleted
