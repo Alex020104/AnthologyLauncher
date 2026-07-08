@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.08.4"
+LAUNCHER_VERSION = "2026.07.08.5"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -175,8 +175,8 @@ TEXT = {
         "label_removed_old_files": "Удалено старых файлов",
         "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "ТЕСТ",
-        "news_1_body": "Возвращаем игру и лаунчер в правильное состояние",
+        "news_1": "Новые правки",
+        "news_1_body": "Фикс шанса у Бессмертия при получении критического урона\nМод Патч на разделывание мутантов ножами, у которых нет ограничений в этом отношении",
         "news_2": "Фикс ножей",
         "news_2_body": "Включён фикс разделки у ножей, теперь всё соответствует описанию, подключите патч [100]",
         "news_3": "Обновления от Макса",
@@ -255,8 +255,8 @@ TEXT = {
         "label_removed_old_files": "Removed old files",
         "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "ТЕСТ",
-        "news_1_body": "Возвращаем игру и лаунчер в правильное состояние",
+        "news_1": "Новые правки",
+        "news_1_body": "Фикс шанса у Бессмертия при получении критического урона\nМод Патч на разделывание мутантов ножами, у которых нет ограничений в этом отношении",
         "news_2": "Фикс ножей",
         "news_2_body": "Включён фикс разделки у ножей, теперь всё соответствует описанию, подключите патч [100]",
         "news_3": "Обновления от Макса",

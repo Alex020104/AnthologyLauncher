@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.08.4",
-  "exe_url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=2026.07.08.4",
-  "notes": "Add Relay Chat launcher button and prefer raw manifests to avoid GitHub API rate limits."
+  "version": "2026.07.08.5",
+  "exe_url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=2026.07.08.5",
+  "notes": "Обновление новостей лаунчера."
 }
