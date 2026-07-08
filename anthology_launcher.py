@@ -56,10 +56,10 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.08.1"
-LAUNCHER_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/AnthologyLauncher/contents/launcher_version.json?ref=main"
-LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/AnthologyLauncher/main/launcher_version.json"
-LAUNCHER_EXE_URL = "https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
+LAUNCHER_VERSION = "2026.07.08.3"
+LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
+LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
+LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
 MOD_ORGANIZER_EXE_NAME = "ModOrganizer.exe"
 ENGINE_RELEASE_VERSION = "2026.5.8-nanfix"
@@ -68,10 +68,10 @@ ENGINE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/xray-monoli
 ENGINE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/xray-monolith/anthology-2026.5.8-mt-nanfix/engine_version.json"
 ENGINE_ALLOWED_PARTS = {"bin", "db"}
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
-MODPACK_REPO = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack"
-UPDATE_VERSION_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-mo2-modpack/main/version.json"
-UPDATE_VERSION_API_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-mo2-modpack/contents/version.json?ref=main"
-UPDATE_ZIP_URL = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/archive/refs/heads/main.zip"
+MODPACK_REPO = "https://github.com/Alex020104/anthology-mo2-modpack"
+UPDATE_VERSION_URL = "https://raw.githubusercontent.com/Alex020104/anthology-mo2-modpack/main/version.json"
+UPDATE_VERSION_API_URL = "https://api.github.com/repos/Alex020104/anthology-mo2-modpack/contents/version.json?ref=main"
+UPDATE_ZIP_URL = "https://github.com/Alex020104/anthology-mo2-modpack/archive/refs/heads/main.zip"
 UPDATE_ALLOWED_PARTS = set(MO2_RULES.get("allowed_parts", ["configs", "scripts", "textures"]))
 UPDATE_MANAGED_STANDARD_FOLDERS = {name.casefold() for name in MO2_RULES.get("managed_standard_folders", [])}
 UPDATE_MANAGED_FULL_FOLDERS = {name.casefold() for name in MO2_RULES.get("managed_full_folders", [
@@ -84,9 +84,9 @@ UPDATE_PRESERVE_PATH_MARKERS = (
 UPDATE_LEGACY_REMOVE_PATHS = {
     "plugins/SetAnomalyCPUAffinity.py",
 }
-DB_REPO = "https://github.com/sysliveprime-ctrl/anthology-db"
-DB_UPDATE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-db/contents/db_version.json?ref=main"
-DB_UPDATE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-db/main/db_version.json"
+DB_REPO = "https://github.com/Alex020104/anthology-db"
+DB_UPDATE_VERSION_URL = "https://api.github.com/repos/Alex020104/anthology-db/contents/db_version.json?ref=main"
+DB_UPDATE_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/anthology-db/main/db_version.json"
 GAME_PAYLOAD_REPO = "https://github.com/Alex020104/anthology-game-files"
 GAME_PAYLOAD_VERSION_URL = "https://api.github.com/repos/Alex020104/anthology-game-files/contents/version.json?ref=main"
 GAME_PAYLOAD_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/anthology-game-files/main/version.json"
@@ -2236,7 +2236,10 @@ class LauncherApp(tk.Tk):
             raise ValueError("version.json folder_packages must be a list")
         packages = []
         seen = set()
-        allowed_url = "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/"
+        allowed_urls = (
+            "https://github.com/Alex020104/anthology-mo2-modpack/releases/download/",
+            "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/",
+        )
         for index, item in enumerate(raw, start=1):
             if not isinstance(item, dict):
                 raise ValueError(f"folder package #{index} must be an object")
@@ -2256,7 +2259,7 @@ class LauncherApp(tk.Tk):
                 raise ValueError(f"folder package #{index} has no version")
             if mode not in {"standard", "full"}:
                 raise ValueError(f"folder package #{index} has invalid mode: {mode}")
-            if not url.startswith(allowed_url):
+            if not any(url.startswith(prefix) for prefix in allowed_urls):
                 raise ValueError(f"folder package #{index} has an untrusted URL")
             package = dict(item)
             package.update({"id": package_id, "folder": folder_path.as_posix(), "version": version, "url": url, "mode": mode})
@@ -2287,9 +2290,11 @@ class LauncherApp(tk.Tk):
         packages = []
         seen = set()
         allowed_urls = (
+            "https://github.com/Alex020104/anthology-db/releases/download/",
+            "https://github.com/Alex020104/anthology-mo2-modpack/releases/download/",
+            "https://github.com/Alex020104/anthology-game-files/releases/download/",
             "https://github.com/sysliveprime-ctrl/anthology-db/releases/download/",
             "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/",
-            "https://github.com/Alex020104/anthology-game-files/releases/download/",
         )
         for index, item in enumerate(raw, start=1):
             if not isinstance(item, dict):
