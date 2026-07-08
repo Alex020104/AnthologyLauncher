@@ -87,6 +87,9 @@ UPDATE_LEGACY_REMOVE_PATHS = {
 DB_REPO = "https://github.com/sysliveprime-ctrl/anthology-db"
 DB_UPDATE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/anthology-db/contents/db_version.json?ref=main"
 DB_UPDATE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/anthology-db/main/db_version.json"
+GAME_PAYLOAD_REPO = "https://github.com/Alex020104/anthology-game-files"
+GAME_PAYLOAD_VERSION_URL = "https://api.github.com/repos/Alex020104/anthology-game-files/contents/version.json?ref=main"
+GAME_PAYLOAD_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/anthology-game-files/main/version.json"
 DB_ALLOWED_PARTS = {"configs", "mods"}
 DB_ROOT_FILES = {
     "shaders_anthology.xdb0",
@@ -1393,11 +1396,16 @@ class LauncherApp(tk.Tk):
         try:
             mods_dir = self._modpack_mods_dir()
             remote = self._download_update_version()
+            try:
+                game_payload_remote = self._download_game_payload_version()
+            except Exception as exc:
+                self._debug_log(f"game payload manifest unavailable: {type(exc).__name__}: {exc}")
+                game_payload_remote = {}
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
                 return False, f"{t['update_failed']}:\nversion.json has no version"
 
-            game_packages = self._game_packages(remote)
+            game_packages = self._game_packages(remote) + self._game_packages(game_payload_remote)
             pending_game_packages = self._pending_game_packages(game_packages)
             modpack_exists = mods_dir.exists()
             local = self._load_update_state(mods_dir) if modpack_exists else {}
@@ -1600,7 +1608,12 @@ class LauncherApp(tk.Tk):
         if not remote_version:
             return False
 
-        if self._pending_game_packages(self._game_packages(remote)):
+        game_packages = self._game_packages(remote)
+        try:
+            game_packages += self._game_packages(self._download_game_payload_version())
+        except Exception as exc:
+            self._debug_log(f"game payload update check failed: {type(exc).__name__}: {exc}")
+        if self._pending_game_packages(game_packages):
             return True
 
         if not mods_dir.exists():
@@ -1626,7 +1639,12 @@ class LauncherApp(tk.Tk):
         if not remote_version:
             return False
 
-        if self._pending_game_packages(self._game_packages(remote)):
+        game_packages = self._game_packages(remote)
+        try:
+            game_packages += self._game_packages(self._download_game_payload_version())
+        except Exception as exc:
+            self._debug_log(f"game payload update check failed: {type(exc).__name__}: {exc}")
+        if self._pending_game_packages(game_packages):
             return True
 
         local = self._load_json_file(self._db_state_path())
@@ -1682,9 +1700,14 @@ class LauncherApp(tk.Tk):
             self._write_update_log(log_path, f"db_dir={db_dir}")
 
             remote = self._download_db_update_version()
+            try:
+                game_payload_remote = self._download_game_payload_version()
+            except Exception as exc:
+                self._debug_log(f"game payload manifest unavailable: {type(exc).__name__}: {exc}")
+                game_payload_remote = {}
             entries = self._db_manifest_entries(remote)
             removed_entries = self._db_removed_files(remote)
-            game_packages = self._game_packages(remote)
+            game_packages = self._game_packages(remote) + self._game_packages(game_payload_remote)
             pending_game_packages = self._pending_game_packages(game_packages)
             remote_version = str(remote.get("version", "")).strip()
             if not remote_version:
@@ -1785,6 +1808,23 @@ class LauncherApp(tk.Tk):
         )
         with urlopen(request, timeout=30) as response:
             return json.loads(response.read().decode("utf-8-sig"))
+
+    def _download_game_payload_version(self):
+        try:
+            request = Request(
+                GAME_PAYLOAD_VERSION_URL,
+                headers={
+                    "Accept": "application/vnd.github.raw",
+                    "Cache-Control": "no-cache",
+                    "User-Agent": "AnthologyLauncher",
+                },
+            )
+            with urlopen(request, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
+            url = f"{GAME_PAYLOAD_VERSION_RAW_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
 
     def _download_engine_version(self):
         try:
@@ -2249,6 +2289,7 @@ class LauncherApp(tk.Tk):
         allowed_urls = (
             "https://github.com/sysliveprime-ctrl/anthology-db/releases/download/",
             "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/",
+            "https://github.com/Alex020104/anthology-game-files/releases/download/",
         )
         for index, item in enumerate(raw, start=1):
             if not isinstance(item, dict):
