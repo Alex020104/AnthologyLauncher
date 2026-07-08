@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.08.3"
+LAUNCHER_VERSION = "2026.07.08.4"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -131,6 +131,9 @@ TEXT = {
         "logs": "Открыть логи",
         "about": "О проекте",
         "support": "Поддержать проект",
+        "relay_chat": "Реальный чат",
+        "relay_chat_missing": "Файл Relay Chat не найден",
+        "relay_chat_update_hint": "Нажмите «Обновить», чтобы скачать Relay Chat.",
         "quit": "Выход",
         "news": "Новости проекта",
         "update": "Центр обновлений",
@@ -208,6 +211,9 @@ TEXT = {
         "logs": "Open logs",
         "about": "About",
         "support": "Support project",
+        "relay_chat": "Relay Chat",
+        "relay_chat_missing": "Relay Chat file was not found",
+        "relay_chat_update_hint": "Click Sync to download Relay Chat.",
         "quit": "Exit",
         "news": "Project news",
         "update": "Update center",
@@ -495,6 +501,7 @@ class LauncherApp(tk.Tk):
         self.buttons["vk"] = self._button(836, 118, 118, 38, "VK", lambda: webbrowser.open("https://vk.com/club219667646"))
         self.buttons["discord"] = self._button(961, 118, 118, 38, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
         self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
+        self.buttons["relay_chat"] = self._button(713, 222, 118, 38, t["relay_chat"], self.open_relay_chat)
 
         self._section_label(108, 206, t["news"])
         self._news_feed(108, 254, 540, 296, t)
@@ -894,6 +901,24 @@ class LauncherApp(tk.Tk):
             os.startfile(logs)
         else:
             webbrowser.open(logs.as_uri())
+
+    def open_relay_chat(self):
+        chat_exe = self.root_dir / "Chernobyl Relay Chat.exe"
+        if not chat_exe.exists():
+            messagebox.showerror(
+                "Anthology Launcher",
+                f"{TEXT[self.lang]['relay_chat_missing']}:\n{chat_exe}\n\n{TEXT[self.lang]['relay_chat_update_hint']}",
+            )
+            return
+        try:
+            subprocess.Popen(
+                [str(chat_exe)],
+                cwd=str(self.root_dir),
+                env=self._prepare_external_launch(),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except Exception as exc:
+            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{chat_exe}\n\n{exc}")
 
     def save_settings(self):
         self.write_config()
@@ -1782,6 +1807,10 @@ class LauncherApp(tk.Tk):
 
     def _download_update_version(self):
         try:
+            url = f"{UPDATE_VERSION_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
             request = Request(
                 UPDATE_VERSION_API_URL,
                 headers={
@@ -1792,25 +1821,30 @@ class LauncherApp(tk.Tk):
             )
             with urlopen(request, timeout=30) as response:
                 return json.loads(response.read().decode("utf-8-sig"))
-        except Exception:
-            url = f"{UPDATE_VERSION_URL}?t={int(time.time())}"
-            with urlopen(url, timeout=30) as response:
-                return json.loads(response.read().decode("utf-8-sig"))
 
     def _download_db_update_version(self):
-        request = Request(
-            DB_UPDATE_VERSION_URL,
-            headers={
-                "Accept": "application/vnd.github.raw",
-                "Cache-Control": "no-cache",
-                "User-Agent": "AnthologyLauncher",
-            },
-        )
-        with urlopen(request, timeout=30) as response:
-            return json.loads(response.read().decode("utf-8-sig"))
+        try:
+            url = f"{DB_UPDATE_VERSION_RAW_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
+            request = Request(
+                DB_UPDATE_VERSION_URL,
+                headers={
+                    "Accept": "application/vnd.github.raw",
+                    "Cache-Control": "no-cache",
+                    "User-Agent": "AnthologyLauncher",
+                },
+            )
+            with urlopen(request, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
 
     def _download_game_payload_version(self):
         try:
+            url = f"{GAME_PAYLOAD_VERSION_RAW_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
             request = Request(
                 GAME_PAYLOAD_VERSION_URL,
                 headers={
@@ -1821,13 +1855,13 @@ class LauncherApp(tk.Tk):
             )
             with urlopen(request, timeout=30) as response:
                 return json.loads(response.read().decode("utf-8-sig"))
-        except Exception:
-            url = f"{GAME_PAYLOAD_VERSION_RAW_URL}?t={int(time.time())}"
-            with urlopen(url, timeout=30) as response:
-                return json.loads(response.read().decode("utf-8-sig"))
 
     def _download_engine_version(self):
         try:
+            url = f"{ENGINE_VERSION_RAW_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=20) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
             request = Request(
                 ENGINE_VERSION_URL,
                 headers={
@@ -1837,10 +1871,6 @@ class LauncherApp(tk.Tk):
                 },
             )
             with urlopen(request, timeout=20) as response:
-                return json.loads(response.read().decode("utf-8-sig"))
-        except Exception:
-            url = f"{ENGINE_VERSION_RAW_URL}?t={int(time.time())}"
-            with urlopen(url, timeout=20) as response:
                 return json.loads(response.read().decode("utf-8-sig"))
 
     def check_launcher_update_async(self):
@@ -1860,6 +1890,10 @@ class LauncherApp(tk.Tk):
 
     def _download_launcher_version(self):
         try:
+            url = f"{LAUNCHER_VERSION_RAW_URL}?t={int(time.time())}"
+            with urlopen(url, timeout=20) as response:
+                return json.loads(response.read().decode("utf-8-sig"))
+        except Exception:
             request = Request(
                 LAUNCHER_VERSION_URL,
                 headers={
@@ -1869,10 +1903,6 @@ class LauncherApp(tk.Tk):
                 },
             )
             with urlopen(request, timeout=20) as response:
-                return json.loads(response.read().decode("utf-8-sig"))
-        except Exception:
-            url = f"{LAUNCHER_VERSION_RAW_URL}?t={int(time.time())}"
-            with urlopen(url, timeout=20) as response:
                 return json.loads(response.read().decode("utf-8-sig"))
 
     def _is_newer_version(self, remote_version, local_version):
