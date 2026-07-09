@@ -56,7 +56,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.09.1"
+LAUNCHER_VERSION = "2026.07.09.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -3333,6 +3333,8 @@ class LauncherApp(tk.Tk):
 
     def _friendly_update_line(self, line):
         line = self._repair_mojibake(line)
+        if self._is_broken_text(line):
+            return ""
         if line.startswith("Backup:"):
             backup_name = Path(line.split(":", 1)[1].strip()).name
             return f"Резервная копия: {backup_name}"
@@ -3353,6 +3355,8 @@ class LauncherApp(tk.Tk):
         text = self._repair_mojibake(text).strip()
         if text.startswith("Backup:"):
             return ""
+        if self._is_broken_text(text):
+            return ""
         lowered = text.casefold().rstrip(".")
         generic_prefixes = (
             "обновление db",
@@ -3366,6 +3370,18 @@ class LauncherApp(tk.Tk):
         if any(lowered.startswith(prefix) for prefix in generic_prefixes):
             return ""
         return text
+
+    def _is_broken_text(self, text):
+        if not isinstance(text, str):
+            return False
+        stripped = text.strip()
+        if not stripped:
+            return False
+        question_count = stripped.count("?")
+        if question_count < 6:
+            return False
+        letters = sum(1 for char in stripped if char.isalpha())
+        return question_count >= max(6, letters)
 
     def _fill_donation_body(self, body):
         body.tag_configure("intro", foreground=COLORS["text"], font=("Segoe UI", 10))
