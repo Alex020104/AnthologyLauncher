@@ -56,16 +56,16 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.08.5"
+LAUNCHER_VERSION = "2026.07.09.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
 LAUNCHER_EXE_NAME = "AnomalyLauncher.exe"
 MOD_ORGANIZER_EXE_NAME = "ModOrganizer.exe"
-ENGINE_RELEASE_VERSION = "2026.5.8-nanfix"
-ENGINE_MT_URL = "https://github.com/sysliveprime-ctrl/xray-monolith/releases/download/2026.5.8-nanfix/STALKER-Anomaly-modded-exes-MT-TEST_2026.5.8-nanfix.zip"
-ENGINE_VERSION_URL = "https://api.github.com/repos/sysliveprime-ctrl/xray-monolith/contents/engine_version.json?ref=anthology-2026.5.8-mt-nanfix"
-ENGINE_VERSION_RAW_URL = "https://raw.githubusercontent.com/sysliveprime-ctrl/xray-monolith/anthology-2026.5.8-mt-nanfix/engine_version.json"
+ENGINE_RELEASE_VERSION = "2026.06.03.1"
+ENGINE_MT_URL = "https://github.com/Alex020104/anthology-mt-engine/releases/download/2026.06.03.1/STALKER-Anomaly-modded-exes-MT-TEST_2026.06.03.1.zip"
+ENGINE_VERSION_URL = "https://api.github.com/repos/Alex020104/anthology-mt-engine/contents/engine_version.json?ref=main"
+ENGINE_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/anthology-mt-engine/main/engine_version.json"
 ENGINE_ALLOWED_PARTS = {"bin", "db"}
 MODPACK_FOLDER = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT"
 MODPACK_REPO = "https://github.com/Alex020104/anthology-mo2-modpack"
@@ -2268,7 +2268,6 @@ class LauncherApp(tk.Tk):
         seen = set()
         allowed_urls = (
             "https://github.com/Alex020104/anthology-mo2-modpack/releases/download/",
-            "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/",
         )
         for index, item in enumerate(raw, start=1):
             if not isinstance(item, dict):
@@ -2323,8 +2322,6 @@ class LauncherApp(tk.Tk):
             "https://github.com/Alex020104/anthology-db/releases/download/",
             "https://github.com/Alex020104/anthology-mo2-modpack/releases/download/",
             "https://github.com/Alex020104/anthology-game-files/releases/download/",
-            "https://github.com/sysliveprime-ctrl/anthology-db/releases/download/",
-            "https://github.com/sysliveprime-ctrl/anthology-mo2-modpack/releases/download/",
         )
         for index, item in enumerate(raw, start=1):
             if not isinstance(item, dict):
@@ -3235,6 +3232,7 @@ class LauncherApp(tk.Tk):
         dialog.after(200, lambda: dialog.attributes("-topmost", False) if dialog.winfo_exists() else None)
 
     def _update_result_rows(self, message, ok):
+        message = self._repair_mojibake(message)
         if not ok:
             return [("section", "Ошибка"), ("body", message.strip() or "Неизвестная ошибка")]
 
@@ -3242,7 +3240,7 @@ class LauncherApp(tk.Tk):
         blocks = [block.strip() for block in message.split("\n\n") if block.strip()]
         last_section = None
         for block in blocks:
-            lines = [line.strip() for line in block.splitlines() if line.strip()]
+            lines = [self._repair_mojibake(line.strip()) for line in block.splitlines() if line.strip()]
             if not lines:
                 continue
             head = lines[0].rstrip(".")
@@ -3264,6 +3262,12 @@ class LauncherApp(tk.Tk):
                 last_section = "engine"
                 rows.append(("section", f"Движок: {self._friendly_update_status(head, 'engine')}"))
                 rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
+            elif "Файлы игры" in head or "Game files" in head:
+                if rows:
+                    rows.append(("spacer", ""))
+                last_section = "game"
+                rows.append(("section", f"Игра: {self._friendly_update_status(head, 'game')}"))
+                rows.extend(("detail", self._friendly_update_line(line)) for line in lines[1:])
             else:
                 prefix = "Примечание"
                 if last_section == "db":
@@ -3272,10 +3276,42 @@ class LauncherApp(tk.Tk):
                     prefix = "Заметка модпака"
                 elif last_section == "engine":
                     prefix = "Заметка движка"
+                elif last_section == "game":
+                    prefix = "Заметка игры"
                 note = self._friendly_update_note(block)
                 if note:
                     rows.append(("detail", f"{prefix}: {note}"))
         return rows or [("section", "Готово"), ("detail", "Обновления обработаны.")]
+
+    def _repair_mojibake(self, value):
+        if not isinstance(value, str) or not value:
+            return value
+
+        def score(text):
+            bad = sum(text.count(token) for token in ("Р", "С", "Ð", "Ñ", "Â", "�"))
+            cyr = sum(1 for char in text if "\u0400" <= char <= "\u04ff")
+            return cyr * 3 - bad * 4
+
+        current = value
+        best = value
+        best_score = score(value)
+        for _ in range(4):
+            changed = False
+            for encoding in ("cp1251", "latin1"):
+                try:
+                    candidate = current.encode(encoding).decode("utf-8")
+                except (UnicodeEncodeError, UnicodeDecodeError):
+                    continue
+                candidate_score = score(candidate)
+                if candidate != current and candidate_score > best_score:
+                    best = candidate
+                    best_score = candidate_score
+                    current = candidate
+                    changed = True
+                    break
+            if not changed:
+                break
+        return best
 
     def _update_result_row_height(self, kind, text="", text_width=428):
         if kind == "section":
@@ -3287,21 +3323,26 @@ class LauncherApp(tk.Tk):
         return 22 * visual_lines + 4
 
     def _friendly_update_status(self, text, subject):
+        text = self._repair_mojibake(text)
         lowered = text.casefold()
         if "уже" in lowered or "latest" in lowered or "up to date" in lowered:
             return "актуальна" if subject == "db" else "актуален"
-        if "обнов" in lowered or "updated" in lowered:
+        if "обнов" in lowered or "updated" in lowered or "скачан" in lowered:
             return "обновлена" if subject == "db" else "обновлён"
         return text
 
     def _friendly_update_line(self, line):
+        line = self._repair_mojibake(line)
         if line.startswith("Backup:"):
             backup_name = Path(line.split(":", 1)[1].strip()).name
             return f"Резервная копия: {backup_name}"
         replacements = {
             "Удалено лишних файлов": "Лишних файлов удалено",
             "Удалено старых файлов": "Старых файлов удалено",
+            "Удалено пустых папок": "Пустых папок удалено",
             "Скачано файлов": "Файлов скачано",
+            "Отдельные пакеты": "Отдельные пакеты",
+            "Файлы игры": "Файлы игры",
         }
         for source, target in replacements.items():
             if line.startswith(source):
@@ -3309,7 +3350,20 @@ class LauncherApp(tk.Tk):
         return line
 
     def _friendly_update_note(self, text):
+        text = self._repair_mojibake(text).strip()
         if text.startswith("Backup:"):
+            return ""
+        lowered = text.casefold().rstrip(".")
+        generic_prefixes = (
+            "обновление db",
+            "обновление mo2",
+            "обновление модпака",
+            "обновление файлов игры",
+            "anthology work git update",
+            "modpack update",
+            "db anthology update",
+        )
+        if any(lowered.startswith(prefix) for prefix in generic_prefixes):
             return ""
         return text
 
