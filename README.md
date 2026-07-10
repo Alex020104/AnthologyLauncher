@@ -9,9 +9,9 @@ DB-архивы и движок, а также умеет самообновля
 
 - запускать `ModOrganizer.exe` из папки `SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT`;
 - автоматически чинить пути в `ModOrganizer.ini` под текущую папку установки;
-- обновлять MO2-модпак из `sysliveprime-ctrl/anthology-mo2-modpack`;
-- обновлять DB из `sysliveprime-ctrl/anthology-db`;
-- обновлять движок MT `2026.5.8` из `sysliveprime-ctrl/xray-monolith`;
+- обновлять MO2-модпак из `Alex020104/anthology-mo2-modpack`;
+- обновлять DB из `Alex020104/anthology-db`;
+- обновлять движок MT `2026.5.8` из `Alex020104/anthology-mt-engine`;
 - ставить все файлы из архивов движка, включая `.pdb` для отладки;
 - проверять обновления при запуске и показывать статус в центре обновлений;
 - очищать кэш шейдеров и открывать папку логов.
@@ -49,7 +49,7 @@ launcher_version.json
 После этого скачивается:
 
 ```text
-https://github.com/sysliveprime-ctrl/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe
+https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe
 ```
 
 Пользователям Git не нужен.
@@ -70,10 +70,10 @@ dist\AnomalyLauncher.exe
 ## Релиз
 
 Публичный релиз лаунчера делается из рабочего репозитория
-`E:\dev\Anthology-Work-Git` через release-helper:
+`F:\Editor_Stalker\Anthology-Work-Git` через release-helper:
 
 ```powershell
-py -3 E:\dev\Anthology-Work-Git\skills\anthology-release-ops\scripts\anthology_release_ops.py launcher --version YYYY.MM.DD.N --notes "Описание обновления"
+py -3 F:\Editor_Stalker\Anthology-Work-Git\skills\anthology-release-ops\scripts\anthology_release_ops.py launcher --version YYYY.MM.DD.N --notes "Описание обновления"
 ```
 
 Скрипт:
@@ -87,10 +87,10 @@ py -3 E:\dev\Anthology-Work-Git\skills\anthology-release-ops\scripts\anthology_r
 
 ## Связанные Репозитории
 
-- `sysliveprime-ctrl/AnthologyLauncher` - этот лаунчер;
-- `sysliveprime-ctrl/anthology-mo2-modpack` - MO2-модпак;
-- `sysliveprime-ctrl/anthology-db` - DB-манифест и release assets;
-- `sysliveprime-ctrl/xray-monolith` - закрепленный движок Anthology.
+- `Alex020104/AnthologyLauncher` - этот лаунчер;
+- `Alex020104/anthology-mo2-modpack` - MO2-модпак;
+- `Alex020104/anthology-db` - DB-манифест и release assets;
+- `Alex020104/anthology-mt-engine` - закрепленный движок Anthology.
 
 ## Правила
 
