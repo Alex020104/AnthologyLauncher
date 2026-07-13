@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.4"
+LAUNCHER_VERSION = "2026.07.14.5"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -331,6 +331,19 @@ LIBRARY_LINKS = {
             "url": "https://disk.yandex.ru/d/_dZrM6H53fZfRw",
             "discord_url": "https://discordapp.com/channels/1239150205153312769/1521641194164060321",
             "image_url": "library_dev_image_bed2cd8911.png"
+        }
+    ],
+    "modmakers": [
+        {
+            "title_ru": "Мод - SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10",
+            "summary_ru": "Данное дополнение является фиксом миникарты для мониторов 16x10",
+            "body_ru": "Данный мод \"SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\" имеет мной адаптированную версию оригинального мода squareDov - прямоугольной миникарты. Оригинальный мод не отображает корректно карту для мониторов формата 16:10.\nЯ это исправил. \n\nРаботает чисто как опциональный мод\n\nПриложил фото до и после.\n\nУстановка\n1.Скачать архив, распаковать.\n2.Поместить распакованную папку SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10 по пути: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3.Включить в МО2 внизу списка мод SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\n\nПосле этого у вас заработает адаптированная карта и будет корректно отображаться.",
+            "title_en": "Mod - SquareDOV Minimap (16-10 Aspect Ratio Fix) — minimap for 16-10 monitors",
+            "summary_en": "This add-on is a minimap fix for 16x10 monitors.",
+            "body_en": "This mod, \"SquareDOV Minimap (16:10 Aspect Ratio Fix) — minimap for 16:10 monitors,\" is an adapted version of the original squareDov mod, a rectangular minimap. The original mod doesn't display the map correctly on 16:10 monitors.\nI fixed this.\n\nIt works purely as an optional mod.\n\nI've attached before and after photos.\n\nInstallation\n1. Download the archive and unzip it.\n2. Place the unzipped SquareDOV Minimap (16-10 Aspect Ratio Fix) folder — a minimap for 16-10 monitors — in the following path: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3. Enable SquareDOV Minimap (16-10 Aspect Ratio Fix) — a minimap for 16-10 monitors at the bottom of the mod list in MO2.\n\nAfter this, the adapted map will work and display correctly.",
+            "url": "https://disk.yandex.ru/d/eK6EF6bzmIwgqg",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1521641194164060321",
+            "image_url": "library_dev_image_76ad689656.png"
         },
         {
             "title_ru": "Крутое дополнение от !ArtemkaKalinka, добавляет в ПДА несколько плейлистов по вайбу.",
@@ -342,20 +355,8 @@ LIBRARY_LINKS = {
             "url": "https://drive.google.com/file/d/1YCyXmLV1O61ZMqrAbbI6G0E9ysZW7yYO/view?usp=sharing",
             "discord_url": "https://discordapp.com/channels/1239150205153312769/1526073185462653038/1526073185462653038",
             "image_url": ""
-        },
-        {
-            "title_ru": "Мод - SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10",
-            "summary_ru": "Данное дополнение является фиксом миникарты для мониторов 16x10",
-            "body_ru": "Данный мод \"SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\" имеет мной адаптированную версию оригинального мода squareDov - прямоугольной миникарты. Оригинальный мод не отображает корректно карту для мониторов формата 16:10.\nЯ это исправил. \n\nРаботает чисто как опциональный мод\n\nПриложил фото до и после.\n\nУстановка\n1.Скачать архив, распаковать.\n2.Поместить распакованную папку SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10 по пути: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3.Включить в МО2 внизу списка мод SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\n\nПосле этого у вас заработает адаптированная карта и будет корректно отображаться.",
-            "title_en": "Mod - SquareDOV Minimap (16-10 Aspect Ratio Fix) — minimap for 16-10 monitors",
-            "summary_en": "This add-on is a minimap fix for 16x10 monitors.",
-            "body_en": "This mod, \"SquareDOV Minimap (16:10 Aspect Ratio Fix) — minimap for 16:10 monitors,\" is an adapted version of the original squareDov mod, a rectangular minimap. The original mod doesn't display the map correctly on 16:10 monitors.\nI fixed this.\n\nIt works purely as an optional mod.\n\nI've attached before and after photos.\n\nInstallation\n1. Download the archive and unzip it.\n2. Place the unzipped SquareDOV Minimap (16-10 Aspect Ratio Fix) folder — a minimap for 16-10 monitors — in the following path: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3. Enable SquareDOV Minimap (16-10 Aspect Ratio Fix) — a minimap for 16-10 monitors at the bottom of the mod list in MO2.\n\nAfter this, the adapted map will work and display correctly.",
-            "url": "https://disk.yandex.ru/d/eK6EF6bzmIwgqg",
-            "discord_url": "https://discordapp.com/channels/1239150205153312769/1521641194164060321",
-            "image_url": "library_dev_image_76ad689656.png"
         }
     ],
-    "modmakers": [],
     "solutions": []
 }
 
