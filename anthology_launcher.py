@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.2"
+LAUNCHER_VERSION = "2026.07.14.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -323,8 +323,8 @@ LIBRARY_LINKS = {
     "dev": [
         {
             "title_ru": "PiP(Picture in Picture) для 3DSS в Anomaly",
-            "summary_ru": "Данное дополнение отвечает за качественную и более правдивую картинки в режиме прицеливания в плане масштабирования и удобности использования.",
-            "body_ru": "Автор: Шура\nКатегория: Оружейка \nВ этом дополнении вы получаете качественную картинку, но ценой этого является падение FPS в 2 раза, так как игру рендерит дважды.У вас в игре теперь будет правильная кратность и соответствовать описанию.\nОсновано дополнение на 3DSS шейдерах, просто добавлен SVP(Second View Port) для улучшения качества и увеличения масштабирования, используя второй полноценный Рендер.",
+            "summary_ru": "Данное дополнение отвечает за качественную и более правдивую картинку в режиме прицеливания в плане масштабирования и удобности использования.",
+            "body_ru": "Автор: Шура\nКатегория: Оружейка \nВ этом дополнении вы получаете качественную картинку, но ценой этого является падение FPS в 2 раза во время использования режима прицеливания, так как игру рендерит дважды.У вас в игре теперь будет правильная кратность и соответствовать описанию.\nОсновано дополнение на 3DSS шейдерах, просто добавлен SVP(Second View Port) для улучшения качества и увеличения масштабирования, используя второй полноценный Рендер.\nУстановка довольно простая, можете перейти по кнопке Discord. Тут вы можете писать по этой теме, предлагать решения или же писать об ошибках",
             "title_en": "PiP(Picture in Picture) for 3DSS in Anomaly",
             "summary_en": "This add-on ensures a higher quality and more realistic image in the aiming mode in terms of scaling and ease of use.",
             "body_en": "Author: Shura\nCategory: Weapons\nThis add-on offers high-quality graphics, but at the cost of a 50% FPS drop, as the game is rendered twice. Your game will now have the correct frame rate and match the description.\nThe add-on is based on 3DSS shaders, but adds SVP (Second View Port) to improve quality and increase scaling using a second full renderer.",
