@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.5"
+LAUNCHER_VERSION = "2026.07.14.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -767,9 +767,26 @@ class LauncherApp(tk.Tk):
         self._add(self.canvas.create_rectangle(x + 18, y + 19, x + 144, y + 93, fill="#07100e", outline="#5e8d84", width=1))
         if preview:
             self._add(self.canvas.create_image(x + 18, y + 19, image=preview, anchor="nw"))
-        self._add(self.canvas.create_text(x + 162, y + 18, text=title, anchor="nw", fill=COLORS["text"], font=("Segoe UI Semibold", 12, "bold"), width=w - 360))
+        title_width = w - 370
+        self._add(self.canvas.create_text(
+            x + 162,
+            y + 16,
+            text=title,
+            anchor="nw",
+            fill=COLORS["text"],
+            font=("Segoe UI Semibold", 11, "bold"),
+            width=title_width,
+        ))
         if summary:
-            self._add(self.canvas.create_text(x + 162, y + 48, text=summary, anchor="nw", fill=COLORS["muted"], font=("Segoe UI", 8), width=w - 360))
+            self._add(self.canvas.create_text(
+                x + 162,
+                y + 60,
+                text=summary,
+                anchor="nw",
+                fill=COLORS["muted"],
+                font=("Segoe UI", 8),
+                width=title_width,
+            ))
         self._button(x + w - 154, y + 38, 124, 36, TEXT[self.lang]["projects_more"], lambda c=category, i=index - 1: self.show_library_entry_detail(c, i), font_size=10)
 
     def show_library_entry_detail(self, category, entry_index):
