@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.7"
+LAUNCHER_VERSION = "2026.07.14.6"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -863,19 +863,33 @@ class LauncherApp(tk.Tk):
                 font=("Segoe UI", 10),
             ))
 
+        body_x = 498
+        body_y = 196
+        body_width = 555
+        body_font = ("Segoe UI", 11)
         self._add(self.canvas.create_text(
-            498,
-            196,
+            body_x,
+            body_y,
             text=body,
             anchor="nw",
             fill=COLORS["text"],
-            font=("Segoe UI", 11),
-            width=555,
+            font=body_font,
+            width=body_width,
         ))
+        button_y = self._library_detail_buttons_y(body, body_font, body_width, body_y)
         if url:
-            self._button(498, 522, 176, 42, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True, font_size=12)
+            self._button(body_x, button_y, 176, 42, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True, font_size=12)
         if discord_url:
-            self._button(690, 522, 176, 42, t["projects_discord"], lambda link=discord_url: webbrowser.open(link), font_size=12)
+            self._button(body_x + 192, button_y, 176, 42, t["projects_discord"], lambda link=discord_url: webbrowser.open(link), font_size=12)
+
+    def _library_detail_buttons_y(self, text, font_spec, width, text_y):
+        font = tkfont.Font(family=font_spec[0], size=font_spec[1])
+        line_height = font.metrics("linespace")
+        total_lines = 0
+        for paragraph in str(text).splitlines() or [""]:
+            total_lines += self._wrapped_line_count(paragraph, font, width) if paragraph.strip() else 1
+        y = text_y + total_lines * line_height + 14
+        return min(max(y, 424), 574)
 
     def _load_library_image(self, image_url, width, height):
         if not image_url:
