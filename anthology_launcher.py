@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.6"
+LAUNCHER_VERSION = "2026.07.14.7"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -357,7 +357,41 @@ LIBRARY_LINKS = {
             "image_url": ""
         }
     ],
-    "solutions": []
+    "solutions": [
+        {
+            "title_ru": "Адаптация под 21:9 (Hard Режим)",
+            "summary_ru": "Адаптирован интерфейс под 21:9",
+            "body_ru": "Автор: Melisov(Ден)\nКатегория: UI \nАдаптировал интерфейс под 21:9. Установить через МО2, расположить в самом низу списка, поставите галочку.",
+            "title_en": "Adaptation for 21:9 (Hard Mode)",
+            "summary_en": "The interface has been adapted for 21:9",
+            "body_en": "Author: Melisov(Den)\nCategory: UI\nAdapted the interface for 21:9. Install via MO2, place it at the very bottom of the list, and check the box.",
+            "url": "https://disk.yandex.ru/d/k3Bp-DugUIkSjg",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1511400517526356111/1511400517526356111",
+            "image_url": "library_solutions_Anomaly-1_5_3-anthology_2_1_Screenshot_2026_06_02_-_18_38_06_55_2323826511.png"
+        },
+        {
+            "title_ru": "Неограниченный вес тайников для модпака",
+            "summary_ru": "Установка неограниченного веса у тайников",
+            "body_ru": "Автор: LaFa\nКатегория: Геймплей\nЕсли вам надоело ставить 1000 ящиков на своей базе и вы в своём роде минималист, то рекомендую установить эту правку. Данная правка убирает ограничение веса у любых ящиков, и теперь можно поставить один и складывать в него 10 тонн хлама.\n\nУстановка:\n\nСкачайте архив.\nАктивируйте его и оставьте в конце списка Mod Organizer.\nГотово.",
+            "title_en": "Unlimited stash weight for modpack",
+            "summary_en": "Setting unlimited weight for caches",
+            "body_en": "Author: LaFa\nCategory: Gameplay\nIf you're tired of placing 1,000 crates in your base and you're something of a minimalist, I recommend installing this tweak. This tweak removes the weight limit for all crates, allowing you to place one and store 10 tons of junk in it.",
+            "url": "https://disk.yandex.ru/d/8mPP3p-t_C4dag",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1512794535489568889/1512794535489568889",
+            "image_url": "library_solutions_ss_nikit_06-06-26_15-02-00_l01_escape_b067c0645d.jpg"
+        },
+        {
+            "title_ru": "Видимые кровососы",
+            "summary_ru": "Невидимые кровососы становятся видимыми",
+            "body_ru": "Надоели стаи кровососов которые долбят везде и всегда тогда тебе сюда. Возвращает прозрачность кровососов как в ТЧ\n\nУстановка:\n\nСкачайте архив.\nАктивируйте его и оставьте в конце списка Mod Organizer.\nГотово.",
+            "title_en": "Visible bloodsuckers",
+            "summary_en": "Invisible bloodsuckers become visible",
+            "body_en": "Tired of swarms of bloodsuckers harassing you everywhere, then this is the place for you. Brings back the bloodsuckers' transparency like in TC.\n\nInstallation:\n\nDownload the archive.\nActivate it and leave it at the bottom of the Mod Organizer list.\nDone.",
+            "url": "https://disk.yandex.ru/d/RUwyjmyYd1J0_Q",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1512794535489568889/1512794535489568889",
+            "image_url": "library_solutions_4tmxiuiu567b1_22b26eb68c.jpg"
+        }
+    ]
 }
 
 
