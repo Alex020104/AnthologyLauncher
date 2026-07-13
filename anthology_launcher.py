@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.6"
+LAUNCHER_VERSION = "2026.07.14.7"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -335,17 +335,6 @@ LIBRARY_LINKS = {
     ],
     "modmakers": [
         {
-            "title_ru": "Мод - SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10",
-            "summary_ru": "Данное дополнение является фиксом миникарты для мониторов 16x10",
-            "body_ru": "Данный мод \"SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\" имеет мной адаптированную версию оригинального мода squareDov - прямоугольной миникарты. Оригинальный мод не отображает корректно карту для мониторов формата 16:10.\nЯ это исправил. \n\nРаботает чисто как опциональный мод\n\nПриложил фото до и после.\n\nУстановка\n1.Скачать архив, распаковать.\n2.Поместить распакованную папку SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10 по пути: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3.Включить в МО2 внизу списка мод SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\n\nПосле этого у вас заработает адаптированная карта и будет корректно отображаться.",
-            "title_en": "Mod - SquareDOV Minimap (16-10 Aspect Ratio Fix) — minimap for 16-10 monitors",
-            "summary_en": "This add-on is a minimap fix for 16x10 monitors.",
-            "body_en": "This mod, \"SquareDOV Minimap (16:10 Aspect Ratio Fix) — minimap for 16:10 monitors,\" is an adapted version of the original squareDov mod, a rectangular minimap. The original mod doesn't display the map correctly on 16:10 monitors.\nI fixed this.\n\nIt works purely as an optional mod.\n\nI've attached before and after photos.\n\nInstallation\n1. Download the archive and unzip it.\n2. Place the unzipped SquareDOV Minimap (16-10 Aspect Ratio Fix) folder — a minimap for 16-10 monitors — in the following path: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3. Enable SquareDOV Minimap (16-10 Aspect Ratio Fix) — a minimap for 16-10 monitors at the bottom of the mod list in MO2.\n\nAfter this, the adapted map will work and display correctly.",
-            "url": "https://disk.yandex.ru/d/eK6EF6bzmIwgqg",
-            "discord_url": "https://discordapp.com/channels/1239150205153312769/1521641194164060321",
-            "image_url": "library_dev_image_76ad689656.png"
-        },
-        {
             "title_ru": "Крутое дополнение от !ArtemkaKalinka, добавляет в ПДА несколько плейлистов по вайбу.",
             "summary_ru": "Добавлены новые треки и песни в ПДА для разнообразия, теперь вы можете расширить количество частот, на которых играют разные треки.",
             "body_ru": "Автор: !ArtemkaKalinka\n1. Вайбовые сталкерские песни д\nкоторые давно уже ставшие частью сталкерской культуры\n2.Пост панк\nЧто бы словить лютый депресняк\n3.Армейские песни\nЯ солдат и у меня нет башкии еее...\n4.Саундтрек из Метро 2033\n(скомуниздил из другого мода, не осуждайте :3)",
@@ -355,6 +344,17 @@ LIBRARY_LINKS = {
             "url": "https://drive.google.com/file/d/1YCyXmLV1O61ZMqrAbbI6G0E9ysZW7yYO/view?usp=sharing",
             "discord_url": "https://discordapp.com/channels/1239150205153312769/1526073185462653038/1526073185462653038",
             "image_url": ""
+        },
+        {
+            "title_ru": "Мод - SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10",
+            "summary_ru": "Данное дополнение является фиксом миникарты для мониторов 16x10",
+            "body_ru": "Данный мод \"SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\" имеет мной адаптированную версию оригинального мода squareDov - прямоугольной миникарты. Оригинальный мод не отображает корректно карту для мониторов формата 16:10.\nЯ это исправил. \n\nРаботает чисто как опциональный мод\n\nПриложил фото до и после.\n\nУстановка\n1.Скачать архив, распаковать.\n2.Поместить распакованную папку SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10 по пути: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3.Включить в МО2 внизу списка мод SquareDOV Minimap (16-10 Aspect Ratio Fix) — миникарта для мониторов 16-10\n\nПосле этого у вас заработает адаптированная карта и будет корректно отображаться.",
+            "title_en": "Mod - SquareDOV Minimap (16-10 Aspect Ratio Fix) — minimap for 16-10 monitors",
+            "summary_en": "This add-on is a minimap fix for 16x10 monitors.",
+            "body_en": "This mod, \"SquareDOV Minimap (16:10 Aspect Ratio Fix) — minimap for 16:10 monitors,\" is an adapted version of the original squareDov mod, a rectangular minimap. The original mod doesn't display the map correctly on 16:10 monitors.\nI fixed this.\n\nIt works purely as an optional mod.\n\nI've attached before and after photos.\n\nInstallation\n1. Download the archive and unzip it.\n2. Place the unzipped SquareDOV Minimap (16-10 Aspect Ratio Fix) folder — a minimap for 16-10 monitors — in the following path: ANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\n3. Enable SquareDOV Minimap (16-10 Aspect Ratio Fix) — a minimap for 16-10 monitors at the bottom of the mod list in MO2.\n\nAfter this, the adapted map will work and display correctly.",
+            "url": "https://disk.yandex.ru/d/eK6EF6bzmIwgqg",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1525963994417070231/1525966381034639452",
+            "image_url": "library_dev_image_76ad689656.png"
         }
     ],
     "solutions": [
@@ -388,7 +388,7 @@ LIBRARY_LINKS = {
             "summary_en": "Invisible bloodsuckers become visible",
             "body_en": "Tired of swarms of bloodsuckers harassing you everywhere, then this is the place for you. Brings back the bloodsuckers' transparency like in TC.\n\nInstallation:\n\nDownload the archive.\nActivate it and leave it at the bottom of the Mod Organizer list.\nDone.",
             "url": "https://disk.yandex.ru/d/RUwyjmyYd1J0_Q",
-            "discord_url": "https://discordapp.com/channels/1239150205153312769/1512794535489568889/1512794535489568889",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1518979301163401227/1518979301163401227",
             "image_url": "library_solutions_4tmxiuiu567b1_22b26eb68c.jpg"
         }
     ]
