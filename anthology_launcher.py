@@ -11,6 +11,7 @@ import threading
 import time
 import webbrowser
 import zipfile
+from io import BytesIO
 from pathlib import Path
 from urllib.error import URLError
 from urllib.parse import quote
@@ -56,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.10.3"
+LAUNCHER_VERSION = "2026.07.14.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -130,6 +131,21 @@ TEXT = {
         "cache": "Очистить кэш",
         "logs": "Открыть логи",
         "about": "О проекте",
+        "projects": "Библиотека новых проектов и решений",
+        "projects_title": "Библиотека",
+        "projects_intro": "Здесь будут собраны ссылки на скачивание и дополнительные материалы Anthology.",
+        "projects_hint": "Раздел подготовлен под кнопки скачивания, сборки и внешние страницы.",
+        "projects_dev_title": "Личные проекты разработчиков",
+        "projects_dev_desc": "Здесь лежат отдельные механики, которые находятся в активном тестировании или имеют сложное техническое исполнение",
+        "projects_modmakers_title": "Новые проекты от модмейкеров",
+        "projects_modmakers_desc": "Здесь лежат отдельные проекты модмейкеров, которые являются дополнением к игре в виде разнообразия.",
+        "projects_solutions_title": "Решения спорных механик разработчиков",
+        "projects_solutions_desc": "Здесь лежат аддоны, которые отменяют некоторые наши решения в целях упростить жизнь игроку.",
+        "projects_empty": "Раздел подготовлен. Ссылки и файлы можно будет добавить сюда следующим шагом.",
+        "projects_download": "Скачать",
+        "projects_discord": "Discord",
+        "projects_more": "Подробнее",
+        "projects_image_missing": "Изображение не задано",
         "support": "Поддержать проект",
         "relay_chat": "Реальный чат",
         "relay_chat_missing": "Файл Relay Chat не найден",
@@ -212,6 +228,21 @@ TEXT = {
         "cache": "Clear cache",
         "logs": "Open logs",
         "about": "About",
+        "projects": "Library of new projects and solutions",
+        "projects_title": "Library",
+        "projects_intro": "Download links and additional Anthology materials will be collected here.",
+        "projects_hint": "This section is prepared for download buttons, builds, and external pages.",
+        "projects_dev_title": "Developers' personal projects",
+        "projects_dev_desc": "Separate mechanics that are in active testing or have complex technical implementation are stored here.",
+        "projects_modmakers_title": "New projects from modmakers",
+        "projects_modmakers_desc": "Separate modmaker projects that add more variety to the game are stored here.",
+        "projects_solutions_title": "Developers' controversial-mechanics solutions",
+        "projects_solutions_desc": "Addons that revert some of our decisions to make the player's life easier are stored here.",
+        "projects_empty": "This section is ready. Links and files can be added here in the next step.",
+        "projects_download": "Download",
+        "projects_discord": "Discord",
+        "projects_more": "Details",
+        "projects_image_missing": "No image set",
         "support": "Support project",
         "relay_chat": "Relay Chat",
         "relay_chat_missing": "Relay Chat file was not found",
@@ -288,6 +319,13 @@ TEXT = {
 }
 
 
+LIBRARY_LINKS = {
+    "dev": [],
+    "modmakers": [],
+    "solutions": [],
+}
+
+
 def app_dir():
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
@@ -332,6 +370,7 @@ class LauncherApp(tk.Tk):
         self.engine_progress_fill = None
         self.engine_progress_text = None
         self.items = []
+        self.library_images = []
         self.view_widgets = []
         self.buttons = {}
         self.render_buttons = {}
@@ -449,7 +488,6 @@ class LauncherApp(tk.Tk):
         self.canvas.create_line(67, TOP_BAR - 1, 1103, TOP_BAR - 1, fill="#9ee9dc")
         self.canvas.create_text(68, 55, text="ANTHOLOGY", anchor="w", fill=COLORS["text"], font=("Segoe UI Semibold", 14, "bold"))
         self.canvas.create_text(195, 56, text="LAUNCHER", anchor="w", fill=COLORS["muted"], font=("Segoe UI", 9))
-
         self.settings_hit = self.canvas.create_rectangle(WIDTH - 128, 38, WIDTH - 96, 72, fill=COLORS["glass"], stipple="gray50", outline="")
         self.min_hit = self.canvas.create_rectangle(WIDTH - 92, 38, WIDTH - 60, 72, fill=COLORS["glass"], stipple="gray50", outline="")
         self.close_hit = self.canvas.create_rectangle(WIDTH - 56, 38, WIDTH - 22, 72, fill=COLORS["glass"], stipple="gray50", outline="")
@@ -483,6 +521,7 @@ class LauncherApp(tk.Tk):
         for item in self.items:
             self.canvas.delete(item)
         self.items = []
+        self.library_images = []
         self.buttons = {}
         self.render_buttons = {}
         self.toggle_items = {}
@@ -506,6 +545,7 @@ class LauncherApp(tk.Tk):
         self.buttons["discord"] = self._button(961, 118, 118, 38, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
         self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
         self.buttons["relay_chat"] = self._button(713, 222, 118, 38, t["relay_chat"], self.open_relay_chat)
+        self.buttons["projects"] = self._button(713, 270, 365, 40, t["projects"].upper(), self.show_projects, font_size=11)
 
         self._section_label(108, 206, t["news"])
         self._news_feed(108, 254, 540, 296, t)
@@ -602,6 +642,191 @@ class LauncherApp(tk.Tk):
         body.configure(state="disabled")
         self._add_widget(frame, 104, 214, 972, 366)
 
+    def show_projects(self):
+        self.view = "projects"
+        self._clear_view()
+        t = TEXT[self.lang]
+
+        self._panel(64, 92, 1052, 536, alpha="surface")
+        self._section_label(104, 134, t["projects_title"])
+        self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_home)
+
+        self._add(self.canvas.create_text(
+            104,
+            184,
+            text=t["projects_intro"],
+            anchor="w",
+            fill=COLORS["muted"],
+            font=("Segoe UI", 10),
+            width=760,
+        ))
+
+        cards = [
+            ("dev", t["projects_dev_title"], t["projects_dev_desc"]),
+            ("modmakers", t["projects_modmakers_title"], t["projects_modmakers_desc"]),
+            ("solutions", t["projects_solutions_title"], t["projects_solutions_desc"]),
+        ]
+        x = 104
+        for key, title, subtitle in cards:
+            self._project_card(x, 248, 286, 172, title, subtitle, lambda k=key: self.show_project_category(k))
+            x += 318
+
+    def show_project_category(self, category):
+        self.view = "project_category"
+        self.current_project_category = category
+        self._clear_view()
+        t = TEXT[self.lang]
+
+        category_map = {
+            "dev": ("projects_dev_title", "projects_dev_desc"),
+            "modmakers": ("projects_modmakers_title", "projects_modmakers_desc"),
+            "solutions": ("projects_solutions_title", "projects_solutions_desc"),
+        }
+        title_key, desc_key = category_map.get(category, category_map["dev"])
+
+        self._panel(64, 92, 1052, 536, alpha="surface")
+        self._section_label(104, 134, t[title_key])
+        self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_projects)
+
+        self._add(self.canvas.create_text(
+            104,
+            184,
+            text=t[desc_key],
+            anchor="nw",
+            fill=COLORS["text"],
+            font=("Segoe UI", 11),
+            width=820,
+        ))
+        entries = LIBRARY_LINKS.get(category, [])
+        if not entries:
+            self._add(self.canvas.create_rectangle(104, 262, 1076, 440, fill=COLORS["glass_lift"], stipple="gray50", outline=COLORS["accent"], width=1))
+            self._add(self.canvas.create_line(105, 263, 1075, 263, fill="#ffffff", stipple="gray50", width=1))
+            self._add(self.canvas.create_text(
+                128,
+                292,
+                text=t["projects_empty"],
+                anchor="nw",
+                fill=COLORS["muted"],
+                font=("Segoe UI", 10),
+                width=900,
+            ))
+            return
+
+        y = 262
+        for index, entry in enumerate(entries[:3], start=1):
+            self._library_entry_card(104, y, 972, 112, category, index, entry)
+            y += 130
+
+    def _library_entry_card(self, x, y, w, h, category, index, entry):
+        title = str(entry.get(f"title_{self.lang}") or entry.get("title_ru") or entry.get("title") or "").strip()
+        summary = str(entry.get(f"summary_{self.lang}") or entry.get("summary_ru") or entry.get("summary") or "").strip()
+        if not title:
+            title = f"#{index}"
+
+        image_url = str(entry.get("image_url") or entry.get("image") or "").strip()
+
+        self._add(self.canvas.create_rectangle(x + 8, y + 8, x + w + 8, y + h + 8, fill="#010302", stipple="gray50", outline=""))
+        self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill=COLORS["glass_lift"], stipple="gray50", outline=COLORS["accent"], width=1))
+        self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50", width=1))
+        preview = self._load_library_image(image_url, 126, 74)
+        self._add(self.canvas.create_rectangle(x + 18, y + 19, x + 144, y + 93, fill="#07100e", outline="#5e8d84", width=1))
+        if preview:
+            self._add(self.canvas.create_image(x + 18, y + 19, image=preview, anchor="nw"))
+        self._add(self.canvas.create_text(x + 162, y + 18, text=title, anchor="nw", fill=COLORS["text"], font=("Segoe UI Semibold", 12, "bold"), width=w - 360))
+        if summary:
+            self._add(self.canvas.create_text(x + 162, y + 48, text=summary, anchor="nw", fill=COLORS["muted"], font=("Segoe UI", 8), width=w - 360))
+        self._button(x + w - 154, y + 38, 124, 36, TEXT[self.lang]["projects_more"], lambda c=category, i=index - 1: self.show_library_entry_detail(c, i), font_size=10)
+
+    def show_library_entry_detail(self, category, entry_index):
+        self.view = "library_entry"
+        self.current_project_category = category
+        self.current_library_entry_index = entry_index
+        self._clear_view()
+        t = TEXT[self.lang]
+
+        entries = LIBRARY_LINKS.get(category, [])
+        if entry_index < 0 or entry_index >= len(entries):
+            self.show_project_category(category)
+            return
+        entry = entries[entry_index]
+        title = str(entry.get(f"title_{self.lang}") or entry.get("title_ru") or entry.get("title") or "").strip()
+        body = str(entry.get(f"body_{self.lang}") or entry.get("body_ru") or entry.get("body") or "").strip()
+        url = str(entry.get("url") or "").strip()
+        discord_url = str(entry.get("discord_url") or "").strip()
+        image_url = str(entry.get("image_url") or entry.get("image") or "").strip()
+        if not title:
+            title = f"#{entry_index + 1}"
+
+        self._panel(64, 92, 1052, 536, alpha="surface")
+        self._section_label(104, 134, title)
+        self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], lambda c=category: self.show_project_category(c))
+
+        img_x, img_y, img_w, img_h = 104, 194, 360, 202
+        self._add(self.canvas.create_rectangle(img_x + 8, img_y + 8, img_x + img_w + 8, img_y + img_h + 8, fill="#010302", stipple="gray50", outline=""))
+        self._add(self.canvas.create_rectangle(img_x, img_y, img_x + img_w, img_y + img_h, fill=COLORS["glass_lift"], stipple="gray50", outline=COLORS["accent"], width=1))
+        image = self._load_library_image(image_url, img_w - 2, img_h - 2)
+        if image:
+            self._add(self.canvas.create_image(img_x + 1, img_y + 1, image=image, anchor="nw"))
+        else:
+            self._add(self.canvas.create_text(
+                img_x + img_w / 2,
+                img_y + img_h / 2,
+                text=t["projects_image_missing"],
+                anchor="center",
+                fill=COLORS["muted"],
+                font=("Segoe UI", 10),
+            ))
+
+        self._add(self.canvas.create_text(
+            498,
+            196,
+            text=body,
+            anchor="nw",
+            fill=COLORS["text"],
+            font=("Segoe UI", 11),
+            width=555,
+        ))
+        if url:
+            self._button(498, 522, 176, 42, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True, font_size=12)
+        if discord_url:
+            self._button(690, 522, 176, 42, t["projects_discord"], lambda link=discord_url: webbrowser.open(link), font_size=12)
+
+    def _load_library_image(self, image_url, width, height):
+        if not image_url:
+            return None
+        try:
+            if image_url.startswith(("http://", "https://")):
+                request = Request(image_url, headers={"User-Agent": "AnthologyLauncher"})
+                with urlopen(request, timeout=6) as response:
+                    raw = response.read(6 * 1024 * 1024)
+                image = Image.open(BytesIO(raw)).convert("RGB")
+            else:
+                path = Path(image_url)
+                if not path.is_absolute():
+                    path = self.assets / image_url
+                image = Image.open(path).convert("RGB")
+            image.thumbnail((width, height), Image.Resampling.LANCZOS)
+            canvas = Image.new("RGB", (width, height), "#07100e")
+            canvas.paste(image, ((width - image.width) // 2, (height - image.height) // 2))
+            photo = ImageTk.PhotoImage(canvas)
+            self.library_images.append(photo)
+            return photo
+        except Exception as exc:
+            self._debug_log(f"library image failed: {type(exc).__name__}: {exc}")
+            return None
+
+    def _project_card(self, x, y, w, h, title, subtitle, command):
+        self._add(self.canvas.create_rectangle(x + 8, y + 10, x + w + 8, y + h + 10, fill="#010302", stipple="gray50", outline=""))
+        rect = self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill=COLORS["glass_lift"], stipple="gray50", outline=COLORS["accent"], width=1))
+        top = self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50", width=1))
+        title_item = self._add(self.canvas.create_text(x + 22, y + 24, text=title, anchor="nw", fill=COLORS["text"], font=("Segoe UI Semibold", 12, "bold"), width=w - 44))
+        divider = self._add(self.canvas.create_line(x + 22, y + 78, x + w - 22, y + 78, fill=COLORS["accent"], stipple="gray50"))
+        subtitle_item = self._add(self.canvas.create_text(x + 22, y + 100, text=subtitle, anchor="nw", fill=COLORS["muted"], font=("Segoe UI", 9), width=w - 44))
+        for item in (rect, top, title_item, divider, subtitle_item):
+            self.canvas.tag_bind(item, "<Button-1>", lambda _e, cmd=command: cmd())
+            self.canvas.tag_bind(item, "<Enter>", lambda _e, r=rect: (self.canvas.itemconfig(r, fill="#162c28"), self.canvas.configure(cursor="hand2")))
+            self.canvas.tag_bind(item, "<Leave>", lambda _e, r=rect: (self.canvas.itemconfig(r, fill=COLORS["glass_lift"]), self.canvas.configure(cursor="")))
+
     def _bottom_update_bar(self, t):
         self.buttons["play"] = self._button(87, 604, 260, 38, t["play"], self.play, primary=True)
         self.buttons["play_original"] = self._button(87, 654, 260, 38, t["play_original"], self.play_original, primary=True)
@@ -674,13 +899,14 @@ class LauncherApp(tk.Tk):
             self._add(self.canvas.create_text(x, current_y, text=text, anchor="nw", fill=COLORS["muted"], font=body_font, width=w))
             current_y += body_lines * body_line + 24
 
-    def _button(self, x, y, w, h, text, command, primary=False):
+    def _button(self, x, y, w, h, text, command, primary=False, font_size=None):
         fill = "#173a35" if primary else COLORS["glass_lift"]
         hover = "#23544d" if primary else "#162c28"
         outline = COLORS["accent"] if primary else "#829d96"
         rect = self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill=fill, stipple="gray50", outline=outline, width=1))
         self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50"))
-        font_size = 13 if primary and (h <= 36 or len(text) > 22) else 15 if primary else 10
+        if font_size is None:
+            font_size = 13 if primary and (h <= 36 or len(text) > 22) else 15 if primary else 10
         label = self._add(self.canvas.create_text(x + w / 2, y + h / 2, text=text, fill=COLORS["text"], font=("Segoe UI Semibold", font_size, "bold"), width=max(20, w - 16)))
         for item in (rect, label):
             self.canvas.tag_bind(item, "<Button-1>", lambda _e, cmd=command: cmd())
@@ -801,6 +1027,15 @@ class LauncherApp(tk.Tk):
         self.lang = "en" if self.lang == "ru" else "ru"
         if self.view == "settings":
             self.show_settings()
+        elif self.view == "projects":
+            self.show_projects()
+        elif self.view == "project_category":
+            self.show_project_category(getattr(self, "current_project_category", "dev"))
+        elif self.view == "library_entry":
+            self.show_library_entry_detail(
+                getattr(self, "current_project_category", "dev"),
+                getattr(self, "current_library_entry_index", 0),
+            )
         else:
             self.show_home()
 
