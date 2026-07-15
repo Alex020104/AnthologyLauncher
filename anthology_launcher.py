@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.14.9"
+LAUNCHER_VERSION = "2026.07.15.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -146,6 +146,15 @@ TEXT = {
         "projects_discord": "Discord",
         "projects_more": "Подробнее",
         "projects_image_missing": "Изображение не задано",
+        "info": "Информация",
+        "info_title": "Информация",
+        "info_intro": "Справочная информация по Anthology, оригинальной игре и системным требованиям.",
+        "info_requirements_title": "Системные требования",
+        "info_requirements_desc": "Минимальные и рекомендуемые параметры для комфортной игры.",
+        "info_original_title": "Информация об Оригинале",
+        "info_original_desc": "Краткая справка об Anomaly и базовой игре.",
+        "info_modpack_title": "Информация о Модпаке",
+        "info_modpack_desc": "Что меняет Anthology и как устроена сборка.",
         "support": "Поддержать проект",
         "relay_chat": "Реальный чат",
         "relay_chat_missing": "Файл Relay Chat не найден",
@@ -243,6 +252,15 @@ TEXT = {
         "projects_discord": "Discord",
         "projects_more": "Details",
         "projects_image_missing": "No image set",
+        "info": "Information",
+        "info_title": "Information",
+        "info_intro": "Reference information about Anthology, the original game, and system requirements.",
+        "info_requirements_title": "System requirements",
+        "info_requirements_desc": "Minimum and recommended specs for comfortable play.",
+        "info_original_title": "Original information",
+        "info_original_desc": "Brief reference about Anomaly and the base game.",
+        "info_modpack_title": "Modpack information",
+        "info_modpack_desc": "What Anthology changes and how the build is structured.",
         "support": "Support project",
         "relay_chat": "Relay Chat",
         "relay_chat_missing": "Relay Chat file was not found",
@@ -392,6 +410,28 @@ LIBRARY_LINKS = {
             "image_url": "library_solutions_4tmxiuiu567b1_22b26eb68c.jpg"
         }
     ]
+}
+
+
+INFO_LINKS = {
+    "requirements": {
+        "title_ru": "Системные требования",
+        "body_ru": "Тут вопрос довольно дискуссионный, всё зависит от версии в которую вы играете: \n\nОригинал: \nДолжен запускаться на любой 64x битной системе от DX8(кроме DX10, он по умолчанию не работает)\n\nОригинал+Модпак:\nМинимальные: \n- Видеокарты RTX 1660 6 ГБ / RX 580 8 ГБ (Зависит от разрешения монитора)\n- Процессор 4х ядерный любой\n- Оперативная память 16 ГБ + Файл подкачки 40-50 ГБ\n- Твердотельный накопитель(SSD) для быстрой загрузки\n\nРекомендуемые требования:\n- Видеокарты RTX 3060 8 ГБ / RX 6600XT 8 ГБ (Зависит от разрешения монитора)\n- Современный 6-ядерный процессор\n- Оперативная память 32 ГБ (Файл подкачки рекомендуется, но необязателен)\n- SSD M2 для быстрой загрузки\n\nТочные требования зависят от настроек графики, выбранного рендера и установленных дополнительных проектов.В основном всё тестируется как 1920x1080 и 2560x1440 разрешениях",
+        "title_en": "System requirements",
+        "body_en": "Minimum requirements:\n- 64-bit Windows\n- 16 GB RAM\n- DirectX 11 capable GPU\n- SSD recommended\n\nRecommended requirements:\n- 32 GB RAM\n- Modern 6-core CPU\n- RTX-class or similar GPU\n- SSD/NVMe for faster loading\n\nExact requirements depend on graphics settings, selected renderer, and optional projects."
+    },
+    "original": {
+        "title_ru": "Информация об Оригинале",
+        "body_ru": "Оригинальная версия подразумевает основу S.T.A.L.K.E.R Anomaly 1.5.3 с сюжетами от Главного разработчика Максима Ратного под названием A.N.T.H.O.L.O.G.Y\n\nВы можете проходить несколько сюжетных линий как оригинальных: \n1. Тень Чернобыля\n2. Зов Припяти\n3. Чистое небо(в активной разработке)\nТакже сюда относятся сюжетные линии из модификаций: \n1. Путь во Мгле\n2. Пространственная Аномалия\n3. Забытый отряд\n4. Смерти вопреки.В паутине лжи\n5. Долина Шорохов\n6. Атрибут\nНу и стандартные Фриплейные сюжеты от Anomaly(CoC): Легенда Зоны, Смертный Грех и Послесвечение",
+        "title_en": "Original information",
+        "body_en": "A.N.T.H.O.L.O.G.Y is based on S.T.A.L.K.E.R. Anomaly 1.5.3 and keeps the freeplay foundation of the Zone: exploration, survival, factions, economy, tasks, and systemic sandbox gameplay.\n\nThe original Anomaly remains the foundation that the modpack expands with mechanics, balance, weapon systems, visuals, and quality-of-life changes."
+    },
+    "modpack": {
+        "title_ru": "Информация о Модпаке",
+        "body_ru": "ПОДДЕРЖИВАЕТСЯ ТОЛЬКО DX11!!!!\n\nМодпак для A.N.T.H.O.L.O.G.Y является ОПЦИОНАЛЬНЫМ ДОПОЛНЕНИЕМ и НИКАК не влияет на сюжет в прямом смысле.\n\nЭто адаптация МОДОВ для ОРИГИНАЛА.Идут они конечно не параллельно, идёт адаптация под оригинал.\n\nДанный модпак имеет 2 профиля Standart и Hard, которые меняются через MO2(Mod Organiser 2)\nПрофиль Standart подразумевает довольно классическое прохождение, имея обычные механики Anomaly + некоторые интересные фитчи для обычного игрока в экосистеме сборок S.T.A.L.K.E.R Anomaly\nПрофиль Hard подразумевает довольно сложное прохождение(особенно сначала) и подходит далеко не для всех, потому что многие механики являются спорными и разработчики пытаются сделать определённый баланс, который предоставляет горение жопы через адамантиевый стул.\n\nОружейный пак R.A.K со своими модулями является ПОЛНОСТЬЮ модульным.Вы можете создать новый профиль MO2 и спокойно его включить для оригинала(да даже в ванильную Anomaly стырить) и играть спокойно.Так делают те, у кого проблемы с производительностью, но хотят новое оружие.",
+        "title_en": "Modpack information",
+        "body_en": "A.N.T.H.O.L.O.G.Y is an authored modpack that combines mods, fixes, weapon changes, interface improvements, DB/MO2/engine updates, and separate experimental projects.\n\nThe build is updated through the launcher. Before updating, close the game, Mod Organizer 2, and Chernobyl Relay Chat if the chat is being updated."
+    }
 }
 
 
@@ -615,6 +655,7 @@ class LauncherApp(tk.Tk):
         self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
         self.buttons["relay_chat"] = self._button(713, 222, 118, 38, t["relay_chat"], self.open_relay_chat)
         self.buttons["projects"] = self._button(713, 270, 365, 40, t["projects"].upper(), self.show_projects, font_size=11)
+        self.buttons["info"] = self._button(713, 320, 176, 38, t["info"].upper(), self.show_info, font_size=11)
 
         self._section_label(108, 206, t["news"])
         self._news_feed(108, 254, 540, 296, t)
@@ -739,6 +780,71 @@ class LauncherApp(tk.Tk):
         for key, title, subtitle in cards:
             self._project_card(x, 248, 286, 172, title, subtitle, lambda k=key: self.show_project_category(k))
             x += 318
+
+    def show_info(self):
+        self.view = "info"
+        self._clear_view()
+        t = TEXT[self.lang]
+
+        self._panel(64, 92, 1052, 536, alpha="surface")
+        self._section_label(104, 134, t["info_title"])
+        self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_home)
+
+        self._add(self.canvas.create_text(
+            104,
+            184,
+            text=t["info_intro"],
+            anchor="w",
+            fill=COLORS["muted"],
+            font=("Segoe UI", 10),
+            width=760,
+        ))
+
+        cards = [
+            ("requirements", t["info_requirements_title"], t["info_requirements_desc"]),
+            ("original", t["info_original_title"], t["info_original_desc"]),
+            ("modpack", t["info_modpack_title"], t["info_modpack_desc"]),
+        ]
+        x = 104
+        for key, title, subtitle in cards:
+            self._project_card(x, 248, 286, 172, title, subtitle, lambda k=key: self.show_info_section(k))
+            x += 318
+
+    def show_info_section(self, section):
+        self.view = "info_section"
+        self.current_info_section = section
+        self._clear_view()
+        t = TEXT[self.lang]
+        entry = INFO_LINKS.get(section, INFO_LINKS["requirements"])
+        title = str(entry.get(f"title_{self.lang}") or entry.get("title_ru") or "").strip()
+        body = str(entry.get(f"body_{self.lang}") or entry.get("body_ru") or "").strip()
+
+        self._panel(64, 92, 1052, 536, alpha="surface")
+        self._section_label(104, 134, title)
+        self.buttons["back"] = self._button(966, 116, 110, 36, t["back"], self.show_info)
+
+        frame = tk.Frame(self.canvas, bg="#5f827a", padx=1, pady=1)
+        text = tk.Text(
+            frame,
+            bg="#08110f",
+            fg=COLORS["text"],
+            insertbackground=COLORS["text"],
+            selectbackground="#24534c",
+            bd=0,
+            highlightthickness=0,
+            padx=22,
+            pady=18,
+            wrap="word",
+            font=("Segoe UI", 11),
+            cursor="arrow",
+        )
+        text.pack(side="left", fill="both", expand=True)
+        scroll = tk.Scrollbar(frame, orient="vertical", command=text.yview)
+        scroll.pack(side="right", fill="y")
+        text.configure(yscrollcommand=scroll.set)
+        text.insert("1.0", body)
+        text.configure(state="disabled")
+        self._add_widget(frame, 104, 184, 972, 410)
 
     def show_project_category(self, category):
         self.view = "project_category"
@@ -1129,6 +1235,10 @@ class LauncherApp(tk.Tk):
             self.show_settings()
         elif self.view == "projects":
             self.show_projects()
+        elif self.view == "info":
+            self.show_info()
+        elif self.view == "info_section":
+            self.show_info_section(getattr(self, "current_info_section", "requirements"))
         elif self.view == "project_category":
             self.show_project_category(getattr(self, "current_project_category", "dev"))
         elif self.view == "library_entry":
