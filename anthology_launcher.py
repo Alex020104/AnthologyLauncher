@@ -956,24 +956,55 @@ class LauncherApp(tk.Tk):
                 font=("Segoe UI", 10),
             ))
 
-        body_x = 498
-        body_y = 196
-        body_width = 555
-        body_font = ("Segoe UI", 11)
-        self._add(self.canvas.create_text(
-            body_x,
-            body_y,
-            text=body,
-            anchor="nw",
-            fill=COLORS["text"],
-            font=body_font,
-            width=body_width,
-        ))
-        button_y = self._library_detail_buttons_y(body, body_font, body_width, body_y)
+        body_x = 492
+        body_y = 190
+        body_width = 584
+        body_height = 404
+        frame = tk.Frame(self.canvas, bg=COLORS["accent"], padx=1, pady=1)
+        text = tk.Text(
+            frame,
+            bg="#06100e",
+            fg=COLORS["text"],
+            insertbackground=COLORS["text"],
+            selectbackground="#24534c",
+            bd=0,
+            highlightthickness=0,
+            padx=0,
+            pady=0,
+            wrap="word",
+            font=("Segoe UI", 11),
+            cursor="arrow",
+        )
+        text.pack(side="left", fill="both", expand=True)
+        scroll = tk.Scrollbar(
+            frame,
+            orient="vertical",
+            command=text.yview,
+            bg="#071311",
+            activebackground=COLORS["glass_lift"],
+            troughcolor="#020706",
+            highlightthickness=0,
+            bd=0,
+            width=12,
+        )
+        scroll.pack(side="right", fill="y")
+        text.configure(yscrollcommand=scroll.set)
+        text.bind("<MouseWheel>", lambda event: text.yview_scroll(int(-1 * (event.delta / 120)), "units"))
+        text.insert("1.0", body)
+
+        actions = tk.Frame(text, bg="#06100e")
         if url:
-            self._button(body_x, button_y, 176, 42, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True, font_size=12)
+            self._library_text_button(actions, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True).pack(side="left", padx=(0, 14))
         if discord_url:
-            self._button(body_x + 192, button_y, 176, 42, t["projects_discord"], lambda link=discord_url: webbrowser.open(link), font_size=12)
+            self._library_text_button(actions, t["projects_discord"], lambda link=discord_url: webbrowser.open(link)).pack(side="left", padx=(0, 14))
+        if url or discord_url:
+            text.insert("end", "\n\n")
+            text.window_create("end", window=actions)
+            text.insert("end", "\n")
+
+        text.configure(state="disabled")
+        self.view_widgets.append(actions)
+        self._add_widget(frame, body_x, body_y, body_width, body_height)
 
     def _library_detail_buttons_y(self, text, font_spec, width, text_y):
         font = tkfont.Font(family=font_spec[0], size=font_spec[1])
@@ -983,6 +1014,29 @@ class LauncherApp(tk.Tk):
             total_lines += self._wrapped_line_count(paragraph, font, width) if paragraph.strip() else 1
         y = text_y + total_lines * line_height + 14
         return min(max(y, 424), 574)
+
+    def _library_text_button(self, parent, text, command, primary=False):
+        bg = "#1c554d" if primary else "#0b1b19"
+        active_bg = COLORS["accent"] if primary else COLORS["glass_lift"]
+        fg = "#ffffff"
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            bg=bg,
+            fg=fg,
+            activebackground=active_bg,
+            activeforeground="#ffffff",
+            relief="flat",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=COLORS["accent"],
+            highlightcolor=COLORS["accent"],
+            font=("Segoe UI Semibold", 11, "bold"),
+            width=16,
+            height=2,
+            cursor="hand2",
+        )
 
     def _load_library_image(self, image_url, width, height):
         if not image_url:
