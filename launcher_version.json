@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.19.2",
-  "exe_url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=2026.07.19.2",
-  "notes": "Библиотека: 8 записей"
+  "version": "19.3",
+  "exe_url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=19.3",
+  "notes": "Scrollable library lists and launcher-style library action buttons."
 }

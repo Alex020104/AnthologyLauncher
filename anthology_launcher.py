@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.19.2"
+LAUNCHER_VERSION = "19.3"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -885,12 +885,70 @@ class LauncherApp(tk.Tk):
             ))
             return
 
-        y = 262
-        for index, entry in enumerate(entries[:3], start=1):
-            self._library_entry_card(104, y, 972, 112, category, index, entry)
+        list_frame = tk.Frame(self.canvas, bg="#5f827a", padx=1, pady=1)
+        list_canvas = tk.Canvas(
+            list_frame,
+            bg="#06100e",
+            highlightthickness=0,
+            bd=0,
+            yscrollincrement=18,
+        )
+        list_canvas.pack(side="left", fill="both", expand=True)
+        scroll_bar = tk.Canvas(list_frame, width=12, bg="#06100e", highlightthickness=0, bd=0)
+        scroll_bar.pack(side="right", fill="y")
+
+        content_height = max(376, len(entries) * 130)
+        list_canvas.configure(scrollregion=(0, 0, 952, content_height))
+
+        def _redraw_scrollbar(*_args):
+            scroll_bar.delete("all")
+            view_top, view_bottom = list_canvas.yview()
+            bar_height = 376
+            scroll_bar.create_rectangle(0, 0, 12, bar_height, fill="#07100e", outline=COLORS["accent"], width=1)
+            scroll_bar.create_line(1, 1, 1, bar_height - 1, fill="#ffffff", stipple="gray75")
+            thumb_top = max(3, int(view_top * bar_height))
+            thumb_bottom = min(bar_height - 3, int(view_bottom * bar_height))
+            if thumb_bottom - thumb_top < 34:
+                thumb_bottom = min(bar_height - 3, thumb_top + 34)
+            scroll_bar.create_rectangle(3, thumb_top, 9, thumb_bottom, fill=COLORS["accent"], outline="")
+            scroll_bar.create_rectangle(4, thumb_top + 1, 8, thumb_bottom - 1, fill="#6ff4e2", stipple="gray50", outline="")
+
+        def _set_scroll_from_bar(event):
+            y_fraction = min(1.0, max(0.0, event.y / 376))
+            list_canvas.yview_moveto(y_fraction)
+            _redraw_scrollbar()
+            return "break"
+
+        scroll_bar.bind("<Button-1>", _set_scroll_from_bar)
+        scroll_bar.bind("<B1-Motion>", _set_scroll_from_bar)
+        list_canvas.configure(yscrollcommand=_redraw_scrollbar)
+
+        def _scroll_entries(event):
+            delta = int(-1 * (event.delta / 120)) if event.delta else 0
+            if delta:
+                list_canvas.yview_scroll(delta, "units")
+            return "break"
+
+        list_canvas.bind("<MouseWheel>", _scroll_entries)
+        list_frame.bind("<MouseWheel>", _scroll_entries)
+        scroll_bar.bind("<MouseWheel>", _scroll_entries)
+
+        y = 0
+        for index, entry in enumerate(entries, start=1):
+            self._library_entry_card(0, y, 952, 112, category, index, entry, target_canvas=list_canvas)
             y += 130
 
-    def _library_entry_card(self, x, y, w, h, category, index, entry):
+        self._add_widget(list_frame, 104, 248, 972, 376)
+        self.after_idle(_redraw_scrollbar)
+
+    def _library_entry_card(self, x, y, w, h, category, index, entry, target_canvas=None):
+        target = target_canvas or self.canvas
+
+        def add_item(item):
+            if target is self.canvas:
+                return self._add(item)
+            return item
+
         title = str(entry.get(f"title_{self.lang}") or entry.get("title_ru") or entry.get("title") or "").strip()
         summary = str(entry.get(f"summary_{self.lang}") or entry.get("summary_ru") or entry.get("summary") or "").strip()
         if not title:
@@ -898,15 +956,15 @@ class LauncherApp(tk.Tk):
 
         image_url = str(entry.get("image_url") or entry.get("image") or "").strip()
 
-        self._add(self.canvas.create_rectangle(x + 8, y + 8, x + w + 8, y + h + 8, fill="#010302", stipple="gray50", outline=""))
-        self._add(self.canvas.create_rectangle(x, y, x + w, y + h, fill=COLORS["glass_lift"], stipple="gray50", outline=COLORS["accent"], width=1))
-        self._add(self.canvas.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50", width=1))
+        add_item(target.create_rectangle(x + 8, y + 8, x + w + 8, y + h + 8, fill="#010302", stipple="gray50", outline=""))
+        add_item(target.create_rectangle(x, y, x + w, y + h, fill=COLORS["glass_lift"], stipple="gray50", outline=COLORS["accent"], width=1))
+        add_item(target.create_line(x + 1, y + 1, x + w - 1, y + 1, fill="#ffffff", stipple="gray50", width=1))
         preview = self._load_library_image(image_url, 126, 74)
-        self._add(self.canvas.create_rectangle(x + 18, y + 19, x + 144, y + 93, fill="#07100e", outline="#5e8d84", width=1))
+        add_item(target.create_rectangle(x + 18, y + 19, x + 144, y + 93, fill="#07100e", outline="#5e8d84", width=1))
         if preview:
-            self._add(self.canvas.create_image(x + 18, y + 19, image=preview, anchor="nw"))
+            add_item(target.create_image(x + 18, y + 19, image=preview, anchor="nw"))
         title_width = w - 370
-        self._add(self.canvas.create_text(
+        add_item(target.create_text(
             x + 162,
             y + 16,
             text=title,
@@ -916,7 +974,7 @@ class LauncherApp(tk.Tk):
             width=title_width,
         ))
         if summary:
-            self._add(self.canvas.create_text(
+            add_item(target.create_text(
                 x + 162,
                 y + 60,
                 text=summary,
@@ -925,7 +983,35 @@ class LauncherApp(tk.Tk):
                 font=("Segoe UI", 8),
                 width=title_width,
             ))
-        self._button(x + w - 154, y + 38, 124, 36, TEXT[self.lang]["projects_more"], lambda c=category, i=index - 1: self.show_library_entry_detail(c, i), font_size=10)
+        if target is self.canvas:
+            self._button(x + w - 154, y + 38, 124, 36, TEXT[self.lang]["projects_more"], lambda c=category, i=index - 1: self.show_library_entry_detail(c, i), font_size=10)
+        else:
+            bx, by, bw, bh = x + w - 154, y + 38, 124, 36
+            rect = target.create_rectangle(bx, by, bx + bw, by + bh, fill="#0b1b19", outline=COLORS["accent"], width=1)
+            label = target.create_text(
+                bx + bw / 2,
+                by + bh / 2,
+                text=TEXT[self.lang]["projects_more"],
+                anchor="center",
+                fill=COLORS["text"],
+                font=("Segoe UI Semibold", 10, "bold"),
+            )
+
+            def open_detail(_event=None, c=category, i=index - 1):
+                self.show_library_entry_detail(c, i)
+
+            def hover_on(_event=None):
+                target.itemconfig(rect, fill=COLORS["glass_lift"])
+                target.configure(cursor="hand2")
+
+            def hover_off(_event=None):
+                target.itemconfig(rect, fill="#0b1b19")
+                target.configure(cursor="")
+
+            for item in (rect, label):
+                target.tag_bind(item, "<Button-1>", open_detail)
+                target.tag_bind(item, "<Enter>", hover_on)
+                target.tag_bind(item, "<Leave>", hover_off)
 
     def show_library_entry_detail(self, category, entry_index):
         self.view = "library_entry"
@@ -967,6 +1053,15 @@ class LauncherApp(tk.Tk):
                 font=("Segoe UI", 10),
             ))
 
+        action_y = img_y + img_h + 24
+        action_w = 172
+        action_h = 42
+        if url:
+            self._button(img_x, action_y, action_w, action_h, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True, font_size=11)
+        if discord_url:
+            discord_x = img_x + action_w + 16 if url else img_x
+            self._button(discord_x, action_y, action_w, action_h, t["projects_discord"], lambda link=discord_url: webbrowser.open(link), font_size=11)
+
         body_x = 492
         body_y = 190
         body_width = 584
@@ -1003,18 +1098,7 @@ class LauncherApp(tk.Tk):
         text.bind("<MouseWheel>", lambda event: text.yview_scroll(int(-1 * (event.delta / 120)), "units"))
         text.insert("1.0", body)
 
-        actions = tk.Frame(text, bg="#06100e")
-        if url:
-            self._library_text_button(actions, t["projects_download"], lambda link=url: webbrowser.open(link), primary=True).pack(side="left", padx=(0, 14))
-        if discord_url:
-            self._library_text_button(actions, t["projects_discord"], lambda link=discord_url: webbrowser.open(link)).pack(side="left", padx=(0, 14))
-        if url or discord_url:
-            text.insert("end", "\n\n")
-            text.window_create("end", window=actions)
-            text.insert("end", "\n")
-
         text.configure(state="disabled")
-        self.view_widgets.append(actions)
         self._add_widget(frame, body_x, body_y, body_width, body_height)
 
     def _library_detail_buttons_y(self, text, font_spec, width, text_y):
