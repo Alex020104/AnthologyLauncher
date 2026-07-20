@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.20.4"
+LAUNCHER_VERSION = "2026.07.20.5"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -200,8 +200,8 @@ TEXT = {
         "label_removed_old_files": "Удалено старых файлов",
         "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "ТЕСТ Синхронизации",
-        "news_1_body": "ТЕСТ Синхронизации разработчиков",
+        "news_1": "Фикс Бега",
+        "news_1_body": "Теперь не должно быть проблем с перерассчётом навыков, mcm модов и всяких аддонов из сборки, не будет замедления и не надо перезагружаться каждый раз, чтобы вы переодевали костюм и бегали адекватно",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -295,8 +295,8 @@ TEXT = {
         "label_removed_old_files": "Removed old files",
         "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "ТЕСТ Синхронизации",
-        "news_1_body": "ТЕСТ Синхронизации разработчиков",
+        "news_1": "Fix Begin",
+        "news_1_body": "Now there shouldn't be any problems with recalculating skills, mcm mods, and any addons from the build, there won't be any slowdowns, and you won't have to reboot every time so that you can change your suit and run adequately.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",

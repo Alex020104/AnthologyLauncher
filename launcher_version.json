@@ -1,5 +1,5 @@
 {
-  "version": "2026.07.20.4",
-  "exe_url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=2026.07.20.4",
-  "notes": "Relay Chat autostart toggle added. Chat Relay now starts automatically with play/original unless disabled in settings."
+  "version": "2026.07.20.5",
+  "exe_url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/release/AnomalyLauncher.exe?v=2026.07.20.5",
+  "notes": "Обновление новостей лаунчера."
 }
