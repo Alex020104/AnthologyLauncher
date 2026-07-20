@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.19.3"
+LAUNCHER_VERSION = "2026.07.20.4"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -205,6 +205,7 @@ TEXT = {
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
+        "chat_relay_always": "Реальный Чат всегда",
         "reset": "Стандартный user.ltx",
         "avx": "Поддержка AVX",
         "shadow": "Карта теней",
@@ -299,6 +300,7 @@ TEXT = {
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
+        "chat_relay_always": "Chat Relay Always",
         "reset": "Default user.ltx",
         "avx": "AVX support",
         "shadow": "Shadow map",
@@ -457,6 +459,7 @@ class LauncherApp(tk.Tk):
         self.debug = True
         self.sound_fix = False
         self.prefetch = False
+        self.chat_relay_always = True
         self.reset_user = False
         self.avx = False
         self.drag_x = 0
@@ -684,6 +687,7 @@ class LauncherApp(tk.Tk):
             "debug": self._toggle(96, 330, t["debug"], lambda: self._flip("debug")),
             "sound_fix": self._toggle(96, 384, t["sound_fix"], lambda: self._flip("sound_fix")),
             "prefetch": self._toggle(96, 438, t["prefetch"], lambda: self._flip("prefetch")),
+            "chat_relay_always": self._toggle(96, 492, t["chat_relay_always"], lambda: self._flip("chat_relay_always")),
             "reset": self._toggle(455, 330, t["reset"], lambda: self._flip("reset_user")),
             "avx": self._toggle(455, 384, t["avx"], lambda: self._flip("avx")),
         }
@@ -1347,6 +1351,7 @@ class LauncherApp(tk.Tk):
             "debug": self.debug,
             "sound_fix": self.sound_fix,
             "prefetch": self.prefetch,
+            "chat_relay_always": self.chat_relay_always,
             "reset": self.reset_user,
             "avx": self.avx,
         }
@@ -1407,6 +1412,8 @@ class LauncherApp(tk.Tk):
             self.lang = "en" if lines[5] == "EN" else "ru"
         if len(lines) > 6:
             self.avx = lines[6] == "AVX"
+        if len(lines) > 7:
+            self.chat_relay_always = lines[7] == "CHATRELAYALWAYS"
 
     def write_config(self):
         lines = [
@@ -1417,6 +1424,7 @@ class LauncherApp(tk.Tk):
             "SNDPREFETCH" if self.prefetch else "NOSNDPREFETCH",
             "EN" if self.lang == "en" else "RU",
             "AVX" if self.avx else "NOAVX",
+            "CHATRELAYALWAYS" if self.chat_relay_always else "NOCHATRELAYALWAYS",
         ]
         (self.root_dir / "AnomalyLauncher.cfg").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -1487,14 +1495,37 @@ class LauncherApp(tk.Tk):
         else:
             webbrowser.open(logs.as_uri())
 
-    def open_relay_chat(self):
+    def _is_relay_chat_running(self):
+        if sys.platform != "win32":
+            return False
+        try:
+            output = subprocess.check_output(
+                ["tasklist", "/FI", "IMAGENAME eq Chernobyl Relay Chat.exe", "/NH"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+                encoding="utf-8",
+                errors="ignore",
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            return "Chernobyl Relay Chat.exe" in output
+        except Exception as exc:
+            self._debug_log(f"relay chat process check failed: {type(exc).__name__}: {exc}")
+            return False
+
+    def open_relay_chat(self, show_errors=True):
+        if self._is_relay_chat_running():
+            self._debug_log("relay chat launch skipped: already running")
+            return True
         chat_exe = self.root_dir / "Chernobyl Relay Chat.exe"
         if not chat_exe.exists():
-            messagebox.showerror(
-                "Anthology Launcher",
-                f"{TEXT[self.lang]['relay_chat_missing']}:\n{chat_exe}\n\n{TEXT[self.lang]['relay_chat_update_hint']}",
-            )
-            return
+            if show_errors:
+                messagebox.showerror(
+                    "Anthology Launcher",
+                    f"{TEXT[self.lang]['relay_chat_missing']}:\n{chat_exe}\n\n{TEXT[self.lang]['relay_chat_update_hint']}",
+                )
+            else:
+                self._debug_log(f"relay chat autostart skipped: missing {chat_exe}")
+            return False
         try:
             subprocess.Popen(
                 [str(chat_exe)],
@@ -1502,8 +1533,18 @@ class LauncherApp(tk.Tk):
                 env=self._prepare_external_launch(),
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
+            self._debug_log("relay chat launched")
+            return True
         except Exception as exc:
-            messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{chat_exe}\n\n{exc}")
+            if show_errors:
+                messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{chat_exe}\n\n{exc}")
+            else:
+                self._debug_log(f"relay chat autostart failed: {type(exc).__name__}: {exc}")
+            return False
+
+    def _start_relay_chat_if_enabled(self):
+        if self.chat_relay_always:
+            self.open_relay_chat(show_errors=False)
 
     def save_settings(self):
         self.write_config()
@@ -4053,6 +4094,7 @@ class LauncherApp(tk.Tk):
             return
         try:
             self._sync_mod_organizer_paths(mo2_path)
+            self._start_relay_chat_if_enabled()
             self._shell_open_file(mo2_path)
             self.destroy()
         except Exception as exc:
@@ -4065,6 +4107,7 @@ class LauncherApp(tk.Tk):
             messagebox.showerror("Anthology Launcher", f"{TEXT[self.lang]['launch_error']}:\n{game_exe}")
             return
         try:
+            self._start_relay_chat_if_enabled()
             subprocess.Popen(
                 [str(game_exe)],
                 cwd=str(game_exe.parent),
