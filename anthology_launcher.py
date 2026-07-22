@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.21.2"
+LAUNCHER_VERSION = "2026.07.23.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -200,12 +200,14 @@ TEXT = {
         "label_removed_old_files": "Удалено старых файлов",
         "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Баланс и переходы",
-        "news_1_body": "1. Теперь у вас открываются переходы, играя за другие группировки вне Ванильной Anomaly\n2. Теперь у вас появился Аддон [GAM] R.A.K Balance. Он добавляет крафт, баланс брони(адекватный) и ребаланс еды и медицины(тоже лучше стать должно) из SYS_BALANCE, отделяя вас от харда.\n3. Шлема появляются у броников, у которых должны быть при починке.",
-        "news_2": "Переделка фильтров",
-        "news_2_body": "Теперь фильтры(не балоны) со своими уровнями просто ставятся в шлема и костюмы.\nТо есть больше нет привязки уровня фильтра к костюмам.Из-за этого вы не могли использовать 1 уровень фильтра к костюму условно говоря 3его(по мнению предыдущего разработчика).Сейчас это упразднено и сделано по-человески, фильтры влияют на время расходования и улучшение защиты.",
-        "news_3": "Фикс Бега",
-        "news_3_body": "Теперь не должно быть проблем с перерассчётом навыков, mcm модов и всяких аддонов из сборки, не будет замедления и не надо перезагружаться каждый раз, чтобы вы переодевали костюм и бегали адекватно",
+        "news_1": "Обновление Оружейки",
+        "news_1_body": "В [100] патче появился фикс на \"зум\" у коллиматоров на ряд оружий, на которые поступала жалоба.",
+        "news_2": "Баланс и переходы",
+        "news_2_body": "1. Теперь у вас открываются переходы, играя за другие группировки вне Ванильной Anomaly\n2. Теперь у вас появился Аддон [GAM] R.A.K Balance. Он добавляет крафт, баланс брони(адекватный) и ребаланс еды и медицины(тоже лучше стать должно) из SYS_BALANCE, отделяя вас от харда.\n3. Шлема появляются у броников, у которых должны быть при починке.",
+        "news_3": "Переделка фильтров",
+        "news_3_body": "Теперь фильтры(не балоны) со своими уровнями просто ставятся в шлема и костюмы.\nТо есть больше нет привязки уровня фильтра к костюмам.Из-за этого вы не могли использовать 1 уровень фильтра к костюму условно говоря 3его(по мнению предыдущего разработчика).Сейчас это упразднено и сделано по-человески, фильтры влияют на время расходования и улучшение защиты.",
+        "news_4": "Фикс Бега",
+        "news_4_body": "Теперь не должно быть проблем с перерассчётом навыков, mcm модов и всяких аддонов из сборки, не будет замедления и не надо перезагружаться каждый раз, чтобы вы переодевали костюм и бегали адекватно",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -299,12 +301,14 @@ TEXT = {
         "label_removed_old_files": "Removed old files",
         "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "Balance and transitions",
-        "news_1_body": "1. You now have access to transitions when playing for other factions outside of the Vanilla Anomaly.\n2. You now have the [GAM] R.A.K Balance Addon. It adds crafting, armor balance (adequate), and food and medicine rebalance (should also be improved) from SYS_BALANCE, separating you from the hard core.\n3. Helmets now appear on armored players who should have them when repaired.",
-        "news_2": "Reworking filters",
-        "news_2_body": "Now filters (not cylinders) with their own levels are simply installed in helmets and suits.\nThat is, there is no longer a connection between the filter level and suits. Because of this, you could not use 1 filter level on a suit, so to speak 3 (according to the previous developer). Now this has been abolished and done in a humane way, filters affect the time spent and improve protection.",
-        "news_3": "Fix Begin",
-        "news_3_body": "Now there shouldn't be any problems with recalculating skills, mcm mods, and any addons from the build, there won't be any slowdowns, and you won't have to reboot every time so that you can change your suit and run adequately.",
+        "news_1": "Weapons Update",
+        "news_1_body": "In patch [100], a fix for the \"zoom\" of collimators appeared on a number of weapons that were the subject of complaints.",
+        "news_2": "Balance and transitions",
+        "news_2_body": "1. You now have access to transitions when playing for other factions outside of the Vanilla Anomaly.\n2. You now have the [GAM] R.A.K Balance Addon. It adds crafting, armor balance (adequate), and food and medicine rebalance (should also be improved) from SYS_BALANCE, separating you from the hard core.\n3. Helmets now appear on armored players who should have them when repaired.",
+        "news_3": "Reworking filters",
+        "news_3_body": "Now filters (not cylinders) with their own levels are simply installed in helmets and suits.\nThat is, there is no longer a connection between the filter level and suits. Because of this, you could not use 1 filter level on a suit, so to speak 3 (according to the previous developer). Now this has been abolished and done in a humane way, filters affect the time spent and improve protection.",
+        "news_4": "Fix Begin",
+        "news_4_body": "Now there shouldn't be any problems with recalculating skills, mcm mods, and any addons from the build, there won't be any slowdowns, and you won't have to reboot every time so that you can change your suit and run adequately.",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
