@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.07.31.1"
+LAUNCHER_VERSION = "2026.07.31.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -201,8 +201,10 @@ TEXT = {
         "label_removed_old_files": "Удалено старых файлов",
         "label_removed_empty_dirs": "Удалено пустых папок",
         "label_downloaded_files": "Скачано файлов",
-        "news_1": "Эпический Карч",
-        "news_1_body": "1. Установлены фиксы от Kristiano одним аддоном [DBG] Kristiano Fixes ALL IN ONE для удобства пользователей(временно), пока мы их не зальём в DB архивы\n2. Переделан Toxic Air. Теперь уровни фильтров и балонов имеют значение не только в защите, но в скорости расхода воздуха\n3. Патроны теперь продаются в большем объёме(x4) и теперь оружейник Дэн имеет более распространённый арсенал.Также исправлен ТОЗ-34 Bull.\n4. Адаптирован аддон дистанционной награды за определённые квесты(которые не требуют что-либо обратно принести), кроме сюжетных.Аддон [GAM] Autocomplete Tasks\n5. Добавлены батареи для экзоскелетов. Теперь вам нужны батареи, иначе вы не сможете адекватно пользоваться экзоскелетом",
+        "news_1": "Фиксы и правки",
+        "news_1_body": "1. Устранены проблемы со звуками у серии UZI и MAC-10\n2. Были добавлены в пистолетный слот некоторые короткие ПП\n3.  Фиксы от Kristiano были обновлены: \nAnthology ST2 Mutant Footstep Sound Fix v1.0.0 - исправляет повреждённые и неверные пути звуков шагов мутантов из S.T.A.L.K.E.R. 2.\nAnthology Catspaw Runtime Cleanup Fix v1.0.0 BETA - убирает обращения Catspaw/PAW к удалённым объектам и исправляет устаревшие пути настроек Milspec PDA.\nAnthology Context Menu Integrated Helmet Repair Fix v1.0.0 BETA - восстанавливает ремонт шлемовой части комбинезонов с интегрированным шлемом через контекстное меню.",
+        "news_2": "Эпический Карч",
+        "news_2_body": "1. Установлены фиксы от Kristiano одним аддоном [DBG] Kristiano Fixes ALL IN ONE для удобства пользователей(временно), пока мы их не зальём в DB архивы\n2. Переделан Toxic Air. Теперь уровни фильтров и балонов имеют значение не только в защите, но в скорости расхода воздуха\n3. Патроны теперь продаются в большем объёме(x4) и теперь оружейник Дэн имеет более распространённый арсенал.Также исправлен ТОЗ-34 Bull.\n4. Адаптирован аддон дистанционной награды за определённые квесты(которые не требуют что-либо обратно принести), кроме сюжетных.Аддон [GAM] Autocomplete Tasks\n5. Добавлены батареи для экзоскелетов. Теперь вам нужны батареи, иначе вы не сможете адекватно пользоваться экзоскелетом",
         "debug": "Режим отладки",
         "sound_fix": "Обход проблем со звуком",
         "prefetch": "Предзагрузка звуков",
@@ -297,8 +299,10 @@ TEXT = {
         "label_removed_old_files": "Removed old files",
         "label_removed_empty_dirs": "Removed empty folders",
         "label_downloaded_files": "Downloaded files",
-        "news_1": "Эпический Карч",
-        "news_1_body": "1. Установлены фиксы от Kristiano одним аддоном [DBG] Kristiano Fixes ALL IN ONE для удобства пользователей(временно), пока мы их не зальём в DB архивы\n2. Переделан Toxic Air. Теперь уровни фильтров и балонов имеют значение не только в защите, но в скорости расхода воздуха\n3. Патроны теперь продаются",
+        "news_1": "Фиксы и правки",
+        "news_1_body": "1. Устранены проблемы со звуками у серии UZI и MAC-10\n2. Были добавлены в пистолетный слот некоторые короткие ПП\n3.  Фиксы от Kristiano были обновлены: \nAnthology ST2 Mutant Footstep Sound Fix v1.0.0 - исправляет повреждённые и неверные пути звуков шагов мутантов из S.T.A.L.K.E.R. 2.\nAnthology Catspaw Runtime Cleanup Fix v1.0.0 BETA - убирает обращения Catspaw/PAW к удалённым объектам и исправляет устаревшие пути настроек Milspec PDA.\nAnthology Context Menu Integrated Helmet Repair Fix v1.0.0 BETA - восстанавливает ремонт шлемовой части комбинезонов с интегрированным шлемом через контекстное меню.",
+        "news_2": "Эпический Карч",
+        "news_2_body": "1. Установлены фиксы от Kristiano одним аддоном [DBG] Kristiano Fixes ALL IN ONE для удобства пользователей(временно), пока мы их не зальём в DB архивы\n2. Переделан Toxic Air. Теперь уровни фильтров и балонов имеют значение не только в защите, но в скорости расхода воздуха\n3. Патроны теперь продаются",
         "debug": "Debug mode",
         "sound_fix": "Sound workaround",
         "prefetch": "Prefetch sounds",
