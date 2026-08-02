@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.08.02.1"
+LAUNCHER_VERSION = "2026.08.03.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -379,6 +379,17 @@ LIBRARY_LINKS = {
             "url": "https://github.com/qkff99/zhopa",
             "discord_url": "https://discordapp.com/channels/1239150205153312769/1528408274410672158/1528408274410672158",
             "image_url": "library_modmakers_5e2d59c7-8023-4a91-b41e-8ff122b97e6a_4eafb32d04.png"
+        },
+        {
+            "title_ru": "GoTZ (Осенний набор текстур)",
+            "summary_ru": "Новая версия GoTZ для ANTHOLOGY: изменены насыщенность травы и текстуры.",
+            "body_ru": "Автор: YuriVernadsky\nКатегория: Текстуры \nНовая версия GoTZ для ANTHOLOGY: изменены насыщенность травы и текстуры.\nУСТАНОВКА\nПоместите файлы в папку mods игры ANTHOLOGY; это кумулятивный патч, поэтому просто скопируйте их с заменой.",
+            "title_en": "GoTZ (Autumn Texture Pack)",
+            "summary_en": "New GoTZ version for ANTHOLOGY: grass saturation and textures have been updated.",
+            "body_en": "Author: YuriVernadsky\nCategory: Textures\nNew GoTZ version for ANTHOLOGY: grass saturation and textures have been updated.\nINSTALLATION\nPlace the files in the ANTHOLOGY mods folder; this is a cumulative patch, so simply copy and paste them.",
+            "url": "https://drive.google.com/file/d/1AzhA8_18f5Aqb3apYup0dwiU2XRY_E4M/view",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1533573706025013490/1533573706025013490",
+            "image_url": "library_modmakers_ss_yuri_08-02-26_01-18-57_puzir_7254b42b5e.jpg"
         }
     ],
     "solutions": [
