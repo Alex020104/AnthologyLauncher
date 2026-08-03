@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.08.03.3"
+LAUNCHER_VERSION = "2026.08.03.4"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -341,7 +341,7 @@ LIBRARY_LINKS = {
             "title_en": "Test Engine",
             "summary_en": "This engine is a test solution for improving performance and faster loading.",
             "body_en": "Author: Shura\nCategory: Engine\n\nThis thread is open for testing a new engine for ANTHOLOGY.\nThis engine addresses the following issues:\n\nONLY DX11AVX IS BEING TESTED SO FAR!!!!\n1. Loading\nUsers are complaining about long loading times. I decided to respond to this and am using the best solutions from the IX-Ray DEVELOPER branch, some AOE concepts, and building on the MT engine (by ThemrDemonized). Currently, loading times are fixed on various systems and are 1/3 faster, with the goal of loading twice as fast.\n2. Performance\nPreviously, there was an issue with poor performance. We are also taking steps to address this, and now average performance has also improved by several points. If you have low FPS, the engine's anti-aliasing should also compensate. 3. \"Faring\"\nTesters have experienced this issue, and it doesn't occur when loading saves, as Multithreading has become more stable. Only weaker processors (approximately 6-8 years old) experience these issues, but they're also less common (I've tested this myself).\n4. Fully compatible with the PiP crosshair add-on, as it's the same engine, and that's what I'm experimenting with.\n5. Installation:\nFollow the link and download the bin file: https://disk.yandex.ru/d/Qv0ghSy91kmb3g\nGo to the game path ANTHOLOGY\\Anomaly-1.5.3-Anthology 2.1 and rename the bin folder to bin1 (or better yet, zip it up just in case) before installing.\nInstall the new unzipped bin file in the same path.\nClear the shader cache either manually from appdata or by pressing play in the launcher. CONTRAINDICATED:\n1. DO NOT USE THIS AS AN ADD-ON IN MO2 UNDER ANY CIRCUMSTANCES!!!\n2. DO NOT UNDER ANY CIRCUMSTANCES SWITCH TO AN ENGINE THAT WE DO NOT PROVIDE YOU WITH. BETTER ROLLBACK TO THE OLD ONE. OTHERWISE, THE ENTIRE SESSION AND OTHER FEATURES WILL DISAPPEAR. OTHERWISE, TECHNICAL SUPPORT WILL BE DENIED.\n3. DO NOT USE MODS THAT RELATED TO AN ENGINE NOT IN OUR ADD-ON DATABASE WITHOUT OUR ADVICE (SUCH AS A-LIFE PLUS). OTHERWISE, SUPPORT WILL BE DENIED.",
-            "url": "https://disk.yandex.ru/d/Qv0ghSy91kmb3g",
+            "url": "https://disk.yandex.ru/d/3SxJwT6ZR5mzmA",
             "discord_url": "https://discordapp.com/channels/1239150205153312769/1533636608761528540/1533636608761528540",
             "image_url": "library_dev_rak_weapon_pack_meme_clean_no_text_7453e41dee.png"
         }
