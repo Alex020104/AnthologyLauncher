@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.08.03.5"
+LAUNCHER_VERSION = "2026.08.12.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -444,7 +444,7 @@ LIBRARY_LINKS = {
 INFO_LINKS = {
     "requirements": {
         "title_ru": "Системные требования",
-        "body_ru": "Тут вопрос довольно дискуссионный, всё зависит от версии в которую вы играете: \n\nОригинал: \nДолжен запускаться на любой 64x битной системе от DX8(кроме DX10, он по умолчанию не работает)\n\nОригинал+Модпак:\nМинимальные: \n- Видеокарты RTX 1660 6 ГБ / RX 580 8 ГБ (Зависит от разрешения монитора)\n- Процессор 4х ядерный любой\n- Оперативная память 16 ГБ + Файл подкачки 40-50 ГБ\n- Твердотельный накопитель(SSD) для быстрой загрузки\n\nРекомендуемые требования:\n- Видеокарты RTX 3060 8 ГБ / RX 6600XT 8 ГБ (Зависит от разрешения монитора)\n- Современный 6-ядерный процессор\n- Оперативная память 32 ГБ (Файл подкачки рекомендуется, но необязателен)\n- SSD M2 для быстрой загрузки\n\nТочные требования зависят от настроек графики, выбранного рендера и установленных дополнительных проектов.В основном всё тестируется как 1920x1080 и 2560x1440 разрешениях",
+        "body_ru": "Тут вопрос довольно дискуссионный, всё зависит от версии в которую вы играете: \n\nОригинал: \nДолжен запускаться на любой 64x битной системе от DX8(кроме DX10, он по умолчанию не работает)\n\nОригинал+Модпак:\nМинимальные: \n- Видеокарты GTX 1660 6 ГБ / RX 580 8 ГБ (Зависит от разрешения монитора)\n- Процессор 4х ядерный любой\n- Оперативная память 16 ГБ + Файл подкачки 40-50 ГБ\n- Твердотельный накопитель(SSD) для быстрой загрузки\n\nРекомендуемые требования:\n- Видеокарты RTX 3060 8 ГБ / RX 6600XT 8 ГБ (Зависит от разрешения монитора)\n- Современный 6-ядерный процессор\n- Оперативная память 32 ГБ (Файл подкачки рекомендуется, но необязателен)\n- SSD M2 для быстрой загрузки\n\nТочные требования зависят от настроек графики, выбранного рендера и установленных дополнительных проектов.В основном всё тестируется как 1920x1080 и 2560x1440 разрешениях",
         "title_en": "System requirements",
         "body_en": "This question is quite debatable, it all depends on the version you're playing:\n\nOriginal:\nShould run on any 64-bit system from DX8 (except DX10, which doesn't work by default)\n\nOriginal + Modpack:\nMinimum:\n- RTX 1660 6GB / RX 580 8GB graphics card (Depends on monitor resolution)\n- Any quad-core processor\n- 16GB RAM + 40-50GB paging file\n- Solid-state drive (SSD) for fast loading\n\nRecommended:\n- RTX 3060 8GB / RX 6600XT 8GB graphics card (Depends on monitor resolution)\n- Modern 6-core processor\n- 32GB RAM (Paging file recommended, but not required)\n- M2 SSD for fast loading Downloads\n\nThe exact requirements depend on the graphics settings, the selected renderer, and the additional projects installed. Generally, everything is tested at both 1920x1080 and 2560x1440 resolutions."
     },
