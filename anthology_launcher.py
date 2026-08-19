@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.08.12.1"
+LAUNCHER_VERSION = "2026.08.19.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -401,6 +401,17 @@ LIBRARY_LINKS = {
             "url": "https://drive.google.com/file/d/1AzhA8_18f5Aqb3apYup0dwiU2XRY_E4M/view",
             "discord_url": "https://discordapp.com/channels/1239150205153312769/1533573706025013490/1533573706025013490",
             "image_url": "library_modmakers_ss_yuri_08-02-26_01-18-57_puzir_7254b42b5e.jpg"
+        },
+        {
+            "title_ru": "High Quality MAPS — 4K карты для КПК от 𝙍𝙚𝙑𝙤_𝙊𝖓𝖑𝟏𝖓𝖊",
+            "summary_ru": "Графический аддон, направленный на полное переосмысление и повышение качества для ВСЕХ КАРТ ЛОКАЦИЙ которые видны в КПК и на мини-карте для сборки S.T.A.L.K.E.R. ANTHOLOGY.",
+            "body_ru": "Автор: ReVo_Onl1ne\nКатегория: HUD\n\nОригинальные текстуры карт были обработаны с помощью нейросетей: разрешение увеличено в 4 раза (4x Upscale), устранено чрезмерное размытие и существенно повышена четкость мелких деталей (построек, аномалий, рельефа и объектов местности). Теперь изучать КПК и ориентироваться на местности с помощью мини-карты стало намного приятнее!\n\n✨ Основные особенности:\nHigh-Res детализация: Увеличение исходного разрешения текстур в 4 раза.\n\nИИ-улучшение: Сохранена оригинальная стилистика и цветокоррекция карт при максимальной прорисовке контуров и мелочей.\n\nПолная совместимость: Мод создавался специально под сборку ANTHOLOGY.\n\n🛠️ Инструкция по установке:\nСкачать и распаковать архив с модификацией.\nПеренести распакованную папку High Quality MAPS - ANTHOLOGY в папку mods вашего Mod Organizer 2 (MO2). Путь: \nANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\nЗапустить MO2, прокрутить список модов в самом левом окне в самый низ и поставить галочку напротив High Quality MAPS - ANTHOLOGY.\n\nЗапустить игру и наслаждаться чёткими картами! ☢️ \n\n💡 Рекомендуется ставить мод в самом низу списка загрузки (priority), чтобы его текстуры не перекрывались другими графическими аддонами(которые заменяют текстуры карт локаций).",
+            "title_en": "Z.H.O.P.A. ALIFE 2.0",
+            "summary_en": "A graphical addon designed to completely redesign and improve the quality of ALL location maps visible in the PDA and on the minimap for the S.T.A.L.K.E.R. ANTHOLOGY build.",
+            "body_en": "Author: ReVo_Onl1ne\nCategory: HUD\nThe original map textures have been processed using neural networks: the resolution has been increased by 4x (4x Upscale), excessive blurring has been eliminated, and the clarity of small details (buildings, anomalies, terrain, and terrain features) has been significantly improved. Now exploring the PDA and navigating the terrain using the minimap has become much more enjoyable!\n\n✨ Key Features:\nHigh-Res Detail: The original texture resolution has been increased by 4x.\n\nAI Enhancement: The original style and color correction of the maps have been preserved while maximizing the rendering of contours and details.\n\nFull Compatibility: The mod was created specifically for the ANTHOLOGY build.\n\n🛠️ Installation Instructions:\nDownload and unzip the archive containing the modification.\nMove the unzipped High Quality MAPS - ANTHOLOGY folder to the mods folder in your Mod Organizer 2 (MO2). Path:\nANTHOLOGY\\SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT\\mods\nLaunch MO2, scroll to the bottom of the mod list in the leftmost window, and check the box next to High Quality MAPS - ANTHOLOGY.\n\nLaunch the game and enjoy crisp maps! ☢️\n\n💡 It is recommended to install the mod at the very bottom of the load order (priority) so that its textures are not overlapped by other graphic add-ons (which replace location map textures).",
+            "url": "https://www.moddb.com/mods/high-quality-maps-stalker-anthology/downloads/high-quality-maps-stalker-anthology",
+            "discord_url": "https://discordapp.com/channels/1239150205153312769/1525963994417070231/1529232779777146912",
+            "image_url": "library_modmakers_1___2_c3b30dc43b.png"
         }
     ],
     "solutions": [
