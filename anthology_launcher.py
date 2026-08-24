@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.08.25.1"
+LAUNCHER_VERSION = "2026.08.25.2"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -4107,16 +4107,6 @@ class LauncherApp(tk.Tk):
         put_link("Boosty", "https://boosty.to/maks_ratniy/donate")
         put_link("DonationAlerts", "https://www.donationalerts.com/r/maks_ratniy")
 
-        put("\n@ANTHOLOGY | SYS\n", "section")
-        put("Разработчик модпака и техническая поддержка / modpack developer and technical support\n", "role")
-        put_link("YouTube", "https://www.youtube.com/@Samael-w3p")
-        put_link("Twitch", "https://twitch.tv/sysliveprime")
-        put_link("VK Live", "https://live.vkvideo.ru/sys_live_prime")
-        put_link("DonatePay", "https://donatepay.ru/don/1479286")
-        put_link("DonationAlerts", "https://donationalerts.com/r/sys_live_prime")
-        put_link("Boosty", "https://boosty.to/sys.live.prime")
-        put("Сбербанк: +7 950 739 99 51 - Дмитрий К.\n")
-
         put("\n@Шура\n", "section")
         put("Дизайнер оружия Anthology / weapon designer\n", "role")
         put("АльфаБанк: 2200 1529 8529 0975\n")
@@ -4126,11 +4116,6 @@ class LauncherApp(tk.Tk):
         put("Поддержка Discord и перевод на русский язык\n", "role")
         put("Kaspi KZ: 4400 4303 8621 3281 - VITALIY LI\n")
         put("ЮMoney: 2204 1201 1060 8698 - YOOMONEY VIRTUAL\n")
-
-        put("\n@Патриарх Кирилл\n", "section")
-        put("Комьюнити менеджер\n", "role")
-        put_link("Boosty", "https://boosty.to/kirill.dmitrov")
-        put("Сбербанк: 2202 2088 4315 3975\n")
 
     def play_online(self):
         self.play()
