@@ -57,7 +57,7 @@ RENDER_LABELS = {
     "DX8": "DirectX 8 / R0",
 }
 SHADOWS = [1536, 2048, 2560, 3072, 4096]
-LAUNCHER_VERSION = "2026.08.20.1"
+LAUNCHER_VERSION = "2026.08.25.1"
 LAUNCHER_VERSION_URL = "https://api.github.com/repos/Alex020104/AnthologyLauncher/contents/launcher_version.json?ref=main"
 LAUNCHER_VERSION_RAW_URL = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/main/launcher_version.json"
 LAUNCHER_EXE_URL = "https://github.com/Alex020104/AnthologyLauncher/releases/latest/download/AnomalyLauncher.exe"
@@ -693,7 +693,7 @@ class LauncherApp(tk.Tk):
         self._clear_view()
         t = TEXT[self.lang]
 
-        self.buttons["youtube"] = self._button(710, 118, 118, 38, "YouTube", lambda: webbrowser.open("https://youtube.com/@Sys-live-prime"))
+        self.buttons["youtube"] = self._button(710, 118, 118, 38, "YouTube", lambda: webbrowser.open("https://www.youtube.com/@Samael-w3p"))
         self.buttons["vk"] = self._button(836, 118, 118, 38, "VK", lambda: webbrowser.open("https://vk.com/club219667646"))
         self.buttons["discord"] = self._button(961, 118, 118, 38, "Discord", lambda: webbrowser.open("https://discord.gg/pZYeVxEwGc"))
         self.buttons["support"] = self._button(713, 174, 365, 38, t["support"], self.show_support)
@@ -4109,7 +4109,7 @@ class LauncherApp(tk.Tk):
 
         put("\n@ANTHOLOGY | SYS\n", "section")
         put("Разработчик модпака и техническая поддержка / modpack developer and technical support\n", "role")
-        put_link("YouTube", "https://youtube.com/@Sys-live-prime")
+        put_link("YouTube", "https://www.youtube.com/@Samael-w3p")
         put_link("Twitch", "https://twitch.tv/sysliveprime")
         put_link("VK Live", "https://live.vkvideo.ru/sys_live_prime")
         put_link("DonatePay", "https://donatepay.ru/don/1479286")
