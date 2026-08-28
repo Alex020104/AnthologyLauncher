@@ -1,0 +1,11 @@
+.vs/
+.idea/
+bin/
+obj/
+artifacts/
+.local/
+*.user
+*.suo
+*.log
+*.pdb
+TestResults/
