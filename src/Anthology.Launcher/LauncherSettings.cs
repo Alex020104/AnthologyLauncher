@@ -46,6 +46,8 @@ public sealed class LauncherSettings
 
     public bool RelayChatAlways { get; set; } = true;
 
+    public string InterfaceLanguage { get; set; } = "ru";
+
     public int ShadowMapSize { get; set; } = 1536;
 
     public LauncherSettings Copy() => new()
@@ -69,6 +71,7 @@ public sealed class LauncherSettings
         ResetUserLtx = ResetUserLtx,
         UseAvx = UseAvx,
         RelayChatAlways = RelayChatAlways,
+        InterfaceLanguage = InterfaceLanguage,
         ShadowMapSize = ShadowMapSize,
     };
 }
@@ -186,6 +189,9 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.Renderer = settings.Renderer.ToUpperInvariant() is "DX11" or "DX10" or "DX9" or "DX8"
             ? settings.Renderer.ToUpperInvariant()
             : "DX11";
+        settings.InterfaceLanguage = settings.InterfaceLanguage.Trim().ToLowerInvariant() is "ru" or "en" or "de"
+            ? settings.InterfaceLanguage.Trim().ToLowerInvariant()
+            : "ru";
         settings.ShadowMapSize = settings.ShadowMapSize is 1536 or 2048 or 2560 or 3072 or 4096
             ? settings.ShadowMapSize
             : 1536;

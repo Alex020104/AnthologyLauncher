@@ -179,6 +179,8 @@ button { color: inherit; }
 .chat-title strong, .chat-title small { display: block; }.chat-title strong { font-size: 12px; }.chat-title small { margin-top: 3px; color: var(--dim); font-size: 8px; }
 .online-count { color: var(--green); font-size: 8px; letter-spacing: .08em; }
 .chat-messages { min-height: 0; overflow: auto; padding: 21px; scrollbar-color: #343e44 transparent; scrollbar-width: thin; }
+.relay-messages { background: radial-gradient(circle at 50% 15%, #d2a83d0b, transparent 44%); }
+.chat-message.own { border-left-color: var(--accent); background: #caa44908; }
 .chat-message { display: grid; grid-template-columns: 35px 1fr; gap: 11px; margin-bottom: 24px; }
 .chat-message > span { width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid var(--line); background: #20282d; color: #a8b0b4; font-weight: 600; }
 .chat-message.system > span { border-color: var(--accent-deep); color: var(--accent); background: #292419; }

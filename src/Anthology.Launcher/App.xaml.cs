@@ -40,6 +40,7 @@ public partial class App : System.Windows.Application
         });
         services.AddSingleton<LauncherSettingsStore>();
         services.AddSingleton<CommunityClient>();
+        services.AddSingleton<RelayChatClient>();
         services.AddSingleton<LauncherBridge>();
         services.AddSingleton<Mo2IntegrationService>();
         services.AddSingleton<LauncherUpdateService>();

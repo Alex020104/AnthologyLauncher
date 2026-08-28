@@ -47,7 +47,7 @@ public static partial class ReleasePublicationService
         UnifiedReleaseBuilder.ValidateMachine(machine);
         if (addon.Kind != ContentKind.Mod)
         {
-            throw new InvalidOperationException("Выпуск файла доступен только для материала типа «Мод».");
+            throw new InvalidOperationException("Публикация файла доступна только для материала типа «Мод для библиотеки».");
         }
 
         var id = NormalizeId(addon.Id);

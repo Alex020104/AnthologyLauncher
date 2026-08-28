@@ -56,6 +56,18 @@ public sealed class ContentDraft
 
     public string Body { get; set; } = string.Empty;
 
+    public string TitleEn { get; set; } = string.Empty;
+
+    public string SummaryEn { get; set; } = string.Empty;
+
+    public string BodyEn { get; set; } = string.Empty;
+
+    public string TitleDe { get; set; } = string.Empty;
+
+    public string SummaryDe { get; set; } = string.Empty;
+
+    public string BodyDe { get; set; } = string.Empty;
+
     public string Images { get; set; } = string.Empty;
 
     public string Videos { get; set; } = string.Empty;

@@ -71,7 +71,39 @@ public sealed record ContentDocument(
     string Body,
     IReadOnlyList<string> Images,
     IReadOnlyList<ContentVideo> Videos,
-    ContentDownload? Download = null);
+    ContentDownload? Download = null,
+    IReadOnlyDictionary<string, ContentTranslation>? Translations = null);
+
+public sealed record ContentTranslation(
+    string Title,
+    string Summary,
+    string Body);
+
+public static class ContentLocalization
+{
+    public static ContentTranslation Resolve(ContentDocument document, string? language)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var normalized = string.IsNullOrWhiteSpace(language) ? "ru" : language.Trim().ToLowerInvariant();
+        if (normalized != "ru" && document.Translations is not null)
+        {
+            if (document.Translations.TryGetValue(normalized, out var translation))
+            {
+                return translation;
+            }
+
+            translation = document.Translations
+                .FirstOrDefault(pair => string.Equals(pair.Key, normalized, StringComparison.OrdinalIgnoreCase))
+                .Value;
+            if (translation is not null)
+            {
+                return translation;
+            }
+        }
+
+        return new ContentTranslation(document.Title, document.Summary, document.Body);
+    }
+}
 
 public sealed record ContentVideo(
     string Title,

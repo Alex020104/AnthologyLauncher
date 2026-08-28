@@ -42,6 +42,12 @@ public sealed class ReleaserCoreTests : IDisposable
                     Title = "Версия 2.1.131",
                     Summary = "Тест",
                     Body = "Полный текст",
+                    TitleEn = "Version 2.1.131",
+                    SummaryEn = "Test",
+                    BodyEn = "Full text",
+                    TitleDe = "Version 2.1.131",
+                    SummaryDe = "Test",
+                    BodyDe = "Vollständiger Text",
                 },
             ],
         };
@@ -65,6 +71,11 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.Equal(2, manifest.Payload.SchemaVersion);
         Assert.All(manifest.Payload.Packages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
         Assert.All(manifest.Payload.Packages, package => Assert.True(package.PruneInstallRoot));
+        var localizedNews = Assert.Single(manifest.Payload.Content!.Items);
+        Assert.Equal(2, manifest.Payload.Content.SchemaVersion);
+        Assert.Equal("Full text", ContentLocalization.Resolve(localizedNews, "en").Body);
+        Assert.Equal("Vollständiger Text", ContentLocalization.Resolve(localizedNews, "de").Body);
+        Assert.Equal("Полный текст", ContentLocalization.Resolve(localizedNews, "fr").Body);
         Assert.DoesNotContain(manifest.Payload.Packages.Single(package => package.InstallRoot == "game").Files, file => file.StartsWith("appdata/", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(manifest.Payload.Packages.Single(package => package.InstallRoot == "modpack").Files, file => file.StartsWith("overwrite/", StringComparison.OrdinalIgnoreCase));
     }

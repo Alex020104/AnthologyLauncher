@@ -2,12 +2,14 @@
 @using Anthology.Mo2.Core
 @using Anthology.Update.Core
 @using System.Net.Http
+@using System.Net.Sockets
 @using System.IO
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
 @inject CommunityClient Community
+@inject RelayChatClient RelayChat
 @inject LauncherBridge Launcher
 @inject LauncherSettingsStore Settings
 @inject Mo2IntegrationService Mo2

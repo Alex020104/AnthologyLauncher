@@ -190,7 +190,7 @@ public static partial class ManifestValidator
 
     private static void ValidateContent(ContentCatalog content, List<string> errors)
     {
-        if (content.SchemaVersion != 1)
+        if (content.SchemaVersion is not (1 or 2))
         {
             errors.Add($"Unsupported content schema version: {content.SchemaVersion}.");
         }
@@ -210,6 +210,21 @@ public static partial class ManifestValidator
             if (string.IsNullOrWhiteSpace(item.Title))
             {
                 errors.Add($"Content '{item.Id}' has no title.");
+            }
+
+            if (item.Translations is not null)
+            {
+                foreach (var (language, translation) in item.Translations)
+                {
+                    if (language is not ("en" or "de"))
+                    {
+                        errors.Add($"Content '{item.Id}' has unsupported translation '{language}'.");
+                    }
+                    if (string.IsNullOrWhiteSpace(translation.Title))
+                    {
+                        errors.Add($"Content '{item.Id}' translation '{language}' has no title.");
+                    }
+                }
             }
 
             foreach (var image in item.Images)

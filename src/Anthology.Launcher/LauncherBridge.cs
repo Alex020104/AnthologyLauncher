@@ -15,10 +15,9 @@ public sealed record InstallationStatus(
 
 public sealed record LauncherActionResult(bool Success, string Message);
 
-public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
+public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayChatClient relayChat)
 {
     private const string ModpackFolder = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT";
-    private const string RelayChatExecutable = "Chernobyl Relay Chat.exe";
     private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
 
     public InstallationStatus DetectInstallation()
@@ -33,7 +32,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         var mo2Found = modpackRoot is not null && File.Exists(Path.Combine(modpackRoot, "ModOrganizer.exe"));
         var originalFound = File.Exists(GetSelectedGameExecutable(gameRoot, settingsStore.Current));
         var onlineFound = File.Exists(Path.Combine(gameRoot, "Lan_anthology.bat"));
-        var relayChatFound = File.Exists(Path.Combine(gameRoot, RelayChatExecutable));
+        var relayChatFound = Directory.Exists(Path.Combine(gameRoot, "gamedata", "configs"));
         return new InstallationStatus(
             true,
             mo2Found,
@@ -96,7 +95,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         try
         {
             await PrepareGameLaunchAsync(status.GameRoot!, cancellationToken);
-            StartRelayChatIfEnabled(status.GameRoot!);
+            await StartRelayChatIfEnabledAsync(status.GameRoot!, cancellationToken);
             var executable = Path.Combine(status.ModpackRoot, "ModOrganizer.exe");
             Process.Start(new ProcessStartInfo(executable)
             {
@@ -130,7 +129,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         try
         {
             await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
-            StartRelayChatIfEnabled(status.GameRoot);
+            await StartRelayChatIfEnabledAsync(status.GameRoot, cancellationToken);
             Process.Start(new ProcessStartInfo(executable)
             {
                 WorkingDirectory = Path.GetDirectoryName(executable)!,
@@ -163,7 +162,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         try
         {
             await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
-            StartRelayChatIfEnabled(status.GameRoot);
+            await StartRelayChatIfEnabledAsync(status.GameRoot, cancellationToken);
             Process.Start(new ProcessStartInfo(launcher)
             {
                 WorkingDirectory = status.GameRoot,
@@ -179,7 +178,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         }
     }
 
-    public LauncherActionResult LaunchRelayChat()
+    public async Task<LauncherActionResult> LaunchRelayChatAsync(CancellationToken cancellationToken = default)
     {
         var status = DetectInstallation();
         if (!status.GameFound || status.GameRoot is null)
@@ -187,10 +186,10 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
             return new LauncherActionResult(false, status.StatusText);
         }
 
-        return StartRelayChat(status.GameRoot, showAlreadyRunning: true);
+        return await relayChat.EnsureStartedAsync(status.GameRoot, settingsStore.Current, cancellationToken);
     }
 
-    public LauncherActionResult EnsureRelayChatStarted()
+    public async Task<LauncherActionResult> EnsureRelayChatStartedAsync(CancellationToken cancellationToken = default)
     {
         if (!settingsStore.Current.RelayChatAlways)
         {
@@ -203,23 +202,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
             return new LauncherActionResult(false, status.StatusText);
         }
 
-        return StartRelayChat(status.GameRoot, showAlreadyRunning: false);
-    }
-
-    public static bool IsRelayChatRunning()
-    {
-        foreach (var process in Process.GetProcessesByName("Chernobyl Relay Chat"))
-        {
-            using (process)
-            {
-                if (!process.HasExited)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return await relayChat.EnsureStartedAsync(status.GameRoot, settingsStore.Current, cancellationToken);
     }
 
     public async Task<LauncherActionResult> PrepareModpackRuntimeAsync(CancellationToken cancellationToken = default)
@@ -233,7 +216,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         try
         {
             await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
-            StartRelayChatIfEnabled(status.GameRoot);
+            await StartRelayChatIfEnabledAsync(status.GameRoot, cancellationToken);
             return new LauncherActionResult(true, "Параметры Anomaly подготовлены");
         }
         catch (Exception exception) when (exception is IOException
@@ -383,41 +366,11 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         }
     }
 
-    private void StartRelayChatIfEnabled(string gameRoot)
+    private async Task StartRelayChatIfEnabledAsync(string gameRoot, CancellationToken cancellationToken)
     {
         if (settingsStore.Current.RelayChatAlways)
         {
-            StartRelayChat(gameRoot, showAlreadyRunning: false);
-        }
-    }
-
-    private static LauncherActionResult StartRelayChat(string gameRoot, bool showAlreadyRunning)
-    {
-        if (IsRelayChatRunning())
-        {
-            return new LauncherActionResult(true, showAlreadyRunning ? "Реальный Чат уже запущен" : string.Empty);
-        }
-
-        var executable = Path.Combine(gameRoot, RelayChatExecutable);
-        if (!File.Exists(executable))
-        {
-            return new LauncherActionResult(false, $"Реальный Чат не найден в корне игры: {executable}");
-        }
-
-        try
-        {
-            Process.Start(new ProcessStartInfo(executable)
-            {
-                WorkingDirectory = gameRoot,
-                UseShellExecute = true,
-            });
-            return new LauncherActionResult(true, "Реальный Чат запущен из корня игры");
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException
-                                           or InvalidOperationException)
-        {
-            return new LauncherActionResult(false, exception.Message);
+            await relayChat.EnsureStartedAsync(gameRoot, settingsStore.Current, cancellationToken);
         }
     }
 }

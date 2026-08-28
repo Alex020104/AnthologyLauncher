@@ -109,7 +109,8 @@
                             {
                                 @foreach (var news in PublishedNews.Take(3))
                                 {
-                                    <article class="news-row published-news" @onclick="() => OpenPublishedNews(news.Id)"><div class="news-date"><strong>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("dd") ?? "--")</strong><span>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant() ?? "NEXT")</span></div><div><span class="category-label">@news.Section</span><h4>@news.Title</h4><p>@news.Summary</p></div><span class="row-arrow">↗</span></article>
+                                    var localizedNews = Localized(news);
+                                    <article class="news-row published-news" @onclick="() => OpenPublishedNews(news.Id)"><div class="news-date"><strong>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("dd") ?? "--")</strong><span>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant() ?? "NEXT")</span></div><div><span class="category-label">@news.Section</span><h4>@localizedNews.Title</h4><p>@localizedNews.Summary</p></div><span class="row-arrow">↗</span></article>
                                 }
                             }
                             else
@@ -161,24 +162,25 @@
                     @foreach (var item in FilteredPublishedMods)
                     {
                         var currentItem = item;
+                        var localizedItem = Localized(currentItem);
                         <article class="mod-card published-mod-card @(_openContentId == currentItem.Id ? "open" : null)">
                             <div class="mod-cover published-cover">
-                                @if (currentItem.Images.FirstOrDefault() is { } imageUrl) { <img src="@imageUrl" alt="" /> } else { <span>@currentItem.Title[..1]</span> }
+                                @if (currentItem.Images.FirstOrDefault() is { } imageUrl) { <img src="@imageUrl" alt="" /> } else { <span>@localizedItem.Title[..1]</span> }
                                 <small>@(_publishedContent?.Version ?? "NEXT")</small>
                             </div>
                             <div class="mod-body">
                                 <div class="mod-author">ПУБЛИКАЦИЯ ANTHOLOGY · @currentItem.Section</div>
-                                <h3>@currentItem.Title</h3><p>@currentItem.Summary</p>
+                                <h3>@localizedItem.Title</h3><p>@localizedItem.Summary</p>
                                 @if (_openContentId == currentItem.Id)
                                 {
-                                    <div class="published-content-body">@currentItem.Body</div>
+                                    <div class="published-content-body">@localizedItem.Body</div>
                                     @foreach (var video in currentItem.Videos)
                                     {
                                         var videoUrl = GetSafeEmbedUrl(video);
                                         @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> }
                                     }
                                 }
-                                <div class="published-card-actions"><button class="card-action" @onclick="() => ToggleContent(currentItem.Id)">@(_openContentId == currentItem.Id ? "СВЕРНУТЬ" : "ЧИТАТЬ ПОЛНОСТЬЮ") <span>→</span></button>@if (currentItem.Download is not null) { <button class="primary-button" disabled="@(_contentDownloadId is not null)" @onclick="() => DownloadPublishedContentAsync(currentItem)">@(_contentDownloadId == currentItem.Id ? "ЗАГРУЗКА…" : "СКАЧАТЬ")</button> }</div>
+                                <div class="published-card-actions"><button class="card-action" @onclick="() => ToggleContent(currentItem.Id)">@(_openContentId == currentItem.Id ? "СВЕРНУТЬ" : "ЧИТАТЬ ПОЛНОСТЬЮ") <span>→</span></button>@if (currentItem.Download is not null) { <button class="primary-button" disabled="@(_contentDownloadId is not null || _mo2Workspace.SelectedProfile is null)" @onclick="() => DownloadPublishedContentAsync(currentItem)">@(_contentDownloadId == currentItem.Id ? "ЗАГРУЗКА…" : _mo2Workspace.SelectedProfile is null ? "ВЫБЕРИТЕ ПРОФИЛЬ MO2" : "УСТАНОВИТЬ В MO2")</button> }</div>
                                 @if (_contentDownloadId == currentItem.Id && _contentDownloadProgress is not null) { <div class="install-progress"><div class="progress-track"><span style="width:@ContentDownloadPercentage%"></span></div><small>@FormatBytes(_contentDownloadProgress.DownloadedBytes) / @FormatBytes(_contentDownloadProgress.TotalBytes) · @_contentDownloadProgress.Provider</small></div> }
                             </div>
                         </article>
@@ -231,16 +233,18 @@
                     <div class="chat-panel section-block">
                         @if (_selectedChannelId == RelayChatChannelId)
                         {
-                            <div class="chat-title"><div><span>⌁</span><div><strong>Реальный чат</strong><small>Связь лаунчера с внутриигровым чатом</small></div></div><span class="online-count @(!_relayChatRunning ? "offline" : null)">@(_relayChatRunning ? "● ПОДКЛЮЧЁН" : "○ НЕ ЗАПУЩЕН")</span></div>
-                            <div class="relay-channel-content">
-                                <div class="relay-orbit"><span>⌁</span></div>
-                                <span class="eyebrow">ИГРОВОЙ МОСТ</span>
-                                <h2>@(_relayChatRunning ? "Реальный чат подключён" : "Подключить Реальный чат")</h2>
-                                <p>Процесс запускается строго из выбранного корня игры. Поэтому один и тот же чат доступен здесь и продолжает работать внутри Anomaly.</p>
-                                <code>@(_installation.GameRoot is null ? "Сначала выберите корень игры" : Path.Combine(_installation.GameRoot, "Chernobyl Relay Chat.exe"))</code>
-                                <button class="primary-button" @onclick="LaunchRelayChat" disabled="@(!_installation.RelayChatFound)">@(_relayChatRunning ? "ЧАТ УЖЕ ПОДКЛЮЧЁН" : "ПОДКЛЮЧИТЬСЯ")</button>
+                            <div class="chat-title"><div><span>⌁</span><div><strong>Реальный чат</strong><small>Встроенный чат лаунчера и игровой мост</small></div></div><span class="online-count @(!_relayChatRunning ? "offline" : null)">@(_relayChatRunning ? $"● НА СВЯЗИ · {RelayChat.OnlineCount}" : "○ ПОДКЛЮЧЕНИЕ")</span></div>
+                            <div class="chat-messages relay-messages">
+                                @if (_relayMessages.Count == 0)
+                                {
+                                    <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY RELAY <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@RelayChat.StatusText. Чат работает прямо в лаунчере; отдельное приложение больше не запускается.</p></div></div>
+                                }
+                                @foreach (var message in _relayMessages)
+                                {
+                                    <div class="chat-message @(message.IsSystem ? "system" : null) @(message.IsOwn ? "own" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName <em>@message.Faction</em></strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@message.Text</p></div></div>
+                                }
                             </div>
-                            <div class="relay-channel-footer">Если «Реальный чат всегда» включён в Настройках, мост поднимается заранее при старте лаунчера.</div>
+                            <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в Реальный чат" @bind="_relayText" @bind:event="oninput" @onkeydown="RelayChatKeyDownAsync" disabled="@(!_relayChatRunning)" maxlength="380" /><button class="send-button" @onclick="SendRelayChatMessageAsync" disabled="@(!_relayChatRunning || string.IsNullOrWhiteSpace(_relayText))">↑</button></div>
                         }
                         else
                         {
@@ -279,7 +283,8 @@
                 @if (SelectedPublishedNews is not null)
                 {
                     var openNews = SelectedPublishedNews!;
-                    <section class="section-block published-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @(_publishedContent?.Version)</span><h2>@openNews.Title</h2><p class="information-lead">@openNews.Summary</p>@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }<div class="published-content-body">@openNews.Body</div>@foreach (var video in openNews.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</section>
+                    var localizedNews = Localized(openNews);
+                    <section class="section-block published-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @(_publishedContent?.Version)</span><h2>@localizedNews.Title</h2><p class="information-lead">@localizedNews.Summary</p>@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }<div class="published-content-body">@localizedNews.Body</div>@foreach (var video in openNews.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</section>
                 }
             }
             else if (_section == "information")
@@ -290,7 +295,8 @@
                         @foreach (var item in PublishedInformation)
                         {
                             var currentItem = item;
-                            <article class="section-block published-information"><span class="eyebrow">ОПУБЛИКОВАНО · @currentItem.Section</span><h2>@currentItem.Title</h2><p class="information-lead">@currentItem.Summary</p><div class="information-body">@currentItem.Body</div>@foreach (var video in currentItem.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</article>
+                            var localizedItem = Localized(currentItem);
+                            <article class="section-block published-information"><span class="eyebrow">ОПУБЛИКОВАНО · @currentItem.Section</span><h2>@localizedItem.Title</h2><p class="information-lead">@localizedItem.Summary</p><div class="information-body">@localizedItem.Body</div>@foreach (var video in currentItem.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</article>
                         }
                     </section>
                 }
@@ -616,7 +622,7 @@
                         <div class="settings-module-heading"><span class="module-index">02</span><div><span class="eyebrow">СИСТЕМА</span><h3>Совместимость и диагностика</h3></div></div>
                         <div class="next-option-stack">
                             <button class="next-option @ToggleClass(_settings.UseAvx)" @onclick="() => _settings.UseAvx = !_settings.UseAvx"><span class="option-glyph">AX</span><div><strong>Инструкции AVX</strong><small>Выбирает AVX-версию исполняемого файла</small></div><em>@OptionState(_settings.UseAvx)</em></button>
-                            <button class="next-option @ToggleClass(_settings.DebugMode)" @onclick="() => _settings.DebugMode = !_settings.DebugMode"><span class="option-glyph">DB</span><div><strong>Диагностический режим</strong><small>Добавляет ключ -dbg для расширенных логов</small></div><em>@OptionState(_settings.DebugMode)</em></button>
+                            <button class="next-option @ToggleClass(_settings.DebugMode)" @onclick="() => _settings.DebugMode = !_settings.DebugMode"><span class="option-glyph">DB</span><div><strong>Отладочный режим для разработчиков и тестеров</strong><small>Добавляет ключ -dbg. Обычному игроку включать только в крайнем случае</small></div><em>@OptionState(_settings.DebugMode)</em></button>
                             <button class="next-option @ToggleClass(_settings.ResetUserLtx)" @onclick="() => _settings.ResetUserLtx = !_settings.ResetUserLtx"><span class="option-glyph">UL</span><div><strong>Сбросить user.ltx</strong><small>Одноразовое восстановление при следующем запуске</small></div><em>@(_settings.ResetUserLtx ? "ОЖИДАЕТ" : "НЕ НУЖНО")</em></button>
                         </div>
                     </article>
@@ -633,6 +639,12 @@
                         <div class="settings-module-heading"><span class="module-index">04</span><div><span class="eyebrow">ИГРОВОЙ МОСТ</span><h3>Реальный чат</h3></div><span class="status-dot @(_relayChatRunning ? "online" : "warning")"></span></div>
                         <div class="service-orbit"><span>⌁</span><div><strong>@(_relayChatRunning ? "Мост уже подключён" : "Мост ожидает запуска")</strong><small>Чат работает из корня игры и остаётся доступен внутри Anomaly.</small></div></div>
                         <button class="next-option service-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span class="option-glyph">RC</span><div><strong>Подключать заранее</strong><small>Запускать Реальный чат вместе с лаунчером</small></div><em>@(_settings.RelayChatAlways ? "АВТО" : "ВРУЧНУЮ")</em></button>
+                    </article>
+
+                    <article class="settings-module language-module section-block">
+                        <div class="settings-module-heading"><span class="module-index">05</span><div><span class="eyebrow">ЯЗЫК ИНТЕРФЕЙСА</span><h3>Launcher language</h3></div><span class="language-code">@_settings.InterfaceLanguage.ToUpperInvariant()</span></div>
+                        <label>Язык лаунчера<select value="@_settings.InterfaceLanguage" @onchange="ChangeInterfaceLanguageAsync"><option value="ru">Русский</option><option value="en">English</option><option value="de">Deutsch</option></select></label>
+                        <p>Меняется весь интерфейс лаунчера, а новости, информация и библиотека используют опубликованный перевод выбранного языка.</p>
                     </article>
                 </section>
 
@@ -720,6 +732,8 @@
     private List<ChatMessage> _chatMessages = [];
     private string _chatText = string.Empty;
     private bool _chatConnected;
+    private List<RelayChatMessage> _relayMessages = [];
+    private string _relayText = string.Empty;
     private string _librarySection = "dev";
     private string _librarySearch = string.Empty;
     private UpdateRollbackCandidate? _rollbackCandidate;
@@ -775,9 +789,9 @@
         .Where(item => item.Kind == ContentKind.Mod)
         .Where(item => string.Equals(item.Section, _librarySection, StringComparison.OrdinalIgnoreCase))
         .Where(item => string.IsNullOrWhiteSpace(_librarySearch)
-                      || item.Title.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
-                      || item.Summary.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
-                      || item.Body.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase));
+                      || Localized(item).Title.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
+                      || Localized(item).Summary.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
+                      || Localized(item).Body.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ContentDocument> PublishedInformation => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.Information);
     private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
@@ -790,6 +804,9 @@
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
 
+    private ContentTranslation Localized(ContentDocument content) =>
+        ContentLocalization.Resolve(content, _settings.InterfaceLanguage);
+
     protected override async Task OnInitializedAsync()
     {
         _settings = await Settings.LoadAsync();
@@ -797,11 +814,14 @@
         _bundledMedia = Installer.DetectMedia();
         _setupStatus = Setup.Detect();
         RefreshMo2Workspace();
+        RelayChat.MessageReceived += OnRelayChatMessageReceived;
+        RelayChat.StatusChanged += OnRelayChatStatusChanged;
         if (_settings.RelayChatAlways)
         {
-            Launcher.EnsureRelayChatStarted();
+            await Launcher.EnsureRelayChatStartedAsync();
         }
-        _relayChatRunning = LauncherBridge.IsRelayChatRunning();
+        _relayChatRunning = RelayChat.IsConnected;
+        _relayMessages = RelayChat.Messages.ToList();
         _rollbackCandidate = await Updater.GetLatestRollbackAsync();
         _publishedContent = await Updater.LoadCachedContentAsync();
         _feed = await Community.GetFeedAsync();
@@ -812,6 +832,21 @@
             await ConnectChatAsync(_selectedChannelId);
         }
         _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("anthologyLocalization.setLanguage", _settings.InterfaceLanguage);
+    }
+
+    private async Task ChangeInterfaceLanguageAsync(ChangeEventArgs args)
+    {
+        var language = args.Value?.ToString() is "en" or "de" ? args.Value!.ToString()! : "ru";
+        _settings.InterfaceLanguage = language;
+        var persisted = Settings.Current.Copy();
+        persisted.InterfaceLanguage = language;
+        await Settings.SaveAsync(persisted);
+        await JS.InvokeVoidAsync("anthologyLocalization.setLanguage", language);
     }
 
     private async Task SelectSection(string section)
@@ -828,6 +863,10 @@
 
     private async Task LaunchModpackAsync()
     {
+        if (_settings.RelayChatAlways && _installation.GameRoot is not null)
+        {
+            await RelayChat.EnsureStartedAsync(_installation.GameRoot, _settings);
+        }
         var result = await Mo2.LaunchSelectedAsync();
         _settings = Settings.Current.Copy();
         RefreshMo2Workspace();
@@ -848,10 +887,11 @@
         ShowToast(result.Message, !result.Success);
     }
 
-    private void LaunchRelayChat()
+    private async Task LaunchRelayChatAsync()
     {
-        var result = Launcher.LaunchRelayChat();
-        _relayChatRunning = LauncherBridge.IsRelayChatRunning();
+        var result = await Launcher.LaunchRelayChatAsync();
+        _relayChatRunning = RelayChat.IsConnected;
+        _relayMessages = RelayChat.Messages.ToList();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -868,8 +908,8 @@
         _installation = Launcher.DetectInstallation();
         if (_settings.RelayChatAlways)
         {
-            Launcher.EnsureRelayChatStarted();
-            _relayChatRunning = LauncherBridge.IsRelayChatRunning();
+            await Launcher.EnsureRelayChatStartedAsync();
+            _relayChatRunning = RelayChat.IsConnected;
         }
         ShowToast(result.Message, !result.Success);
     }
@@ -885,6 +925,8 @@
 
     private async Task ClearInstallationAsync()
     {
+        await RelayChat.StopAsync();
+        _relayChatRunning = false;
         _settings.GameRoot = null;
         _settings.ModpackRoot = null;
         await Settings.SaveAsync(_settings);
@@ -921,9 +963,13 @@
         _setupStatus = Setup.Detect();
         RefreshMo2Workspace();
         var relayResult = _settings.RelayChatAlways
-            ? Launcher.EnsureRelayChatStarted()
+            ? await Launcher.EnsureRelayChatStartedAsync()
             : new LauncherActionResult(true, string.Empty);
-        _relayChatRunning = LauncherBridge.IsRelayChatRunning();
+        if (!_settings.RelayChatAlways && _selectedChannelId != RelayChatChannelId)
+        {
+            await RelayChat.StopAsync();
+        }
+        _relayChatRunning = RelayChat.IsConnected;
         _updateCheck = null;
         ShowToast(
             relayResult.Success ? "Настройки сохранены" : $"Настройки сохранены, но чат не подключён: {relayResult.Message}",
@@ -1041,15 +1087,71 @@
 
     private async Task SelectChannelAsync(string channelId)
     {
+        var wasRelayChat = _selectedChannelId == RelayChatChannelId;
         _selectedChannelId = channelId;
         if (channelId == RelayChatChannelId)
         {
             _chatConnected = false;
-            LaunchRelayChat();
+            await LaunchRelayChatAsync();
             return;
         }
 
+        if (wasRelayChat && !_settings.RelayChatAlways)
+        {
+            await RelayChat.StopAsync();
+            _relayChatRunning = false;
+        }
+
         await ConnectChatAsync(channelId);
+    }
+
+    private async Task SendRelayChatMessageAsync()
+    {
+        var text = _relayText.Trim();
+        if (!_relayChatRunning || text.Length == 0)
+        {
+            return;
+        }
+
+        _relayText = string.Empty;
+        try
+        {
+            await RelayChat.SendMessageAsync(text);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or SocketException
+                                           or InvalidOperationException
+                                           or TaskCanceledException)
+        {
+            _relayText = text;
+            ShowToast($"Не удалось отправить сообщение: {exception.Message}", true);
+        }
+    }
+
+    private async Task RelayChatKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !args.ShiftKey)
+        {
+            await SendRelayChatMessageAsync();
+        }
+    }
+
+    private void OnRelayChatMessageReceived(RelayChatMessage message)
+    {
+        _ = InvokeAsync(() =>
+        {
+            _relayMessages = RelayChat.Messages.ToList();
+            StateHasChanged();
+        });
+    }
+
+    private void OnRelayChatStatusChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            _relayChatRunning = RelayChat.IsConnected;
+            StateHasChanged();
+        });
     }
 
     private async Task ChangeMo2ProfileAsync(ChangeEventArgs args)
@@ -1593,11 +1695,16 @@
                 _ = InvokeAsync(StateHasChanged);
             });
             var path = await Updater.DownloadContentAsync(content, progress);
-            ShowToast($"Файл загружен: {path}");
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Path.GetDirectoryName(path)!)
+            var install = await Mo2.InstallArchiveAsync(path);
+            if (!install.Success)
             {
-                UseShellExecute = true,
-            });
+                ShowToast($"Архив загружен, но MO2 не установил его: {install.Message}", true);
+                return;
+            }
+
+            RefreshMo2Workspace();
+            await LoadMo2ContentAsync(forceRefresh: true);
+            ShowToast(install.Message);
         }
         catch (Exception exception) when (exception is HttpRequestException
                                            or IOException
@@ -1769,6 +1876,8 @@
     public void Dispose()
     {
         Community.MessageReceived -= OnChatMessageReceived;
+        RelayChat.MessageReceived -= OnRelayChatMessageReceived;
+        RelayChat.StatusChanged -= OnRelayChatStatusChanged;
         _updateCancellation?.Dispose();
         _mo2ContentCancellation?.Cancel();
         _mo2ContentCancellation?.Dispose();

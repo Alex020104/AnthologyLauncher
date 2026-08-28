@@ -257,6 +257,10 @@ public static class UnifiedReleaseBuilder
                 section = "dev";
             }
 
+            var translations = new Dictionary<string, ContentTranslation>(StringComparer.OrdinalIgnoreCase);
+            AddTranslation(translations, "en", item.TitleEn, item.SummaryEn, item.BodyEn);
+            AddTranslation(translations, "de", item.TitleDe, item.SummaryDe, item.BodyDe);
+
             return new ContentDocument(
                 item.Id.Trim().ToLowerInvariant(),
                 item.Kind,
@@ -266,10 +270,28 @@ public static class UnifiedReleaseBuilder
                 item.Body.Trim(),
                 images,
                 videos,
-                download);
+                download,
+                translations);
         }).ToArray();
 
-        return new ContentCatalog(1, workspace.Version, DateTimeOffset.UtcNow, items);
+        return new ContentCatalog(2, workspace.Version, DateTimeOffset.UtcNow, items);
+    }
+
+    private static void AddTranslation(
+        Dictionary<string, ContentTranslation> translations,
+        string language,
+        string title,
+        string summary,
+        string body)
+    {
+        if (string.IsNullOrWhiteSpace(title)
+            && string.IsNullOrWhiteSpace(summary)
+            && string.IsNullOrWhiteSpace(body))
+        {
+            return;
+        }
+
+        translations[language] = new ContentTranslation(title.Trim(), summary.Trim(), body.Trim());
     }
 
     private static async Task CreateDeterministicZipAsync(
