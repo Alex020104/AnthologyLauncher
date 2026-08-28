@@ -11,6 +11,8 @@ public static class Mo2ArchiveInstaller
         string root,
         string profileName,
         string archivePath,
+        string? installName = null,
+        bool replaceExisting = false,
         CancellationToken cancellationToken = default)
     {
         if (!File.Exists(archivePath))
@@ -27,14 +29,15 @@ public static class Mo2ArchiveInstaller
         var fullRoot = Path.GetFullPath(root);
         var modsRoot = Path.GetFullPath(Path.Combine(fullRoot, "mods"));
         Directory.CreateDirectory(modsRoot);
-        var modName = SanitizeModName(Path.GetFileNameWithoutExtension(archivePath));
+        var modName = SanitizeModName(string.IsNullOrWhiteSpace(installName) ? Path.GetFileNameWithoutExtension(archivePath) : installName);
         var destination = Path.GetFullPath(Path.Combine(modsRoot, modName));
         if (!destination.StartsWith(modsRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
             return new Mo2ArchiveInstallResult(false, "Некорректное имя архива.");
         }
 
-        if (Directory.Exists(destination))
+        var replacing = Directory.Exists(destination);
+        if (replacing && !replaceExisting)
         {
             return new Mo2ArchiveInstallResult(false, $"Мод уже существует: {modName}");
         }
@@ -52,6 +55,8 @@ public static class Mo2ArchiveInstaller
 
         var prefix = FindWrapperPrefix(fileKeys);
         var staging = Path.Combine(modsRoot, $".__anthology_install_{Guid.NewGuid():N}");
+        string? backup = null;
+        var committed = false;
         Directory.CreateDirectory(staging);
         try
         {
@@ -92,9 +97,21 @@ public static class Mo2ArchiveInstaller
                 Path.Combine(staging, "meta.ini"),
                 $"[General]{Environment.NewLine}gameName=STALKER Anomaly{Environment.NewLine}modid=0{Environment.NewLine}version=local{Environment.NewLine}",
                 new UTF8Encoding(false));
+
+            if (replacing)
+            {
+                backup = Path.Combine(modsRoot, $".__anthology_backup_{Guid.NewGuid():N}");
+                Directory.Move(destination, backup);
+            }
             Directory.Move(staging, destination);
+            committed = true;
             Mo2ProfileManager.AddMod(root, profileName, modName, enabled: true);
-            return new Mo2ArchiveInstallResult(true, $"Мод установлен и включён: {modName}", modName);
+            Mo2ProfileManager.SetEnabled(root, profileName, modName, enabled: true);
+            if (backup is not null && Directory.Exists(backup))
+            {
+                Directory.Delete(backup, true);
+            }
+            return new Mo2ArchiveInstallResult(true, replacing ? $"Мод обновлён и включён: {modName}" : $"Мод установлен и включён: {modName}", modName);
         }
         catch
         {
@@ -102,9 +119,13 @@ public static class Mo2ArchiveInstaller
             {
                 Directory.Delete(staging, true);
             }
-            if (Directory.Exists(destination))
+            if (committed && Directory.Exists(destination))
             {
                 Directory.Delete(destination, true);
+            }
+            if (backup is not null && Directory.Exists(backup) && !Directory.Exists(destination))
+            {
+                Directory.Move(backup, destination);
             }
             throw;
         }

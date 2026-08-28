@@ -72,8 +72,30 @@ public sealed class ReleaserStateStore : IDisposable
 
     private static void Normalize(ReleaserWorkspace workspace, ReleaserMachineSettings machine)
     {
+        var previousSchemaVersion = workspace.SchemaVersion;
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 2);
+        foreach (var content in workspace.Content)
+        {
+            // Schema 1 treated every existing entry as published. Keep that state during migration;
+            // newly created schema 2 entries start as explicit drafts.
+            if (previousSchemaVersion < 2)
+            {
+                content.IsPublished = true;
+            }
+            content.Blocks ??= [];
+            content.Translations = new Dictionary<string, ContentTranslationDraft>(content.Translations ?? [], StringComparer.OrdinalIgnoreCase);
+            MigrateLegacyTranslation(content.Translations, "en", content.TitleEn, content.SummaryEn, content.BodyEn);
+            MigrateLegacyTranslation(content.Translations, "de", content.TitleDe, content.SummaryDe, content.BodyDe);
+            foreach (var block in content.Blocks)
+            {
+                block.Id = string.IsNullOrWhiteSpace(block.Id) ? $"block-{Guid.NewGuid():N}" : block.Id.Trim();
+                block.Translations = new Dictionary<string, ContentBlockTranslationDraft>(block.Translations ?? [], StringComparer.OrdinalIgnoreCase);
+                MigrateLegacyBlockTranslation(block.Translations, "en", block.TitleEn, block.BodyEn);
+                MigrateLegacyBlockTranslation(block.Translations, "de", block.TitleDe, block.BodyDe);
+            }
+        }
         machine.ContentArchivePaths = new Dictionary<string, string>(machine.ContentArchivePaths ?? [], StringComparer.OrdinalIgnoreCase);
         machine.PublicationRoots = new Dictionary<string, string>(machine.PublicationRoots ?? [], StringComparer.OrdinalIgnoreCase);
         machine.DeveloperName = string.IsNullOrWhiteSpace(machine.DeveloperName) ? Environment.UserName : machine.DeveloperName.Trim();
@@ -93,6 +115,34 @@ public sealed class ReleaserStateStore : IDisposable
         {
             mirror.Id = string.IsNullOrWhiteSpace(mirror.Id) ? $"source-{Guid.NewGuid():N}" : mirror.Id.Trim();
         }
+    }
+
+    private static void MigrateLegacyTranslation(
+        Dictionary<string, ContentTranslationDraft> translations,
+        string language,
+        string title,
+        string summary,
+        string body)
+    {
+        if (translations.ContainsKey(language)
+            || string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(summary) && string.IsNullOrWhiteSpace(body))
+        {
+            return;
+        }
+        translations[language] = new ContentTranslationDraft { Title = title, Summary = summary, Body = body };
+    }
+
+    private static void MigrateLegacyBlockTranslation(
+        Dictionary<string, ContentBlockTranslationDraft> translations,
+        string language,
+        string title,
+        string body)
+    {
+        if (translations.ContainsKey(language) || string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(body))
+        {
+            return;
+        }
+        translations[language] = new ContentBlockTranslationDraft { Title = title, Body = body };
     }
 
     public void Dispose() => _gate.Dispose();

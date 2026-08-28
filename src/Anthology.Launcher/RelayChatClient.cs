@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Anthology.Launcher;
 
-public sealed record RelayChatMessage(string AuthorName, string Faction, string Text, DateTimeOffset CreatedAt, bool IsSystem = false, bool IsOwn = false);
+public sealed record RelayChatMessage(string AuthorName, string Faction, string Text, DateTimeOffset CreatedAt, bool IsSystem = false, bool IsOwn = false, string Role = "user", string Id = "");
 
-public sealed record RelayChatParticipant(string Nick, string DisplayName, string Faction, bool IsOwn);
+public sealed record RelayChatParticipant(string Nick, string DisplayName, string Faction, bool IsOwn, string Role = "user");
 
 public sealed class RelayChatClient : IAsyncDisposable, IDisposable
 {
@@ -19,6 +19,7 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     private static readonly Encoding GameEncoding = CreateGameEncoding();
     private readonly object _stateLock = new();
     private readonly SemaphoreSlim _sendGate = new(1, 1);
+    private readonly RelayChatAiHelper _aiHelper = new();
     private readonly List<RelayChatMessage> _messages = [];
     private readonly Dictionary<string, ParticipantState> _users = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _lifetimeCancellation;
@@ -45,6 +46,8 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     public event Action? StatusChanged;
     public bool IsConnected { get; private set; }
     public string StatusText { get; private set; } = "Чат отключён";
+    public bool IsAiHelperAvailable => _aiHelper.IsAvailable;
+    public string AiHelperStatusText => _aiHelper.StatusText;
 
     public bool IsRunning
     {
@@ -71,7 +74,8 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
                         pair.Key,
                         pair.Value.DisplayName,
                         pair.Value.Faction,
-                        string.Equals(pair.Key, _nick, StringComparison.OrdinalIgnoreCase)))
+                        string.Equals(pair.Key, _nick, StringComparison.OrdinalIgnoreCase),
+                        pair.Value.Role))
                     .OrderByDescending(item => item.IsOwn)
                     .ThenBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
                     .ToArray();
@@ -122,6 +126,7 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
             try { await task; } catch (OperationCanceledException) { }
         }
         cancellation.Dispose();
+        await _aiHelper.StopAsync();
         SetStatus(false, "Чат отключён");
     }
 
@@ -131,10 +136,23 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         if (text.Length == 0) return;
         if (!IsConnected) throw new InvalidOperationException("Реальный чат ещё не подключён");
 
+        if (TryGetAiQuestion(text, out var question))
+        {
+            await AskAiAsync(question, writeToGame: IsGameRunning(), cancellationToken);
+            return;
+        }
+
+        if (string.Equals(text, "/whoami", StringComparison.OrdinalIgnoreCase))
+        {
+            var role = RelayChatRoles.Resolve(_displayName);
+            AddSystemMessage($"Вы — «{_displayName}». Роль: {RelayChatRoles.Label(role)}.");
+            return;
+        }
+
         var target = string.IsNullOrWhiteSpace(recipientNick) ? _channel : recipientNick.Trim();
         await SendRawAsync($"PRIVMSG {target} :{_faction}☺{_displayName}★{text}", cancellationToken);
         var isChannel = string.Equals(target, _channel, StringComparison.OrdinalIgnoreCase);
-        AddMessage(new RelayChatMessage(_displayName, _faction, isChannel ? text : $"→ {DisplayForNick(target)}: {text}", DateTimeOffset.Now, IsOwn: true));
+        AddMessage(new RelayChatMessage(_displayName, _faction, isChannel ? text : $"→ {DisplayForNick(target)}: {text}", DateTimeOffset.Now, IsOwn: true, Role: RelayChatRoles.Resolve(_displayName)));
         await WriteGameInputAsync(
             isChannel
                 ? $"Message/{_faction}/{_displayName}/False/{text}"
@@ -160,7 +178,8 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         _newsSound = settings.RelayChatNewsSound;
         _closeAfterSend = settings.RelayChatCloseAfterSend;
         _configurationKey = configurationKey;
-        lock (_stateLock) { _users[_nick] = new ParticipantState(_displayName, _faction); }
+        _aiHelper.SetGameRoot(gameRoot);
+        lock (_stateLock) { _users[_nick] = new ParticipantState(_displayName, _faction, RelayChatRoles.Resolve(_displayName)); }
         Directory.CreateDirectory(Path.Combine(gameRoot, "gamedata", "configs"));
         var cancellation = new CancellationTokenSource();
         lock (_stateLock)
@@ -170,6 +189,7 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         }
         AddSystemMessage($"Подключение к {_channel}…");
         SetStatus(false, "Подключение к Реальному чату…");
+        _ = WarmAiHelperAsync(cancellation.Token);
         return new LauncherActionResult(true, "Реальный чат запущен внутри лаунчера");
     }
 
@@ -310,7 +330,7 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         ParticipantState state;
         lock (_stateLock)
         {
-            if (!_users.Remove(oldNick, out state!)) state = new ParticipantState(oldNick, DefaultFaction);
+            if (!_users.Remove(oldNick, out state!)) state = new ParticipantState(oldNick, DefaultFaction, RelayChatRoles.Resolve(oldNick));
             _users[newNick] = state;
             if (string.Equals(oldNick, _nick, StringComparison.OrdinalIgnoreCase)) _nick = newNick;
         }
@@ -377,7 +397,7 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         author = string.IsNullOrWhiteSpace(author) ? senderNick : author;
         UpdateParticipant(senderNick, author, faction);
         var isQuery = message.Parameters.Count > 0 && !string.Equals(message.Parameters[0], _channel, StringComparison.OrdinalIgnoreCase);
-        AddMessage(new RelayChatMessage(author, faction, isQuery ? $"Личное сообщение: {body}" : body, DateTimeOffset.Now));
+        AddMessage(new RelayChatMessage(author, faction, isQuery ? $"Личное сообщение: {body}" : body, DateTimeOffset.Now, Role: RelayChatRoles.Resolve(author)));
         await WriteGameInputAsync(isQuery
             ? $"Query/{faction}/{author}/{_displayName}/{body}"
             : $"Message/{faction}/{author}/False/{body}", cancellationToken);
@@ -463,9 +483,18 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
                 var faction = NormalizeFaction(parts[1]);
                 if (_autoFaction) { _faction = faction; UpdateParticipant(_nick, _displayName, _faction); }
                 var body = string.Join('/', parts.Skip(2));
-                if (body.StartsWith('/')) { AddSystemMessage($"Игровая команда {body} обработана мостом"); continue; }
+                if (TryGetAiQuestion(body, out var question))
+                {
+                    await AskAiAsync(question, writeToGame: true, cancellationToken);
+                    continue;
+                }
+                if (string.Equals(body.Trim(), "/whoami", StringComparison.OrdinalIgnoreCase))
+                {
+                    await WriteGameInputAsync($"Message/system/ANTHOLOGY RELAY/False/Вы — {_displayName}. Роль: {RelayChatRoles.Label(RelayChatRoles.Resolve(_displayName))}.", cancellationToken);
+                    continue;
+                }
                 await SendRawAsync($"PRIVMSG {_channel} :{_faction}☺{_displayName}★{SanitizeMessage(body)}", cancellationToken);
-                AddMessage(new RelayChatMessage(_displayName, _faction, body, DateTimeOffset.Now, IsOwn: true));
+                AddMessage(new RelayChatMessage(_displayName, _faction, body, DateTimeOffset.Now, IsOwn: true, Role: RelayChatRoles.Resolve(_displayName)));
             }
             else if (string.Equals(parts[0], "Death", StringComparison.OrdinalIgnoreCase) && parts.Length >= 5 && _sendDeaths)
             {
@@ -526,9 +555,11 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         lock (_stateLock)
         {
             _users.TryGetValue(nick, out var current);
+            var resolvedDisplayName = string.IsNullOrWhiteSpace(displayName) ? current?.DisplayName ?? nick : displayName;
             _users[nick] = new ParticipantState(
-                string.IsNullOrWhiteSpace(displayName) ? current?.DisplayName ?? nick : displayName,
-                string.IsNullOrWhiteSpace(faction) ? current?.Faction ?? DefaultFaction : NormalizeFaction(faction));
+                resolvedDisplayName,
+                string.IsNullOrWhiteSpace(faction) ? current?.Faction ?? DefaultFaction : NormalizeFaction(faction),
+                RelayChatRoles.Resolve(resolvedDisplayName));
         }
         StatusChanged?.Invoke();
     }
@@ -549,10 +580,57 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         lock (_stateLock) { return _users.TryGetValue(nick, out var participant) ? participant.Faction : DefaultFaction; }
     }
 
-    private void AddSystemMessage(string text) => AddMessage(new RelayChatMessage("ANTHOLOGY RELAY", "system", text, DateTimeOffset.Now, IsSystem: true));
+    private async Task WarmAiHelperAsync(CancellationToken cancellationToken)
+    {
+        await _aiHelper.EnsureAvailableAsync(cancellationToken);
+        StatusChanged?.Invoke();
+    }
+
+    private async Task AskAiAsync(string question, bool writeToGame, CancellationToken cancellationToken)
+    {
+        var cleanQuestion = SanitizeMessage(question);
+        if (cleanQuestion.Length == 0)
+        {
+            AddSystemMessage("Использование: /ai вопрос");
+            return;
+        }
+
+        AddMessage(new RelayChatMessage(_displayName, _faction, $"→ AI: {cleanQuestion}", DateTimeOffset.Now, IsOwn: true, Role: RelayChatRoles.Resolve(_displayName)));
+        AddMessage(new RelayChatMessage("ANTHOLOGY AI", "ai", "Думаю…", DateTimeOffset.Now, Role: "ai"));
+        var answer = await _aiHelper.AskAsync(cleanQuestion, cancellationToken);
+        AddMessage(new RelayChatMessage("ANTHOLOGY AI", "ai", answer.Text, DateTimeOffset.Now, Role: "ai"));
+        if (writeToGame)
+        {
+            await WriteGameInputAsync($"Message/actor_ecolog/ANTHOLOGY AI/False/{answer.Text}", cancellationToken);
+        }
+        StatusChanged?.Invoke();
+    }
+
+    private static bool TryGetAiQuestion(string text, out string question)
+    {
+        var clean = text.Trim();
+        if (clean.Equals("/ai", StringComparison.OrdinalIgnoreCase))
+        {
+            question = string.Empty;
+            return true;
+        }
+        if (clean.StartsWith("/ai ", StringComparison.OrdinalIgnoreCase))
+        {
+            question = clean[4..].Trim();
+            return true;
+        }
+        question = string.Empty;
+        return false;
+    }
+
+    private void AddSystemMessage(string text) => AddMessage(new RelayChatMessage("ANTHOLOGY RELAY", "system", text, DateTimeOffset.Now, IsSystem: true, Role: "system"));
 
     private void AddMessage(RelayChatMessage message)
     {
+        if (string.IsNullOrWhiteSpace(message.Id))
+        {
+            message = message with { Id = $"relay-{Guid.NewGuid():N}" };
+        }
         lock (_stateLock)
         {
             _messages.Add(message);
@@ -611,10 +689,10 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
 
     private static Encoding CreateGameEncoding() { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); return Encoding.GetEncoding(1251); }
 
-    public void Dispose() { if (_disposed) return; _disposed = true; _lifetimeCancellation?.Cancel(); }
-    public async ValueTask DisposeAsync() { if (_disposed) return; await StopAsync(); _disposed = true; _sendGate.Dispose(); }
+    public void Dispose() { if (_disposed) return; _disposed = true; _lifetimeCancellation?.Cancel(); _aiHelper.Dispose(); }
+    public async ValueTask DisposeAsync() { if (_disposed) return; await StopAsync(); _disposed = true; _aiHelper.Dispose(); _sendGate.Dispose(); }
 
-    private sealed record ParticipantState(string DisplayName, string Faction);
+    private sealed record ParticipantState(string DisplayName, string Faction, string Role);
 
     private sealed record IrcMessage(string Prefix, string Command, IReadOnlyList<string> Parameters, string Trailing)
     {
@@ -634,4 +712,11 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
             return new IrcMessage(prefix, tokens.FirstOrDefault()?.ToUpperInvariant() ?? string.Empty, tokens.Skip(1).ToArray(), trailing);
         }
     }
+}
+
+internal static class RelayChatRoles
+{
+    public static string Resolve(string? displayName) => Anthology.Contracts.AnthologyRoles.Resolve(displayName);
+
+    public static string Label(string role) => Anthology.Contracts.AnthologyRoles.Label(role);
 }

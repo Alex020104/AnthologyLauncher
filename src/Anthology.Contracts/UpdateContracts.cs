@@ -72,7 +72,8 @@ public sealed record ContentDocument(
     IReadOnlyList<string> Images,
     IReadOnlyList<ContentVideo> Videos,
     ContentDownload? Download = null,
-    IReadOnlyDictionary<string, ContentTranslation>? Translations = null);
+    IReadOnlyDictionary<string, ContentTranslation>? Translations = null,
+    IReadOnlyList<ContentBlock>? Blocks = null);
 
 public sealed record ContentTranslation(
     string Title,
@@ -84,8 +85,8 @@ public static class ContentLocalization
     public static ContentTranslation Resolve(ContentDocument document, string? language)
     {
         ArgumentNullException.ThrowIfNull(document);
-        var normalized = string.IsNullOrWhiteSpace(language) ? "ru" : language.Trim().ToLowerInvariant();
-        if (normalized != "ru" && document.Translations is not null)
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (document.Translations is not null)
         {
             if (document.Translations.TryGetValue(normalized, out var translation))
             {
@@ -109,11 +110,55 @@ public sealed record ContentVideo(
     string Title,
     string Url);
 
+public sealed record ContentBlock(
+    string Id,
+    ContentBlockKind Kind,
+    string Title,
+    string Body,
+    string? Url = null,
+    IReadOnlyDictionary<string, ContentBlockTranslation>? Translations = null);
+
+public sealed record ContentBlockTranslation(
+    string Title,
+    string Body);
+
+public static class ContentBlockLocalization
+{
+    public static ContentBlockTranslation Resolve(ContentBlock block, string? language)
+    {
+        ArgumentNullException.ThrowIfNull(block);
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (block.Translations is not null)
+        {
+            var translation = block.Translations
+                .FirstOrDefault(pair => string.Equals(pair.Key, normalized, StringComparison.OrdinalIgnoreCase))
+                .Value;
+            if (translation is not null)
+            {
+                return new ContentBlockTranslation(
+                    string.IsNullOrWhiteSpace(translation.Title) ? block.Title : translation.Title,
+                    string.IsNullOrWhiteSpace(translation.Body) ? block.Body : translation.Body);
+            }
+        }
+
+        return new ContentBlockTranslation(block.Title, block.Body);
+    }
+}
+
+public enum ContentBlockKind
+{
+    Section,
+    Image,
+    Link,
+}
+
 public sealed record ContentDownload(
     string FileName,
     long Size,
     string Sha256,
-    IReadOnlyList<MirrorManifest> Mirrors);
+    IReadOnlyList<MirrorManifest> Mirrors,
+    string? InstallName = null,
+    bool ReplaceExisting = false);
 
 public enum ContentKind
 {

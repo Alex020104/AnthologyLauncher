@@ -17,7 +17,7 @@ Releaser Next is a separate WPF/Blazor desktop application. Its default deployme
 
 - manually selected version;
 - channel and artifact mirrors;
-- library, news and information content with Russian, English and German text;
+- library, news and information content with Russian, English, German, Polish, French, Spanish, Simplified Chinese and Japanese text;
 - revision, author and modification timestamp.
 
 Synchronization copies only the release workspace to `anthology-release-workspace.json` in a folder selected by the developers. That folder can be backed by Yandex Disk, Google Drive desktop sync, a network share or another file synchronization system. Local paths and private keys are never placed in the shared document.
@@ -29,7 +29,7 @@ When both local and shared copies changed after the last common hash, neither si
 1. Select a prepared game root and prepared MO2 root.
 2. Enter `2.1.131` or a later `2.1.N` version.
 3. Add download URLs and, when automatic upload is needed, a local publication folder for each provider. This can be a Yandex Disk/Google Drive synchronized folder, a mounted server share, or an HTTP server's staging directory.
-4. Edit Russian, English and German versions of library/news/information documents and optional MO2 mod archives.
+4. Write library/news/information in any supported language. Use the translation workbench to fill RU/EN/DE/PL/FR/ES/ZH/JA, review the result, and optionally attach an MO2 mod archive.
 5. Save or synchronize the workspace.
 6. Use **Выпустить всю сборку**. The releaser creates the complete snapshot and copies it to every configured publication folder.
 
@@ -44,6 +44,12 @@ Output is written to `<output>\<version>` and includes both ZIP artifacts, `mani
 - For full game updates, packages use an exact managed snapshot. Files removed from the developer's prepared source are removed on the player's next update by the launcher's transactional updater; player saves and excluded personal paths stay intact.
 
 Publication folders perform the physical upload through the corresponding desktop sync client or mounted server directory. Public URL fields must point to direct downloadable files; a normal share page is not a download API.
+
+## Automatic translation
+
+The content editor supports LibreTranslate-compatible endpoints. The endpoint URL and API key are stored only in local `machine-settings.json`; they are not synchronized with the shared release workspace and are not written to player catalogs.
+
+The source language can be detected automatically or selected explicitly. Automatic translation fills all eight locale tabs for the main document and its information blocks. Every generated field remains editable before signing and publication. A remote endpoint must use HTTPS; loopback HTTP is accepted for a self-hosted developer instance.
 
 ## Publish locally
 

@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
 
     public int Revision { get; set; }
 
@@ -56,6 +56,10 @@ public sealed class ContentDraft
 
     public string Body { get; set; } = string.Empty;
 
+    public string SourceLanguage { get; set; } = "auto";
+
+    public Dictionary<string, ContentTranslationDraft> Translations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public string TitleEn { get; set; } = string.Empty;
 
     public string SummaryEn { get; set; } = string.Empty;
@@ -72,6 +76,8 @@ public sealed class ContentDraft
 
     public string Videos { get; set; } = string.Empty;
 
+    public List<ContentBlockDraft> Blocks { get; set; } = [];
+
     public string DownloadFileName { get; set; } = string.Empty;
 
     public long DownloadSize { get; set; }
@@ -80,7 +86,70 @@ public sealed class ContentDraft
 
     public string DownloadMirrors { get; set; } = string.Empty;
 
-    public bool IsPublished { get; set; } = true;
+    public string InstallFolderName { get; set; } = string.Empty;
+
+    public bool IsPublished { get; set; }
+
+    public ContentTranslationDraft Translation(string language)
+    {
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (!Translations.TryGetValue(normalized, out var translation))
+        {
+            translation = new ContentTranslationDraft();
+            Translations[normalized] = translation;
+        }
+        return translation;
+    }
+}
+
+public sealed class ContentTranslationDraft
+{
+    public string Title { get; set; } = string.Empty;
+
+    public string Summary { get; set; } = string.Empty;
+
+    public string Body { get; set; } = string.Empty;
+}
+
+public sealed class ContentBlockDraft
+{
+    public string Id { get; set; } = $"block-{Guid.NewGuid():N}";
+
+    public ContentBlockKind Kind { get; set; } = ContentBlockKind.Section;
+
+    public string Title { get; set; } = "Новый заголовок";
+
+    public string Body { get; set; } = string.Empty;
+
+    public Dictionary<string, ContentBlockTranslationDraft> Translations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public string TitleEn { get; set; } = string.Empty;
+
+    public string BodyEn { get; set; } = string.Empty;
+
+    public string TitleDe { get; set; } = string.Empty;
+
+    public string BodyDe { get; set; } = string.Empty;
+
+    public string Url { get; set; } = string.Empty;
+
+    public ContentBlockTranslationDraft Translation(string language)
+    {
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (!Translations.TryGetValue(normalized, out var translation))
+        {
+            translation = new ContentBlockTranslationDraft();
+            Translations[normalized] = translation;
+        }
+        return translation;
+    }
+}
+
+public sealed class ContentBlockTranslationDraft
+{
+    public string Title { get; set; } = string.Empty;
+
+    public string Body { get; set; } = string.Empty;
 }
 
 public sealed class ReleaserMachineSettings
@@ -106,6 +175,10 @@ public sealed class ReleaserMachineSettings
     public int AutoSyncSeconds { get; set; } = 60;
 
     public string LastSyncedHash { get; set; } = string.Empty;
+
+    public string TranslationApiUrl { get; set; } = "http://127.0.0.1:5000";
+
+    public string TranslationApiKey { get; set; } = string.Empty;
 
     // Local paths never enter the shared workspace.
     public Dictionary<string, string> ContentArchivePaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);

@@ -48,6 +48,7 @@ public sealed class ReleaserCoreTests : IDisposable
                     TitleDe = "Version 2.1.131",
                     SummaryDe = "Test",
                     BodyDe = "Vollständiger Text",
+                    IsPublished = true,
                 },
             ],
         };
@@ -72,7 +73,7 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.All(manifest.Payload.Packages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
         Assert.All(manifest.Payload.Packages, package => Assert.True(package.PruneInstallRoot));
         var localizedNews = Assert.Single(manifest.Payload.Content!.Items);
-        Assert.Equal(2, manifest.Payload.Content.SchemaVersion);
+        Assert.Equal(3, manifest.Payload.Content.SchemaVersion);
         Assert.Equal("Full text", ContentLocalization.Resolve(localizedNews, "en").Body);
         Assert.Equal("Vollständiger Text", ContentLocalization.Resolve(localizedNews, "de").Body);
         Assert.Equal("Полный текст", ContentLocalization.Resolve(localizedNews, "fr").Body);
@@ -172,6 +173,105 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.False(File.Exists(Path.Combine(published, relativeArtifact)));
         Assert.False(File.Exists(Path.Combine(output, workspace.Version, "manifest.json")));
         Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(output, ".releaser-trash"), "optional-addon.zip", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public void InformationCatalogPreservesOrderedRichBlocksAndTranslations()
+    {
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.140",
+            Content =
+            [
+                new ContentDraft
+                {
+                    Id = "installation-guide",
+                    Kind = ContentKind.Information,
+                    Title = "Установка",
+                    Summary = "Новая вкладка",
+                    IsPublished = true,
+                    Blocks =
+                    [
+                        new ContentBlockDraft
+                        {
+                            Id = "requirements",
+                            Kind = ContentBlockKind.Section,
+                            Title = "Требования",
+                            Body = "Основной текст",
+                            TitleEn = "Requirements",
+                            BodyEn = "Main text",
+                        },
+                        new ContentBlockDraft
+                        {
+                            Id = "download",
+                            Kind = ContentBlockKind.Link,
+                            Title = "Скачать файл",
+                            Url = "https://cdn.example/guide.pdf",
+                        },
+                    ],
+                },
+            ],
+        };
+
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+
+        Assert.Equal(3, catalog.SchemaVersion);
+        var information = Assert.Single(catalog.Items);
+        var blocks = Assert.IsAssignableFrom<IReadOnlyList<ContentBlock>>(information.Blocks);
+        Assert.Equal(["requirements", "download"], blocks.Select(block => block.Id));
+        Assert.Equal("Requirements", ContentBlockLocalization.Resolve(blocks[0], "en").Title);
+        Assert.Equal("Требования", ContentBlockLocalization.Resolve(blocks[0], "de").Title);
+        Assert.Equal("https://cdn.example/guide.pdf", blocks[1].Url);
+    }
+
+    [Fact]
+    public async Task NewsCanBePublishedAndRemovedWithoutGameRelease()
+    {
+        var output = Path.Combine(_root, "news-output");
+        var published = Path.Combine(_root, "news-published");
+        var keys = Path.Combine(_root, "news-keys");
+        Directory.CreateDirectory(keys);
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var mirror = new ReleaseMirrorSet { Id = "news-cdn", Provider = "http", Priority = 10 };
+        var news = new ContentDraft
+        {
+            Id = "news-2-1-140",
+            Kind = ContentKind.News,
+            Title = "Новость 2.1.140",
+            IsPublished = false,
+        };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.140",
+            Mirrors = [mirror],
+            Content = [news],
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "news-test-key",
+            PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [mirror.Id] = published,
+            },
+        };
+
+        var result = await ReleasePublicationService.PublishContentAsync(news, workspace, machine);
+
+        Assert.True(news.IsPublished);
+        Assert.Equal(1, result.Targets);
+        Assert.True(File.Exists(Path.Combine(output, workspace.Version, "content.json")));
+        Assert.True(File.Exists(Path.Combine(published, workspace.Version, "content.json")));
+
+        await ReleasePublicationService.UnpublishContentAsync(news, workspace, machine);
+
+        Assert.False(news.IsPublished);
+        Assert.False(File.Exists(Path.Combine(output, workspace.Version, "content.json")));
+        Assert.False(File.Exists(Path.Combine(published, workspace.Version, "content.json")));
     }
 
     public void Dispose()

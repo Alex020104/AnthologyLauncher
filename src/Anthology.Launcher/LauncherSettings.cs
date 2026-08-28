@@ -222,8 +222,8 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.Renderer = settings.Renderer.ToUpperInvariant() is "DX11" or "DX10" or "DX9" or "DX8"
             ? settings.Renderer.ToUpperInvariant()
             : "DX11";
-        settings.InterfaceLanguage = settings.InterfaceLanguage.Trim().ToLowerInvariant() is "ru" or "en" or "de"
-            ? settings.InterfaceLanguage.Trim().ToLowerInvariant()
+        settings.InterfaceLanguage = AnthologyLanguages.IsSupported(settings.InterfaceLanguage)
+            ? AnthologyLanguages.Normalize(settings.InterfaceLanguage)
             : "ru";
         settings.RelayChatChannel = settings.RelayChatChannel.Trim().ToLowerInvariant() is
             "#cocrc_english" or "#cocrc_english_rp" or "#cocrc_slavik"

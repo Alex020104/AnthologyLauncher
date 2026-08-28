@@ -1,0 +1,174 @@
+.information-tabs.dynamic {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.information-tab.published {
+    background-image: radial-gradient(circle at 86% 18%, #7b6c9b1f, transparent 35%);
+}
+
+.information-tab.published > span {
+    color: #a894c2;
+}
+
+.published-information-page {
+    min-height: 590px;
+    display: grid;
+    grid-template-columns: minmax(260px, .62fr) minmax(520px, 1.38fr);
+    overflow: hidden;
+}
+
+.published-information-cover {
+    min-height: 100%;
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid var(--line-soft);
+    background: #0c1114;
+}
+
+.published-information-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 45%, #080c0f 100%);
+    pointer-events: none;
+}
+
+.published-information-cover img {
+    width: 100%;
+    height: 100%;
+    min-height: 590px;
+    object-fit: cover;
+}
+
+.published-information-cover > span {
+    position: absolute;
+    z-index: 1;
+    right: 18px;
+    bottom: 18px;
+    left: 18px;
+    color: #c7ae70;
+    font: 8px Consolas, monospace;
+    letter-spacing: .18em;
+}
+
+.published-information-copy {
+    min-width: 0;
+    padding: 39px 43px 48px;
+}
+
+.published-information-copy > h2 {
+    margin: 12px 0;
+    font-size: 36px;
+    font-weight: 330;
+}
+
+.published-intro {
+    margin-bottom: 26px;
+}
+
+.published-information-block {
+    margin: 18px 0;
+}
+
+.published-information-block.text-block {
+    padding: 20px 0 5px;
+    border-top: 1px solid var(--line-soft);
+}
+
+.published-information-block.text-block h3 {
+    margin: 0 0 11px;
+    color: #d6dce0;
+    font-size: 20px;
+    font-weight: 450;
+}
+
+.published-information-block.text-block div {
+    color: #a4aeb3;
+    font-size: 11px;
+    line-height: 1.78;
+    white-space: pre-wrap;
+}
+
+.published-information-block.image-block {
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #080c0e;
+}
+
+.published-information-block.image-block img {
+    width: 100%;
+    max-height: 520px;
+    display: block;
+    object-fit: contain;
+}
+
+.published-information-block.image-block figcaption {
+    display: grid;
+    gap: 5px;
+    padding: 13px 16px;
+    border-top: 1px solid var(--line-soft);
+}
+
+.published-information-block.image-block figcaption strong {
+    font-size: 10px;
+}
+
+.published-information-block.image-block figcaption span {
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.published-information-block.link-block {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    gap: 13px;
+    padding: 15px;
+    border: 1px solid #3c4c58;
+    background: linear-gradient(90deg, #152029, #0d1418);
+    color: inherit;
+    text-decoration: none;
+}
+
+.published-information-block.link-block:hover {
+    border-color: var(--accent);
+    background: linear-gradient(90deg, #252216, #10171a);
+}
+
+.published-information-block.link-block > span {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #5c6d77;
+    color: var(--accent);
+    font-size: 17px;
+}
+
+.published-information-block.link-block strong,
+.published-information-block.link-block small,
+.published-information-block.link-block code {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.published-information-block.link-block strong { font-size: 11px; }
+.published-information-block.link-block small { margin-top: 4px; color: var(--muted); font-size: 8px; }
+.published-information-block.link-block code { margin-top: 6px; color: #667985; font-size: 7px; }
+.published-information-copy iframe { width: 100%; min-height: 350px; margin-top: 18px; border: 1px solid var(--line); background: #050708; }
+
+@media (max-width: 1000px) {
+    .published-information-page { grid-template-columns: 1fr; }
+    .published-information-cover { min-height: 260px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+    .published-information-cover img { min-height: 260px; max-height: 350px; }
+}
+
+@media (max-width: 760px) {
+    .information-tabs.dynamic { grid-template-columns: 1fr; }
+    .published-information-copy { padding: 28px 24px 35px; }
+    .published-information-copy > h2 { font-size: 29px; }
+}

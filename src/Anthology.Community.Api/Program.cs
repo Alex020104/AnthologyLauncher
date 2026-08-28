@@ -3,6 +3,7 @@ using Anthology.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<CommunityState>();
+builder.Services.AddHttpClient<TranslationGateway>(client => client.Timeout = TimeSpan.FromSeconds(90));
 builder.Services.AddSignalR(options =>
 {
     options.MaximumReceiveMessageSize = 16 * 1024;
@@ -59,6 +60,28 @@ api.MapPost("/bug-reports", (BugReportRequest report, CommunityState state) =>
     catch (ArgumentException exception)
     {
         return Results.BadRequest(new { error = exception.Message });
+    }
+});
+api.MapPost("/translate", async (
+    TextTranslationRequest request,
+    TranslationGateway translations,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        return Results.Ok(await translations.TranslateAsync(request, cancellationToken));
+    }
+    catch (ArgumentException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+    catch (InvalidOperationException exception)
+    {
+        return Results.Json(new { error = exception.Message }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+    catch (HttpRequestException exception)
+    {
+        return Results.Json(new { error = exception.Message }, statusCode: StatusCodes.Status502BadGateway);
     }
 });
 api.MapPost("/bug-reports/{reportId}/attachments", async (

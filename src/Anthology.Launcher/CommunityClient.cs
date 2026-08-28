@@ -94,6 +94,25 @@ public sealed class CommunityClient(
             cancellationToken);
     }
 
+    public async Task<TextTranslationResponse> TranslateAsync(
+        string text,
+        string targetLanguage,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.PostAsJsonAsync(
+            new Uri(_baseUri, "api/v1/translate"),
+            new TextTranslationRequest(text, targetLanguage),
+            ManifestJson.Options,
+            cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var details = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException($"Перевод недоступен: {details}");
+        }
+        return await response.Content.ReadFromJsonAsync<TextTranslationResponse>(ManifestJson.Options, cancellationToken)
+            ?? throw new InvalidDataException("Сервис перевода вернул пустой ответ.");
+    }
+
     public void Dispose()
     {
         if (_hubConnection is not null)

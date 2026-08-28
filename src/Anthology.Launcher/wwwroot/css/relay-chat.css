@@ -38,7 +38,7 @@
 
 .sidebar-language-switch {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
 }
 
@@ -130,6 +130,24 @@
 .relay-participant small { margin-top: 4px; color: #657178; font-size: 7px; }
 .relay-participant em { padding: 3px 5px; border: 1px solid #3b464b; color: #657178; font: 7px Consolas, monospace; font-style: normal; }
 .relay-participant.selected em,.relay-participant.own em { border-color: #6e5a34; color: var(--accent); }
+.relay-participant.developer { background: linear-gradient(90deg, #6f1d2430, transparent); }
+.relay-participant.developer > span { border-color: #87343b; background: #281417; color: #ff6d72; }
+.relay-participant.developer strong { color: #ff666c; }
+.relay-participant.developer em { border-color: #87343b; color: #ff666c; }
+.relay-participant.moderator > span { border-color: #3b6578; background: #12232b; color: #70c7ed; }
+.relay-participant.moderator strong,.relay-participant.moderator em { color: #70c7ed; }
+
+.relay-messages .chat-message.developer > span { border-color: #87343b; background: #281417; color: #ff666c; }
+.relay-messages .chat-message.developer strong { color: #ff666c; }
+.relay-messages .chat-message.developer em { border-color: #87343b; color: #ff666c; }
+.relay-messages .chat-message.moderator > span { border-color: #3b6578; background: #12232b; color: #70c7ed; }
+.relay-messages .chat-message.moderator strong,.relay-messages .chat-message.moderator em { color: #70c7ed; }
+.relay-messages .chat-message.ai-helper > span { border-color: #936122; background: #2b1e0e; color: #ff9126; }
+.relay-messages .chat-message.ai-helper strong,.relay-messages .chat-message.ai-helper em { color: #ff9126; }
+.chat-message .message-translate { width: auto; min-width: 0; height: 24px; margin-top: 7px; padding: 0 8px; border: 1px solid #35434a; background: #0b1216; color: #758a95; font: 7px Consolas, monospace; letter-spacing: .08em; cursor: pointer; }
+.chat-message .message-translate:hover { border-color: #7b683d; color: var(--accent-bright); }
+.chat-message .message-translate:disabled { cursor: wait; opacity: .55; }
+.chat-message .translation-original { display: block; margin-top: 7px; padding: 6px 8px; border-left: 2px solid #4c5860; color: #66747b; font-size: 7px; line-height: 1.45; }
 
 .relay-participant-empty {
     height: 100%;
@@ -211,6 +229,13 @@
 }
 .relay-option-actions button { min-width: 0; padding-inline: 8px; }
 .relay-recipient-button.active { border-color: var(--accent) !important; background: #292315 !important; color: var(--accent-bright) !important; cursor: pointer !important; }
+.relay-ai-status { display: grid; grid-template-columns: 7px minmax(0, 1fr); align-items: center; gap: 9px; padding: 10px; border: 1px solid #342d25; background: #16120f; }
+.relay-ai-status > span { width: 7px; height: 7px; border-radius: 50%; background: #9b4d3c; box-shadow: 0 0 8px #9b4d3c88; }
+.relay-ai-status.ready > span { background: #65b987; box-shadow: 0 0 8px #65b98788; }
+.relay-ai-status strong,.relay-ai-status small { display: block; }
+.relay-ai-status strong { color: #c3c9cb; font-size: 8px; }
+.relay-ai-status small { margin-top: 4px; color: #657178; font-size: 7px; line-height: 1.45; }
+.relay-ai-status code { color: #d8b568; font: inherit; }
 
 @media (max-width: 1240px) {
     .relay-control-panel { grid-column: 1 / -1; min-height: 420px; }

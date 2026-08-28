@@ -104,6 +104,97 @@ public static partial class ReleasePublicationService
         return new AddonPublicationResult(id, artifact, manifestPath, publication);
     }
 
+    public static async Task<PublicationResult> PublishContentAsync(
+        ContentDraft content,
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(machine);
+        if (content.Kind == ContentKind.Mod)
+        {
+            throw new InvalidOperationException("Для модов используйте публикацию пакета Библиотеки модов.");
+        }
+
+        ReleaseVersionRules.Validate(workspace.Version);
+        UnifiedReleaseBuilder.ValidateMachine(machine);
+        _ = NormalizeId(content.Id);
+        content.IsPublished = true;
+        progress?.Report($"Публикация материала {content.Title}…");
+        var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
+        await RefreshManifestAsync(workspace, machine, cancellationToken);
+        var publication = await PublishFilesAsync(
+            versionRoot,
+            ["manifest.json", "content.json"],
+            workspace,
+            machine,
+            progress,
+            cancellationToken);
+        progress?.Report($"Материал {content.Title} опубликован.");
+        return publication;
+    }
+
+    public static async Task<PublicationResult> UnpublishContentAsync(
+        ContentDraft content,
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        if (content.Kind == ContentKind.Mod)
+        {
+            throw new InvalidOperationException("Для модов используйте снятие пакета Библиотеки модов.");
+        }
+
+        ReleaseVersionRules.Validate(workspace.Version);
+        UnifiedReleaseBuilder.ValidateMachine(machine);
+        content.IsPublished = false;
+        var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+        var packages = await LoadExistingPackagesAsync(Path.Combine(versionRoot, "manifest.json"), cancellationToken);
+        progress?.Report($"Снятие материала {content.Title}…");
+        if (packages.Count > 0 || catalog.Items.Count > 0)
+        {
+            await RefreshManifestAsync(workspace, machine, cancellationToken);
+            return await PublishFilesAsync(
+                versionRoot,
+                ["manifest.json", "content.json"],
+                workspace,
+                machine,
+                progress,
+                cancellationToken);
+        }
+
+        var stamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var trash = Path.Combine(Path.GetFullPath(machine.OutputRoot), ".releaser-trash", stamp);
+        var removed = new List<string>();
+        foreach (var fileName in new[] { "manifest.json", "content.json" })
+        {
+            var local = Path.Combine(versionRoot, fileName);
+            if (File.Exists(local))
+            {
+                await MoveFileToTrashAsync(local, Path.Combine(trash, "local", workspace.Version, fileName), cancellationToken);
+                removed.Add(local);
+            }
+            foreach (var target in GetPublicationTargets(workspace, machine))
+            {
+                var published = Path.Combine(target.Root, workspace.Version, fileName);
+                if (!File.Exists(published))
+                {
+                    continue;
+                }
+                await MoveFileToTrashAsync(published, Path.Combine(trash, "published", target.Id, workspace.Version, fileName), cancellationToken);
+                removed.Add(published);
+            }
+        }
+
+        return new PublicationResult(GetPublicationTargets(workspace, machine).Length, removed.Count, 0, removed);
+    }
+
     public static async Task<PublicationResult> UnpublishAddonAsync(
         ContentDraft addon,
         ReleaserWorkspace workspace,

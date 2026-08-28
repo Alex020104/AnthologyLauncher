@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Anthology.Contracts\Anthology.Contracts.csproj" />
+    <ProjectReference Include="..\Anthology.Update.Core\Anthology.Update.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -248,7 +248,9 @@ public static class UnifiedReleaseBuilder
                     item.DownloadFileName.Trim(),
                     item.DownloadSize,
                     item.DownloadSha256.Trim().ToLowerInvariant(),
-                    mirrors);
+                    mirrors,
+                    string.IsNullOrWhiteSpace(item.InstallFolderName) ? item.Id.Trim() : item.InstallFolderName.Trim(),
+                    ReplaceExisting: true);
             }
 
             var section = string.IsNullOrWhiteSpace(item.Section) ? "general" : item.Section.Trim().ToLowerInvariant();
@@ -260,6 +262,29 @@ public static class UnifiedReleaseBuilder
             var translations = new Dictionary<string, ContentTranslation>(StringComparer.OrdinalIgnoreCase);
             AddTranslation(translations, "en", item.TitleEn, item.SummaryEn, item.BodyEn);
             AddTranslation(translations, "de", item.TitleDe, item.SummaryDe, item.BodyDe);
+            foreach (var (language, translation) in item.Translations ?? [])
+            {
+                AddTranslation(translations, AnthologyLanguages.Normalize(language), translation.Title, translation.Summary, translation.Body);
+            }
+            var blocks = (item.Blocks ?? [])
+                .Select(block =>
+                {
+                    var blockTranslations = new Dictionary<string, ContentBlockTranslation>(StringComparer.OrdinalIgnoreCase);
+                    AddBlockTranslation(blockTranslations, "en", block.TitleEn, block.BodyEn);
+                    AddBlockTranslation(blockTranslations, "de", block.TitleDe, block.BodyDe);
+                    foreach (var (language, translation) in block.Translations ?? [])
+                    {
+                        AddBlockTranslation(blockTranslations, AnthologyLanguages.Normalize(language), translation.Title, translation.Body);
+                    }
+                    return new ContentBlock(
+                        block.Id.Trim().ToLowerInvariant(),
+                        block.Kind,
+                        block.Title.Trim(),
+                        block.Body.Trim(),
+                        string.IsNullOrWhiteSpace(block.Url) ? null : block.Url.Trim(),
+                        blockTranslations);
+                })
+                .ToArray();
 
             return new ContentDocument(
                 item.Id.Trim().ToLowerInvariant(),
@@ -271,10 +296,11 @@ public static class UnifiedReleaseBuilder
                 images,
                 videos,
                 download,
-                translations);
+                translations,
+                blocks);
         }).ToArray();
 
-        return new ContentCatalog(2, workspace.Version, DateTimeOffset.UtcNow, items);
+        return new ContentCatalog(3, workspace.Version, DateTimeOffset.UtcNow, items);
     }
 
     private static void AddTranslation(
@@ -292,6 +318,20 @@ public static class UnifiedReleaseBuilder
         }
 
         translations[language] = new ContentTranslation(title.Trim(), summary.Trim(), body.Trim());
+    }
+
+    private static void AddBlockTranslation(
+        Dictionary<string, ContentBlockTranslation> translations,
+        string language,
+        string title,
+        string body)
+    {
+        if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(body))
+        {
+            return;
+        }
+
+        translations[language] = new ContentBlockTranslation(title.Trim(), body.Trim());
     }
 
     private static async Task CreateDeterministicZipAsync(

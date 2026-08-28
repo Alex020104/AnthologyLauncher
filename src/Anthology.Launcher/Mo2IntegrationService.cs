@@ -224,6 +224,8 @@ public sealed class Mo2IntegrationService(
 
     public async Task<LauncherActionResult> InstallArchiveAsync(
         string archivePath,
+        string? installName = null,
+        bool replaceExisting = false,
         CancellationToken cancellationToken = default)
     {
         var workspace = GetWorkspace();
@@ -244,6 +246,8 @@ public sealed class Mo2IntegrationService(
                     workspace.Instance.Root,
                     workspace.SelectedProfile,
                     archivePath,
+                    installName,
+                    replaceExisting,
                     cancellationToken),
                 cancellationToken);
             if (result.Success)

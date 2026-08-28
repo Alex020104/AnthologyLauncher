@@ -256,7 +256,7 @@
                                 }
                                 @foreach (var message in _relayMessages)
                                 {
-                                    <div class="chat-message @(message.IsSystem ? "system" : null) @(message.IsOwn ? "own" : null)"><span>@MessageInitial(message)</span><div><strong>@message.AuthorName <em>@FactionLabel(message.Faction)</em></strong>@if (_settings.RelayChatShowTimestamps) { <small>@message.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</small> }<p>@message.Text</p></div></div>
+                                    <div class="chat-message @(message.IsSystem ? "system" : null) @(message.IsOwn ? "own" : null) @RelayRoleClass(message.Role)"><span>@MessageInitial(message)</span><div><strong>@message.AuthorName <em>@RelayMessageBadge(message)</em></strong>@if (_settings.RelayChatShowTimestamps) { <small>@message.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</small> }<p>@RelayMessageText(message)</p>@if (HasActiveRelayTranslation(message)) { <small class="translation-original">ОРИГИНАЛ: @message.Text</small> }<button class="message-translate" @onclick="() => TranslateRelayMessageAsync(message)" disabled="@_translationMessagesBusy.Contains(message.Id)">@(_translationMessagesBusy.Contains(message.Id) ? "ПЕРЕВОД…" : $"ПЕРЕВЕСТИ → {CurrentLanguage.ShortLabel}")</button></div></div>
                                 }
                             </div>
                             <div class="chat-composer relay-composer"><button class="relay-recipient-button @(_relayRecipientNick is not null ? "active" : null)" title="@(_relayRecipientNick is null ? "Выберите участника справа для личного сообщения" : "Отменить личное сообщение")" @onclick="ClearRelayRecipient" disabled="@(_relayRecipientNick is null)">@(_relayRecipientNick is null ? "＋" : "×")</button><input placeholder="@RelayComposerPlaceholder" @bind="_relayText" @bind:event="oninput" @onkeydown="RelayChatKeyDownAsync" disabled="@(!_relayChatRunning)" maxlength="380" /><button class="send-button" @onclick="SendRelayChatMessageAsync" disabled="@(!_relayChatRunning || string.IsNullOrWhiteSpace(_relayText))">↑</button></div>
@@ -271,7 +271,7 @@
                                 }
                                 @foreach (var message in _chatMessages)
                                 {
-                                    <div class="chat-message @(message.IsDeveloper ? "system" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName @if (message.IsDeveloper) { <em>DEV</em> }</strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@message.Text</p></div></div>
+                                    <div class="chat-message @(message.IsDeveloper ? "system" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName @if (message.IsDeveloper) { <em>DEV</em> }</strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@CommunityMessageText(message)</p>@if (HasActiveCommunityTranslation(message)) { <small class="translation-original">ОРИГИНАЛ: @message.Text</small> }<button class="message-translate" @onclick="() => TranslateCommunityMessageAsync(message)" disabled="@_translationMessagesBusy.Contains(message.Id)">@(_translationMessagesBusy.Contains(message.Id) ? "ПЕРЕВОД…" : $"ПЕРЕВЕСТИ → {CurrentLanguage.ShortLabel}")</button></div></div>
                                 }
                             </div>
                             <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в #@CurrentChannel.Name" @bind="_chatText" @bind:event="oninput" @onkeydown="ChatKeyDownAsync" disabled="@(!_chatConnected)" maxlength="2000" /><button class="send-button" @onclick="SendChatMessageAsync" disabled="@(!_chatConnected || string.IsNullOrWhiteSpace(_chatText))">↑</button></div>
@@ -293,10 +293,10 @@
                                     }
                                     @foreach (var participant in _relayParticipants)
                                     {
-                                        <button type="button" class="relay-participant @(_relayRecipientNick == participant.Nick ? "selected" : null) @(participant.IsOwn ? "own" : null)" @onclick="() => SelectRelayRecipient(participant)">
+                                        <button type="button" class="relay-participant @(_relayRecipientNick == participant.Nick ? "selected" : null) @(participant.IsOwn ? "own" : null) @RelayRoleClass(participant.Role)" @onclick="() => SelectRelayRecipient(participant)">
                                             <span>@ParticipantInitial(participant)</span>
                                             <div><strong>@participant.DisplayName</strong><small>@FactionLabel(participant.Faction)</small></div>
-                                            @if (participant.IsOwn) { <em>ВЫ</em> } else { <em>ЛС</em> }
+                                            <em>@RelayParticipantBadge(participant)</em>
                                         </button>
                                     }
                                 </div>
@@ -326,6 +326,9 @@
                                     <label>Клавиша чата<select @bind="_settings.RelayChatKey">@foreach (var option in RelayChatKeys) { <option value="@option.Value">@option.Title</option> }</select></label>
                                     <button class="relay-toggle @ToggleClass(_settings.RelayChatNewsSound)" @onclick="() => _settings.RelayChatNewsSound = !_settings.RelayChatNewsSound"><span></span><div><strong>Звук новостей</strong><small>Проигрывать сигнал нового сообщения</small></div></button>
                                     <button class="relay-toggle @ToggleClass(_settings.RelayChatCloseAfterSend)" @onclick="() => _settings.RelayChatCloseAfterSend = !_settings.RelayChatCloseAfterSend"><span></span><div><strong>Закрывать после отправки</strong><small>Скрывать игровое окно после сообщения</small></div></button>
+
+                                    <div class="relay-option-section"><span>AI HELPER</span><h3>Помощник Anthology</h3></div>
+                                    <div class="relay-ai-status @(RelayChat.IsAiHelperAvailable ? "ready" : null)"><span></span><div><strong>@RelayChat.AiHelperStatusText</strong><small>Введите <code>/ai ваш вопрос</code> в лаунчере или в игровом чате.</small></div></div>
                                 </div>
                                 <div class="relay-option-actions"><button class="secondary-button" @onclick="ShowRelayParticipants">НАЗАД</button><button class="primary-button" @onclick="SaveRelayChatOptionsAsync">ПРИМЕНИТЬ</button></div>
                             }
@@ -361,18 +364,7 @@
             }
             else if (_section == "information")
             {
-                @if (PublishedInformation.Any())
-                {
-                    <section class="published-information-grid">
-                        @foreach (var item in PublishedInformation)
-                        {
-                            var currentItem = item;
-                            var localizedItem = Localized(currentItem);
-                            <article class="section-block published-information"><span class="eyebrow">ОПУБЛИКОВАНО · @currentItem.Section</span><h2>@localizedItem.Title</h2><p class="information-lead">@localizedItem.Summary</p><div class="information-body">@localizedItem.Body</div>@foreach (var video in currentItem.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</article>
-                        }
-                    </section>
-                }
-                <section class="information-tabs section-block">
+                <section class="information-tabs dynamic section-block">
                     @foreach (var item in InformationCatalog.Sections)
                     {
                         var currentItem = item;
@@ -380,8 +372,64 @@
                             <span>@currentItem.Index</span><strong>@currentItem.Title</strong><small>@currentItem.Summary</small>
                         </button>
                     }
+                    @{ var publishedInformationIndex = InformationCatalog.Sections.Count + 1; }
+                    @foreach (var item in PublishedInformation)
+                    {
+                        var currentItem = item;
+                        var localizedItem = Localized(currentItem);
+                        var sectionId = PublishedInformationPrefix + currentItem.Id;
+                        <button class="information-tab published @(_informationSection == sectionId ? "active" : null)" @onclick="() => SelectInformation(sectionId)">
+                            <span>@publishedInformationIndex.ToString("00")</span><strong>@localizedItem.Title</strong><small>@localizedItem.Summary</small>
+                        </button>
+                        publishedInformationIndex++;
+                    }
                 </section>
-                @if (_informationSection != "stories")
+                @if (SelectedPublishedInformation is not null)
+                {
+                    var publishedInformation = SelectedPublishedInformation!;
+                    var localizedInformation = Localized(publishedInformation);
+                    <section class="published-information-page section-block">
+                        @if (publishedInformation.Images.Count > 0)
+                        {
+                            <div class="published-information-cover"><img src="@publishedInformation.Images[0]" alt="@localizedInformation.Title" /><span>ANTHOLOGY INFORMATION</span></div>
+                        }
+                        <article class="published-information-copy">
+                            <span class="eyebrow">СПРАВОЧНИК ANTHOLOGY · @publishedInformation.Section</span>
+                            <h2>@localizedInformation.Title</h2>
+                            <p class="information-lead">@localizedInformation.Summary</p>
+                            @if (!string.IsNullOrWhiteSpace(localizedInformation.Body))
+                            {
+                                <div class="information-body published-intro">@localizedInformation.Body</div>
+                            }
+                            @foreach (var block in publishedInformation.Blocks ?? [])
+                            {
+                                var localizedBlock = Localized(block);
+                                @if (block.Kind == ContentBlockKind.Section)
+                                {
+                                    <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section>
+                                }
+                                else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
+                                {
+                                    <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
+                                }
+                                else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl)
+                                {
+                                    <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a>
+                                }
+                            }
+                            @foreach (var image in publishedInformation.Images.Skip(1))
+                            {
+                                <figure class="published-information-block image-block"><img src="@image" alt="" /></figure>
+                            }
+                            @foreach (var video in publishedInformation.Videos)
+                            {
+                                var videoUrl = GetSafeEmbedUrl(video);
+                                @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> }
+                            }
+                        </article>
+                    </section>
+                }
+                else if (_informationSection != "stories")
                 {
                     var information = CurrentInformation;
                     <section class="information-article section-block">
@@ -781,13 +829,11 @@
 
     private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
     private const string RelayChatChannelId = "relay-chat";
+    private const string PublishedInformationPrefix = "published:";
 
-    private static readonly ChoiceOption[] InterfaceLanguages =
-    [
-        new("ru", "RU", "Русский"),
-        new("en", "EN", "English"),
-        new("de", "DE", "Deutsch"),
-    ];
+    private static readonly ChoiceOption[] InterfaceLanguages = AnthologyLanguages.All
+        .Select(language => new ChoiceOption(language.Code, language.ShortLabel, language.NativeName))
+        .ToArray();
 
     private static readonly ChoiceOption[] RelayChannels =
     [
@@ -847,6 +893,9 @@
     private string _relayText = string.Empty;
     private string _relaySideTab = "participants";
     private string? _relayRecipientNick;
+    private readonly Dictionary<string, TextTranslationResponse> _relayTranslations = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TextTranslationResponse> _communityTranslations = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _translationMessagesBusy = new(StringComparer.OrdinalIgnoreCase);
     private string _librarySection = "dev";
     private string _librarySearch = string.Empty;
     private UpdateRollbackCandidate? _rollbackCandidate;
@@ -891,7 +940,8 @@
         _feed?.Channels.FirstOrDefault(channel => channel.Id == _selectedChannelId)
         ?? new CommunityChannel(_selectedChannelId, _selectedChannelId, "Канал сообщества");
     private InformationSection CurrentInformation =>
-        InformationCatalog.Sections.First(item => item.Id == _informationSection);
+        InformationCatalog.Sections.FirstOrDefault(item => item.Id == _informationSection)
+        ?? InformationCatalog.Sections[0];
     private StoryArticle CurrentStory =>
         InformationCatalog.Stories.FirstOrDefault(item => item.Id == _selectedStoryId)
         ?? InformationCatalog.Stories[0];
@@ -910,6 +960,9 @@
                       || Localized(item).Body.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ContentDocument> PublishedInformation => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.Information);
+    private ContentDocument? SelectedPublishedInformation => _informationSection.StartsWith(PublishedInformationPrefix, StringComparison.Ordinal)
+        ? PublishedInformation.FirstOrDefault(item => string.Equals(PublishedInformationPrefix + item.Id, _informationSection, StringComparison.Ordinal))
+        : null;
     private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.News);
     private IEnumerable<ContentVideo> PublishedVideos => (_publishedContent?.Items ?? [])
@@ -922,6 +975,9 @@
 
     private ContentTranslation Localized(ContentDocument content) =>
         ContentLocalization.Resolve(content, _settings.InterfaceLanguage);
+
+    private ContentBlockTranslation Localized(ContentBlock block) =>
+        ContentBlockLocalization.Resolve(block, _settings.InterfaceLanguage);
 
     protected override async Task OnInitializedAsync()
     {
@@ -958,7 +1014,9 @@
 
     private async Task ChangeInterfaceLanguageAsync(string requestedLanguage)
     {
-        var language = requestedLanguage is "en" or "de" ? requestedLanguage : "ru";
+        var language = AnthologyLanguages.IsSupported(requestedLanguage)
+            ? AnthologyLanguages.Normalize(requestedLanguage)
+            : "ru";
         if (string.Equals(_settings.InterfaceLanguage, language, StringComparison.OrdinalIgnoreCase))
         {
             return;
@@ -1318,6 +1376,79 @@
     private static string ParticipantInitial(RelayChatParticipant participant) => Initial(participant.DisplayName);
 
     private static string MessageInitial(RelayChatMessage message) => Initial(message.AuthorName);
+
+    private static string RelayRoleClass(string role) => role switch
+    {
+        "admin" => "developer",
+        "mod" => "moderator",
+        "ai" => "ai-helper",
+        _ => string.Empty,
+    };
+
+    private static string RelayMessageBadge(RelayChatMessage message) => message.Role switch
+    {
+        "admin" => "РАЗРАБОТЧИК",
+        "mod" => "МОДЕРАТОР",
+        "ai" => "AI HELPER",
+        _ => FactionLabel(message.Faction),
+    };
+
+    private static string RelayParticipantBadge(RelayChatParticipant participant)
+    {
+        var role = participant.Role switch
+        {
+            "admin" => "DEV",
+            "mod" => "MOD",
+            _ => participant.IsOwn ? string.Empty : "ЛС",
+        };
+        return participant.IsOwn && role.Length > 0 ? $"{role} · ВЫ" : participant.IsOwn ? "ВЫ" : role;
+    }
+
+    private string RelayMessageText(RelayChatMessage message) =>
+        _relayTranslations.TryGetValue(message.Id, out var translation)
+        && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase)
+            ? translation.TranslatedText
+            : message.Text;
+
+    private bool HasActiveRelayTranslation(RelayChatMessage message) =>
+        _relayTranslations.TryGetValue(message.Id, out var translation)
+        && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase);
+
+    private string CommunityMessageText(ChatMessage message) =>
+        _communityTranslations.TryGetValue(message.Id, out var translation)
+        && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase)
+            ? translation.TranslatedText
+            : message.Text;
+
+    private bool HasActiveCommunityTranslation(ChatMessage message) =>
+        _communityTranslations.TryGetValue(message.Id, out var translation)
+        && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase);
+
+    private async Task TranslateRelayMessageAsync(RelayChatMessage message) =>
+        await TranslateMessageAsync(message.Id, message.Text, _relayTranslations);
+
+    private async Task TranslateCommunityMessageAsync(ChatMessage message) =>
+        await TranslateMessageAsync(message.Id, message.Text, _communityTranslations);
+
+    private async Task TranslateMessageAsync(
+        string messageId,
+        string text,
+        Dictionary<string, TextTranslationResponse> destination)
+    {
+        if (!_translationMessagesBusy.Add(messageId)) return;
+        try
+        {
+            destination[messageId] = await Community.TranslateAsync(text, _settings.InterfaceLanguage);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or TaskCanceledException)
+        {
+            ShowToast(exception.Message, true);
+        }
+        finally
+        {
+            _translationMessagesBusy.Remove(messageId);
+        }
+    }
 
     private static string Initial(string? value) => string.IsNullOrWhiteSpace(value)
         ? "?"
@@ -1881,7 +2012,10 @@
                 _ = InvokeAsync(StateHasChanged);
             });
             var path = await Updater.DownloadContentAsync(content, progress);
-            var install = await Mo2.InstallArchiveAsync(path);
+            var install = await Mo2.InstallArchiveAsync(
+                path,
+                content.Download?.InstallName,
+                content.Download?.ReplaceExisting ?? false);
             if (!install.Success)
             {
                 ShowToast($"Архив загружен, но MO2 не установил его: {install.Message}", true);
@@ -2049,6 +2183,18 @@
 
         var allowedHosts = new[] { "vk.com", "moddb.com", "www.moddb.com" };
         return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
+    }
+
+    private static string? GetSafeExternalUrl(string? value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            return null;
+        }
+
+        return uri.AbsoluteUri;
     }
 
     private void ShowToast(string message, bool error = false)

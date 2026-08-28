@@ -113,6 +113,34 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void PublishedModUpdateReplacesExistingFolderAndEnablesIt()
+    {
+        CreateInstance();
+        WriteModFile("anthology-weather", "gamedata/configs/weather.ltx", "old");
+        var modList = Path.Combine(_root, "profiles", "Anthology Стандарт", "modlist.txt");
+        File.WriteAllText(modList, "# generated\n-anthology-weather\n");
+        var archivePath = Path.Combine(_root, "weather-2.0.zip");
+        using (var archive = ZipFile.Open(archivePath, ZipArchiveMode.Create))
+        {
+            var entry = archive.CreateEntry("gamedata/configs/weather.ltx");
+            using var writer = new StreamWriter(entry.Open());
+            writer.Write("new");
+        }
+
+        var result = Mo2ArchiveInstaller.Install(
+            _root,
+            "Anthology Стандарт",
+            archivePath,
+            "anthology-weather",
+            replaceExisting: true);
+
+        Assert.True(result.Success);
+        Assert.Equal("new", File.ReadAllText(Path.Combine(_root, "mods", "anthology-weather", "gamedata", "configs", "weather.ltx")));
+        Assert.Contains("+anthology-weather", File.ReadAllLines(modList));
+        Assert.Empty(Directory.EnumerateDirectories(Path.Combine(_root, "mods"), ".__anthology_*"));
+    }
+
+    [Fact]
     public void ProfileCopyAndSeparatorUseNativeMo2Files()
     {
         CreateInstance();

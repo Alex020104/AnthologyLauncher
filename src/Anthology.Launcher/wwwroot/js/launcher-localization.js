@@ -1,24 +1,24 @@
 (() => {
     const dictionary = {
-        "Основная навигация": ["Main navigation", "Hauptnavigation"],
-        "Главная": ["Home", "Start"],
-        "Библиотека": ["Library", "Bibliothek"],
-        "Информация": ["Information", "Informationen"],
-        "Сообщество": ["Community", "Community"],
-        "Обновления": ["Updates", "Updates"],
-        "Баг-репорт": ["Bug report", "Fehlerbericht"],
-        "Установка": ["Installation", "Installation"],
-        "Настройки": ["Settings", "Einstellungen"],
-        "КОМАНДНЫЙ ЦЕНТР": ["COMMAND CENTER", "KOMMANDOZENTRALE"],
-        "КАТАЛОГ": ["CATALOG", "KATALOG"],
-        "СПРАВОЧНИК": ["GUIDE", "HANDBUCH"],
-        "СВЯЗЬ": ["COMMUNICATION", "KOMMUNIKATION"],
-        "СБОРКА": ["BUILD", "ZUSAMMENSTELLUNG"],
-        "СИНХРОНИЗАЦИЯ": ["SYNCHRONIZATION", "SYNCHRONISIERUNG"],
-        "ПОДДЕРЖКА": ["SUPPORT", "SUPPORT"],
-        "РАЗВЁРТЫВАНИЕ": ["DEPLOYMENT", "BEREITSTELLUNG"],
-        "КОНФИГУРАЦИЯ": ["CONFIGURATION", "KONFIGURATION"],
-        "Добро пожаловать в Зону": ["Welcome to the Zone", "Willkommen in der Zone"],
+        "Основная навигация": ["Main navigation", "Hauptnavigation", "Główna nawigacja", "Navigation principale", "Navegación principal", "主导航", "メインナビゲーション"],
+        "Главная": ["Home", "Start", "Strona główna", "Accueil", "Inicio", "主页", "ホーム"],
+        "Библиотека": ["Library", "Bibliothek", "Biblioteka", "Bibliothèque", "Biblioteca", "模组库", "ライブラリ"],
+        "Информация": ["Information", "Informationen", "Informacje", "Informations", "Información", "信息", "情報"],
+        "Сообщество": ["Community", "Community", "Społeczność", "Communauté", "Comunidad", "社区", "コミュニティ"],
+        "Обновления": ["Updates", "Updates", "Aktualizacje", "Mises à jour", "Actualizaciones", "更新", "アップデート"],
+        "Баг-репорт": ["Bug report", "Fehlerbericht", "Zgłoszenie błędu", "Rapport de bug", "Informe de error", "错误报告", "バグ報告"],
+        "Установка": ["Installation", "Installation", "Instalacja", "Installation", "Instalación", "安装", "インストール"],
+        "Настройки": ["Settings", "Einstellungen", "Ustawienia", "Paramètres", "Ajustes", "设置", "設定"],
+        "КОМАНДНЫЙ ЦЕНТР": ["COMMAND CENTER", "KOMMANDOZENTRALE", "CENTRUM DOWODZENIA", "CENTRE DE COMMANDE", "CENTRO DE MANDO", "指挥中心", "コマンドセンター"],
+        "КАТАЛОГ": ["CATALOG", "KATALOG", "KATALOG", "CATALOGUE", "CATÁLOGO", "目录", "カタログ"],
+        "СПРАВОЧНИК": ["GUIDE", "HANDBUCH", "PRZEWODNIK", "GUIDE", "GUÍA", "指南", "ガイド"],
+        "СВЯЗЬ": ["COMMUNICATION", "KOMMUNIKATION", "KOMUNIKACJA", "COMMUNICATION", "COMUNICACIÓN", "交流", "コミュニケーション"],
+        "СБОРКА": ["BUILD", "ZUSAMMENSTELLUNG", "KOMPILACJA", "VERSION", "COMPILACIÓN", "构建", "ビルド"],
+        "СИНХРОНИЗАЦИЯ": ["SYNCHRONIZATION", "SYNCHRONISIERUNG", "SYNCHRONIZACJA", "SYNCHRONISATION", "SINCRONIZACIÓN", "同步", "同期"],
+        "ПОДДЕРЖКА": ["SUPPORT", "SUPPORT", "WSPARCIE", "ASSISTANCE", "SOPORTE", "支持", "サポート"],
+        "РАЗВЁРТЫВАНИЕ": ["DEPLOYMENT", "BEREITSTELLUNG", "WDROŻENIE", "DÉPLOIEMENT", "DESPLIEGUE", "部署", "展開"],
+        "КОНФИГУРАЦИЯ": ["CONFIGURATION", "KONFIGURATION", "KONFIGURACJA", "CONFIGURATION", "CONFIGURACIÓN", "配置", "構成"],
+        "Добро пожаловать в Зону": ["Welcome to the Zone", "Willkommen in der Zone", "Witamy w Zonie", "Bienvenue dans la Zone", "Bienvenido a la Zona", "欢迎来到禁区", "ゾーンへようこそ"],
         "Моды и дополнения": ["Mods and add-ons", "Mods und Erweiterungen"],
         "Anthology и сюжеты": ["Anthology and stories", "Anthology und Handlungen"],
         "Профили и моды": ["Profiles and mods", "Profile und Mods"],
@@ -113,6 +113,9 @@
         "Уведомления о смертях": ["Death notifications", "Todesmeldungen"],
         "Отправлять события": ["Send events", "Ereignisse senden"],
         "Передавать смерти игрока в канал": ["Send player deaths to the channel", "Spielertode an den Kanal senden"],
+        "Помощник Anthology": ["Anthology Assistant", "Anthology-Assistent"],
+        "РАЗРАБОТЧИК": ["DEVELOPER", "ENTWICKLER"],
+        "МОДЕРАТОР": ["MODERATOR", "MODERATOR"],
         "Получать события": ["Receive events", "Ereignisse empfangen"],
         "Показывать события других игроков": ["Show events from other players", "Ereignisse anderer Spieler anzeigen"],
         "Интервал, секунд": ["Interval, seconds", "Intervall, Sekunden"],
@@ -254,7 +257,7 @@
     let observer;
 
     function indexFor(lang) {
-        return lang === "de" ? 1 : 0;
+        return ({ en: 0, de: 1, pl: 2, fr: 3, es: 4, zh: 5, ja: 6 })[lang] ?? 0;
     }
 
     function translate(source) {
@@ -264,7 +267,7 @@
         if (!entry) return source;
         const leading = source.slice(0, source.indexOf(trimmed));
         const trailing = source.slice(source.indexOf(trimmed) + trimmed.length);
-        return leading + entry[indexFor(language)] + trailing;
+        return leading + (entry[indexFor(language)] || entry[0] || trimmed) + trailing;
     }
 
     function applyTextNode(node) {
@@ -308,7 +311,7 @@
 
     window.anthologyLocalization = {
         setLanguage(value) {
-            language = value === "en" || value === "de" ? value : "ru";
+            language = ["ru", "en", "de", "pl", "fr", "es", "zh", "ja"].includes(value) ? value : "ru";
             document.documentElement.lang = language;
             apply();
             if (!observer && document.body) {

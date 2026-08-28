@@ -34,7 +34,8 @@ public sealed class CommunityHub(CommunityState state) : Hub
             authorId,
             authorName,
             text,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            AnthologyRoles.IsDeveloper(authorName));
         state.AppendMessage(message);
         await Clients.Group(channelId).SendAsync("messageReceived", message);
     }

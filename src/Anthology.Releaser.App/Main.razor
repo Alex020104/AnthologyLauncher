@@ -49,26 +49,94 @@
                 </section>
                 <section class="panel action-line"><button class="secondary" @onclick="AddMirror">＋ ДОБАВИТЬ ИСТОЧНИК</button><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ ИСТОЧНИКИ</button></section>
             }
-            else if (_section == "content")
+            else if (IsContentSection)
             {
+                <section class="panel content-context-hero @ContentSectionCssClass"><div><span class="eyebrow">@ContentSectionKicker</span><h2>@ContentSectionTitle</h2><p>@ContentSectionDescription</p></div><div><strong>@FilteredContent.Count()</strong><span>@ContentSectionCounterLabel</span></div></section>
                 <section class="content-layout">
-                    <aside class="panel content-list"><div class="section-title"><div><span class="eyebrow">МАТЕРИАЛЫ</span><h3>@_workspace.Content.Count записей</h3></div><button @onclick="AddContent">＋</button></div><div class="content-filters"><button class="@(_contentFilter is null ? "active" : null)" @onclick="() => _contentFilter = null">ВСЕ</button><button class="@(_contentFilter == ContentKind.Mod ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Mod">БИБЛИОТЕКА МОДОВ</button><button class="@(_contentFilter == ContentKind.News ? "active" : null)" @onclick="() => _contentFilter = ContentKind.News">НОВОСТИ</button><button class="@(_contentFilter == ContentKind.Information ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Information">ИНФО</button></div>@foreach (var item in FilteredContent) { var current = item; <button class="content-item @(_selectedContentId == current.Id ? "active" : null)" @onclick="() => _selectedContentId = current.Id"><span>@KindName(current.Kind) · @(current.IsPublished ? "ОПУБЛИКОВАН" : "ЧЕРНОВИК")</span><strong>@current.Title</strong><small>@current.Section · @current.Id</small></button> }</aside>
-                    @if (SelectedContent is not null)
+                    <aside class="panel content-list">
+                        <div class="section-title"><div><span class="eyebrow">@ContentSectionListLabel</span><h3>@FilteredContent.Count() записей</h3></div><button title="@ContentAddLabel" @onclick="AddContent">＋</button></div>
+                        @foreach (var item in FilteredContent)
+                        {
+                            var current = item;
+                            <button class="content-item @(_selectedContentId == current.Id ? "active" : null)" @onclick="() => _selectedContentId = current.Id"><span>@(current.IsPublished ? "ОПУБЛИКОВАН" : "ЧЕРНОВИК")</span><strong>@current.Title</strong><small>@current.Section · @current.Id</small></button>
+                        }
+                    </aside>
+                    @if (SelectedContent is not null && SelectedContent.Kind == ActiveContentKind)
                     {
                         <section class="panel content-editor">
-                            <div class="editor-head"><div><span class="eyebrow">ПОЛНОЕ РЕДАКТИРОВАНИЕ</span><h2>@SelectedContent.Title</h2></div><button class="danger" @onclick="RemoveContent">УДАЛИТЬ</button></div>
-                            <div class="form-grid"><label>Тип<select @bind="SelectedContent.Kind"><option value="@ContentKind.Mod">Мод для библиотеки</option><option value="@ContentKind.News">Новость</option><option value="@ContentKind.Information">Информация</option></select></label><label>Раздел библиотеки<input @bind="SelectedContent.Section" placeholder="dev / modmakers / solutions" /></label><label>ID<input @bind="SelectedContentIdentifier" /></label></div>
-                            <section class="locale-editor"><div class="locale-heading"><span>RU</span><strong>Русская публикация</strong><small>Основной и обязательный текст</small></div><label>Заголовок<input @bind="SelectedContent.Title" /></label><label>Краткое описание<textarea rows="3" @bind="SelectedContent.Summary"></textarea></label><label>Полный текст<textarea class="body-editor" rows="9" @bind="SelectedContent.Body"></textarea></label></section>
-                            <section class="locale-editor"><div class="locale-heading"><span>EN</span><strong>English publication</strong><small>Показывается при выборе English в лаунчере</small></div><label>Title<input @bind="SelectedContent.TitleEn" /></label><label>Summary<textarea rows="3" @bind="SelectedContent.SummaryEn"></textarea></label><label>Full text<textarea class="body-editor" rows="9" @bind="SelectedContent.BodyEn"></textarea></label></section>
-                            <section class="locale-editor"><div class="locale-heading"><span>DE</span><strong>Deutsche Veröffentlichung</strong><small>Показывается при выборе Deutsch в лаунчере</small></div><label>Titel<input @bind="SelectedContent.TitleDe" /></label><label>Kurzbeschreibung<textarea rows="3" @bind="SelectedContent.SummaryDe"></textarea></label><label>Vollständiger Text<textarea class="body-editor" rows="9" @bind="SelectedContent.BodyDe"></textarea></label></section>
-                            <div class="media-grid"><label>Картинки — по одной HTTPS-ссылке на строку<textarea rows="5" @bind="SelectedContent.Images" placeholder="https://.../cover.jpg"></textarea></label><label>Видео — «Название | HTTPS-ссылка»<textarea rows="5" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/embed/..."></textarea></label></div>
-                            <section class="download-editor"><div><span class="eyebrow">ПАКЕТ ДЛЯ БИБЛИОТЕКИ МОДОВ</span><h3>Скачивание и установка прямо в MO2</h3><p>Выберите архив мода. Релизер рассчитает SHA‑256, обновит подписанный каталог и выгрузит файл в настроенные источники. Игрок установит его выбранный профиль MO2 одной кнопкой.</p></div><code>@PathOrEmpty(SelectedContentArchivePath)</code><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ МОДА</button><div class="form-grid"><label>Имя файла<input @bind="SelectedContent.DownloadFileName" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://.../{version}/addons/{id}/{file}&#10;google-drive | https://...&#10;http | https://cdn.example/{file}"></textarea></label><div class="publish-actions"><button class="danger" @onclick="UnpublishAddonAsync" disabled="@(_busy || !SelectedContent.IsPublished)">СНЯТЬ МОД</button><button class="primary" @onclick="PublishAddonAsync" disabled="@(_busy || SelectedContent.Kind != ContentKind.Mod)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ В БИБЛИОТЕКЕ")</button></div></section>
-                            <div class="editor-actions"><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ МАТЕРИАЛ</button></div>
+                            <div class="editor-head"><div><span class="eyebrow">@ContentEditorKicker</span><h2>@SelectedContent.Title</h2></div><div class="editor-head-actions">@if (ActiveContentKind == ContentKind.Information) { <button class="secondary compact-button" title="Переместить вкладку влево" @onclick="() => MoveSelectedContent(-1)">←</button><button class="secondary compact-button" title="Переместить вкладку вправо" @onclick="() => MoveSelectedContent(1)">→</button> }<button class="danger" @onclick="RemoveContent">УДАЛИТЬ</button></div></div>
+                            <div class="form-grid">
+                                @if (ActiveContentKind == ContentKind.Mod)
+                                {
+                                    <label>Раздел библиотеки<select @bind="SelectedContent.Section"><option value="dev">Личные проекты разработчиков</option><option value="modmakers">Новые проекты от модмейкеров</option><option value="solutions">Решения спорных механик</option></select></label>
+                                }
+                                else
+                                {
+                                    <label>@(ActiveContentKind == ContentKind.News ? "Раздел новостей" : "Группа вкладки")<input @bind="SelectedContent.Section" placeholder="general" /></label>
+                                }
+                                <label>ID публикации<input @bind="SelectedContentIdentifier" /></label>
+                            </div>
+                            <section class="translation-workbench">
+                                <div class="translation-head"><div><span class="eyebrow">АВТОПЕРЕВОД</span><h3>Один исходник — восемь языков</h3><p>Пишите на любом языке. Релизер определит исходный язык, заполнит переводы и сохранит их в подписанном каталоге. Игроку ключ перевода не передаётся.</p></div><button class="primary" @onclick="AutoTranslateContentAsync" disabled="@(_translationBusy || _busy)">@(_translationBusy ? "ПЕРЕВОДИМ…" : "ПЕРЕВЕСТИ НА ВСЕ ЯЗЫКИ")</button></div>
+                                <div class="translation-service-grid"><label>LibreTranslate API<input @bind="_machine.TranslationApiUrl" placeholder="https://translate.example/ или http://127.0.0.1:5000" /></label><label>API-ключ этой машины<input type="password" @bind="_machine.TranslationApiKey" autocomplete="off" /></label><label>Язык исходника<select @bind="SelectedContent.SourceLanguage"><option value="auto">Определить автоматически</option>@foreach (var language in AnthologyLanguages.All) { <option value="@language.Code">@language.ShortLabel · @language.NativeName</option> }</select></label></div>
+                                <div class="translation-tabs"><button class="@(_selectedContentLanguage == "source" ? "active" : null)" @onclick="SelectSourceLanguage">ИСТОЧНИК</button>@foreach (var language in AnthologyLanguages.All) { var localeButton = language; <button class="@(_selectedContentLanguage == localeButton.Code ? "active" : null)" @onclick="() => SelectContentLanguage(localeButton.Code)">@localeButton.ShortLabel</button> }</div>
+                            </section>
+                            @if (_selectedContentLanguage == "source")
+                            {
+                                <section class="locale-editor source-locale"><div class="locale-heading"><span>AUTO</span><strong>@(ActiveContentKind == ContentKind.Information ? "Название верхней вкладки" : "Исходная публикация")</strong><small>Можно писать на любом поддерживаемом языке</small></div><label>Заголовок<input @bind="SelectedContent.Title" /></label><label>Краткое описание<textarea rows="3" @bind="SelectedContent.Summary"></textarea></label><label>@(ActiveContentKind == ContentKind.Information ? "Вводный текст вкладки" : "Полный текст")<textarea class="body-editor" rows="7" @bind="SelectedContent.Body"></textarea></label></section>
+                            }
+                            else
+                            {
+                                var selectedLanguage = AnthologyLanguages.Get(_selectedContentLanguage);
+                                var selectedTranslation = SelectedContent.Translation(selectedLanguage.Code);
+                                <section class="locale-editor translated-locale"><div class="locale-heading"><span>@selectedLanguage.ShortLabel</span><strong>@selectedLanguage.NativeName</strong><small>Автоперевод можно исправить вручную перед публикацией</small></div><label>Заголовок<input @bind="selectedTranslation.Title" /></label><label>Краткое описание<textarea rows="3" @bind="selectedTranslation.Summary"></textarea></label><label>Полный текст<textarea class="body-editor" rows="7" @bind="selectedTranslation.Body"></textarea></label></section>
+                            }
+
+                            @if (ActiveContentKind == ContentKind.Information)
+                            {
+                                <section class="information-builder">
+                                    <div class="information-builder-head"><div><span class="eyebrow">СОДЕРЖИМОЕ ВКЛАДКИ</span><h3>Заголовки, текст, картинки и ссылки</h3><p>Блоки идут в лаунчере сверху вниз. Картинку или URL файла можно поставить между любыми текстовыми разделами.</p></div><div><button class="secondary" @onclick="() => AddInformationBlock(ContentBlockKind.Section)">＋ ЗАГОЛОВОК</button><button class="secondary" @onclick="() => AddInformationBlock(ContentBlockKind.Image)">＋ КАРТИНКА</button><button class="secondary" @onclick="() => AddInformationBlock(ContentBlockKind.Link)">＋ URL / ФАЙЛ</button></div></div>
+                                    @if (SelectedContent.Blocks.Count == 0)
+                                    {
+                                        <div class="information-block-empty">Добавьте первый заголовок, картинку или ссылку. Они появятся внутри выбранной вкладки «Информация».</div>
+                                    }
+                                    @foreach (var block in SelectedContent.Blocks)
+                                    {
+                                        var currentBlock = block;
+                                        <article class="information-block @BlockCssClass(currentBlock.Kind)">
+                                            <header><div><span>@BlockKindName(currentBlock.Kind)</span><strong>@(string.IsNullOrWhiteSpace(currentBlock.Title) ? "Без названия" : currentBlock.Title)</strong></div><div><button title="Выше" @onclick="() => MoveInformationBlock(currentBlock, -1)">↑</button><button title="Ниже" @onclick="() => MoveInformationBlock(currentBlock, 1)">↓</button><button class="remove-block" title="Удалить блок" @onclick="() => RemoveInformationBlock(currentBlock)">×</button></div></header>
+                                            @if (currentBlock.Kind is ContentBlockKind.Image or ContentBlockKind.Link)
+                                            {
+                                                <label>@(currentBlock.Kind == ContentBlockKind.Image ? "HTTPS URL картинки" : "HTTPS URL страницы или файла")<input @bind="currentBlock.Url" placeholder="https://..." /></label>
+                                            }
+                                            <div class="block-locale-grid">
+                                                @if (_selectedContentLanguage == "source")
+                                                {
+                                                    <section><span>AUTO</span><label>@BlockTitleLabel(currentBlock.Kind)<input @bind="currentBlock.Title" /></label><label>@BlockBodyLabel(currentBlock.Kind)<textarea rows="5" @bind="currentBlock.Body"></textarea></label></section>
+                                                }
+                                                else
+                                                {
+                                                    var blockLanguage = AnthologyLanguages.Get(_selectedContentLanguage);
+                                                    var blockTranslation = currentBlock.Translation(blockLanguage.Code);
+                                                    <section><span>@blockLanguage.ShortLabel</span><label>@BlockTitleLabel(currentBlock.Kind)<input @bind="blockTranslation.Title" /></label><label>@BlockBodyLabel(currentBlock.Kind)<textarea rows="5" @bind="blockTranslation.Body"></textarea></label></section>
+                                                }
+                                            </div>
+                                        </article>
+                                    }
+                                </section>
+                            }
+
+                            <div class="media-grid"><label>@(ActiveContentKind == ContentKind.Information ? "Обложки вкладки — по одной HTTPS-ссылке" : "Картинки — по одной HTTPS-ссылке на строку")<textarea rows="5" @bind="SelectedContent.Images" placeholder="https://.../cover.jpg"></textarea></label><label>Видео — «Название | HTTPS-ссылка»<textarea rows="5" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/embed/..."></textarea></label></div>
+                            @if (ActiveContentKind == ContentKind.Mod)
+                            {
+                                <section class="download-editor"><div><span class="eyebrow">ПАКЕТ ДЛЯ БИБЛИОТЕКИ МОДОВ</span><h3>Автоматическая установка в MO2\mods</h3><p>Выберите готовый архив мода. Лаунчер скачает его с выбранного зеркала, проверит SHA‑256, распакует в папку <b>MO2\mods</b> и сразу включит в выбранном профиле. Повторная публикация безопасно заменит старую версию этого же мода.</p></div><code>@PathOrEmpty(SelectedContentArchivePath)</code><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ МОДА</button><div class="form-grid"><label>Имя архива<input @bind="SelectedContent.DownloadFileName" /></label><label>Папка мода в MO2<input @bind="SelectedContent.InstallFolderName" placeholder="Если пусто — используется ID публикации" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://.../{version}/addons/{id}/{file}&#10;google-drive | https://...&#10;http | https://cdn.example/{file}"></textarea></label><div class="publish-actions"><button class="danger" @onclick="UnpublishAddonAsync" disabled="@(_busy || !SelectedContent.IsPublished)">СНЯТЬ МОД</button><button class="primary" @onclick="PublishAddonAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ В БИБЛИОТЕКЕ")</button></div></section>
+                            }
+                            <div class="editor-actions"><button class="secondary" @onclick="SaveAsync">СОХРАНИТЬ ЧЕРНОВИК</button>@if (ActiveContentKind != ContentKind.Mod) { <button class="danger" @onclick="UnpublishContentAsync" disabled="@(_busy || !SelectedContent.IsPublished)">СНЯТЬ ПУБЛИКАЦИЮ</button><button class="primary" @onclick="PublishContentAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : ActiveContentKind == ContentKind.News ? "ОПУБЛИКОВАТЬ НОВОСТЬ" : "ОПУБЛИКОВАТЬ ВКЛАДКУ")</button> }</div>
                         </section>
                     }
                     else
                     {
-                        <section class="panel empty"><span>＋</span><h2>Создайте материал</h2><p>Новости, информация и библиотека модов используют один редактор: текст, картинки, видео и скачиваемые файлы.</p><button class="primary" @onclick="AddContent">ДОБАВИТЬ</button></section>
+                        <section class="panel empty"><span>＋</span><h2>@ContentEmptyTitle</h2><p>@ContentSectionDescription</p><button class="primary" @onclick="AddContent">@ContentAddLabel</button></section>
                     }
                 </section>
             }
@@ -109,7 +177,9 @@
     [
         new("release", "◇", "Релиз", "СБОРКА", "Единый релиз Anthology"),
         new("sources", "⇣", "Источники", "ЗЕРКАЛА", "Маршруты загрузки"),
-        new("content", "▦", "Контент", "РЕДАКТОР", "Библиотека, новости, информация"),
+        new("library", "▦", "Библиотека модов", "МОДЫ", "Публикация модов в MO2"),
+        new("news", "▤", "Новости", "НОВОСТИ", "Лента новостей Anthology"),
+        new("information", "i", "Информация", "СПРАВОЧНИК", "Вкладки и материалы"),
         new("sync", "↻", "Синхронизация", "КОМАНДА", "Работа двух разработчиков"),
         new("safety", "⌾", "Безопасность", "ПРОТОКОЛ", "Удаление и откат"),
     ];
@@ -118,7 +188,6 @@
     private ReleaserMachineSettings _machine = new();
     private string _section = "release";
     private string? _selectedContentId;
-    private ContentKind? _contentFilter;
     private bool _loading = true;
     private bool _busy;
     private bool _syncBusy;
@@ -132,10 +201,34 @@
     private string _lastSavedWorkspaceHash = string.Empty;
     private CancellationTokenSource? _lifetime;
     private Task? _autoSyncTask;
+    private readonly LibreTranslationClient _translator = new();
+    private string _selectedContentLanguage = "source";
+    private bool _translationBusy;
 
     private Nav CurrentNavigation => Navigation.First(item => item.Id == _section);
-    private IEnumerable<ContentDraft> FilteredContent => _workspace.Content.Where(item => _contentFilter is null || item.Kind == _contentFilter);
+    private bool IsContentSection => _section is "library" or "news" or "information";
+    private ContentKind ActiveContentKind => _section switch
+    {
+        "library" => ContentKind.Mod,
+        "information" => ContentKind.Information,
+        _ => ContentKind.News,
+    };
+    private IEnumerable<ContentDraft> FilteredContent => _workspace.Content.Where(item => item.Kind == ActiveContentKind);
     private ContentDraft? SelectedContent => _workspace.Content.FirstOrDefault(item => item.Id == _selectedContentId);
+    private string ContentSectionKicker => ActiveContentKind switch { ContentKind.Mod => "ОТДЕЛЬНАЯ ПУБЛИКАЦИЯ", ContentKind.News => "ЛЕНТА ЛАУНЧЕРА", _ => "КОНСТРУКТОР СПРАВОЧНИКА" };
+    private string ContentSectionTitle => ActiveContentKind switch { ContentKind.Mod => "Библиотека модов", ContentKind.News => "Новости Anthology", _ => "Информационные вкладки" };
+    private string ContentSectionDescription => ActiveContentKind switch
+    {
+        ContentKind.Mod => "Каждая запись — отдельный скачиваемый мод. После проверки файл автоматически распаковывается в MO2\\mods и включается в выбранном профиле игрока.",
+        ContentKind.News => "Новости публикуются независимо от обновления сборки: полный текст, картинки и встроенные видео появляются в новостной ленте лаунчера.",
+        _ => "Каждая запись становится новой верхней вкладкой раздела «Информация». Внутри можно выстраивать заголовки, текст, изображения и ссылки на файлы в нужном порядке.",
+    };
+    private string ContentSectionCounterLabel => ActiveContentKind switch { ContentKind.Mod => "МОДОВ", ContentKind.News => "НОВОСТЕЙ", _ => "ВКЛАДОК" };
+    private string ContentSectionListLabel => ActiveContentKind switch { ContentKind.Mod => "МОДЫ ДЛЯ MO2", ContentKind.News => "НОВОСТНАЯ ЛЕНТА", _ => "ВЕРХНИЕ ВКЛАДКИ" };
+    private string ContentEditorKicker => ActiveContentKind switch { ContentKind.Mod => "КАРТОЧКА И ПАКЕТ", ContentKind.News => "РЕДАКТОР НОВОСТИ", _ => "РЕДАКТОР ВКЛАДКИ" };
+    private string ContentAddLabel => ActiveContentKind switch { ContentKind.Mod => "ДОБАВИТЬ МОД", ContentKind.News => "СОЗДАТЬ НОВОСТЬ", _ => "СОЗДАТЬ ВКЛАДКУ" };
+    private string ContentEmptyTitle => ActiveContentKind switch { ContentKind.Mod => "Библиотека пока пуста", ContentKind.News => "Создайте первую новость", _ => "Создайте первую вкладку" };
+    private string ContentSectionCssClass => ActiveContentKind switch { ContentKind.Mod => "library", ContentKind.News => "news", _ => "information" };
     private string SelectedContentArchivePath => SelectedContent is not null
         && _machine.ContentArchivePaths.TryGetValue(SelectedContent.Id, out var path)
             ? path
@@ -179,6 +272,11 @@
     private async Task SelectSectionAsync(string section)
     {
         _section = section;
+        if (IsContentSection
+            && (SelectedContent is null || SelectedContent.Kind != ActiveContentKind))
+        {
+            _selectedContentId = _workspace.Content.FirstOrDefault(item => item.Kind == ActiveContentKind)?.Id;
+        }
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
         try
@@ -249,6 +347,79 @@
         }
     }
 
+    private async Task AutoTranslateContentAsync()
+    {
+        var item = SelectedContent;
+        if (item is null || _translationBusy) return;
+        if (string.IsNullOrWhiteSpace(_machine.TranslationApiUrl))
+        {
+            Toast("Укажите адрес LibreTranslate API. Поддерживается HTTPS или локальный http://127.0.0.1.", true);
+            return;
+        }
+
+        _translationBusy = true;
+        _status = "Автоперевод публикации";
+        try
+        {
+            var options = new TranslationServiceOptions(_machine.TranslationApiUrl, _machine.TranslationApiKey);
+            foreach (var language in AnthologyLanguages.All)
+            {
+                _status = $"Перевод: {language.NativeName}";
+                await InvokeAsync(StateHasChanged);
+                var target = item.Translation(language.Code);
+                var segments = new List<(string Text, Action<string> Apply)>();
+                AddTranslationSegment(segments, item.Title, value => target.Title = value);
+                AddTranslationSegment(segments, item.Summary, value => target.Summary = value);
+                AddTranslationSegment(segments, item.Body, value => target.Body = value);
+                foreach (var block in item.Blocks)
+                {
+                    var blockTarget = block.Translation(language.Code);
+                    AddTranslationSegment(segments, block.Title, value => blockTarget.Title = value);
+                    AddTranslationSegment(segments, block.Body, value => blockTarget.Body = value);
+                }
+                if (segments.Count == 0) continue;
+
+                if (string.Equals(item.SourceLanguage, language.Code, StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var segment in segments) segment.Apply(segment.Text);
+                    continue;
+                }
+
+                var result = await _translator.TranslateAsync(
+                    options,
+                    segments.Select(segment => segment.Text).ToArray(),
+                    language.Code,
+                    item.SourceLanguage);
+                for (var index = 0; index < segments.Count; index++)
+                {
+                    segments[index].Apply(result.Translations[index]);
+                }
+            }
+
+            await State.SaveMachineAsync(_workspace, _machine);
+            _status = "Все языки заполнены";
+            Toast("Автоперевод готов. Проверьте формулировки во вкладках языков перед публикацией.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException or HttpRequestException or JsonException)
+        {
+            _status = "Автоперевод остановлен";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _translationBusy = false;
+        }
+    }
+
+    private void SelectSourceLanguage() => _selectedContentLanguage = "source";
+
+    private void SelectContentLanguage(string language) => _selectedContentLanguage = AnthologyLanguages.Normalize(language);
+
+    private static void AddTranslationSegment(List<(string Text, Action<string> Apply)> segments, string text, Action<string> apply)
+    {
+        if (!string.IsNullOrWhiteSpace(text)) segments.Add((text.Trim(), apply));
+    }
+
     private async Task BuildReleaseAsync()
     {
         _busy = true;
@@ -317,13 +488,18 @@
 
     private void AddContent()
     {
-        var kind = _contentFilter ?? ContentKind.News;
+        var kind = ActiveContentKind;
         var item = new ContentDraft
         {
             Kind = kind,
             Section = kind == ContentKind.Mod ? "dev" : "general",
-            IsPublished = kind != ContentKind.Mod,
+            Title = kind switch { ContentKind.Mod => "Новый мод", ContentKind.News => "Новая новость", _ => "Новая вкладка" },
+            IsPublished = false,
         };
+        if (kind == ContentKind.Information)
+        {
+            item.Blocks.Add(new ContentBlockDraft());
+        }
         _workspace.Content.Add(item);
         _selectedContentId = item.Id;
     }
@@ -332,17 +508,85 @@
     {
         var item = SelectedContent;
         if (item is null) { return; }
-        if (item.IsPublished && !string.IsNullOrWhiteSpace(item.DownloadFileName))
+        if (item.IsPublished)
         {
-            Toast("Сначала нажмите «Снять аддон», затем удаляйте его карточку.", true);
+            Toast(item.Kind == ContentKind.Mod
+                ? "Сначала нажмите «Снять мод», затем удаляйте его карточку."
+                : "Сначала снимите материал с публикации, затем удаляйте его черновик.", true);
             return;
         }
 
         if (!Bridge.Confirm($"Удалить черновик «{item.Title}»?", "Удаление материала")) { return; }
         _machine.ContentArchivePaths.Remove(item.Id);
         _workspace.Content.Remove(item);
-        _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
+        _selectedContentId = _workspace.Content.FirstOrDefault(candidate => candidate.Kind == ActiveContentKind)?.Id;
     }
+
+    private void MoveSelectedContent(int direction)
+    {
+        var item = SelectedContent;
+        if (item is null || direction == 0) { return; }
+        var siblings = _workspace.Content.Where(candidate => candidate.Kind == item.Kind).ToList();
+        var index = siblings.IndexOf(item);
+        var targetIndex = index + Math.Sign(direction);
+        if (index < 0 || targetIndex < 0 || targetIndex >= siblings.Count) { return; }
+        var other = siblings[targetIndex];
+        var sourceWorkspaceIndex = _workspace.Content.IndexOf(item);
+        var targetWorkspaceIndex = _workspace.Content.IndexOf(other);
+        _workspace.Content[sourceWorkspaceIndex] = other;
+        _workspace.Content[targetWorkspaceIndex] = item;
+    }
+
+    private void AddInformationBlock(ContentBlockKind kind)
+    {
+        var content = SelectedContent;
+        if (content is null || content.Kind != ContentKind.Information) { return; }
+        content.Blocks.Add(new ContentBlockDraft
+        {
+            Kind = kind,
+            Title = kind switch
+            {
+                ContentBlockKind.Image => "Подпись к изображению",
+                ContentBlockKind.Link => "Название файла или ссылки",
+                _ => "Новый заголовок",
+            },
+        });
+    }
+
+    private void MoveInformationBlock(ContentBlockDraft block, int direction)
+    {
+        var blocks = SelectedContent?.Blocks;
+        if (blocks is null || direction == 0) { return; }
+        var index = blocks.IndexOf(block);
+        var target = index + Math.Sign(direction);
+        if (index < 0 || target < 0 || target >= blocks.Count) { return; }
+        (blocks[index], blocks[target]) = (blocks[target], blocks[index]);
+    }
+
+    private void RemoveInformationBlock(ContentBlockDraft block) => SelectedContent?.Blocks.Remove(block);
+
+    private static string BlockKindName(ContentBlockKind kind) => kind switch
+    {
+        ContentBlockKind.Image => "КАРТИНКА В ТЕКСТЕ",
+        ContentBlockKind.Link => "URL / ФАЙЛ В ТЕКСТЕ",
+        _ => "ЗАГОЛОВОК И ТЕКСТ",
+    };
+
+    private static string BlockCssClass(ContentBlockKind kind) => kind.ToString().ToLowerInvariant();
+
+    private static string BlockTitleLabel(ContentBlockKind kind) => kind switch
+    {
+        ContentBlockKind.Image => "Подпись",
+        ContentBlockKind.Link => "Название ссылки",
+        _ => "Заголовок",
+    };
+
+    private static string BlockBodyLabel(ContentBlockKind kind) => kind switch
+    {
+        ContentBlockKind.Image => "Описание изображения",
+        ContentBlockKind.Link => "Описание ссылки или файла",
+        _ => "Текст раздела",
+    };
 
     private async Task SelectContentArchiveAsync()
     {
@@ -417,6 +661,68 @@
         }
     }
 
+    private async Task PublishContentAsync()
+    {
+        var item = SelectedContent;
+        if (item is null || item.Kind == ContentKind.Mod) { return; }
+        var previousState = item.IsPublished;
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.PublishContentAsync(item, _workspace, _machine, progress);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = item.Kind == ContentKind.News ? $"Новость {item.Title} опубликована" : $"Вкладка {item.Title} опубликована";
+            Toast(result.Targets == 0
+                ? "Подписанный content.json готов локально. Для выгрузки задайте папки источников."
+                : $"Материал опубликован в {result.Targets} источник(а). Лаунчер получит его через подписанный каталог.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            item.IsPublished = previousState;
+            _status = "Публикация материала остановлена";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task UnpublishContentAsync()
+    {
+        var item = SelectedContent;
+        if (item is null || item.Kind == ContentKind.Mod || !Bridge.Confirm(
+                $"Снять «{item.Title}» с публикации? Запись останется в релизере как черновик.",
+                "Снять материал"))
+        {
+            return;
+        }
+
+        var previousState = item.IsPublished;
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.UnpublishContentAsync(item, _workspace, _machine, progress);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = $"Материал {item.Title} снят с публикации";
+            Toast($"Подписанный каталог обновлён; изменено файлов: {result.Files}.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            item.IsPublished = previousState;
+            _status = "Снятие материала остановлено";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
     private async Task SyncAsync()
     {
         if (_syncBusy || string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot))
@@ -441,7 +747,9 @@
             var result = await WorkspaceSyncService.SyncAsync(_workspace, _machine.SharedWorkspaceRoot, _machine.LastSyncedHash);
             _workspace = result.Workspace;
             _machine.LastSyncedHash = result.Hash;
-            _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
+            _selectedContentId = IsContentSection
+                ? _workspace.Content.FirstOrDefault(item => item.Kind == ActiveContentKind)?.Id
+                : _workspace.Content.FirstOrDefault()?.Id;
             _syncMessage = result.Message;
             _lastSyncAt = DateTimeOffset.Now;
             await State.SaveMachineAsync(_workspace, _machine);
@@ -488,6 +796,7 @@
         _lifetime.Cancel();
         if (_autoSyncTask is not null) { try { await _autoSyncTask; } catch (OperationCanceledException) { } }
         _lifetime.Dispose();
+        _translator.Dispose();
     }
 
     private sealed record Nav(string Id, string Icon, string Title, string Kicker, string Heading);

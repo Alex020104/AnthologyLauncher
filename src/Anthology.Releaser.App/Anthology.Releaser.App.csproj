@@ -5,6 +5,8 @@
     <RootNamespace>Anthology.Releaser.App</RootNamespace>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
     <ApplicationIcon>../../assets/launcher_radioactive_icon_round.ico</ApplicationIcon>
     <AssemblyName>AnthologyReleaser.Next</AssemblyName>
     <Version>0.1.0-alpha.1</Version>

@@ -190,7 +190,7 @@ public static partial class ManifestValidator
 
     private static void ValidateContent(ContentCatalog content, List<string> errors)
     {
-        if (content.SchemaVersion is not (1 or 2))
+        if (content.SchemaVersion is not (1 or 2 or 3))
         {
             errors.Add($"Unsupported content schema version: {content.SchemaVersion}.");
         }
@@ -216,7 +216,7 @@ public static partial class ManifestValidator
             {
                 foreach (var (language, translation) in item.Translations)
                 {
-                    if (language is not ("en" or "de"))
+                    if (!AnthologyLanguages.IsSupported(language))
                     {
                         errors.Add($"Content '{item.Id}' has unsupported translation '{language}'.");
                     }
@@ -237,6 +237,43 @@ public static partial class ManifestValidator
                 ValidatePublicHttpsUrl(video.Url, $"Content '{item.Id}' has unsafe video URL", errors);
             }
 
+            var blockIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var block in item.Blocks ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(block.Id) || !PackageIdRegex().IsMatch(block.Id))
+                {
+                    errors.Add($"Content '{item.Id}' has invalid block id '{block.Id}'.");
+                }
+                else if (!blockIds.Add(block.Id))
+                {
+                    errors.Add($"Content '{item.Id}' has duplicate block id '{block.Id}'.");
+                }
+
+                if (block.Kind is ContentBlockKind.Section or ContentBlockKind.Link
+                    && string.IsNullOrWhiteSpace(block.Title))
+                {
+                    errors.Add($"Content '{item.Id}' block '{block.Id}' has no title.");
+                }
+
+                if (block.Kind is ContentBlockKind.Image or ContentBlockKind.Link)
+                {
+                    ValidatePublicHttpsUrl(block.Url ?? string.Empty, $"Content '{item.Id}' block '{block.Id}' has unsafe URL", errors);
+                }
+
+                if (block.Translations is null)
+                {
+                    continue;
+                }
+
+                foreach (var language in block.Translations.Keys)
+                {
+                    if (!AnthologyLanguages.IsSupported(language))
+                    {
+                        errors.Add($"Content '{item.Id}' block '{block.Id}' has unsupported translation '{language}'.");
+                    }
+                }
+            }
+
             if (item.Download is not null)
             {
                 if (string.IsNullOrWhiteSpace(item.Download.FileName)
@@ -248,6 +285,13 @@ public static partial class ManifestValidator
                 if (item.Download.Size <= 0 || !Sha256Regex().IsMatch(item.Download.Sha256))
                 {
                     errors.Add($"Content '{item.Id}' has invalid download metadata.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.Download.InstallName)
+                    && (!string.Equals(Path.GetFileName(item.Download.InstallName), item.Download.InstallName, StringComparison.Ordinal)
+                        || item.Download.InstallName is "." or ".."))
+                {
+                    errors.Add($"Content '{item.Id}' has an unsafe MO2 install name.");
                 }
 
                 if (item.Download.Mirrors.Count == 0)
