@@ -42,14 +42,13 @@ public partial class App : System.Windows.Application
         services.AddSingleton<CommunityClient>();
         services.AddSingleton<LauncherBridge>();
         services.AddSingleton<Mo2IntegrationService>();
-        services.AddSingleton<EmbeddedMo2HostService>();
         services.AddSingleton<LauncherUpdateService>();
         services.AddSingleton<BundledInstallerService>();
         services.AddSingleton<SetupLauncherService>();
 
         _serviceProvider = services.BuildServiceProvider();
         Resources["services"] = _serviceProvider;
-        var window = new MainWindow(_serviceProvider.GetRequiredService<EmbeddedMo2HostService>());
+        var window = new MainWindow();
         MainWindow = window;
         window.Show();
     }
