@@ -1,0 +1,391 @@
+@using System.ComponentModel.DataAnnotations
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark"><span>A</span></div>
+            <div>
+                <div class="brand-name">ANTHOLOGY</div>
+                <div class="brand-edition">NEXT / ANOMALY 1.5.3</div>
+            </div>
+        </div>
+
+        <nav class="navigation" aria-label="Основная навигация">
+            @foreach (var item in Navigation)
+            {
+                var currentItem = item;
+                <button class="nav-item @(_section == currentItem.Id ? "active" : null)"
+                        @onclick="() => SelectSection(currentItem.Id)">
+                    <span class="nav-icon">@currentItem.Icon</span>
+                    <span>@currentItem.Label</span>
+                    @if (currentItem.Badge is not null)
+                    {
+                        <span class="nav-badge">@currentItem.Badge</span>
+                    }
+                </button>
+            }
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+        <div class="build-card">
+            <div class="build-card-top">
+                <span class="status-dot @(_installation.GameFound ? "online" : "warning")"></span>
+                <span>СОСТОЯНИЕ СБОРКИ</span>
+            </div>
+            <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
+            <small>@_installation.StatusText</small>
+        </div>
+        <div class="version-line">LAUNCHER NEXT 0.1.0 · DEV CHANNEL</div>
+    </aside>
+
+    <main class="workspace">
+        <header class="workspace-header">
+            <div>
+                <span class="eyebrow">@CurrentNavigation.Eyebrow</span>
+                <h1>@CurrentNavigation.Title</h1>
+            </div>
+            <div class="header-actions">
+                <span class="connection-pill @(Community.IsOffline ? "offline" : "online")">
+                    <span></span>@(Community.IsOffline ? "OFFLINE-КЭШ" : "СЕРВЕР НА СВЯЗИ")
+                </span>
+                <button class="icon-button" title="Открыть папку игры" @onclick="OpenGameFolder">↗</button>
+            </div>
+        </header>
+
+        <div class="content-scroll">
+            @if (_loading)
+            {
+                <section class="loading-grid">
+                    <div class="skeleton hero-skeleton"></div>
+                    <div class="skeleton"></div>
+                    <div class="skeleton"></div>
+                </section>
+            }
+            else if (_section == "home")
+            {
+                <section class="hero panel-grid-texture">
+                    <div class="hero-copy">
+                        <div class="hero-kicker"><span></span> НОВАЯ ПЛАТФОРМА ANTHOLOGY</div>
+                        <h2>Зона становится<br /><em>больше лаунчера.</em></h2>
+                        <p>Обновления из нескольких источников, библиотека модов, видео, голосования и прямая связь с командой — в одном приложении.</p>
+                        <div class="hero-actions">
+                            <button class="primary-button" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)">
+                                <span class="play-triangle">▶</span> ИГРАТЬ С МОДПАКОМ
+                            </button>
+                            <button class="secondary-button" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ</button>
+                        </div>
+                    </div>
+                    <div class="hero-radar" aria-hidden="true">
+                        <div class="radar-ring ring-one"></div>
+                        <div class="radar-ring ring-two"></div>
+                        <div class="radar-ring ring-three"></div>
+                        <div class="radar-sweep"></div>
+                        <div class="radar-core">A</div>
+                        <span class="radar-label label-a">01 · LAUNCHER</span>
+                        <span class="radar-label label-b">02 · COMMUNITY</span>
+                        <span class="radar-label label-c">03 · UPDATE CORE</span>
+                    </div>
+                </section>
+
+                <section class="metric-strip">
+                    <div><span>КАНАЛ</span><strong>NEXT</strong></div>
+                    <div><span>ИСТОЧНИКИ</span><strong>4+</strong></div>
+                    <div><span>ПРОВЕРКА</span><strong>SHA-256</strong></div>
+                    <div><span>УСТАНОВКА</span><strong>ROLLBACK</strong></div>
+                </section>
+
+                <section class="dashboard-grid">
+                    <div class="section-block news-block">
+                        <div class="section-heading">
+                            <div><span>ПОСЛЕДНИЕ СОБЫТИЯ</span><h3>Новости разработки</h3></div>
+                            <button class="text-button">ВСЕ НОВОСТИ →</button>
+                        </div>
+                        <div class="news-list">
+                            @foreach (var news in _feed!.News.Take(3))
+                            {
+                                <article class="news-row">
+                                    <div class="news-date"><strong>@news.PublishedAt.ToLocalTime().ToString("dd")</strong><span>@news.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant()</span></div>
+                                    <div><span class="category-label">@news.Category</span><h4>@news.Title</h4><p>@news.Summary</p></div>
+                                    <span class="row-arrow">↗</span>
+                                </article>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="section-block video-block">
+                        <div class="section-heading compact">
+                            <div><span>МЕДИА</span><h3>Видео в лаунчере</h3></div>
+                        </div>
+                        @foreach (var video in _feed!.Videos.Take(1))
+                        {
+                            var embedUrl = GetSafeEmbedUrl(video);
+                            <article class="video-card">
+                                @if (embedUrl is not null)
+                                {
+                                    <iframe src="@embedUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                                }
+                                else
+                                {
+                                    <div class="video-placeholder">
+                                        <div class="video-play">▶</div>
+                                        <span>ВИДЕО-ПЛЕЕР ГОТОВ</span>
+                                        <small>URL управляется через сервер новостей</small>
+                                    </div>
+                                }
+                                <div class="video-caption"><span>@video.Provider.ToUpperInvariant()</span><strong>@video.Title</strong></div>
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+            else if (_section == "library")
+            {
+                <section class="library-toolbar">
+                    <div class="search-box"><span>⌕</span><input placeholder="Поиск по библиотеке модов" /></div>
+                    <div class="filter-pills"><button class="active">Все</button><button>Геймплей</button><button>Оружие</button><button>Графика</button><button>Интерфейс</button></div>
+                </section>
+                <section class="mod-grid">
+                    @foreach (var mod in _feed!.Mods)
+                    {
+                        <article class="mod-card">
+                            <div class="mod-cover"><span>@mod.Name[..1]</span><small>@mod.Version</small></div>
+                            <div class="mod-body">
+                                <div class="mod-author">@mod.Author</div>
+                                <h3>@mod.Name</h3>
+                                <p>@mod.Summary</p>
+                                <div class="tag-row">@foreach (var tag in mod.Tags) { <span>@tag</span> }</div>
+                                <button class="card-action">ОТКРЫТЬ КАРТОЧКУ <span>→</span></button>
+                            </div>
+                        </article>
+                    }
+                    <article class="mod-card add-card">
+                        <div class="plus-mark">+</div><h3>Каталог расширяется</h3><p>Публикация модов будет проходить через новый releaser и проверяемый манифест.</p>
+                    </article>
+                </section>
+            }
+            else if (_section == "community")
+            {
+                <section class="community-layout">
+                    <div class="channel-panel section-block">
+                        <div class="section-heading compact"><div><span>КАНАЛЫ</span><h3>Сообщество</h3></div></div>
+                        @foreach (var channel in _feed!.Channels)
+                        {
+                            <button class="channel-row @(channel.Id == "general" ? "active" : null)">
+                                <span class="channel-hash">#</span><div><strong>@channel.Name</strong><small>@channel.Description</small></div>
+                                @if (channel.IsDeveloperChannel) { <span class="dev-chip">DEV</span> }
+                            </button>
+                        }
+                    </div>
+                    <div class="chat-panel section-block">
+                        <div class="chat-title"><div><span>#</span><div><strong>Общий</strong><small>Локальный preview · SignalR hub уже подключён на сервере</small></div></div><span class="online-count">● 128</span></div>
+                        <div class="chat-messages">
+                            <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сегодня, 10:42</small><p>Канальная структура готова. Следующий этап — авторизация и постоянная история сообщений.</p></div></div>
+                            <div class="chat-message"><span>R</span><div><strong>ReVo_Online</strong><small>Сегодня, 10:51</small><p>Здесь можно будет обсуждать новости, тестовые обновления и оставлять отзывы команде.</p></div></div>
+                        </div>
+                        <div class="chat-composer"><button>＋</button><input placeholder="Сообщение в #Общий" disabled /><button class="send-button" disabled>↑</button></div>
+                    </div>
+                    <div class="poll-panel section-block">
+                        <div class="section-heading compact"><div><span>ОБРАТНАЯ СВЯЗЬ</span><h3>Голосование</h3></div></div>
+                        @foreach (var poll in _feed!.Polls.Take(1))
+                        {
+                            var total = Math.Max(1, poll.Options.Sum(option => option.Votes));
+                            <p class="poll-question">@poll.Question</p>
+                            @foreach (var option in poll.Options)
+                            {
+                                var percentage = (int)Math.Round(option.Votes * 100d / total);
+                                <button class="poll-option" @onclick="() => VoteAsync(poll.Id, option.Id)">
+                                    <span class="poll-bar" style="width:@percentage%"></span>
+                                    <span>@option.Text</span><strong>@percentage%</strong>
+                                </button>
+                            }
+                            <small class="poll-meta">@total голосов · до @poll.ClosesAt.ToLocalTime().ToString("dd.MM.yyyy")</small>
+                        }
+                    </div>
+                </section>
+            }
+            else if (_section == "updates")
+            {
+                <section class="update-hero section-block">
+                    <div><span class="eyebrow">UPDATE PROTOCOL V1</span><h2>Один пакет.<br />Несколько маршрутов.</h2><p>Клиент выбирает доступное зеркало, возобновляет загрузку, проверяет размер, SHA‑256 и подпись манифеста до установки.</p></div>
+                    <div class="update-shield"><span>✓</span><strong>SIGNED</strong><small>ECDSA P‑256</small></div>
+                </section>
+                <section class="provider-grid">
+                    <article><span class="provider-index">01</span><strong>GitHub Releases</strong><p>Код, небольшие пакеты и резервное зеркало.</p><small>HTTPS · RANGE</small></article>
+                    <article><span class="provider-index">02</span><strong>Яндекс.Диск</strong><p>Публичные ссылки разрешаются через официальный download API.</p><small>PUBLIC API · RANGE</small></article>
+                    <article><span class="provider-index">03</span><strong>Google Drive</strong><p>Прямой URL хранится как ещё одно подписанное зеркало.</p><small>DIRECT URL · FALLBACK</small></article>
+                    <article><span class="provider-index">04</span><strong>HTTPS / CDN</strong><p>Любое совместимое хранилище без изменений клиента.</p><small>EXTENSIBLE PROVIDER</small></article>
+                </section>
+                <section class="transaction-flow section-block">
+                    <div class="flow-step done"><span>1</span><div><strong>STAGING</strong><small>Скачивание вне игры</small></div></div><i></i>
+                    <div class="flow-step done"><span>2</span><div><strong>VERIFY</strong><small>Подпись + SHA‑256</small></div></div><i></i>
+                    <div class="flow-step"><span>3</span><div><strong>APPLY</strong><small>Замена файлов</small></div></div><i></i>
+                    <div class="flow-step"><span>4</span><div><strong>ROLLBACK</strong><small>Возврат при ошибке</small></div></div>
+                </section>
+            }
+            else if (_section == "support")
+            {
+                <section class="support-layout">
+                    <div class="report-intro">
+                        <span class="eyebrow">ПРЯМОЕ ОБРАЩЕНИЕ</span><h2>Баг-репорт,<br />который можно исправить.</h2><p>Структурированная форма сразу отделяет симптомы, шаги воспроизведения и ожидаемый результат. После отправки сервер выдаёт номер обращения.</p>
+                        <div class="report-checklist"><span>✓ Версия лаунчера</span><span>✓ Версия сборки</span><span>✓ Шаги воспроизведения</span><span>✓ Фрагмент лога</span></div>
+                    </div>
+                    <EditForm Model="_report" OnValidSubmit="SubmitReportAsync" class="report-form section-block">
+                        <DataAnnotationsValidator />
+                        <div class="form-heading"><span>НОВОЕ ОБРАЩЕНИЕ</span><strong>Опишите проблему</strong></div>
+                        <label>Краткий заголовок<InputText @bind-Value="_report.Title" placeholder="Например: обновление останавливается на 73%" /></label>
+                        <ValidationMessage For="@(() => _report.Title)" />
+                        <label>Что произошло<InputTextArea @bind-Value="_report.Description" placeholder="Опишите наблюдаемое поведение" /></label>
+                        <label>Шаги воспроизведения<InputTextArea @bind-Value="_report.Steps" placeholder="1. Открыл...  2. Нажал...  3. Получил..." /></label>
+                        <div class="form-two"><label>Ожидалось<InputText @bind-Value="_report.Expected" /></label><label>Получилось<InputText @bind-Value="_report.Actual" /></label></div>
+                        <label>Контакт для ответа<InputText @bind-Value="_report.Contact" placeholder="Discord / Telegram / email (необязательно)" /></label>
+                        <button class="primary-button submit-report" type="submit" disabled="@_submittingReport">@(_submittingReport ? "ОТПРАВКА..." : "ОТПРАВИТЬ РАЗРАБОТЧИКУ")</button>
+                    </EditForm>
+                </section>
+            }
+            else if (_section == "settings")
+            {
+                <section class="settings-grid">
+                    <article class="setting-card section-block"><span>УСТАНОВКА</span><h3>Путь к игре</h3><code>@(_installation.GameRoot ?? "Не найден")</code><p>Для dev-запуска можно задать переменную <b>ANTHOLOGY_GAME_ROOT</b>.</p><button class="secondary-button" @onclick="OpenGameFolder">ОТКРЫТЬ ПАПКУ</button></article>
+                    <article class="setting-card section-block"><span>КАНАЛ</span><h3>Next / development</h3><p>Этот канал не публикуется текущим пользователям и не заменяет старый AnomalyLauncher.exe.</p><div class="safe-banner">main защищён веткой миграции</div></article>
+                    <article class="setting-card section-block"><span>СЕРВЕР</span><h3>Community API</h3><code>http://localhost:5249</code><p>Адрес переопределяется через ANTHOLOGY_COMMUNITY_API.</p></article>
+                </section>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_toast))
+        {
+            <button class="toast @(_toastError ? "error" : null)" @onclick="DismissToast"><span>@(_toastError ? "!" : "✓")</span>@_toast</button>
+        }
+    </main>
+</div>
+
+@code {
+    private static readonly NavItem[] Navigation =
+    [
+        new("home", "⌂", "Главная", "КОМАНДНЫЙ ЦЕНТР", "Добро пожаловать в Зону"),
+        new("library", "▦", "Библиотека", "КАТАЛОГ", "Моды и дополнения", "NEW"),
+        new("community", "◉", "Сообщество", "СВЯЗЬ", "Чат и обратная связь"),
+        new("updates", "⇣", "Обновления", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
+        new("support", "◇", "Баг-репорт", "ПОДДЕРЖКА", "Обращение разработчику"),
+        new("settings", "⚙", "Настройки", "КОНФИГУРАЦИЯ", "Настройки приложения"),
+    ];
+
+    private string _section = "home";
+    private bool _loading = true;
+    private CommunityFeed? _feed;
+    private InstallationStatus _installation = new(false, false, null, null, "Проверка установки");
+    private string? _toast;
+    private bool _toastError;
+    private bool _submittingReport;
+    private BugReportForm _report = new();
+
+    private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _installation = Launcher.DetectInstallation();
+        _feed = await Community.GetFeedAsync();
+        _loading = false;
+    }
+
+    private void SelectSection(string section) => _section = section;
+
+    private void ShowUpdates() => SelectSection("updates");
+
+    private async Task LaunchModpackAsync()
+    {
+        var result = await Launcher.LaunchModpackAsync();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void OpenGameFolder()
+    {
+        var result = Launcher.OpenGameFolder();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task VoteAsync(string pollId, string optionId)
+    {
+        try
+        {
+            var updated = await Community.VoteAsync(pollId, optionId);
+            _feed = _feed! with
+            {
+                Polls = _feed!.Polls.Select(poll => poll.Id == updated.Id ? updated : poll).ToArray(),
+            };
+            ShowToast("Голос учтён");
+        }
+        catch (Exception exception) when (exception is HttpRequestException or InvalidDataException)
+        {
+            ShowToast("Для голосования требуется соединение с Community API", true);
+        }
+    }
+
+    private async Task SubmitReportAsync()
+    {
+        _submittingReport = true;
+        try
+        {
+            var receipt = await Community.SubmitBugReportAsync(new BugReportRequest(
+                _report.Title,
+                _report.Description,
+                _report.Steps,
+                _report.Expected,
+                _report.Actual,
+                "0.1.0-next",
+                "Anthology 2.1",
+                null,
+                _report.Contact));
+            _report = new BugReportForm();
+            ShowToast($"Обращение {receipt.Id} зарегистрировано");
+        }
+        catch (Exception exception) when (exception is HttpRequestException or InvalidDataException)
+        {
+            ShowToast("Сервер обращений недоступен. Текст сохранён в форме.", true);
+        }
+        finally
+        {
+            _submittingReport = false;
+        }
+    }
+
+    private static string? GetSafeEmbedUrl(VideoItem video)
+    {
+        if (!Uri.TryCreate(video.EmbedUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            return null;
+        }
+
+        var allowedHosts = new[] { "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "vk.com", "moddb.com", "www.moddb.com" };
+        return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
+    }
+
+    private void ShowToast(string message, bool error = false)
+    {
+        _toast = message;
+        _toastError = error;
+    }
+
+    private void DismissToast() => _toast = null;
+
+    private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null);
+
+    private sealed class BugReportForm
+    {
+        [Required(ErrorMessage = "Укажите заголовок")]
+        [StringLength(160)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        public string Steps { get; set; } = string.Empty;
+
+        public string Expected { get; set; } = string.Empty;
+
+        public string Actual { get; set; } = string.Empty;
+
+        public string? Contact { get; set; }
+    }
+}

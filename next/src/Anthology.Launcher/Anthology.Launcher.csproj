@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <RootNamespace>Anthology.Launcher</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>../../../assets/launcher_radioactive_icon_round.ico</ApplicationIcon>
+    <AssemblyName>AnthologyLauncher.Next</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Anthology.Contracts\Anthology.Contracts.csproj" />
+    <ProjectReference Include="..\Anthology.Update.Core\Anthology.Update.Core.csproj" />
+  </ItemGroup>
+</Project>

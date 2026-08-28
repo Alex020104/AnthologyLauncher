@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Anthology.Community.Api/Anthology.Community.Api.csproj" />
+    <Project Path="src/Anthology.Contracts/Anthology.Contracts.csproj" />
+    <Project Path="src/Anthology.Launcher/Anthology.Launcher.csproj" />
+    <Project Path="src/Anthology.Releaser/Anthology.Releaser.csproj" />
+    <Project Path="src/Anthology.Update.Core/Anthology.Update.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Anthology.Update.Core.Tests/Anthology.Update.Core.Tests.csproj" />
+  </Folder>
+</Solution>

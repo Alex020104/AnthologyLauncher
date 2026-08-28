@@ -1,0 +1,33 @@
+name: Launcher Next CI
+
+on:
+  push:
+    branches:
+      - feature/anthology-launcher-next
+      - "feature/launcher-next/**"
+    paths:
+      - "next/**"
+      - ".github/workflows/next-ci.yml"
+  pull_request:
+    paths:
+      - "next/**"
+      - ".github/workflows/next-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: next
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore Anthology.Next.slnx
+      - run: dotnet build Anthology.Next.slnx --configuration Release --no-restore
+      - run: dotnet test Anthology.Next.slnx --configuration Release --no-build

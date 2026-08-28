@@ -15,6 +15,11 @@ AnomalyLauncher.cfg
 commandline.txt
 *.log
 *.pdb
+*.user
+*.suo
+.idea/
+artifacts/
+next/.local/
 
 .vs/
 bin/
