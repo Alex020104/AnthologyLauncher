@@ -12,6 +12,8 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"
+        StateChanged="MainWindow_OnStateChanged"
+        PreviewKeyDown="MainWindow_OnPreviewKeyDown"
         Background="#090C0F">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0" ResizeBorderThickness="7" CornerRadius="10" GlassFrameThickness="0" />
@@ -33,17 +35,18 @@
         </Style>
     </Window.Resources>
 
-    <Border BorderBrush="#283139" BorderThickness="1" CornerRadius="10" Background="#090C0F">
+    <Border x:Name="WindowFrame" BorderBrush="#283139" BorderThickness="1" CornerRadius="10" Background="#090C0F">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="38" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="#0D1115" CornerRadius="10,10,0,0" MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
+            <Border x:Name="TitleBarFrame" Grid.Row="0" Background="#0D1115" CornerRadius="10,10,0,0" MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="46" />
                         <ColumnDefinition Width="46" />
                         <ColumnDefinition Width="46" />
                     </Grid.ColumnDefinitions>
@@ -52,8 +55,9 @@
                         <TextBlock Text="A.N.T.H.O.L.O.G.Y" Foreground="#D8DEE2" FontWeight="SemiBold" FontSize="12" />
                         <TextBlock Text="  /  NEXT PLATFORM" Foreground="#69757D" FontSize="10" Margin="8,1,0,0" />
                     </StackPanel>
-                    <Button Grid.Column="1" Content="—" Style="{StaticResource WindowButton}" Click="Minimize_OnClick" />
-                    <Button Grid.Column="2" Content="×" Style="{StaticResource WindowButton}" Click="Close_OnClick" />
+                    <Button Grid.Column="1" Content="&#x2014;" ToolTip="Свернуть" Style="{StaticResource WindowButton}" Click="Minimize_OnClick" />
+                    <Button x:Name="MaximizeButton" Grid.Column="2" Content="&#x25A1;" ToolTip="Развернуть" Style="{StaticResource WindowButton}" Click="MaximizeRestore_OnClick" />
+                    <Button Grid.Column="3" Content="&#x00D7;" ToolTip="Закрыть" Style="{StaticResource WindowButton}" Click="Close_OnClick" />
                 </Grid>
             </Border>
 
