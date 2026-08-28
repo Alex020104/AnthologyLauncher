@@ -36,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.4.2 ALPHA · LOCAL DEV</div>
+        <div class="version-line">LAUNCHER NEXT 0.5.0 ALPHA · LOCAL DEV</div>
     </aside>
 
     <main class="workspace">
@@ -410,7 +410,7 @@
             else if (_section == "mo2")
             {
                 <section class="mo2-hero section-block">
-                    <div><span class="eyebrow">ВСТРОЕННЫЙ ПРОФИЛЬНЫЙ МЕНЕДЖЕР</span><h2>MO2 работает внутри лаунчера.</h2><p>Лаунчер управляет профилями и modlist.txt, а скрытый runtime MO2/USVFS создаёт виртуальную сборку только на время игры.</p></div>
+                    <div><span class="eyebrow">ПОЛНЫЙ MOD ORGANIZER 2</span><h2>MO2 работает внутри лаунчера.</h2><p>Нативное окно MO2 встраивается в Anthology Next: установщики, загрузки, конфликты, плагины, INI, профили, разделители и запуск через USVFS остаются доступными полностью.</p><div class="mo2-hero-actions"><button class="primary-button" @onclick="OpenFullMo2Async">ОТКРЫТЬ ПОЛНЫЙ MO2</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("mods")'>ПАПКА MODS</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("downloads")'>ЗАГРУЗКИ</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("overwrite")'>OVERWRITE</button></div></div>
                     <div class="mo2-runtime-state @(_mo2Workspace.Instance.Available ? "ready" : null)"><span></span><strong>@(_mo2Workspace.Instance.Available ? "RUNTIME READY" : "MO2 NOT CONNECTED")</strong><small>@_mo2Workspace.Instance.StatusText</small></div>
                 </section>
                 @if (!_mo2Workspace.Instance.Available)
@@ -432,22 +432,39 @@
                     <section class="mo2-mods section-block">
                         <div class="mo2-toolbar"><div><span class="eyebrow">МОДЫ И ПРИОРИТЕТ</span><h3>Содержимое назначенного профиля</h3></div><div class="search-box"><span>⌕</span><input placeholder="Найти мод в профиле" @bind="_mo2Search" @bind:event="oninput" /></div></div>
                         <div class="mo2-mod-list">
-                            @foreach (var mod in FilteredMo2Mods)
+                            @foreach (var group in FilteredMo2Groups)
                             {
-                                var currentMod = mod;
-                                <div class="mo2-mod-row @(currentMod.IsSeparator ? "separator" : null)">
-                                    <button class="mo2-switch @(currentMod.Enabled ? "active" : null)" disabled="@(currentMod.IsSeparator || currentMod.IsUnmanaged || _mo2Workspace.RuntimeBusy)" @onclick="() => ToggleMo2Mod(currentMod)"><span></span></button>
-                                    <div><strong>@currentMod.Name</strong><small>@(currentMod.IsSeparator ? "РАЗДЕЛ MO2" : currentMod.IsUnmanaged ? "НЕУПРАВЛЯЕМЫЙ" : currentMod.Enabled ? "ВКЛЮЧЁН" : "ОТКЛЮЧЁН")</small></div>
-                                    <span class="mo2-priority">@currentMod.Order.ToString("000")</span>
-                                    <div class="mo2-order-buttons"><button disabled="@_mo2Workspace.RuntimeBusy" @onclick="() => MoveMo2Mod(currentMod, -1)" title="Выше">↑</button><button disabled="@_mo2Workspace.RuntimeBusy" @onclick="() => MoveMo2Mod(currentMod, 1)" title="Ниже">↓</button></div>
-                                </div>
+                                @if (group.Separator is not null)
+                                {
+                                    var separator = group.Separator;
+                                    var collapsed = IsMo2GroupCollapsed(separator.Name);
+                                    <button class="mo2-separator-row @(collapsed ? "collapsed" : null)" @onclick="() => ToggleMo2Group(separator.Name)">
+                                        <span class="mo2-separator-arrow">@(collapsed ? "▸" : "▾")</span>
+                                        <span><strong>@separator.DisplayName</strong><small>РАЗДЕЛ MO2 · @group.Mods.Count МОДОВ · @group.Mods.Count(mod => mod.Enabled) ВКЛЮЧЕНО</small></span>
+                                        <span class="mo2-priority">@separator.Order.ToString("000")</span>
+                                    </button>
+                                }
+                                @if (group.Separator is null || !IsMo2GroupCollapsed(group.Separator.Name))
+                                {
+                                    @foreach (var mod in group.Mods)
+                                    {
+                                        var currentMod = mod;
+                                        <div class="mo2-mod-row @(group.Separator is not null ? "grouped" : null)">
+                                            <button class="mo2-switch @(currentMod.Enabled ? "active" : null)" disabled="@(currentMod.IsUnmanaged || _mo2Workspace.RuntimeBusy)" @onclick="() => ToggleMo2Mod(currentMod)"><span></span></button>
+                                            <div><strong>@currentMod.DisplayName</strong><small>@(currentMod.IsUnmanaged ? "НЕУПРАВЛЯЕМЫЙ" : currentMod.Enabled ? "ВКЛЮЧЁН" : "ОТКЛЮЧЁН")</small></div>
+                                            <span class="mo2-priority">@currentMod.Order.ToString("000")</span>
+                                            <button class="mo2-folder-button" @onclick="() => OpenMo2ModFolder(currentMod)" title="Открыть каталог мода">↗</button>
+                                            <div class="mo2-order-buttons"><button disabled="@_mo2Workspace.RuntimeBusy" @onclick="() => MoveMo2Mod(currentMod, -1)" title="Ниже приоритетом">↑</button><button disabled="@_mo2Workspace.RuntimeBusy" @onclick="() => MoveMo2Mod(currentMod, 1)" title="Выше приоритетом">↓</button></div>
+                                        </div>
+                                    }
+                                }
                             }
-                            @if (!FilteredMo2Mods.Any())
+                            @if (FilteredMo2Groups.Count == 0)
                             {
                                 <div class="mo2-empty">В назначенном профиле ничего не найдено.</div>
                             }
                         </div>
-                        <div class="mo2-safety">Перед каждым изменением создаётся <code>modlist.txt.anthology-backup</code>. Во время работы игры или MO2 редактирование блокируется.</div>
+                        <div class="mo2-safety">Быстрый вид повторяет порядок приоритетов MO2 снизу вверх и поддерживает сворачиваемые разделители. Для установки архивов, анализа конфликтов, плагинов, INI и остальных инструментов используйте «Полный MO2».</div>
                     </section>
                 }
             }
@@ -611,6 +628,7 @@
         null,
         false);
     private string _mo2Search = string.Empty;
+    private readonly HashSet<string> _collapsedMo2Separators = new(StringComparer.OrdinalIgnoreCase);
     private string _informationSection = "requirements";
     private string _selectedStoryId = "soc";
     private bool _relayChatRunning;
@@ -633,9 +651,9 @@
                       || mod.Name.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
                       || mod.Author.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
                       || mod.Tags.Any(tag => tag.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)));
-    private IEnumerable<Mo2ModEntry> FilteredMo2Mods => (_mo2Workspace.Profile?.Mods ?? [])
-        .Where(mod => string.IsNullOrWhiteSpace(_mo2Search)
-                      || mod.Name.Contains(_mo2Search, StringComparison.OrdinalIgnoreCase));
+    private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
+        _mo2Workspace.Profile?.Mods ?? [],
+        _mo2Search);
 
     protected override async Task OnInitializedAsync()
     {
@@ -664,6 +682,14 @@
     {
         _section = section;
         await JS.InvokeVoidAsync("anthologyScroll.toTop");
+        if (section == "mo2")
+        {
+            await OpenFullMo2Async(showToast: false);
+        }
+        else
+        {
+            EmbeddedMo2.Hide();
+        }
     }
 
     private Task ShowUpdates() => SelectSection("updates");
@@ -910,6 +936,92 @@
         _settings = Settings.Current.Copy();
         RefreshMo2Workspace();
         ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task OpenFullMo2Async() => await OpenFullMo2Async(showToast: true);
+
+    private async Task OpenFullMo2Async(bool showToast)
+    {
+        var result = await EmbeddedMo2.OpenAsync(_mo2Workspace.Instance.Root, _mo2Workspace.SelectedProfile);
+        RefreshMo2Workspace();
+        if (showToast || !result.Success)
+        {
+            ShowToast(result.Message, !result.Success);
+        }
+    }
+
+    private void OpenMo2WorkspaceFolder(string folder)
+    {
+        var result = Mo2.OpenWorkspaceFolder(folder);
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void OpenMo2ModFolder(Mo2ModEntry mod)
+    {
+        var result = Mo2.OpenModFolder(mod);
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private bool IsMo2GroupCollapsed(string separator) => _collapsedMo2Separators.Contains(separator);
+
+    private void ToggleMo2Group(string separator)
+    {
+        if (!_collapsedMo2Separators.Add(separator))
+        {
+            _collapsedMo2Separators.Remove(separator);
+        }
+    }
+
+    private static IReadOnlyList<Mo2ModGroup> BuildMo2Groups(
+        IReadOnlyList<Mo2ModEntry> entries,
+        string search)
+    {
+        var groups = new List<Mo2ModGroup>();
+        Mo2ModEntry? separator = null;
+        var mods = new List<Mo2ModEntry>();
+
+        void Flush()
+        {
+            if (separator is not null || mods.Count > 0)
+            {
+                groups.Add(new Mo2ModGroup(separator, mods.ToArray()));
+            }
+
+            mods = [];
+        }
+
+        foreach (var entry in entries)
+        {
+            if (entry.IsSeparator)
+            {
+                Flush();
+                separator = entry;
+            }
+            else
+            {
+                mods.Add(entry);
+            }
+        }
+
+        Flush();
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return groups;
+        }
+
+        var query = search.Trim();
+        return groups
+            .Select(group =>
+            {
+                var separatorMatches = group.Separator?.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
+                var matchingMods = separatorMatches
+                    ? group.Mods
+                    : group.Mods.Where(mod => mod.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+                return new Mo2ModGroup(group.Separator, matchingMods);
+            })
+            .Where(group => group.Mods.Count > 0
+                            || group.Separator?.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) == true)
+            .ToArray();
     }
 
     private void ToggleMo2Mod(Mo2ModEntry mod)
@@ -1183,7 +1295,7 @@
                 _report.Steps,
                 _report.Expected,
                 _report.Actual,
-                "0.4.2-alpha.1",
+                "0.5.0-alpha.1",
                 _report.GameVersion,
                 _report.LogExcerpt,
                 _report.Contact,
@@ -1271,6 +1383,8 @@
     private sealed record LibrarySection(string Id, string Index, string Title, string Description);
 
     private sealed record RendererOption(string Id, string Label, string Code);
+
+    private sealed record Mo2ModGroup(Mo2ModEntry? Separator, IReadOnlyList<Mo2ModEntry> Mods);
 
     private sealed class BugReportForm
     {

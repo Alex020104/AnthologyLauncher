@@ -22,7 +22,15 @@ public sealed record Mo2ModEntry(
     bool Enabled,
     bool IsSeparator,
     bool IsUnmanaged,
-    int Order);
+    int Order,
+    string DirectoryPath)
+{
+    private const string SeparatorSuffix = "_separator";
+
+    public string DisplayName => IsSeparator && Name.EndsWith(SeparatorSuffix, StringComparison.OrdinalIgnoreCase)
+        ? Name[..^SeparatorSuffix.Length]
+        : Name;
+}
 
 public sealed record Mo2ProfileSnapshot(
     string Name,
@@ -79,8 +87,7 @@ public static class Mo2ProfileManager
     {
         var profileRoot = ResolveProfileRoot(root, profileName);
         var modListPath = Path.Combine(profileRoot, ModListFile);
-        var mods = new List<Mo2ModEntry>();
-        var order = 0;
+        var parsed = new List<(string Name, bool Enabled, bool Unmanaged)>();
         foreach (var line in File.ReadAllLines(modListPath))
         {
             if (!TryParseModLine(line, out var name, out var enabled, out var unmanaged))
@@ -88,13 +95,23 @@ public static class Mo2ProfileManager
                 continue;
             }
 
-            mods.Add(new Mo2ModEntry(
-                name,
-                enabled,
-                name.EndsWith("_separator", StringComparison.OrdinalIgnoreCase),
-                unmanaged,
-                ++order));
+            parsed.Add((name, enabled, unmanaged));
         }
+
+        // MO2 writes modlist.txt from highest to lowest priority, while its left pane
+        // displays priorities from lowest to highest. Mirror the actual MO2 view.
+        var modsRoot = Path.Combine(Path.GetFullPath(root), "mods");
+        var mods = parsed
+            .AsEnumerable()
+            .Reverse()
+            .Select((item, order) => new Mo2ModEntry(
+                item.Name,
+                item.Enabled,
+                item.Name.EndsWith("_separator", StringComparison.OrdinalIgnoreCase),
+                item.Unmanaged,
+                order,
+                Path.Combine(modsRoot, item.Name)))
+            .ToArray();
 
         return new Mo2ProfileSnapshot(profileName, modListPath, mods);
     }
@@ -133,10 +150,11 @@ public static class Mo2ProfileManager
                 throw new InvalidOperationException($"Мод не найден в профиле: {modName}");
             }
 
-            var other = index + direction;
+            // File order is the inverse of priority order shown by MO2.
+            var other = index - direction;
             while (other >= 0 && other < lines.Count && !TryParseModLine(lines[other], out _, out _, out _))
             {
-                other += direction;
+                other -= direction;
             }
 
             if (other < 0 || other >= lines.Count)

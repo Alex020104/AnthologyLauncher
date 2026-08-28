@@ -2,13 +2,15 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Wpf;assembly=Microsoft.AspNetCore.Components.WebView.Wpf"
+        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         xmlns:local="clr-namespace:Anthology.Launcher"
         Title="A.N.T.H.O.L.O.G.Y Next"
         Icon="Assets/launcher.ico"
         Width="1440"
         Height="900"
-        MinWidth="1100"
-        MinHeight="700"
+        MinWidth="760"
+        MinHeight="560"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"
@@ -30,6 +32,25 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#20272C" />
                     <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Mo2ToolbarButton" TargetType="Button">
+            <Setter Property="MinWidth" Value="116" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="BorderBrush" Value="#3A454B" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#151C20" />
+            <Setter Property="Foreground" Value="#B8C0C4" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="#8B7447" />
+                    <Setter Property="Foreground" Value="#DFC27F" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -66,6 +87,41 @@
                     <blazor:RootComponent Selector="#app" ComponentType="{x:Type local:Main}" />
                 </blazor:BlazorWebView.RootComponents>
             </blazor:BlazorWebView>
+
+            <Border x:Name="Mo2HostOverlay"
+                    Grid.Row="1"
+                    Panel.ZIndex="20"
+                    Margin="248,82,25,0"
+                    Visibility="Collapsed"
+                    BorderBrush="#343E44"
+                    BorderThickness="1,0,0,0"
+                    Background="#090C0F">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="44" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" BorderBrush="#273138" BorderThickness="0,0,0,1" Background="#10161A">
+                        <Grid Margin="13,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse x:Name="Mo2HostStatusDot" Width="6" Height="6" Fill="#B38E4C" Margin="0,0,9,0" />
+                                <TextBlock x:Name="Mo2HostStatusText" Text="ПОДКЛЮЧЕНИЕ ПОЛНОГО MO2" Foreground="#8D989E" FontSize="9" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="ПЕРЕПОДКЛЮЧИТЬ" Style="{StaticResource Mo2ToolbarButton}" Click="ReconnectMo2_OnClick" />
+                                <Button Content="БЫСТРЫЙ ВИД" Style="{StaticResource Mo2ToolbarButton}" Click="ShowQuickMo2_OnClick" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <wfi:WindowsFormsHost x:Name="Mo2WindowsFormsHost" Grid.Row="1" Background="#090C0F">
+                        <wf:Panel x:Name="Mo2NativePanel" />
+                    </wfi:WindowsFormsHost>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 

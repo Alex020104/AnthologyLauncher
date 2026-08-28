@@ -109,6 +109,57 @@ public sealed class Mo2IntegrationService(
         }
     }
 
+    public LauncherActionResult OpenWorkspaceFolder(string folder)
+    {
+        try
+        {
+            var root = RequireRoot();
+            var path = folder switch
+            {
+                "root" => root,
+                "mods" => Path.Combine(root, "mods"),
+                "downloads" => Path.Combine(root, "downloads"),
+                "overwrite" => Path.Combine(root, "overwrite"),
+                "profiles" => Path.Combine(root, "profiles"),
+                _ => throw new ArgumentOutOfRangeException(nameof(folder), "Неизвестный каталог MO2."),
+            };
+
+            return OpenDirectory(path);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or ArgumentOutOfRangeException
+                                           or System.ComponentModel.Win32Exception)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
+    public LauncherActionResult OpenModFolder(Mo2ModEntry mod)
+    {
+        ArgumentNullException.ThrowIfNull(mod);
+        try
+        {
+            var root = Path.GetFullPath(Path.Combine(RequireRoot(), "mods"));
+            var path = Path.GetFullPath(mod.DirectoryPath);
+            if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Каталог мода находится вне папки mods.");
+            }
+
+            return OpenDirectory(path);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or System.ComponentModel.Win32Exception)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
     public async Task<LauncherActionResult> LaunchSelectedAsync(CancellationToken cancellationToken = default)
     {
         var workspace = GetWorkspace();
@@ -165,6 +216,17 @@ public sealed class Mo2IntegrationService(
         }
 
         return instance.Root;
+    }
+
+    private static LauncherActionResult OpenDirectory(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return new LauncherActionResult(false, $"Каталог не найден: {path}");
+        }
+
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        return new LauncherActionResult(true, $"Открыт каталог: {Path.GetFileName(path)}");
     }
 
     private static string? ChooseDefaultExecutable(

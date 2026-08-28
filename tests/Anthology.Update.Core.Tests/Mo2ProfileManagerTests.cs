@@ -23,13 +23,28 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     {
         CreateInstance();
         Mo2ProfileManager.SetEnabled(_root, "Anthology Стандарт", "Second", true);
-        var updated = Mo2ProfileManager.Move(_root, "Anthology Стандарт", "Second", -1);
+        var updated = Mo2ProfileManager.Move(_root, "Anthology Стандарт", "First", -1);
 
-        Assert.Equal(["Second", "First"], updated.Mods.Select(mod => mod.Name));
+        Assert.Equal(["First", "Second"], updated.Mods.Select(mod => mod.Name));
         Assert.All(updated.Mods, mod => Assert.True(mod.Enabled));
         var path = Path.Combine(_root, "profiles", "Anthology Стандарт", "modlist.txt");
         Assert.Contains("# generated", File.ReadAllLines(path));
         Assert.True(File.Exists(path + ".anthology-backup"));
+    }
+
+    [Fact]
+    public void ReadProfileUsesMo2PriorityOrderAndNamesSeparators()
+    {
+        CreateInstance();
+        var path = Path.Combine(_root, "profiles", "Anthology Стандарт", "modlist.txt");
+        File.WriteAllText(path, "# generated\n+High\n+Child\n-Visual_separator\n+Low\n");
+
+        var profile = Mo2ProfileManager.ReadProfile(_root, "Anthology Стандарт");
+
+        Assert.Equal(["Low", "Visual_separator", "Child", "High"], profile.Mods.Select(mod => mod.Name));
+        Assert.Equal([0, 1, 2, 3], profile.Mods.Select(mod => mod.Order));
+        Assert.Equal("Visual", profile.Mods[1].DisplayName);
+        Assert.True(profile.Mods[1].IsSeparator);
     }
 
     [Fact]
