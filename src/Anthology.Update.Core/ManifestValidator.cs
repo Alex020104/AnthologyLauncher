@@ -37,9 +37,10 @@ public static partial class ManifestValidator
             errors.Add("Version is required.");
         }
 
-        if (payload.Packages.Count == 0)
+        if (payload.Packages.Count == 0
+            && (payload.SchemaVersion < 2 || payload.Content is null || payload.Content.Items.Count == 0))
         {
-            errors.Add("At least one package is required.");
+            errors.Add("At least one package or one content item is required.");
         }
 
         var packageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

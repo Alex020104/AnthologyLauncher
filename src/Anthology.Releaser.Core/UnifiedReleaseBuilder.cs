@@ -45,6 +45,10 @@ public static class UnifiedReleaseBuilder
         var machine = request.Machine;
         ReleaseVersionRules.Validate(workspace.Version);
         ValidateMachine(machine);
+        if (string.IsNullOrWhiteSpace(machine.GameSourceRoot) || string.IsNullOrWhiteSpace(machine.Mo2SourceRoot))
+        {
+            throw new InvalidOperationException("Для выпуска всей сборки выберите оба подготовленных корня: игру и MO2.");
+        }
 
         var outputRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version);
         ValidatePathSeparation(machine.GameSourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
@@ -96,7 +100,7 @@ public static class UnifiedReleaseBuilder
             throw new InvalidOperationException("Укажите подготовленный корень игры и/или MO2.");
         }
 
-        var catalog = BuildContentCatalog(workspace);
+        var catalog = CreateContentCatalog(workspace);
         var payload = new UpdateManifest(
             2,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
@@ -192,7 +196,7 @@ public static class UnifiedReleaseBuilder
             .Where(item => !string.IsNullOrWhiteSpace(item.Url))
             .Select(item => new MirrorManifest(
                 NormalizeProvider(item.Mirror.Provider),
-                item.Url.Replace("{file}", artifactName, StringComparison.OrdinalIgnoreCase),
+                ExpandUrl(item.Url, workspace.Version, id, artifactName),
                 item.Mirror.Priority))
             .OrderBy(item => item.Priority)
             .ToArray();
@@ -217,9 +221,9 @@ public static class UnifiedReleaseBuilder
             CommonExcludedRoots.Concat(specificExcludedRoots).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()), artifactPath);
     }
 
-    private static ContentCatalog BuildContentCatalog(ReleaserWorkspace workspace)
+    public static ContentCatalog CreateContentCatalog(ReleaserWorkspace workspace)
     {
-        var items = workspace.Content.Select(item =>
+        var items = workspace.Content.Where(item => item.IsPublished).Select(item =>
         {
             var images = SplitLines(item.Images).ToArray();
             var videos = SplitLines(item.Videos)
@@ -235,7 +239,10 @@ public static class UnifiedReleaseBuilder
             {
                 var mirrors = SplitLines(item.DownloadMirrors)
                     .Select(line => SplitPair(line, "http"))
-                    .Select((pair, index) => new MirrorManifest(NormalizeProvider(pair.Left), pair.Right, (index + 1) * 10))
+                    .Select((pair, index) => new MirrorManifest(
+                        NormalizeProvider(pair.Left),
+                        ExpandUrl(pair.Right, workspace.Version, item.Id, item.DownloadFileName),
+                        (index + 1) * 10))
                     .ToArray();
                 download = new ContentDownload(
                     item.DownloadFileName.Trim(),
@@ -301,7 +308,7 @@ public static class UnifiedReleaseBuilder
         File.Move(temporary, artifact, true);
     }
 
-    private static async Task WriteJsonAtomicallyAsync<T>(string path, T value, CancellationToken cancellationToken)
+    public static async Task WriteJsonAtomicallyAsync<T>(string path, T value, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + $".tmp-{Guid.NewGuid():N}";
@@ -331,7 +338,7 @@ public static class UnifiedReleaseBuilder
             : (defaultLeft, value.Trim());
     }
 
-    private static string NormalizeProvider(string provider) => provider.Trim().ToLowerInvariant() switch
+    public static string NormalizeProvider(string provider) => provider.Trim().ToLowerInvariant() switch
     {
         "yandex" or "яндекс" or "yandex-disk" => "yandex-disk",
         "google" or "google-drive" => "google-drive",
@@ -340,7 +347,12 @@ public static class UnifiedReleaseBuilder
         _ => "http",
     };
 
-    private static void ValidateMachine(ReleaserMachineSettings machine)
+    public static string ExpandUrl(string url, string version, string id, string fileName) => url
+        .Replace("{version}", version.Trim(), StringComparison.OrdinalIgnoreCase)
+        .Replace("{id}", id.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase)
+        .Replace("{file}", fileName.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    public static void ValidateMachine(ReleaserMachineSettings machine)
     {
         if (string.IsNullOrWhiteSpace(machine.OutputRoot))
         {

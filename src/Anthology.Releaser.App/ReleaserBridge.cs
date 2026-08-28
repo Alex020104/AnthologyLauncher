@@ -50,4 +50,17 @@ public sealed class ReleaserBridge
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }
     }
+
+    public bool Confirm(string message, string title)
+    {
+        lock (_dialogGate)
+        {
+            return System.Windows.Forms.MessageBox.Show(
+                       message,
+                       title,
+                       System.Windows.Forms.MessageBoxButtons.YesNo,
+                       System.Windows.Forms.MessageBoxIcon.Warning,
+                       System.Windows.Forms.MessageBoxDefaultButton.Button2) == System.Windows.Forms.DialogResult.Yes;
+        }
+    }
 }

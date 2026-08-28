@@ -86,7 +86,7 @@ dotnet run --project src/Anthology.Launcher
 .\scripts\Publish-Releaser.ps1 -Destination E:\AnthologyReleaserNext
 ```
 
-Запуск: `E:\AnthologyReleaserNext\Launch Anthology Releaser Next.cmd`. Desktop-релизер создаёт одну версию для корня игры и MO2, управляет зеркалами и контентом и синхронизирует общий рабочий JSON двух разработчиков. Локальные пути и закрытые ключи не входят в синхронизацию.
+Запуск: `E:\AnthologyReleaserNext\Launch Anthology Releaser Next.cmd`. Desktop-релизер выпускает или снимает с публикации всю сборку и отдельные аддоны, выгружает файлы в настроенные папки источников, управляет зеркалами и контентом и синхронизирует общий рабочий JSON двух разработчиков. Локальные пути и закрытые ключи не входят в синхронизацию.
 
 ## Совместимый CLI-пакет
 

@@ -34,15 +34,15 @@
                 </section>
                 <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
                 <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ</span><h3>Закрытый ключ хранится только у разработчика</h3><p>В общий рабочий файл попадают настройки релиза и материалы. Закрытый ключ и пути этой машины никогда не синхронизируются.</p></div><label>ID ключа<input @bind="_machine.KeyId" /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="GenerateKeys">СОЗДАТЬ КЛЮЧИ</button></section>
-                <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Сначала сохраняется рабочая редакция, затем создаются архивы и подписанный manifest.json." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "СБОРКА…" : "СОБРАТЬ РЕЛИЗ")</button></section>
+                <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ ВСЕЙ СБОРКИ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Полный слепок добавит новые файлы и пометит отсутствующие для безопасного удаления у игрока." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">СНЯТЬ ВЕРСИЮ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ ВСЮ СБОРКУ")</button></section>
             }
             else if (_section == "sources")
             {
-                <section class="hero panel compact"><div><span class="eyebrow">НЕСКОЛЬКО ИСТОЧНИКОВ</span><h2>Игрок выбирает,<br /><em>откуда скачать.</em></h2><p>Для каждого архива укажите публичные ссылки. Можно использовать шаблон <code>{file}</code>, который будет заменён именем готового ZIP.</p></div></section>
+                <section class="hero panel compact"><div><span class="eyebrow">НЕСКОЛЬКО ИСТОЧНИКОВ</span><h2>Игрок выбирает,<br /><em>откуда скачать.</em></h2><p>Публичная ссылка говорит лаунчеру, откуда скачивать. Папка выгрузки — куда релизер сам копирует файлы. Поддерживаются шаблоны <code>{version}</code>, <code>{id}</code> и <code>{file}</code>.</p></div></section>
                 <section class="mirror-list">
                     @foreach (var mirror in _workspace.Mirrors.OrderBy(item => item.Priority))
                     {
-                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Архив игры<input @bind="mirror.GameUrl" placeholder="https://.../{file}" /></label><label>Архив MO2<input @bind="mirror.Mo2Url" placeholder="https://.../{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button></article>
+                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Архив игры<input @bind="mirror.GameUrl" placeholder="https://.../{version}/{file}" /></label><label>Архив MO2<input @bind="mirror.Mo2Url" placeholder="https://.../{version}/{file}" /></label><label>Аддоны<input @bind="mirror.ContentUrl" placeholder="https://.../{version}/addons/{id}/{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button><div class="publish-root"><label>Папка автоматической выгрузки на этой машине<input value="@GetPublicationRoot(mirror)" @onchange="eventArgs => SetPublicationRoot(mirror, eventArgs.Value?.ToString())" placeholder="Например, папка Яндекс.Диска или каталог HTTP-сервера" /></label><button class="secondary" @onclick="() => SelectPublicationRoot(mirror)">ВЫБРАТЬ ПАПКУ</button></div></article>
                     }
                 </section>
                 <section class="panel action-line"><button class="secondary" @onclick="AddMirror">＋ ДОБАВИТЬ ИСТОЧНИК</button><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ ИСТОЧНИКИ</button></section>
@@ -50,7 +50,7 @@
             else if (_section == "content")
             {
                 <section class="content-layout">
-                    <aside class="panel content-list"><div class="section-title"><div><span class="eyebrow">МАТЕРИАЛЫ</span><h3>@_workspace.Content.Count записей</h3></div><button @onclick="AddContent">＋</button></div><div class="content-filters"><button class="@(_contentFilter is null ? "active" : null)" @onclick="() => _contentFilter = null">ВСЕ</button><button class="@(_contentFilter == ContentKind.Mod ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Mod">МОДЫ</button><button class="@(_contentFilter == ContentKind.News ? "active" : null)" @onclick="() => _contentFilter = ContentKind.News">НОВОСТИ</button><button class="@(_contentFilter == ContentKind.Information ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Information">ИНФО</button></div>@foreach (var item in FilteredContent) { var current = item; <button class="content-item @(_selectedContentId == current.Id ? "active" : null)" @onclick="() => _selectedContentId = current.Id"><span>@KindName(current.Kind)</span><strong>@current.Title</strong><small>@current.Section · @current.Id</small></button> }</aside>
+                    <aside class="panel content-list"><div class="section-title"><div><span class="eyebrow">МАТЕРИАЛЫ</span><h3>@_workspace.Content.Count записей</h3></div><button @onclick="AddContent">＋</button></div><div class="content-filters"><button class="@(_contentFilter is null ? "active" : null)" @onclick="() => _contentFilter = null">ВСЕ</button><button class="@(_contentFilter == ContentKind.Mod ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Mod">МОДЫ</button><button class="@(_contentFilter == ContentKind.News ? "active" : null)" @onclick="() => _contentFilter = ContentKind.News">НОВОСТИ</button><button class="@(_contentFilter == ContentKind.Information ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Information">ИНФО</button></div>@foreach (var item in FilteredContent) { var current = item; <button class="content-item @(_selectedContentId == current.Id ? "active" : null)" @onclick="() => _selectedContentId = current.Id"><span>@KindName(current.Kind) · @(current.IsPublished ? "ОПУБЛИКОВАН" : "ЧЕРНОВИК")</span><strong>@current.Title</strong><small>@current.Section · @current.Id</small></button> }</aside>
                     @if (SelectedContent is not null)
                     {
                         <section class="panel content-editor">
@@ -59,7 +59,7 @@
                             <label>Краткое описание<textarea rows="3" @bind="SelectedContent.Summary"></textarea></label>
                             <label>Полный текст<textarea class="body-editor" rows="11" @bind="SelectedContent.Body"></textarea><small>Абзацы сохраняются. Поддержка расширенного форматирования добавляется поверх этого текста без потери исходника.</small></label>
                             <div class="media-grid"><label>Картинки — по одной HTTPS-ссылке на строку<textarea rows="5" @bind="SelectedContent.Images" placeholder="https://.../cover.jpg"></textarea></label><label>Видео — «Название | HTTPS-ссылка»<textarea rows="5" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/embed/..."></textarea></label></div>
-                            <section class="download-editor"><div><span class="eyebrow">ФАЙЛ МОДА</span><h3>Загрузка по кнопке в лаунчере</h3><p>Выберите готовый архив: размер и SHA‑256 заполнятся автоматически. Затем укажите зеркала форматом <code>provider | URL</code>.</p></div><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ</button><div class="form-grid"><label>Имя файла<input @bind="SelectedContent.DownloadFileName" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://disk.yandex.ru/d/...&#10;google-drive | https://...&#10;http | https://cdn.example/mod.zip"></textarea></label></section>
+                            <section class="download-editor"><div><span class="eyebrow">ФАЙЛ АДДОНА</span><h3>Отдельный выпуск без пересборки игры</h3><p>Выберите архив. Релизер рассчитает SHA‑256, обновит подписанный каталог и выгрузит файл во все настроенные папки источников.</p></div><code>@PathOrEmpty(SelectedContentArchivePath)</code><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ</button><div class="form-grid"><label>Имя файла<input @bind="SelectedContent.DownloadFileName" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://.../{version}/addons/{id}/{file}&#10;google-drive | https://...&#10;http | https://cdn.example/{file}"></textarea></label><div class="publish-actions"><button class="danger" @onclick="UnpublishAddonAsync" disabled="@(_busy || !SelectedContent.IsPublished)">СНЯТЬ АДДОН</button><button class="primary" @onclick="PublishAddonAsync" disabled="@(_busy || SelectedContent.Kind != ContentKind.Mod)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ АДДОН")</button></div></section>
                             <div class="editor-actions"><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ МАТЕРИАЛ</button></div>
                         </section>
                     }
@@ -117,6 +117,7 @@
     private bool _toastError;
     private DateTimeOffset? _lastSyncAt;
     private UnifiedReleaseResult? _lastBuild;
+    private PublicationResult? _lastPublication;
     private string _lastSavedWorkspaceHash = string.Empty;
     private CancellationTokenSource? _lifetime;
     private Task? _autoSyncTask;
@@ -124,6 +125,10 @@
     private Nav CurrentNavigation => Navigation.First(item => item.Id == _section);
     private IEnumerable<ContentDraft> FilteredContent => _workspace.Content.Where(item => _contentFilter is null || item.Kind == _contentFilter);
     private ContentDraft? SelectedContent => _workspace.Content.FirstOrDefault(item => item.Id == _selectedContentId);
+    private string SelectedContentArchivePath => SelectedContent is not null
+        && _machine.ContentArchivePaths.TryGetValue(SelectedContent.Id, out var path)
+            ? path
+            : string.Empty;
     private string SelectedContentIdentifier
     {
         get => SelectedContent?.Id ?? string.Empty;
@@ -131,8 +136,13 @@
         {
             var item = SelectedContent;
             if (item is null) { return; }
+            var oldId = item.Id;
             item.Id = value;
             _selectedContentId = value;
+            if (_machine.ContentArchivePaths.Remove(oldId, out var archivePath))
+            {
+                _machine.ContentArchivePaths[value] = archivePath;
+            }
         }
     }
 
@@ -154,6 +164,30 @@
     private void SelectSharedRoot() => _machine.SharedWorkspaceRoot = Bridge.SelectFolder("Выберите общую синхронизируемую папку двух разработчиков", _machine.SharedWorkspaceRoot) ?? _machine.SharedWorkspaceRoot;
     private void SelectPrivateKey() => _machine.PrivateKeyPath = Bridge.SelectFile("Выберите закрытый PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PrivateKeyPath) ?? _machine.PrivateKeyPath;
     private void SelectPublicKey() => _machine.PublicKeyPath = Bridge.SelectFile("Выберите публичный PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PublicKeyPath) ?? _machine.PublicKeyPath;
+
+    private string GetPublicationRoot(ReleaseMirrorSet mirror) =>
+        _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) ? root : string.Empty;
+
+    private void SetPublicationRoot(ReleaseMirrorSet mirror, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _machine.PublicationRoots.Remove(mirror.Id);
+        }
+        else
+        {
+            _machine.PublicationRoots[mirror.Id] = value.Trim();
+        }
+    }
+
+    private void SelectPublicationRoot(ReleaseMirrorSet mirror)
+    {
+        var selected = Bridge.SelectFolder($"Выберите папку выгрузки: {mirror.Provider}", GetPublicationRoot(mirror));
+        if (selected is not null)
+        {
+            _machine.PublicationRoots[mirror.Id] = selected;
+        }
+    }
 
     private async Task GenerateKeys()
     {
@@ -198,8 +232,13 @@
             _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
             var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
             _lastBuild = await UnifiedReleaseBuilder.BuildAsync(new UnifiedReleaseRequest(_workspace, _machine), progress);
-            _status = $"Релиз {_lastBuild.Version} готов";
-            Toast($"Готово: {_lastBuild.ManifestPath}");
+            _lastPublication = await ReleasePublicationService.PublishReleaseAsync(_lastBuild, _workspace, _machine, progress);
+            _status = _lastPublication.Targets == 0
+                ? $"Релиз {_lastBuild.Version} готов локально"
+                : $"Релиз {_lastBuild.Version} опубликован в {_lastPublication.Targets} источник(а)";
+            Toast(_lastPublication.Targets == 0
+                ? $"Готово: {_lastBuild.ManifestPath}. Для автоматической выгрузки задайте папки в «Источниках»."
+                : $"Выгружено файлов: {_lastPublication.Files}. Manifest: {_lastBuild.ManifestPath}");
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
         {
@@ -212,13 +251,53 @@
         }
     }
 
+    private async Task UnpublishVersionAsync()
+    {
+        if (!Bridge.Confirm(
+                $"Снять версию {_workspace.Version} с публикации? Файлы исчезнут из настроенных папок источников, но останутся в резервной копии.",
+                "Снять всю сборку"))
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.UnpublishVersionAsync(_workspace, _machine, progress);
+            _lastBuild = null;
+            _lastPublication = result;
+            await State.SaveMachineAsync(_workspace, _machine);
+            _status = $"Версия {_workspace.Version} снята с публикации";
+            Toast($"Убрано расположений: {result.Files}. Резервная копия сохранена в .releaser-trash.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            _status = "Снятие версии остановлено";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
     private void AddMirror() => _workspace.Mirrors.Add(new ReleaseMirrorSet { Provider = "http", Priority = (_workspace.Mirrors.MaxBy(item => item.Priority)?.Priority ?? 0) + 10 });
-    private void RemoveMirror(ReleaseMirrorSet mirror) => _workspace.Mirrors.Remove(mirror);
+    private void RemoveMirror(ReleaseMirrorSet mirror)
+    {
+        _machine.PublicationRoots.Remove(mirror.Id);
+        _workspace.Mirrors.Remove(mirror);
+    }
 
     private void AddContent()
     {
         var kind = _contentFilter ?? ContentKind.News;
-        var item = new ContentDraft { Kind = kind, Section = kind == ContentKind.Mod ? "dev" : "general" };
+        var item = new ContentDraft
+        {
+            Kind = kind,
+            Section = kind == ContentKind.Mod ? "dev" : "general",
+            IsPublished = kind != ContentKind.Mod,
+        };
         _workspace.Content.Add(item);
         _selectedContentId = item.Id;
     }
@@ -227,6 +306,14 @@
     {
         var item = SelectedContent;
         if (item is null) { return; }
+        if (item.IsPublished && !string.IsNullOrWhiteSpace(item.DownloadFileName))
+        {
+            Toast("Сначала нажмите «Снять аддон», затем удаляйте его карточку.", true);
+            return;
+        }
+
+        if (!Bridge.Confirm($"Удалить черновик «{item.Title}»?", "Удаление материала")) { return; }
+        _machine.ContentArchivePaths.Remove(item.Id);
         _workspace.Content.Remove(item);
         _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
     }
@@ -240,7 +327,68 @@
         item.DownloadFileName = Path.GetFileName(file);
         item.DownloadSize = new FileInfo(file).Length;
         item.DownloadSha256 = await ArtifactHash.ComputeSha256Async(file);
+        _machine.ContentArchivePaths[item.Id] = file;
         Toast("Размер и SHA‑256 архива рассчитаны.");
+    }
+
+    private async Task PublishAddonAsync()
+    {
+        var item = SelectedContent;
+        if (item is null) { return; }
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.PublishAddonAsync(item, _workspace, _machine, progress);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = result.Publication.Targets == 0
+                ? $"Аддон {item.Title} готов локально"
+                : $"Аддон {item.Title} опубликован";
+            Toast(result.Publication.Targets == 0
+                ? $"Архив готов: {result.ArtifactPath}. Для выгрузки задайте папки источников."
+                : $"Аддон выгружен в {result.Publication.Targets} источник(а). Подписанный manifest.json обновлён.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Выпуск аддона остановлен";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task UnpublishAddonAsync()
+    {
+        var item = SelectedContent;
+        if (item is null || !Bridge.Confirm(
+                $"Снять аддон «{item.Title}» с публикации? Карточка останется черновиком, а архив будет перенесён в резервную копию.",
+                "Снять аддон"))
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.UnpublishAddonAsync(item, _workspace, _machine, progress);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = $"Аддон {item.Title} снят с публикации";
+            Toast($"Аддон убран из каталога и {result.Files} расположений. Резервная копия сохранена.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Снятие аддона остановлено";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task SyncAsync()

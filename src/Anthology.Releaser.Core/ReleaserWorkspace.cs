@@ -29,11 +29,15 @@ public sealed class ReleaserWorkspace
 
 public sealed class ReleaseMirrorSet
 {
+    public string Id { get; set; } = $"source-{Guid.NewGuid():N}";
+
     public string Provider { get; set; } = "http";
 
     public string GameUrl { get; set; } = string.Empty;
 
     public string Mo2Url { get; set; } = string.Empty;
+
+    public string ContentUrl { get; set; } = string.Empty;
 
     public int Priority { get; set; } = 100;
 }
@@ -63,6 +67,8 @@ public sealed class ContentDraft
     public string DownloadSha256 { get; set; } = string.Empty;
 
     public string DownloadMirrors { get; set; } = string.Empty;
+
+    public bool IsPublished { get; set; } = true;
 }
 
 public sealed class ReleaserMachineSettings
@@ -88,6 +94,11 @@ public sealed class ReleaserMachineSettings
     public int AutoSyncSeconds { get; set; } = 60;
 
     public string LastSyncedHash { get; set; } = string.Empty;
+
+    // Local paths never enter the shared workspace.
+    public Dictionary<string, string> ContentArchivePaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public Dictionary<string, string> PublicationRoots { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed record UnifiedReleaseRequest(
@@ -101,6 +112,18 @@ public sealed record UnifiedReleaseResult(
     int Files,
     long Bytes,
     int ContentItems);
+
+public sealed record PublicationResult(
+    int Targets,
+    int Files,
+    long Bytes,
+    IReadOnlyList<string> Destinations);
+
+public sealed record AddonPublicationResult(
+    string AddonId,
+    string ArtifactPath,
+    string ManifestPath,
+    PublicationResult Publication);
 
 public enum WorkspaceSyncDirection
 {

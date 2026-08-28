@@ -74,6 +74,8 @@ public sealed class ReleaserStateStore : IDisposable
     {
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
+        machine.ContentArchivePaths = new Dictionary<string, string>(machine.ContentArchivePaths ?? [], StringComparer.OrdinalIgnoreCase);
+        machine.PublicationRoots = new Dictionary<string, string>(machine.PublicationRoots ?? [], StringComparer.OrdinalIgnoreCase);
         machine.DeveloperName = string.IsNullOrWhiteSpace(machine.DeveloperName) ? Environment.UserName : machine.DeveloperName.Trim();
         machine.AutoSyncSeconds = Math.Clamp(machine.AutoSyncSeconds, 30, 3600);
         if (workspace.Mirrors.Count == 0)
@@ -85,6 +87,11 @@ public sealed class ReleaserStateStore : IDisposable
                 new ReleaseMirrorSet { Provider = "google-drive", Priority = 30 },
                 new ReleaseMirrorSet { Provider = "http", Priority = 40 },
             ]);
+        }
+
+        foreach (var mirror in workspace.Mirrors)
+        {
+            mirror.Id = string.IsNullOrWhiteSpace(mirror.Id) ? $"source-{Guid.NewGuid():N}" : mirror.Id.Trim();
         }
     }
 
