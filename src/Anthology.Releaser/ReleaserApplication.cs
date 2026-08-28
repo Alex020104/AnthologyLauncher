@@ -205,7 +205,8 @@ public static class ReleaserApplication
         Console.WriteLine("    --id ID --name NAME --version VERSION --kind Mod --install-root modpack");
         Console.WriteLine("    --private-key key.pem --key-id production-01");
         Console.WriteLine("    --mirror github=https://... --mirror yandex-disk=https://disk.yandex.ru/d/...");
-        Console.WriteLine("    [--mirror google-drive=https://...] [--channel next] [--force]");
+        Console.WriteLine("    [--mirror google-drive=https://...] [--mirror local-file=file:///E:/...]");
+        Console.WriteLine("    [--channel next] [--force]");
     }
 
     private sealed class Arguments

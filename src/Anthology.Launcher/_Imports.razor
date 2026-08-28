@@ -1,7 +1,11 @@
 @using Anthology.Contracts
+@using Anthology.Update.Core
 @using System.Net.Http
 @using System.IO
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
 @inject CommunityClient Community
 @inject LauncherBridge Launcher
+@inject LauncherSettingsStore Settings
+@inject LauncherUpdateService Updater

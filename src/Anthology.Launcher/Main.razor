@@ -1,4 +1,5 @@
 @using System.ComponentModel.DataAnnotations
+@implements IDisposable
 
 <div class="app-shell">
     <aside class="sidebar">
@@ -35,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.1.0 · DEV CHANNEL</div>
+        <div class="version-line">LAUNCHER NEXT 0.2.0 ALPHA · DEV CHANNEL</div>
     </aside>
 
     <main class="workspace">
@@ -170,19 +171,25 @@
                         <div class="section-heading compact"><div><span>КАНАЛЫ</span><h3>Сообщество</h3></div></div>
                         @foreach (var channel in _feed!.Channels)
                         {
-                            <button class="channel-row @(channel.Id == "general" ? "active" : null)">
+                            <button class="channel-row @(channel.Id == _selectedChannelId ? "active" : null)" @onclick="() => SelectChannelAsync(channel.Id)">
                                 <span class="channel-hash">#</span><div><strong>@channel.Name</strong><small>@channel.Description</small></div>
                                 @if (channel.IsDeveloperChannel) { <span class="dev-chip">DEV</span> }
                             </button>
                         }
                     </div>
                     <div class="chat-panel section-block">
-                        <div class="chat-title"><div><span>#</span><div><strong>Общий</strong><small>Локальный preview · SignalR hub уже подключён на сервере</small></div></div><span class="online-count">● 128</span></div>
+                        <div class="chat-title"><div><span>#</span><div><strong>@CurrentChannel.Name</strong><small>@CurrentChannel.Description</small></div></div><span class="online-count">@(_chatConnected ? "● НА СВЯЗИ" : "○ OFFLINE")</span></div>
                         <div class="chat-messages">
-                            <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сегодня, 10:42</small><p>Канальная структура готова. Следующий этап — авторизация и постоянная история сообщений.</p></div></div>
-                            <div class="chat-message"><span>R</span><div><strong>ReVo_Online</strong><small>Сегодня, 10:51</small><p>Здесь можно будет обсуждать новости, тестовые обновления и оставлять отзывы команде.</p></div></div>
+                            @if (_chatMessages.Count == 0)
+                            {
+                                <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@(_chatConnected ? "Канал подключён. Напишите первое сообщение." : "Community API недоступен — чат временно работает только как просмотр интерфейса.")</p></div></div>
+                            }
+                            @foreach (var message in _chatMessages)
+                            {
+                                <div class="chat-message @(message.IsDeveloper ? "system" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName @if (message.IsDeveloper) { <em>DEV</em> }</strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@message.Text</p></div></div>
+                            }
                         </div>
-                        <div class="chat-composer"><button>＋</button><input placeholder="Сообщение в #Общий" disabled /><button class="send-button" disabled>↑</button></div>
+                        <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в #@CurrentChannel.Name" @bind="_chatText" @bind:event="oninput" @onkeydown="ChatKeyDownAsync" disabled="@(!_chatConnected)" maxlength="2000" /><button class="send-button" @onclick="SendChatMessageAsync" disabled="@(!_chatConnected || string.IsNullOrWhiteSpace(_chatText))">↑</button></div>
                     </div>
                     <div class="poll-panel section-block">
                         <div class="section-heading compact"><div><span>ОБРАТНАЯ СВЯЗЬ</span><h3>Голосование</h3></div></div>
@@ -208,6 +215,51 @@
                 <section class="update-hero section-block">
                     <div><span class="eyebrow">UPDATE PROTOCOL V1</span><h2>Один пакет.<br />Несколько маршрутов.</h2><p>Клиент выбирает доступное зеркало, возобновляет загрузку, проверяет размер, SHA‑256 и подпись манифеста до установки.</p></div>
                     <div class="update-shield"><span>✓</span><strong>SIGNED</strong><small>ECDSA P‑256</small></div>
+                </section>
+                <section class="update-console section-block">
+                    <div class="update-console-header">
+                        <div>
+                            <span class="eyebrow">РАБОЧИЙ ЦЕНТР ОБНОВЛЕНИЙ</span>
+                            <h3>@UpdateHeadline</h3>
+                            <p>@UpdateDescription</p>
+                        </div>
+                        <div class="update-actions">
+                            @if (_updateBusy)
+                            {
+                                <button class="secondary-button danger-button" @onclick="CancelUpdate">ОТМЕНИТЬ</button>
+                            }
+                            else
+                            {
+                                <button class="secondary-button" @onclick="CheckForUpdatesAsync">ПРОВЕРИТЬ</button>
+                                <button class="primary-button" disabled="@(_updateCheck?.HasUpdates != true)" @onclick="InstallUpdatesAsync">СКАЧАТЬ И УСТАНОВИТЬ</button>
+                            }
+                        </div>
+                    </div>
+                    @if (_updateProgress is not null)
+                    {
+                        <div class="update-progress-row">
+                            <div class="progress-track"><span style="width:@UpdateProgressPercentage%"></span></div>
+                            <div><strong>@_updateProgress.Message</strong><small>@UpdateProgressDetails</small></div>
+                        </div>
+                    }
+                    @if (_updateCheck is not null)
+                    {
+                        <div class="package-list">
+                            @foreach (var package in _updateCheck.Packages)
+                            {
+                                <article class="package-row @(package.UpdateAvailable ? "available" : "current")">
+                                    <span class="package-state">@(package.UpdateAvailable ? "⇣" : "✓")</span>
+                                    <div><strong>@package.Package.DisplayName</strong><small>@package.Package.Id · @package.Package.InstallRoot · @FormatBytes(package.Package.Size)</small></div>
+                                    <div class="package-version"><span>@(package.InstalledVersion ?? "не установлен")</span><b>→</b><strong>@package.Package.Version</strong></div>
+                                </article>
+                            }
+                        </div>
+                        <div class="signature-line">Ключ: <strong>@_updateCheck.TrustedKeyId</strong> · manifest: @_updateCheck.SignedManifest.Payload.Version</div>
+                    }
+                    else if (!UpdateConfigurationReady)
+                    {
+                        <div class="configuration-warning">Укажите manifest и доверенный публичный ключ в разделе «Настройки». До этого лаунчер ничего не скачивает и не изменяет.</div>
+                    }
                 </section>
                 <section class="provider-grid">
                     <article><span class="provider-index">01</span><strong>GitHub Releases</strong><p>Код, небольшие пакеты и резервное зеркало.</p><small>HTTPS · RANGE</small></article>
@@ -245,9 +297,29 @@
             else if (_section == "settings")
             {
                 <section class="settings-grid">
-                    <article class="setting-card section-block"><span>УСТАНОВКА</span><h3>Путь к игре</h3><code>@(_installation.GameRoot ?? "Не найден")</code><p>Для dev-запуска можно задать переменную <b>ANTHOLOGY_GAME_ROOT</b>.</p><button class="secondary-button" @onclick="OpenGameFolder">ОТКРЫТЬ ПАПКУ</button></article>
-                    <article class="setting-card section-block"><span>КАНАЛ</span><h3>Next / development</h3><p>Этот канал не публикуется текущим пользователям и не заменяет старый AnomalyLauncher.exe.</p><div class="safe-banner">main защищён веткой миграции</div></article>
-                    <article class="setting-card section-block"><span>СЕРВЕР</span><h3>Community API</h3><code>http://localhost:5249</code><p>Адрес переопределяется через ANTHOLOGY_COMMUNITY_API.</p></article>
+                    <article class="setting-card section-block">
+                        <span>ИГРА</span><h3>Корень Anomaly</h3>
+                        <code>@(_settings.GameRoot ?? "Не выбран")</code>
+                        <p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>. Выбор выполняется только вручную.</p>
+                        <div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div>
+                    </article>
+                    <article class="setting-card section-block">
+                        <span>МОДПАК</span><h3>Mod Organizer 2</h3>
+                        <code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code>
+                        <p>Эта папка используется для запуска MO2 и пакетов с корнем <b>modpack</b>.</p>
+                        <button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button>
+                    </article>
+                    <article class="setting-card update-settings-card section-block">
+                        <span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3>
+                        <label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label>
+                        <button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button>
+                        <label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label>
+                        <button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button>
+                        <label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label>
+                        <button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ НАСТРОЙКИ</button>
+                    </article>
+                    <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Идентификатор создаётся локально и сохраняется в portable-настройках. Полноценные аккаунты и роли появятся на production-сервере.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
+                    <article class="setting-card section-block"><span>СЕРВЕР</span><h3>Community API</h3><code>http://127.0.0.1:5249</code><p>Portable-запуск поднимает локальный API автоматически. При недоступности используется встроенная лента.</p><div class="safe-banner">Данные лаунчера: @Settings.DataRoot</div></article>
                 </section>
             }
         </div>
@@ -278,13 +350,32 @@
     private bool _toastError;
     private bool _submittingReport;
     private BugReportForm _report = new();
+    private LauncherSettings _settings = new();
+    private UpdateCheckResult? _updateCheck;
+    private UpdateProgress? _updateProgress;
+    private bool _updateBusy;
+    private CancellationTokenSource? _updateCancellation;
+    private string _selectedChannelId = "general";
+    private List<ChatMessage> _chatMessages = [];
+    private string _chatText = string.Empty;
+    private bool _chatConnected;
 
     private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
+    private CommunityChannel CurrentChannel =>
+        _feed?.Channels.FirstOrDefault(channel => channel.Id == _selectedChannelId)
+        ?? new CommunityChannel(_selectedChannelId, _selectedChannelId, "Канал сообщества");
 
     protected override async Task OnInitializedAsync()
     {
+        _settings = await Settings.LoadAsync();
         _installation = Launcher.DetectInstallation();
         _feed = await Community.GetFeedAsync();
+        Community.MessageReceived += OnChatMessageReceived;
+        if (!Community.IsOffline && _feed.Channels.Count > 0)
+        {
+            _selectedChannelId = _feed.Channels[0].Id;
+            await ConnectChatAsync(_selectedChannelId);
+        }
         _loading = false;
     }
 
@@ -302,6 +393,242 @@
     {
         var result = Launcher.OpenGameFolder();
         ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task SelectGameRootAsync()
+    {
+        var result = await Launcher.SelectGameRootAsync();
+        _settings = Settings.Current.Copy();
+        _installation = Launcher.DetectInstallation();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task SelectModpackRootAsync()
+    {
+        var result = await Launcher.SelectModpackRootAsync();
+        _settings = Settings.Current.Copy();
+        _installation = Launcher.DetectInstallation();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task ClearInstallationAsync()
+    {
+        _settings.GameRoot = null;
+        _settings.ModpackRoot = null;
+        await Settings.SaveAsync(_settings);
+        _settings = Settings.Current.Copy();
+        _installation = Launcher.DetectInstallation();
+        _updateCheck = null;
+        ShowToast("Связь с установленной игрой отключена");
+    }
+
+    private void SelectManifestFile()
+    {
+        var selected = LauncherDialogService.SelectFile("Выберите подписанный manifest", "JSON manifest (*.json)|*.json|Все файлы (*.*)|*.*", _settings.ManifestSource);
+        if (selected is not null)
+        {
+            _settings.ManifestSource = selected;
+        }
+    }
+
+    private void SelectPublicKeyFile()
+    {
+        var selected = LauncherDialogService.SelectFile("Выберите доверенный публичный ключ", "PEM key (*.pem)|*.pem|Все файлы (*.*)|*.*", _settings.PublicKeyPath);
+        if (selected is not null)
+        {
+            _settings.PublicKeyPath = selected;
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        await Settings.SaveAsync(_settings);
+        _settings = Settings.Current.Copy();
+        _updateCheck = null;
+        ShowToast("Настройки сохранены");
+    }
+
+    private async Task SelectChannelAsync(string channelId)
+    {
+        _selectedChannelId = channelId;
+        await ConnectChatAsync(channelId);
+    }
+
+    private async Task ConnectChatAsync(string channelId)
+    {
+        try
+        {
+            _chatMessages = (await Community.JoinChannelAsync(channelId)).ToList();
+            _chatConnected = true;
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidOperationException
+                                           or TaskCanceledException)
+        {
+            _chatMessages = [];
+            _chatConnected = false;
+        }
+    }
+
+    private async Task SendChatMessageAsync()
+    {
+        var text = _chatText.Trim();
+        if (!_chatConnected || text.Length == 0)
+        {
+            return;
+        }
+
+        _chatText = string.Empty;
+        try
+        {
+            await Community.SendMessageAsync(_selectedChannelId, text);
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidOperationException
+                                           or TaskCanceledException)
+        {
+            _chatText = text;
+            _chatConnected = false;
+            ShowToast("Не удалось отправить сообщение", true);
+        }
+    }
+
+    private async Task ChatKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !args.ShiftKey)
+        {
+            await SendChatMessageAsync();
+        }
+    }
+
+    private void OnChatMessageReceived(ChatMessage message)
+    {
+        if (!string.Equals(message.ChannelId, _selectedChannelId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            if (_chatMessages.All(existing => existing.Id != message.Id))
+            {
+                _chatMessages.Add(message);
+                if (_chatMessages.Count > 200)
+                {
+                    _chatMessages.RemoveAt(0);
+                }
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (!UpdateConfigurationReady)
+        {
+            ShowToast("Сначала укажите manifest и публичный ключ", true);
+            SelectSection("settings");
+            return;
+        }
+
+        await RunUpdateOperationAsync(async cancellationToken =>
+        {
+            await Settings.SaveAsync(_settings, cancellationToken);
+            _settings = Settings.Current.Copy();
+            _updateProgress = new UpdateProgress(UpdateStage.Checking, "Проверка manifest и подписи");
+            await InvokeAsync(StateHasChanged);
+            _updateCheck = await Updater.CheckAsync(cancellationToken);
+            ShowToast(_updateCheck.HasUpdates ? "Доступны обновления" : "Установлена актуальная версия");
+        });
+    }
+
+    private async Task InstallUpdatesAsync()
+    {
+        if (_updateCheck?.HasUpdates != true)
+        {
+            return;
+        }
+
+        await RunUpdateOperationAsync(async cancellationToken =>
+        {
+            var progress = new Progress<UpdateProgress>(value =>
+            {
+                _updateProgress = value;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            var result = await Updater.ApplyAsync(_updateCheck, progress, cancellationToken);
+            _updateCheck = await Updater.CheckAsync(cancellationToken);
+            ShowToast($"Установлено пакетов: {result.InstalledPackages}, файлов: {result.InstalledFiles}");
+        });
+    }
+
+    private async Task RunUpdateOperationAsync(Func<CancellationToken, Task> operation)
+    {
+        _updateCancellation?.Dispose();
+        _updateCancellation = new CancellationTokenSource();
+        _updateBusy = true;
+        try
+        {
+            await operation(_updateCancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowToast("Операция обновления отменена", true);
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or System.Security.Cryptography.CryptographicException
+                                           or AggregateException)
+        {
+            ShowToast(exception.Message, true);
+        }
+        finally
+        {
+            _updateBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void CancelUpdate() => _updateCancellation?.Cancel();
+
+    private bool UpdateConfigurationReady =>
+        !string.IsNullOrWhiteSpace(_settings.ManifestSource)
+        && !string.IsNullOrWhiteSpace(_settings.PublicKeyPath);
+
+    private string UpdateHeadline => _updateBusy
+        ? _updateProgress?.Message ?? "Выполняется операция"
+        : _updateCheck is null
+            ? "Готов к безопасной проверке"
+            : _updateCheck.HasUpdates ? "Обновление доступно" : "Версия актуальна";
+
+    private string UpdateDescription => _updateCheck is null
+        ? "Лаунчер начнёт работу только после ручной проверки manifest и доверенного ключа."
+        : $"Канал {_updateCheck.SignedManifest.Payload.Channel}, опубликован {_updateCheck.SignedManifest.Payload.PublishedAt.ToLocalTime():dd.MM.yyyy HH:mm}.";
+
+    private int UpdateProgressPercentage => _updateProgress is { TotalBytes: > 0 }
+        ? Math.Clamp((int)Math.Round(_updateProgress.DownloadedBytes * 100d / _updateProgress.TotalBytes), 0, 100)
+        : _updateProgress?.Stage == UpdateStage.Completed ? 100 : 8;
+
+    private string UpdateProgressDetails => _updateProgress is { TotalBytes: > 0 }
+        ? $"{FormatBytes(_updateProgress.DownloadedBytes)} / {FormatBytes(_updateProgress.TotalBytes)} · {_updateProgress.Provider ?? "проверка"}"
+        : _updateProgress?.Stage.ToString().ToUpperInvariant() ?? string.Empty;
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["Б", "КБ", "МБ", "ГБ"];
+        var value = (double)bytes;
+        var unit = 0;
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+
+        return $"{value:0.#} {units[unit]}";
     }
 
     private async Task VoteAsync(string pollId, string optionId)
@@ -332,7 +659,7 @@
                 _report.Steps,
                 _report.Expected,
                 _report.Actual,
-                "0.1.0-next",
+                "0.2.0-alpha.1",
                 "Anthology 2.1",
                 null,
                 _report.Contact));
@@ -367,6 +694,12 @@
     }
 
     private void DismissToast() => _toast = null;
+
+    public void Dispose()
+    {
+        Community.MessageReceived -= OnChatMessageReceived;
+        _updateCancellation?.Dispose();
+    }
 
     private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null);
 

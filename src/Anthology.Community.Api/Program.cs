@@ -34,6 +34,10 @@ var api = app.MapGroup("/api/v1");
 api.MapGet("/feed", (CommunityState state) => Results.Ok(state.GetFeed()));
 api.MapGet("/polls/{pollId}", (string pollId, CommunityState state) =>
     state.GetPoll(pollId) is { } poll ? Results.Ok(poll) : Results.NotFound());
+api.MapGet("/channels/{channelId}/messages", (string channelId, CommunityState state) =>
+    state.ChannelExists(channelId)
+        ? Results.Ok(state.GetMessages(channelId))
+        : Results.NotFound());
 api.MapPost("/polls/{pollId}/votes", (string pollId, PollVoteRequest vote, CommunityState state) =>
 {
     try

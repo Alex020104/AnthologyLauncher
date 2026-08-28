@@ -9,7 +9,7 @@ $destinationRoot = [System.IO.Path]::GetFullPath($Destination)
 $sourceFullPath = [System.IO.Path]::GetFullPath($sourceRoot)
 
 if ($destinationRoot.StartsWith($sourceFullPath + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw "Каталог публикации не может находиться внутри Source."
+    throw "The publish directory cannot be inside Source."
 }
 
 $dotnet = Get-Command dotnet -ErrorAction Stop
@@ -29,7 +29,7 @@ foreach ($item in $projects) {
         --self-contained true `
         --output $outputPath
     if ($LASTEXITCODE -ne 0) {
-        throw "Не удалось опубликовать $($item.Project)."
+        throw "Failed to publish $($item.Project)."
     }
 }
 
@@ -37,4 +37,4 @@ Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\Start-AnthologyLauncherNex
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\Launch Anthology Next.cmd") -Destination $destinationRoot -Force
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\README.txt") -Destination $destinationRoot -Force
 
-Write-Host "Готово: $destinationRoot"
+Write-Host "Published: $destinationRoot"

@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Anthology.Launcher;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private ServiceProvider? _serviceProvider;
 
@@ -23,8 +23,10 @@ public partial class App : Application
             DefaultRequestVersion = new Version(2, 0),
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower,
         });
+        services.AddSingleton<LauncherSettingsStore>();
         services.AddSingleton<CommunityClient>();
         services.AddSingleton<LauncherBridge>();
+        services.AddSingleton<LauncherUpdateService>();
 
         _serviceProvider = services.BuildServiceProvider();
         Resources["services"] = _serviceProvider;

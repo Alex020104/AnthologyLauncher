@@ -4,11 +4,12 @@ $apiPath = Join-Path $deploymentRoot "Services\CommunityApi\Anthology.Community.
 $launcherPath = Join-Path $deploymentRoot "App\AnthologyLauncher.Next.exe"
 $apiAddress = "http://127.0.0.1:5249"
 $startedApi = $null
+$env:ANTHOLOGY_DATA_ROOT = Join-Path $deploymentRoot "Data"
 
 if (-not (Test-Path -LiteralPath $apiPath) -or -not (Test-Path -LiteralPath $launcherPath)) {
     Add-Type -AssemblyName PresentationFramework
     [System.Windows.MessageBox]::Show(
-        "Portable-сборка неполна. Повторите публикацию проекта.",
+        "Portable build is incomplete. Publish the project again.",
         "Anthology Launcher Next",
         "OK",
         "Error") | Out-Null
@@ -40,7 +41,7 @@ try {
         }
 
         if (-not $apiReady) {
-            throw "Community API не запустился."
+            throw "Community API did not start."
         }
     }
 

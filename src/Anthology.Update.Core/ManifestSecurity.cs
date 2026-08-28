@@ -41,7 +41,7 @@ public static class ManifestSecurity
                 HashAlgorithmName.SHA256,
                 DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
-        catch (FormatException)
+        catch (Exception exception) when (exception is FormatException or CryptographicException)
         {
             return false;
         }

@@ -99,6 +99,21 @@ public static partial class ManifestValidator
             errors.Add($"Package '{package.Id}' has invalid size.");
         }
 
+        if (string.IsNullOrWhiteSpace(package.DisplayName))
+        {
+            errors.Add($"Package '{package.Id}' has no display name.");
+        }
+
+        if (string.IsNullOrWhiteSpace(package.Version))
+        {
+            errors.Add($"Package '{package.Id}' has no version.");
+        }
+
+        if (!string.Equals(package.ArchiveFormat, "zip", StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add($"Package '{package.Id}' uses unsupported archive format '{package.ArchiveFormat}'.");
+        }
+
         if (!Sha256Regex().IsMatch(package.Sha256))
         {
             errors.Add($"Package '{package.Id}' has invalid SHA-256.");
@@ -116,18 +131,31 @@ public static partial class ManifestValidator
                 errors.Add($"Package '{package.Id}' has a mirror without provider.");
             }
 
+            var localFile = string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
             if (!Uri.TryCreate(mirror.Url, UriKind.Absolute, out var uri)
-                || (uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
+                || (localFile
+                    ? !uri.IsFile
+                    : uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
             {
                 errors.Add($"Package '{package.Id}' has unsafe mirror URL '{mirror.Url}'.");
             }
         }
 
+        if (package.Files.Count == 0)
+        {
+            errors.Add($"Package '{package.Id}' has no files.");
+        }
+
+        var filePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var path in package.Files)
         {
             try
             {
-                _ = PathSafety.NormalizeRelativePath(path);
+                var normalized = PathSafety.NormalizeRelativePath(path);
+                if (!filePaths.Add(normalized))
+                {
+                    errors.Add($"Package '{package.Id}' contains duplicate path '{path}'.");
+                }
             }
             catch (ArgumentException exception)
             {

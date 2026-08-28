@@ -36,6 +36,33 @@ public sealed class ArtifactDownloaderTests : IDisposable
         Assert.False(File.Exists(destination + ".partial"));
     }
 
+    [Fact]
+    public async Task LocalFileMirrorCopiesVerifiedArtifactWithoutHttp()
+    {
+        var payload = "local developer artifact"u8.ToArray();
+        Directory.CreateDirectory(_root);
+        var source = Path.Combine(_root, "source.zip");
+        var destination = Path.Combine(_root, "downloaded.zip");
+        await File.WriteAllBytesAsync(source, payload);
+        var package = new PackageManifest(
+            "local-package",
+            "Local package",
+            "1.0.0",
+            PackageKind.Mod,
+            "mods",
+            "zip",
+            payload.Length,
+            Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(),
+            [new MirrorManifest("local-file", new Uri(source).AbsoluteUri, 10)],
+            ["mods/local/file.txt"]);
+        using var client = new HttpClient(new RejectHttpHandler());
+
+        var result = await new ArtifactDownloader(client).DownloadAsync(package, destination);
+
+        Assert.Equal("local-file", result.Provider);
+        Assert.Equal(payload, await File.ReadAllBytesAsync(destination));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -61,5 +88,13 @@ public sealed class ArtifactDownloaderTests : IDisposable
                 RequestMessage = request,
             });
         }
+    }
+
+    private sealed class RejectHttpHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("HTTP should not be used for a local-file mirror.");
     }
 }

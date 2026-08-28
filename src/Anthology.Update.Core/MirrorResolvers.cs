@@ -13,12 +13,31 @@ public interface IMirrorResolver
 public sealed class DirectMirrorResolver : IMirrorResolver
 {
     public bool CanResolve(MirrorManifest mirror) =>
-        !string.Equals(mirror.Provider, "yandex-disk", StringComparison.OrdinalIgnoreCase);
+        !string.Equals(mirror.Provider, "yandex-disk", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
 
     public ValueTask<Uri> ResolveAsync(MirrorManifest mirror, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(new Uri(mirror.Url, UriKind.Absolute));
+    }
+}
+
+public sealed class LocalFileMirrorResolver : IMirrorResolver
+{
+    public bool CanResolve(MirrorManifest mirror) =>
+        string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
+
+    public ValueTask<Uri> ResolveAsync(MirrorManifest mirror, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var uri = new Uri(mirror.Url, UriKind.Absolute);
+        if (!uri.IsFile)
+        {
+            throw new InvalidDataException("local-file mirror must use a file URI.");
+        }
+
+        return ValueTask.FromResult(uri);
     }
 }
 
