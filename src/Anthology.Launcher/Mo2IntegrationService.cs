@@ -59,6 +59,22 @@ public sealed class Mo2IntegrationService(
             return new LauncherActionResult(false, "Выбранный запуск отсутствует в ModOrganizer.ini");
         }
 
+        if (IsRuntimeBusy())
+        {
+            return new LauncherActionResult(false, "Нельзя менять профиль, пока MO2 или Anomaly запущены");
+        }
+
+        try
+        {
+            Mo2ProfileManager.SetSelectedProfile(instance.Root, profile!);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+
         var settings = settingsStore.Current.Copy();
         settings.SelectedMo2Profile = profile;
         settings.SelectedMo2Executable = executable;
@@ -182,6 +198,7 @@ public sealed class Mo2IntegrationService(
         try
         {
             var organizer = Path.Combine(workspace.Instance.Root, "ModOrganizer.exe");
+            Mo2ProfileManager.SetSelectedProfile(workspace.Instance.Root, workspace.SelectedProfile);
             var startInfo = new ProcessStartInfo(organizer)
             {
                 WorkingDirectory = workspace.Instance.Root,
@@ -189,8 +206,6 @@ public sealed class Mo2IntegrationService(
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
             };
-            startInfo.ArgumentList.Add("-p");
-            startInfo.ArgumentList.Add(workspace.SelectedProfile);
             startInfo.ArgumentList.Add("run");
             startInfo.ArgumentList.Add("-e");
             startInfo.ArgumentList.Add(workspace.SelectedExecutable);

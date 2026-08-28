@@ -54,6 +54,21 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         Assert.Throws<DirectoryNotFoundException>(() => Mo2ProfileManager.ReadProfile(_root, ".."));
     }
 
+    [Fact]
+    public void SelectedProfileIsWrittenInQtFormatAndBackedUp()
+    {
+        CreateInstance();
+        var secondProfile = Path.Combine(_root, "profiles", "Anthology Лёгкий");
+        Directory.CreateDirectory(secondProfile);
+        File.WriteAllText(Path.Combine(secondProfile, "modlist.txt"), "+First\n");
+
+        Mo2ProfileManager.SetSelectedProfile(_root, "Anthology Лёгкий");
+
+        var snapshot = Mo2ProfileManager.Detect(_root);
+        Assert.Equal("Anthology Лёгкий", snapshot.SelectedProfile);
+        Assert.True(File.Exists(Path.Combine(_root, "ModOrganizer.ini.anthology-backup")));
+    }
+
     private void CreateInstance()
     {
         var profile = Path.Combine(_root, "profiles", "Anthology Стандарт");

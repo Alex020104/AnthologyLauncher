@@ -166,6 +166,50 @@ public static class Mo2ProfileManager
         });
     }
 
+    public static void SetSelectedProfile(string root, string profileName)
+    {
+        ResolveProfileRoot(root, profileName);
+        var path = Path.Combine(Path.GetFullPath(root), OrganizerConfiguration);
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException("ModOrganizer.ini не найден.", path);
+        }
+
+        var lines = File.ReadAllLines(path).ToList();
+        var index = lines.FindIndex(line => line.StartsWith("selected_profile=", StringComparison.OrdinalIgnoreCase));
+        var value = $"selected_profile={EncodeQtByteArray(profileName)}";
+        if (index >= 0 && string.Equals(lines[index], value, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (index >= 0)
+        {
+            lines[index] = value;
+        }
+        else
+        {
+            var general = lines.FindIndex(line => string.Equals(line.Trim(), "[General]", StringComparison.OrdinalIgnoreCase));
+            lines.Insert(general >= 0 ? general + 1 : 0, value);
+        }
+
+        var backup = path + ".anthology-backup";
+        File.Copy(path, backup, true);
+        var temporary = path + $".tmp-{Guid.NewGuid():N}";
+        try
+        {
+            File.WriteAllLines(temporary, lines, new UTF8Encoding(false));
+            File.Move(temporary, path, true);
+        }
+        finally
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
+    }
+
     private static Mo2ProfileSnapshot Mutate(string root, string profileName, Action<List<string>> mutation)
     {
         var profileRoot = ResolveProfileRoot(root, profileName);
@@ -342,5 +386,24 @@ public static class Mo2ProfileManager
         }
 
         return Encoding.UTF8.GetString(bytes.ToArray());
+    }
+
+    internal static string EncodeQtByteArray(string value)
+    {
+        var builder = new StringBuilder("@ByteArray(");
+        foreach (var valueByte in Encoding.UTF8.GetBytes(value))
+        {
+            if (valueByte is >= 0x20 and <= 0x7E && valueByte is not (byte)'\\' and not (byte)')')
+            {
+                builder.Append((char)valueByte);
+            }
+            else
+            {
+                builder.Append("\\x");
+                builder.Append(valueByte.ToString("x2", CultureInfo.InvariantCulture));
+            }
+        }
+
+        return builder.Append(')').ToString();
     }
 }

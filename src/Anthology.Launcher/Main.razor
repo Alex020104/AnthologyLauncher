@@ -36,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.5.0 ALPHA · LOCAL DEV</div>
+        <div class="version-line">LAUNCHER NEXT 0.5.1 ALPHA · LOCAL DEV</div>
     </aside>
 
     <main class="workspace">
@@ -410,7 +410,7 @@
             else if (_section == "mo2")
             {
                 <section class="mo2-hero section-block">
-                    <div><span class="eyebrow">ПОЛНЫЙ MOD ORGANIZER 2</span><h2>MO2 работает внутри лаунчера.</h2><p>Нативное окно MO2 встраивается в Anthology Next: установщики, загрузки, конфликты, плагины, INI, профили, разделители и запуск через USVFS остаются доступными полностью.</p><div class="mo2-hero-actions"><button class="primary-button" @onclick="OpenFullMo2Async">ОТКРЫТЬ ПОЛНЫЙ MO2</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("mods")'>ПАПКА MODS</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("downloads")'>ЗАГРУЗКИ</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("overwrite")'>OVERWRITE</button></div></div>
+                    <div><span class="eyebrow">MOD ORGANIZER 2</span><h2>Быстрое управление — в лаунчере. Полный MO2 — по кнопке.</h2><p>Профили, разделители и порядок модов доступны прямо здесь. Полный интерфейс MO2 с установщиками, загрузками, конфликтами, плагинами, INI и USVFS открывается в безопасном отдельном окне и больше не блокирует лаунчер.</p><div class="mo2-hero-actions"><button class="primary-button" @onclick="OpenFullMo2Async" disabled="@_openingFullMo2">@(_openingFullMo2 ? "ЗАПУСК MO2..." : "ЗАПУСТИТЬ ПОЛНЫЙ MO2")</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("mods")'>ПАПКА MODS</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("downloads")'>ЗАГРУЗКИ</button><button class="secondary-button" @onclick='() => OpenMo2WorkspaceFolder("overwrite")'>OVERWRITE</button></div></div>
                     <div class="mo2-runtime-state @(_mo2Workspace.Instance.Available ? "ready" : null)"><span></span><strong>@(_mo2Workspace.Instance.Available ? "RUNTIME READY" : "MO2 NOT CONNECTED")</strong><small>@_mo2Workspace.Instance.StatusText</small></div>
                 </section>
                 @if (!_mo2Workspace.Instance.Available)
@@ -425,7 +425,7 @@
                         <button class="primary-button" @onclick="LaunchModpackAsync" disabled="@(_mo2Workspace.SelectedProfile is null || _mo2Workspace.SelectedExecutable is null)">▶ ЗАПУСТИТЬ СБОРКУ</button>
                     </section>
                     <section class="mo2-summary">
-                        <article class="section-block"><span>ПРОФИЛЬ</span><strong>@_mo2Workspace.SelectedProfile</strong><small>Передаётся в MO2 через параметр -p</small></article>
+                        <article class="section-block"><span>ПРОФИЛЬ</span><strong>@_mo2Workspace.SelectedProfile</strong><small>Синхронизирован с ModOrganizer.ini</small></article>
                         <article class="section-block"><span>АКТИВНО</span><strong>@(_mo2Workspace.Profile?.Mods.Count(mod => mod.Enabled) ?? 0)</strong><small>модов и служебных разделов</small></article>
                         <article class="section-block"><span>СОСТОЯНИЕ</span><strong>@(_mo2Workspace.RuntimeBusy ? "ЗАБЛОКИРОВАН" : "ГОТОВ")</strong><small>@(_mo2Workspace.RuntimeBusy ? "игра или MO2 уже запущены" : "modlist.txt доступен для изменения")</small></article>
                     </section>
@@ -628,6 +628,7 @@
         null,
         false);
     private string _mo2Search = string.Empty;
+    private bool _openingFullMo2;
     private readonly HashSet<string> _collapsedMo2Separators = new(StringComparer.OrdinalIgnoreCase);
     private string _informationSection = "requirements";
     private string _selectedStoryId = "soc";
@@ -682,14 +683,7 @@
     {
         _section = section;
         await JS.InvokeVoidAsync("anthologyScroll.toTop");
-        if (section == "mo2")
-        {
-            await OpenFullMo2Async(showToast: false);
-        }
-        else
-        {
-            EmbeddedMo2.Hide();
-        }
+        EmbeddedMo2.Hide();
     }
 
     private Task ShowUpdates() => SelectSection("updates");
@@ -938,15 +932,23 @@
         ShowToast(result.Message, !result.Success);
     }
 
-    private async Task OpenFullMo2Async() => await OpenFullMo2Async(showToast: true);
-
-    private async Task OpenFullMo2Async(bool showToast)
+    private async Task OpenFullMo2Async()
     {
-        var result = await EmbeddedMo2.OpenAsync(_mo2Workspace.Instance.Root, _mo2Workspace.SelectedProfile);
-        RefreshMo2Workspace();
-        if (showToast || !result.Success)
+        if (_openingFullMo2)
         {
+            return;
+        }
+
+        _openingFullMo2 = true;
+        try
+        {
+            var result = await EmbeddedMo2.OpenAsync(_mo2Workspace.Instance.Root, _mo2Workspace.SelectedProfile);
+            RefreshMo2Workspace();
             ShowToast(result.Message, !result.Success);
+        }
+        finally
+        {
+            _openingFullMo2 = false;
         }
     }
 
