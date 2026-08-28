@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Windows;
+using Anthology.Mo2.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anthology.Launcher;
@@ -26,8 +27,10 @@ public partial class App : System.Windows.Application
         services.AddSingleton<LauncherSettingsStore>();
         services.AddSingleton<CommunityClient>();
         services.AddSingleton<LauncherBridge>();
+        services.AddSingleton<Mo2IntegrationService>();
         services.AddSingleton<LauncherUpdateService>();
         services.AddSingleton<BundledInstallerService>();
+        services.AddSingleton<SetupLauncherService>();
 
         _serviceProvider = services.BuildServiceProvider();
         Resources["services"] = _serviceProvider;

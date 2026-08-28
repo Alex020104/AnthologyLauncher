@@ -14,6 +14,12 @@ public sealed class LauncherSettings
 
     public string? InstallDestination { get; set; }
 
+    public string? SetupExecutable { get; set; }
+
+    public string? SelectedMo2Profile { get; set; }
+
+    public string? SelectedMo2Executable { get; set; }
+
     public string ManifestSource { get; set; } = string.Empty;
 
     public string PublicKeyPath { get; set; } = string.Empty;
@@ -45,6 +51,9 @@ public sealed class LauncherSettings
         GameRoot = GameRoot,
         ModpackRoot = ModpackRoot,
         InstallDestination = InstallDestination,
+        SetupExecutable = SetupExecutable,
+        SelectedMo2Profile = SelectedMo2Profile,
+        SelectedMo2Executable = SelectedMo2Executable,
         ManifestSource = ManifestSource,
         PublicKeyPath = PublicKeyPath,
         UpdateChannel = UpdateChannel,
@@ -153,6 +162,9 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.GameRoot = NormalizeOptionalPath(settings.GameRoot);
         settings.ModpackRoot = NormalizeOptionalPath(settings.ModpackRoot);
         settings.InstallDestination = NormalizeOptionalPath(settings.InstallDestination);
+        settings.SetupExecutable = NormalizeOptionalPath(settings.SetupExecutable);
+        settings.SelectedMo2Profile = NormalizeOptionalText(settings.SelectedMo2Profile);
+        settings.SelectedMo2Executable = NormalizeOptionalText(settings.SelectedMo2Executable);
         settings.PublicKeyPath = NormalizeOptionalPath(settings.PublicKeyPath) ?? string.Empty;
         settings.ManifestSource = settings.ManifestSource.Trim();
         settings.UpdateChannel = string.IsNullOrWhiteSpace(settings.UpdateChannel)
@@ -174,6 +186,9 @@ public sealed class LauncherSettingsStore : IDisposable
 
     private static string? NormalizeOptionalPath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
+
+    private static string? NormalizeOptionalText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string ResolveDataRoot()
     {

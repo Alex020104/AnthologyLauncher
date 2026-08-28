@@ -43,4 +43,11 @@ if (Test-Path -LiteralPath $installMediaSource) {
     Copy-Item -Path (Join-Path $installMediaSource "*") -Destination $installMediaDestination -Recurse -Force
 }
 
+$setupSource = Join-Path $sourceRoot "deploy\Setup"
+$setupDestination = Join-Path $destinationRoot "App\Setup"
+if (Test-Path -LiteralPath $setupSource) {
+    New-Item -ItemType Directory -Path $setupDestination -Force | Out-Null
+    Copy-Item -Path (Join-Path $setupSource "*") -Destination $setupDestination -Recurse -Force
+}
+
 Write-Host "Published: $destinationRoot"

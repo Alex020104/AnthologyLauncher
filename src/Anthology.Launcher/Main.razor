@@ -36,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.3.0 ALPHA · LOCAL DEV</div>
+        <div class="version-line">LAUNCHER NEXT 0.4.0 ALPHA · LOCAL DEV</div>
     </aside>
 
     <main class="workspace">
@@ -193,21 +193,44 @@
                                 <span class="channel-hash">#</span><div><strong>@channel.Name</strong><small>@channel.Description</small></div>
                                 @if (channel.IsDeveloperChannel) { <span class="dev-chip">DEV</span> }
                             </button>
+                            @if (channel.IsDeveloperChannel)
+                            {
+                                <button class="channel-row relay-channel @(_selectedChannelId == RelayChatChannelId ? "active" : null)" @onclick="() => SelectChannelAsync(RelayChatChannelId)">
+                                    <span class="channel-hash">⌁</span><div><strong>Реальный чат</strong><small>Игровой мост Anthology 2.1</small></div>
+                                    <span class="status-dot @(_relayChatRunning ? "online" : "warning")"></span>
+                                </button>
+                            }
                         }
                     </div>
                     <div class="chat-panel section-block">
-                        <div class="chat-title"><div><span>#</span><div><strong>@CurrentChannel.Name</strong><small>@CurrentChannel.Description</small></div></div><span class="online-count">@(_chatConnected ? "● НА СВЯЗИ" : "○ OFFLINE")</span></div>
-                        <div class="chat-messages">
-                            @if (_chatMessages.Count == 0)
-                            {
-                                <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@(_chatConnected ? "Канал подключён. Напишите первое сообщение." : "Community API недоступен — чат временно работает только как просмотр интерфейса.")</p></div></div>
-                            }
-                            @foreach (var message in _chatMessages)
-                            {
-                                <div class="chat-message @(message.IsDeveloper ? "system" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName @if (message.IsDeveloper) { <em>DEV</em> }</strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@message.Text</p></div></div>
-                            }
-                        </div>
-                        <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в #@CurrentChannel.Name" @bind="_chatText" @bind:event="oninput" @onkeydown="ChatKeyDownAsync" disabled="@(!_chatConnected)" maxlength="2000" /><button class="send-button" @onclick="SendChatMessageAsync" disabled="@(!_chatConnected || string.IsNullOrWhiteSpace(_chatText))">↑</button></div>
+                        @if (_selectedChannelId == RelayChatChannelId)
+                        {
+                            <div class="chat-title"><div><span>⌁</span><div><strong>Реальный чат</strong><small>Связь лаунчера с внутриигровым чатом</small></div></div><span class="online-count @(!_relayChatRunning ? "offline" : null)">@(_relayChatRunning ? "● ПОДКЛЮЧЁН" : "○ НЕ ЗАПУЩЕН")</span></div>
+                            <div class="relay-channel-content">
+                                <div class="relay-orbit"><span>⌁</span></div>
+                                <span class="eyebrow">ИГРОВОЙ МОСТ</span>
+                                <h2>@(_relayChatRunning ? "Реальный чат подключён" : "Подключить Реальный чат")</h2>
+                                <p>Процесс запускается строго из выбранного корня игры. Поэтому один и тот же чат доступен здесь и продолжает работать внутри Anomaly.</p>
+                                <code>@(_installation.GameRoot is null ? "Сначала выберите корень игры" : Path.Combine(_installation.GameRoot, "Chernobyl Relay Chat.exe"))</code>
+                                <button class="primary-button" @onclick="LaunchRelayChat" disabled="@(!_installation.RelayChatFound)">@(_relayChatRunning ? "ЧАТ УЖЕ ПОДКЛЮЧЁН" : "ПОДКЛЮЧИТЬСЯ")</button>
+                            </div>
+                            <div class="relay-channel-footer">Если «Реальный чат всегда» включён в Настройках, мост поднимается заранее при старте лаунчера.</div>
+                        }
+                        else
+                        {
+                            <div class="chat-title"><div><span>#</span><div><strong>@CurrentChannel.Name</strong><small>@CurrentChannel.Description</small></div></div><span class="online-count">@(_chatConnected ? "● НА СВЯЗИ" : "○ OFFLINE")</span></div>
+                            <div class="chat-messages">
+                                @if (_chatMessages.Count == 0)
+                                {
+                                    <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@(_chatConnected ? "Канал подключён. Напишите первое сообщение." : "Community API недоступен — чат временно работает только как просмотр интерфейса.")</p></div></div>
+                                }
+                                @foreach (var message in _chatMessages)
+                                {
+                                    <div class="chat-message @(message.IsDeveloper ? "system" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName @if (message.IsDeveloper) { <em>DEV</em> }</strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@message.Text</p></div></div>
+                                }
+                            </div>
+                            <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в #@CurrentChannel.Name" @bind="_chatText" @bind:event="oninput" @onkeydown="ChatKeyDownAsync" disabled="@(!_chatConnected)" maxlength="2000" /><button class="send-button" @onclick="SendChatMessageAsync" disabled="@(!_chatConnected || string.IsNullOrWhiteSpace(_chatText))">↑</button></div>
+                        }
                     </div>
                     <div class="poll-panel section-block">
                         <div class="section-heading compact"><div><span>ОБРАТНАЯ СВЯЗЬ</span><h3>Голосование</h3></div></div>
@@ -227,10 +250,43 @@
                         }
                     </div>
                 </section>
-                <section class="relay-chat-card section-block">
-                    <div><span class="eyebrow">ИГРОВОЙ МОСТ</span><h3>Реальный Чат Anthology 2.1</h3><p>Запускается из выбранного корня игры, чтобы связь продолжала работать и внутри Anomaly.</p><code>@(_installation.GameRoot is null ? "Сначала выберите корень игры" : Path.Combine(_installation.GameRoot, "Chernobyl Relay Chat.exe"))</code></div>
-                    <div class="relay-chat-actions"><span class="status-dot @(_installation.RelayChatFound ? "online" : "warning")"></span><button class="primary-button" @onclick="LaunchRelayChat" disabled="@(!_installation.RelayChatFound)">ОТКРЫТЬ РЕАЛЬНЫЙ ЧАТ</button></div>
+            }
+            else if (_section == "information")
+            {
+                <section class="information-tabs section-block">
+                    @foreach (var item in InformationCatalog.Sections)
+                    {
+                        var currentItem = item;
+                        <button class="information-tab @(_informationSection == currentItem.Id ? "active" : null)" @onclick="() => SelectInformation(currentItem.Id)">
+                            <span>@currentItem.Index</span><strong>@currentItem.Title</strong><small>@currentItem.Summary</small>
+                        </button>
+                    }
                 </section>
+                @if (_informationSection != "stories")
+                {
+                    var information = CurrentInformation;
+                    <section class="information-article section-block">
+                        <div class="information-visual"><span>@information.Index</span><small>ФОНОВОЕ ИЗОБРАЖЕНИЕ БУДЕТ ДОБАВЛЕНО</small></div>
+                        <article><span class="eyebrow">СПРАВОЧНИК ANTHOLOGY</span><h2>@information.Title</h2><p class="information-lead">@information.Summary</p><div class="information-body">@information.Body</div></article>
+                    </section>
+                }
+                else
+                {
+                    <section class="stories-layout">
+                        <div class="story-list section-block">
+                            <div class="section-heading compact"><div><span>СЮЖЕТНЫЙ КАТАЛОГ</span><h3>@InformationCatalog.Stories.Count историй</h3></div></div>
+                            @foreach (var story in InformationCatalog.Stories)
+                            {
+                                var currentStory = story;
+                                <button class="story-row @(_selectedStoryId == currentStory.Id ? "active" : null)" @onclick="() => _selectedStoryId = currentStory.Id"><div><span>@currentStory.Source</span><strong>@currentStory.Title</strong></div><small>@currentStory.Status</small></button>
+                            }
+                        </div>
+                        <article class="story-article section-block">
+                            <div class="story-backdrop"><span>A</span><small>BACKGROUND PLACEHOLDER</small></div>
+                            <div class="story-copy"><span class="eyebrow">@CurrentStory.Source · @CurrentStory.Status</span><h2>@CurrentStory.Title</h2><p class="information-lead">@CurrentStory.Summary</p><div class="information-body">@CurrentStory.Body</div></div>
+                        </article>
+                    </section>
+                }
             }
             else if (_section == "updates")
             {
@@ -350,6 +406,50 @@
                     </EditForm>
                 </section>
             }
+            else if (_section == "mo2")
+            {
+                <section class="mo2-hero section-block">
+                    <div><span class="eyebrow">ВСТРОЕННЫЙ ПРОФИЛЬНЫЙ МЕНЕДЖЕР</span><h2>MO2 работает внутри лаунчера.</h2><p>Лаунчер управляет профилями и modlist.txt, а скрытый runtime MO2/USVFS создаёт виртуальную сборку только на время игры.</p></div>
+                    <div class="mo2-runtime-state @(_mo2Workspace.Instance.Available ? "ready" : null)"><span></span><strong>@(_mo2Workspace.Instance.Available ? "RUNTIME READY" : "MO2 NOT CONNECTED")</strong><small>@_mo2Workspace.Instance.StatusText</small></div>
+                </section>
+                @if (!_mo2Workspace.Instance.Available)
+                {
+                    <section class="configuration-warning mo2-warning">Выберите папку Mod Organizer 2 в разделе «Установка». Существующая сборка не изменяется до вашего действия.</section>
+                }
+                else
+                {
+                    <section class="mo2-controls section-block">
+                        <label>Назначенный профиль<select value="@_mo2Workspace.SelectedProfile" @onchange="ChangeMo2ProfileAsync">@foreach (var profile in _mo2Workspace.Instance.Profiles) { <option value="@profile">@profile</option> }</select></label>
+                        <label>Запуск из ModOrganizer.ini<select value="@_mo2Workspace.SelectedExecutable" @onchange="ChangeMo2ExecutableAsync">@foreach (var executable in _mo2Workspace.Instance.Executables) { <option value="@executable.Title">@executable.Title</option> }</select></label>
+                        <button class="primary-button" @onclick="LaunchModpackAsync" disabled="@(_mo2Workspace.SelectedProfile is null || _mo2Workspace.SelectedExecutable is null)">▶ ЗАПУСТИТЬ СБОРКУ</button>
+                    </section>
+                    <section class="mo2-summary">
+                        <article class="section-block"><span>ПРОФИЛЬ</span><strong>@_mo2Workspace.SelectedProfile</strong><small>Передаётся в MO2 через параметр -p</small></article>
+                        <article class="section-block"><span>АКТИВНО</span><strong>@(_mo2Workspace.Profile?.Mods.Count(mod => mod.Enabled) ?? 0)</strong><small>модов и служебных разделов</small></article>
+                        <article class="section-block"><span>СОСТОЯНИЕ</span><strong>@(_mo2Workspace.RuntimeBusy ? "ЗАБЛОКИРОВАН" : "ГОТОВ")</strong><small>@(_mo2Workspace.RuntimeBusy ? "игра или MO2 уже запущены" : "modlist.txt доступен для изменения")</small></article>
+                    </section>
+                    <section class="mo2-mods section-block">
+                        <div class="mo2-toolbar"><div><span class="eyebrow">МОДЫ И ПРИОРИТЕТ</span><h3>Содержимое назначенного профиля</h3></div><div class="search-box"><span>⌕</span><input placeholder="Найти мод в профиле" @bind="_mo2Search" @bind:event="oninput" /></div></div>
+                        <div class="mo2-mod-list">
+                            @foreach (var mod in FilteredMo2Mods)
+                            {
+                                var currentMod = mod;
+                                <div class="mo2-mod-row @(currentMod.IsSeparator ? "separator" : null)">
+                                    <button class="mo2-switch @(currentMod.Enabled ? "active" : null)" disabled="@(currentMod.IsSeparator || currentMod.IsUnmanaged || _mo2Workspace.RuntimeBusy)" @onclick="() => ToggleMo2Mod(currentMod)"><span></span></button>
+                                    <div><strong>@currentMod.Name</strong><small>@(currentMod.IsSeparator ? "РАЗДЕЛ MO2" : currentMod.IsUnmanaged ? "НЕУПРАВЛЯЕМЫЙ" : currentMod.Enabled ? "ВКЛЮЧЁН" : "ОТКЛЮЧЁН")</small></div>
+                                    <span class="mo2-priority">@currentMod.Order.ToString("000")</span>
+                                    <div class="mo2-order-buttons"><button disabled="@_mo2Workspace.RuntimeBusy" @onclick="() => MoveMo2Mod(currentMod, -1)" title="Выше">↑</button><button disabled="@_mo2Workspace.RuntimeBusy" @onclick="() => MoveMo2Mod(currentMod, 1)" title="Ниже">↓</button></div>
+                                </div>
+                            }
+                            @if (!FilteredMo2Mods.Any())
+                            {
+                                <div class="mo2-empty">В назначенном профиле ничего не найдено.</div>
+                            }
+                        </div>
+                        <div class="mo2-safety">Перед каждым изменением создаётся <code>modlist.txt.anthology-backup</code>. Во время работы игры или MO2 редактирование блокируется.</div>
+                    </section>
+                }
+            }
             else if (_section == "settings")
             {
                 <section class="anomaly-settings section-block">
@@ -361,7 +461,7 @@
                         <button class="setting-toggle @ToggleClass(_settings.PrefetchSounds)" @onclick="() => _settings.PrefetchSounds = !_settings.PrefetchSounds"><span></span><strong>Предзагрузка звуков</strong><small>-prefetch_sounds</small></button>
                         <button class="setting-toggle @ToggleClass(_settings.ResetUserLtx)" @onclick="() => _settings.ResetUserLtx = !_settings.ResetUserLtx"><span></span><strong>Стандартный user.ltx</strong><small>один раз при запуске</small></button>
                         <button class="setting-toggle @ToggleClass(_settings.UseAvx)" @onclick="() => _settings.UseAvx = !_settings.UseAvx"><span></span><strong>Поддержка AVX</strong><small>AVX executable</small></button>
-                        <button class="setting-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span></span><strong>Реальный Чат всегда</strong><small>стартует из корня игры</small></button>
+                        <button class="setting-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span></span><strong>Реальный Чат всегда</strong><small>подключение заранее при старте лаунчера</small></button>
                     </div>
                     <div class="shadow-setting"><div><span>КАРТА ТЕНЕЙ</span><strong>@_settings.ShadowMapSize</strong></div><div><button @onclick="() => ChangeShadowMap(-1)">‹</button><button @onclick="() => ChangeShadowMap(1)">›</button></div></div>
                     <div class="settings-footer"><span>Настройки записываются в совместимые <code>AnomalyLauncher.cfg</code> и <code>commandline.txt</code> перед запуском.</span><button class="primary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ</button></div>
@@ -372,6 +472,7 @@
                 <section class="installation-hero section-block"><div><span class="eyebrow">ЛОКАЛЬНАЯ УСТАНОВКА</span><h2>Игра, модпак и канал обновлений</h2><p>Все пути выбираются вручную. Комплектные пакеты устанавливаются только после проверки подписи и SHA-256.</p></div><div class="install-media-state @(_bundledMedia.Available ? "ready" : null)"><span></span><strong>@(_bundledMedia.Available ? "INSTALL MEDIA READY" : "INSTALL MEDIA MISSING")</strong><small>@_bundledMedia.StatusText</small></div></section>
                 <section class="settings-grid installation-grid">
                     <article class="setting-card section-block"><span>УСТАНОВКА ИГРЫ</span><h3>Комплектные бинарные пакеты</h3><code>@(_settings.InstallDestination ?? "Папка назначения не выбрана")</code><p>Лаунчер ищет подписанный комплект в <b>InstallMedia</b> рядом со своим EXE. Пакеты могут содержать bin, db, gamedata и остальные файлы сборки.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectInstallDestinationAsync">ВЫБРАТЬ ПАПКУ</button><button class="primary-button" disabled="@(!_bundledMedia.Available || string.IsNullOrWhiteSpace(_settings.InstallDestination) || _installBusy)" @onclick="InstallBundledGameAsync">@(_installBusy ? "УСТАНОВКА..." : "УСТАНОВИТЬ ИГРУ")</button></div>@if (_installProgress is not null) { <div class="install-progress"><div class="progress-track"><span style="width:@InstallProgressPercentage%"></span></div><small>@_installProgress.Message</small></div> }</article>
+                    <article class="setting-card setup-card section-block"><span>ОБЫЧНЫЙ УСТАНОВЩИК</span><h3>Запустить Setup</h3><code>@(_setupStatus.ExecutablePath ?? Path.Combine(_setupStatus.SetupRoot, "Setup.exe"))</code><p>Стабильная комплектная папка: <b>App\Setup</b>. Установщик может брать бинарные файлы из <b>Setup\bin</b> или <b>Setup\Payload\bin</b>.</p><div class="setup-state"><span class="status-dot @(_setupStatus.Available ? "online" : "warning")"></span><small>@_setupStatus.StatusText</small></div><div class="setting-actions"><button class="secondary-button" @onclick="SelectSetupAsync">ВЫБРАТЬ SETUP</button><button class="primary-button" disabled="@(!_setupStatus.Available)" @onclick="LaunchSetup">ЗАПУСТИТЬ SETUP</button></div></article>
                     <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
                     <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
                     <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
@@ -393,7 +494,9 @@
     [
         new("home", "⌂", "Главная", "КОМАНДНЫЙ ЦЕНТР", "Добро пожаловать в Зону"),
         new("library", "▦", "Библиотека", "КАТАЛОГ", "Моды и дополнения", "NEW"),
+        new("information", "i", "Информация", "СПРАВОЧНИК", "Anthology и сюжеты"),
         new("community", "◉", "Сообщество", "СВЯЗЬ", "Чат и обратная связь"),
+        new("mo2", "≡", "MO2", "СБОРКА", "Профили и моды"),
         new("updates", "⇣", "Обновления", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
         new("support", "◇", "Баг-репорт", "ПОДДЕРЖКА", "Обращение разработчику"),
         new("installation", "⬡", "Установка", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
@@ -416,6 +519,7 @@
     ];
 
     private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
+    private const string RelayChatChannelId = "relay-chat";
 
     private string _section = "home";
     private bool _loading = true;
@@ -441,23 +545,52 @@
     private bool _installBusy;
     private UpdateProgress? _installProgress;
     private List<string> _reportAttachments = [];
+    private SetupLauncherStatus _setupStatus = new(false, string.Empty, null, false, "Проверка Setup");
+    private Mo2WorkspaceSnapshot _mo2Workspace = new(
+        new(false, string.Empty, null, [], [], "Проверка MO2"),
+        null,
+        null,
+        null,
+        false);
+    private string _mo2Search = string.Empty;
+    private string _informationSection = "requirements";
+    private string _selectedStoryId = "soc";
+    private bool _relayChatRunning;
 
     private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
     private CommunityChannel CurrentChannel =>
+        _selectedChannelId == RelayChatChannelId
+            ? new CommunityChannel(RelayChatChannelId, "Реальный чат", "Игровой мост Anthology 2.1")
+            :
         _feed?.Channels.FirstOrDefault(channel => channel.Id == _selectedChannelId)
         ?? new CommunityChannel(_selectedChannelId, _selectedChannelId, "Канал сообщества");
+    private InformationSection CurrentInformation =>
+        InformationCatalog.Sections.First(item => item.Id == _informationSection);
+    private StoryArticle CurrentStory =>
+        InformationCatalog.Stories.FirstOrDefault(item => item.Id == _selectedStoryId)
+        ?? InformationCatalog.Stories[0];
     private IEnumerable<ModEntry> FilteredMods => (_feed?.Mods ?? [])
         .Where(mod => string.Equals(mod.Section, _librarySection, StringComparison.OrdinalIgnoreCase))
         .Where(mod => string.IsNullOrWhiteSpace(_librarySearch)
                       || mod.Name.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
                       || mod.Author.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
                       || mod.Tags.Any(tag => tag.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)));
+    private IEnumerable<Mo2ModEntry> FilteredMo2Mods => (_mo2Workspace.Profile?.Mods ?? [])
+        .Where(mod => string.IsNullOrWhiteSpace(_mo2Search)
+                      || mod.Name.Contains(_mo2Search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
         _settings = await Settings.LoadAsync();
         _installation = Launcher.DetectInstallation();
         _bundledMedia = Installer.DetectMedia();
+        _setupStatus = Setup.Detect();
+        RefreshMo2Workspace();
+        if (_settings.RelayChatAlways)
+        {
+            Launcher.EnsureRelayChatStarted();
+        }
+        _relayChatRunning = LauncherBridge.IsRelayChatRunning();
         _rollbackCandidate = await Updater.GetLatestRollbackAsync();
         _feed = await Community.GetFeedAsync();
         Community.MessageReceived += OnChatMessageReceived;
@@ -475,8 +608,9 @@
 
     private async Task LaunchModpackAsync()
     {
-        var result = await Launcher.LaunchModpackAsync();
+        var result = await Mo2.LaunchSelectedAsync();
         _settings = Settings.Current.Copy();
+        RefreshMo2Workspace();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -497,6 +631,7 @@
     private void LaunchRelayChat()
     {
         var result = Launcher.LaunchRelayChat();
+        _relayChatRunning = LauncherBridge.IsRelayChatRunning();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -511,6 +646,11 @@
         var result = await Launcher.SelectGameRootAsync();
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
+        if (_settings.RelayChatAlways)
+        {
+            Launcher.EnsureRelayChatStarted();
+            _relayChatRunning = LauncherBridge.IsRelayChatRunning();
+        }
         ShowToast(result.Message, !result.Success);
     }
 
@@ -519,6 +659,7 @@
         var result = await Launcher.SelectModpackRootAsync();
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
+        RefreshMo2Workspace();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -529,6 +670,7 @@
         await Settings.SaveAsync(_settings);
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
+        RefreshMo2Workspace();
         _updateCheck = null;
         ShowToast("Связь с установленной игрой отключена");
     }
@@ -556,8 +698,16 @@
         await Settings.SaveAsync(_settings);
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
+        _setupStatus = Setup.Detect();
+        RefreshMo2Workspace();
+        var relayResult = _settings.RelayChatAlways
+            ? Launcher.EnsureRelayChatStarted()
+            : new LauncherActionResult(true, string.Empty);
+        _relayChatRunning = LauncherBridge.IsRelayChatRunning();
         _updateCheck = null;
-        ShowToast("Настройки сохранены");
+        ShowToast(
+            relayResult.Success ? "Настройки сохранены" : $"Настройки сохранены, но чат не подключён: {relayResult.Message}",
+            !relayResult.Success);
     }
 
     private static string ToggleClass(bool enabled) => enabled ? "active" : string.Empty;
@@ -619,10 +769,103 @@
         ? Math.Clamp((int)Math.Round(_installProgress.DownloadedBytes * 100d / _installProgress.TotalBytes), 0, 100)
         : _installProgress?.Stage == UpdateStage.Completed ? 100 : 8;
 
+    private async Task SelectSetupAsync()
+    {
+        var result = await Setup.SelectAsync();
+        _settings = Settings.Current.Copy();
+        _setupStatus = Setup.Detect();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void LaunchSetup()
+    {
+        var result = Setup.Launch();
+        _setupStatus = Setup.Detect();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void SelectInformation(string id)
+    {
+        _informationSection = id;
+        if (id == "stories" && InformationCatalog.Stories.All(story => story.Id != _selectedStoryId))
+        {
+            _selectedStoryId = InformationCatalog.Stories[0].Id;
+        }
+    }
+
     private async Task SelectChannelAsync(string channelId)
     {
         _selectedChannelId = channelId;
+        if (channelId == RelayChatChannelId)
+        {
+            _chatConnected = false;
+            LaunchRelayChat();
+            return;
+        }
+
         await ConnectChatAsync(channelId);
+    }
+
+    private async Task ChangeMo2ProfileAsync(ChangeEventArgs args)
+    {
+        var profile = args.Value?.ToString();
+        var result = await Mo2.SaveSelectionAsync(profile, _mo2Workspace.SelectedExecutable);
+        _settings = Settings.Current.Copy();
+        RefreshMo2Workspace();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task ChangeMo2ExecutableAsync(ChangeEventArgs args)
+    {
+        var executable = args.Value?.ToString();
+        var result = await Mo2.SaveSelectionAsync(_mo2Workspace.SelectedProfile, executable);
+        _settings = Settings.Current.Copy();
+        RefreshMo2Workspace();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void ToggleMo2Mod(Mo2ModEntry mod)
+    {
+        if (_mo2Workspace.SelectedProfile is null)
+        {
+            return;
+        }
+
+        var result = Mo2.SetEnabled(_mo2Workspace.SelectedProfile, mod.Name, !mod.Enabled);
+        RefreshMo2Workspace();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void MoveMo2Mod(Mo2ModEntry mod, int direction)
+    {
+        if (_mo2Workspace.SelectedProfile is null)
+        {
+            return;
+        }
+
+        var result = Mo2.Move(_mo2Workspace.SelectedProfile, mod.Name, direction);
+        RefreshMo2Workspace();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void RefreshMo2Workspace()
+    {
+        try
+        {
+            _mo2Workspace = Mo2.GetWorkspace();
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException)
+        {
+            _mo2Workspace = new Mo2WorkspaceSnapshot(
+                new Mo2InstanceSnapshot(false, _settings.ModpackRoot ?? string.Empty, null, [], [], exception.Message),
+                null,
+                null,
+                null,
+                false);
+        }
     }
 
     private async Task ConnectChatAsync(string channelId)
@@ -852,7 +1095,7 @@
                 _report.Steps,
                 _report.Expected,
                 _report.Actual,
-                "0.3.0-alpha.1",
+                "0.4.0-alpha.1",
                 _report.GameVersion,
                 _report.LogExcerpt,
                 _report.Contact,

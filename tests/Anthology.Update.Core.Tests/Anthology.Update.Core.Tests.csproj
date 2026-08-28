@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Anthology.Contracts\Anthology.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Anthology.Community.Api\Anthology.Community.Api.csproj" />
+    <ProjectReference Include="..\..\src\Anthology.Mo2.Core\Anthology.Mo2.Core.csproj" />
     <ProjectReference Include="..\..\src\Anthology.Update.Core\Anthology.Update.Core.csproj" />
   </ItemGroup>
 

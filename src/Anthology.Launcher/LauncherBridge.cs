@@ -190,6 +190,60 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         return StartRelayChat(status.GameRoot, showAlreadyRunning: true);
     }
 
+    public LauncherActionResult EnsureRelayChatStarted()
+    {
+        if (!settingsStore.Current.RelayChatAlways)
+        {
+            return new LauncherActionResult(true, string.Empty);
+        }
+
+        var status = DetectInstallation();
+        if (!status.GameFound || status.GameRoot is null)
+        {
+            return new LauncherActionResult(false, status.StatusText);
+        }
+
+        return StartRelayChat(status.GameRoot, showAlreadyRunning: false);
+    }
+
+    public static bool IsRelayChatRunning()
+    {
+        foreach (var process in Process.GetProcessesByName("Chernobyl Relay Chat"))
+        {
+            using (process)
+            {
+                if (!process.HasExited)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public async Task<LauncherActionResult> PrepareModpackRuntimeAsync(CancellationToken cancellationToken = default)
+    {
+        var status = DetectInstallation();
+        if (!status.ModOrganizerFound || status.GameRoot is null)
+        {
+            return new LauncherActionResult(false, status.StatusText);
+        }
+
+        try
+        {
+            await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
+            StartRelayChatIfEnabled(status.GameRoot);
+            return new LauncherActionResult(true, "Параметры Anomaly подготовлены");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
     public LauncherActionResult OpenGameFolder()
     {
         var status = DetectInstallation();
@@ -339,7 +393,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
 
     private static LauncherActionResult StartRelayChat(string gameRoot, bool showAlreadyRunning)
     {
-        if (Process.GetProcessesByName("Chernobyl Relay Chat").Any(process => !process.HasExited))
+        if (IsRelayChatRunning())
         {
             return new LauncherActionResult(true, showAlreadyRunning ? "Реальный Чат уже запущен" : string.Empty);
         }
@@ -350,11 +404,20 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
             return new LauncherActionResult(false, $"Реальный Чат не найден в корне игры: {executable}");
         }
 
-        Process.Start(new ProcessStartInfo(executable)
+        try
         {
-            WorkingDirectory = gameRoot,
-            UseShellExecute = true,
-        });
-        return new LauncherActionResult(true, "Реальный Чат запущен из корня игры");
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                WorkingDirectory = gameRoot,
+                UseShellExecute = true,
+            });
+            return new LauncherActionResult(true, "Реальный Чат запущен из корня игры");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
     }
 }
