@@ -24,6 +24,7 @@ public sealed class ArtifactDownloader
         PackageManifest package,
         string destination,
         IProgress<DownloadProgress>? progress = null,
+        string? preferredProvider = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(package);
@@ -33,7 +34,11 @@ public sealed class ArtifactDownloader
         var partialPath = destinationFullPath + ".partial";
         var failures = new List<Exception>();
 
-        foreach (var mirror in package.Mirrors.OrderBy(item => item.Priority))
+        var mirrors = package.Mirrors
+            .OrderBy(item => IsPreferred(item.Provider, preferredProvider) ? 0 : 1)
+            .ThenBy(item => item.Priority)
+            .ToArray();
+        foreach (var mirror in mirrors)
         {
             try
             {
@@ -88,6 +93,11 @@ public sealed class ArtifactDownloader
 
         throw new AggregateException($"All mirrors failed for package '{package.Id}'.", failures);
     }
+
+    private static bool IsPreferred(string provider, string? preferredProvider) =>
+        !string.IsNullOrWhiteSpace(preferredProvider)
+        && !string.Equals(preferredProvider, "auto", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(provider, preferredProvider, StringComparison.OrdinalIgnoreCase);
 
     private async Task<bool> DownloadFromMirrorAsync(
         Uri uri,

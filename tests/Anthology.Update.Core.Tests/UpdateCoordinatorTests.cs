@@ -83,6 +83,65 @@ public sealed class UpdateCoordinatorTests : IDisposable
             SafeZipExtractor.ExtractAsync(archivePath, Path.Combine(_root, "staging"), package));
     }
 
+    [Fact]
+    public async Task ManagedExactReleaseDeletesOldManagedFileAndRollbackRestoresIt()
+    {
+        var firstArchive = CreateArchive(("kept.txt", "v1"), ("obsolete.txt", "old"));
+        var secondArchive = CreateArchive(("kept.txt", "v2"));
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var gameRoot = Path.Combine(_root, "managed-game");
+        var stateRoot = Path.Combine(_root, "managed-state");
+        Directory.CreateDirectory(gameRoot);
+        Directory.CreateDirectory(Path.Combine(gameRoot, "appdata"));
+        await File.WriteAllTextAsync(Path.Combine(gameRoot, "legacy.txt"), "remove-on-first-managed-release");
+        await File.WriteAllTextAsync(Path.Combine(gameRoot, "appdata", "user.ltx"), "preserve-user-data");
+
+        var firstPackage = CreatePackage(firstArchive, ["kept.txt", "obsolete.txt"]) with
+        {
+            Version = "2.1.131",
+            UpdateMode = PackageUpdateMode.ManagedExact,
+            PruneInstallRoot = true,
+            PreservedPaths = ["appdata"],
+        };
+        var firstManifest = ManifestSecurity.Sign(new UpdateManifest(
+            2, "next", "2.1.131", DateTimeOffset.UtcNow, null, [firstPackage]), key, "test-key-01");
+        var manifestPath = await WriteTrustFilesAsync(key, firstManifest);
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["game"] = gameRoot };
+        using (var client = new HttpClient(new ArtifactHandler(firstArchive)))
+        {
+            var coordinator = new UpdateCoordinator(client);
+            var check = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
+            await coordinator.ApplyAsync(check, roots, stateRoot);
+        }
+
+        Assert.False(File.Exists(Path.Combine(gameRoot, "legacy.txt")));
+        Assert.Equal("preserve-user-data", await File.ReadAllTextAsync(Path.Combine(gameRoot, "appdata", "user.ltx")));
+
+        var secondPackage = CreatePackage(secondArchive, ["kept.txt"]) with
+        {
+            Version = "2.1.132",
+            UpdateMode = PackageUpdateMode.ManagedExact,
+        };
+        var secondManifest = ManifestSecurity.Sign(new UpdateManifest(
+            2, "next", "2.1.132", DateTimeOffset.UtcNow, null, [secondPackage]), key, "test-key-01");
+        await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(secondManifest, ManifestJson.Options));
+        using (var client = new HttpClient(new ArtifactHandler(secondArchive)))
+        {
+            var coordinator = new UpdateCoordinator(client);
+            var check = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
+            var result = await coordinator.ApplyAsync(check, roots, stateRoot);
+            Assert.Equal(1, result.DeletedFiles);
+        }
+
+        Assert.Equal("v2", await File.ReadAllTextAsync(Path.Combine(gameRoot, "kept.txt")));
+        Assert.False(File.Exists(Path.Combine(gameRoot, "obsolete.txt")));
+
+        await UpdateCoordinator.RollbackLatestAsync(roots, stateRoot);
+
+        Assert.Equal("v1", await File.ReadAllTextAsync(Path.Combine(gameRoot, "kept.txt")));
+        Assert.Equal("old", await File.ReadAllTextAsync(Path.Combine(gameRoot, "obsolete.txt")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

@@ -97,6 +97,36 @@ public sealed class ArtifactDownloaderTests : IDisposable
             Path.Combine(_root, "unsafe-bundle.zip")));
     }
 
+    [Fact]
+    public async Task PreferredProviderIsTriedBeforeManifestPriority()
+    {
+        var payload = "preferred source"u8.ToArray();
+        var handler = new PreferredHandler(payload);
+        using var client = new HttpClient(handler);
+        var package = new PackageManifest(
+            "preferred-package",
+            "Preferred package",
+            "2.1.131",
+            PackageKind.Game,
+            "game",
+            "zip",
+            payload.Length,
+            Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(),
+            [
+                new MirrorManifest("github", "https://github.invalid/package.zip", 10),
+                new MirrorManifest("http", "https://http.invalid/package.zip", 100),
+            ],
+            ["file.txt"]);
+
+        var result = await new ArtifactDownloader(client).DownloadAsync(
+            package,
+            Path.Combine(_root, "preferred.zip"),
+            preferredProvider: "http");
+
+        Assert.Equal("http", result.Provider);
+        Assert.Equal("http.invalid", handler.FirstHost);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -130,5 +160,22 @@ public sealed class ArtifactDownloaderTests : IDisposable
             HttpRequestMessage request,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("HTTP should not be used for a local-file mirror.");
+    }
+
+    private sealed class PreferredHandler(byte[] payload) : HttpMessageHandler
+    {
+        public string? FirstHost { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            FirstHost ??= request.RequestUri?.Host;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(payload),
+                RequestMessage = request,
+            });
+        }
     }
 }

@@ -26,6 +26,8 @@ public sealed class LauncherSettings
 
     public string UpdateChannel { get; set; } = "next";
 
+    public string PreferredMirrorProvider { get; set; } = "auto";
+
     public string CommunityNickname { get; set; } = $"Stalker-{Random.Shared.Next(1000, 9999)}";
 
     public string UserId { get; set; } = $"local-{Guid.NewGuid():N}";
@@ -57,6 +59,7 @@ public sealed class LauncherSettings
         ManifestSource = ManifestSource,
         PublicKeyPath = PublicKeyPath,
         UpdateChannel = UpdateChannel,
+        PreferredMirrorProvider = PreferredMirrorProvider,
         CommunityNickname = CommunityNickname,
         UserId = UserId,
         Renderer = Renderer,
@@ -170,6 +173,10 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.UpdateChannel = string.IsNullOrWhiteSpace(settings.UpdateChannel)
             ? "next"
             : settings.UpdateChannel.Trim().ToLowerInvariant();
+        settings.PreferredMirrorProvider = settings.PreferredMirrorProvider.Trim().ToLowerInvariant() is
+            "github" or "yandex-disk" or "google-drive" or "http" or "auto"
+                ? settings.PreferredMirrorProvider.Trim().ToLowerInvariant()
+                : "auto";
         settings.CommunityNickname = string.IsNullOrWhiteSpace(settings.CommunityNickname)
             ? $"Stalker-{Random.Shared.Next(1000, 9999)}"
             : settings.CommunityNickname.Trim();

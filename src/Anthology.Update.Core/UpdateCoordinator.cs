@@ -36,7 +36,10 @@ public sealed record UpdateCheckResult(
     public bool HasUpdates => Packages.Any(package => package.UpdateAvailable);
 }
 
-public sealed record UpdateApplyResult(int InstalledPackages, int InstalledFiles);
+public sealed record UpdateApplyResult(
+    int InstalledPackages,
+    int InstalledFiles,
+    int DeletedFiles = 0);
 
 public sealed record UpdateRollbackCandidate(
     string PackageId,
@@ -45,7 +48,8 @@ public sealed record UpdateRollbackCandidate(
     string ToVersion,
     string InstallRoot,
     string OperationId,
-    DateTimeOffset InstalledAt);
+    DateTimeOffset InstalledAt,
+    int PackageCount = 1);
 
 public sealed record UpdateRollbackResult(
     string PackageId,
@@ -116,6 +120,7 @@ public sealed class UpdateCoordinator
         IReadOnlyDictionary<string, string> installRoots,
         string stateRoot,
         IProgress<UpdateProgress>? progress = null,
+        string? preferredMirrorProvider = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(check);
@@ -125,7 +130,7 @@ public sealed class UpdateCoordinator
         var pending = check.Packages.Where(package => package.UpdateAvailable).ToArray();
         if (pending.Length == 0)
         {
-            return new UpdateApplyResult(0, 0);
+            return new UpdateApplyResult(0, 0, 0);
         }
 
         var resolvedRoots = pending.ToDictionary(
@@ -141,83 +146,148 @@ public sealed class UpdateCoordinator
         var downloader = new ArtifactDownloader(_httpClient, _resolvers);
         var installedState = await ReadInstalledStateAsync(stateRoot, cancellationToken);
         var history = await ReadHistoryAsync(stateRoot, cancellationToken);
+        var historyStart = history.Entries.Count;
+        var batchId = $"release-{DateTimeOffset.UtcNow:yyyyMMddTHHmmssZ}-{Guid.NewGuid():N}";
+        var applied = new List<AppliedPackage>();
         var installedPackages = 0;
         var installedFiles = 0;
+        var deletedFiles = 0;
 
-        foreach (var update in pending)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var package = update.Package;
-            var packageRoot = Path.Combine(operationRoot, package.Id);
-            var artifactPath = Path.Combine(packageRoot, "artifact.zip");
-            var stagingRoot = Path.Combine(packageRoot, "staging");
-            Directory.CreateDirectory(packageRoot);
-
-            progress?.Report(new UpdateProgress(UpdateStage.Downloading, $"Загрузка {package.DisplayName}", package.Id, 0, package.Size));
-            var downloadProgress = progress is null
-                ? null
-                : new Progress<DownloadProgress>(value => progress.Report(new UpdateProgress(
-                    UpdateStage.Downloading,
-                    $"Загрузка {package.DisplayName}",
-                    package.Id,
-                    value.DownloadedBytes,
-                    value.TotalBytes,
-                    value.Provider)));
-            await downloader.DownloadAsync(package, artifactPath, downloadProgress, cancellationToken);
-
-            progress?.Report(new UpdateProgress(UpdateStage.Verifying, $"Проверка {package.DisplayName}", package.Id, package.Size, package.Size));
-            progress?.Report(new UpdateProgress(UpdateStage.Extracting, $"Распаковка {package.DisplayName}", package.Id));
-            await SafeZipExtractor.ExtractAsync(artifactPath, stagingRoot, package, cancellationToken);
-
-            progress?.Report(new UpdateProgress(UpdateStage.Installing, $"Установка {package.DisplayName}", package.Id));
-            var installResult = await TransactionalFileInstaller.ApplyAsync(
-                stagingRoot,
-                resolvedRoots[package.Id],
-                stateRoot,
-                package.Files,
-                cancellationToken);
-
-            var previousVersion = update.InstalledVersion;
-            try
+            foreach (var update in pending)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                var package = update.Package;
+                var packageRoot = Path.Combine(operationRoot, package.Id);
+                var artifactPath = Path.Combine(packageRoot, "artifact.zip");
+                var stagingRoot = Path.Combine(packageRoot, "staging");
+                Directory.CreateDirectory(packageRoot);
+
+                progress?.Report(new UpdateProgress(UpdateStage.Downloading, $"Загрузка {package.DisplayName}", package.Id, 0, package.Size));
+                var downloadProgress = progress is null
+                    ? null
+                    : new Progress<DownloadProgress>(value => progress.Report(new UpdateProgress(
+                        UpdateStage.Downloading,
+                        $"Загрузка {package.DisplayName}",
+                        package.Id,
+                        value.DownloadedBytes,
+                        value.TotalBytes,
+                        value.Provider)));
+                await downloader.DownloadAsync(
+                    package,
+                    artifactPath,
+                    downloadProgress,
+                    preferredMirrorProvider,
+                    cancellationToken);
+
+                progress?.Report(new UpdateProgress(UpdateStage.Verifying, $"Проверка {package.DisplayName}", package.Id, package.Size, package.Size));
+                progress?.Report(new UpdateProgress(UpdateStage.Extracting, $"Распаковка {package.DisplayName}", package.Id));
+                await SafeZipExtractor.ExtractAsync(artifactPath, stagingRoot, package, cancellationToken);
+
+                var previousManagedFiles = await ReadManagedFilesAsync(stateRoot, package.Id, cancellationToken);
+                var obsoleteFiles = package.UpdateMode == PackageUpdateMode.ManagedExact
+                    ? previousManagedFiles.Except(package.Files, StringComparer.OrdinalIgnoreCase).ToList()
+                    : [];
+                if (package.PruneInstallRoot)
+                {
+                    obsoleteFiles.AddRange(EnumeratePrunableFiles(
+                        resolvedRoots[package.Id],
+                        package.PreservedPaths ?? [])
+                        .Except(package.Files, StringComparer.OrdinalIgnoreCase));
+                }
+                progress?.Report(new UpdateProgress(UpdateStage.Installing, $"Установка {package.DisplayName}", package.Id));
+                var installResult = await TransactionalFileInstaller.ApplyAsync(
+                    stagingRoot,
+                    resolvedRoots[package.Id],
+                    stateRoot,
+                    package.Files,
+                    obsoleteFiles.Distinct(StringComparer.OrdinalIgnoreCase),
+                    cancellationToken);
+
+                applied.Add(new AppliedPackage(update, installResult, previousManagedFiles));
+            }
+
+            foreach (var item in applied)
+            {
+                var package = item.Update.Package;
+                await WriteManagedSnapshotAsync(stateRoot, item.Install.OperationId, item.PreviousManagedFiles, cancellationToken);
+                await WriteManagedFilesAsync(stateRoot, package.Id, package.Files, cancellationToken);
                 installedState.Packages[package.Id] = package.Version;
-                await WriteInstalledStateAsync(stateRoot, installedState, cancellationToken);
                 history.Entries.Add(new UpdateHistoryEntry(
                     package.Id,
                     package.DisplayName,
-                    previousVersion,
+                    item.Update.InstalledVersion,
                     package.Version,
                     package.InstallRoot,
-                    installResult.OperationId,
+                    item.Install.OperationId,
                     DateTimeOffset.UtcNow,
-                    null));
-                await WriteHistoryAsync(stateRoot, history, cancellationToken);
+                    null,
+                    batchId,
+                    item.Install.DeletedFiles));
                 installedPackages++;
-                installedFiles += installResult.InstalledFiles;
+                installedFiles += item.Install.InstalledFiles;
+                deletedFiles += item.Install.DeletedFiles;
             }
-            catch
-            {
-                await TransactionalFileInstaller.RollbackAsync(
-                    resolvedRoots[package.Id],
-                    stateRoot,
-                    installResult.OperationId,
-                    CancellationToken.None);
-                if (previousVersion is null)
-                {
-                    installedState.Packages.Remove(package.Id);
-                }
-                else
-                {
-                    installedState.Packages[package.Id] = previousVersion;
-                }
 
-                await WriteInstalledStateAsync(stateRoot, installedState, CancellationToken.None);
-                throw;
+            await WriteInstalledStateAsync(stateRoot, installedState, cancellationToken);
+            await WriteHistoryAsync(stateRoot, history, cancellationToken);
+        }
+        catch (Exception updateError)
+        {
+            progress?.Report(new UpdateProgress(UpdateStage.RollingBack, "Ошибка обновления — возвращаем всю предыдущую сборку"));
+            var rollbackErrors = new List<Exception>();
+            foreach (var item in applied.AsEnumerable().Reverse())
+            {
+                var package = item.Update.Package;
+                try
+                {
+                    await TransactionalFileInstaller.RollbackAsync(
+                        resolvedRoots[package.Id],
+                        stateRoot,
+                        item.Install.OperationId,
+                        CancellationToken.None);
+                }
+                catch (Exception rollbackError) when (rollbackError is IOException
+                                                       or InvalidDataException
+                                                       or InvalidOperationException
+                                                       or UnauthorizedAccessException)
+                {
+                    rollbackErrors.Add(rollbackError);
+                }
+                finally
+                {
+                    await WriteManagedFilesAsync(stateRoot, package.Id, item.PreviousManagedFiles, CancellationToken.None);
+                    if (item.Update.InstalledVersion is null)
+                    {
+                        installedState.Packages.Remove(package.Id);
+                    }
+                    else
+                    {
+                        installedState.Packages[package.Id] = item.Update.InstalledVersion;
+                    }
+                }
             }
+
+            if (history.Entries.Count > historyStart)
+            {
+                history.Entries.RemoveRange(historyStart, history.Entries.Count - historyStart);
+            }
+
+            await WriteInstalledStateAsync(stateRoot, installedState, CancellationToken.None);
+            await WriteHistoryAsync(stateRoot, history, CancellationToken.None);
+            if (rollbackErrors.Count > 0)
+            {
+                throw new AggregateException(
+                    "Обновление остановлено, но часть резервных копий не удалось восстановить.",
+                    [updateError, .. rollbackErrors]);
+            }
+
+            throw;
         }
 
         progress?.Report(new UpdateProgress(UpdateStage.Completed, "Обновление установлено"));
-        return new UpdateApplyResult(installedPackages, installedFiles);
+        return new UpdateApplyResult(installedPackages, installedFiles, deletedFiles);
     }
 
     public static async Task<UpdateRollbackCandidate?> GetLatestRollbackAsync(
@@ -227,16 +297,27 @@ public sealed class UpdateCoordinator
         ArgumentException.ThrowIfNullOrWhiteSpace(stateRoot);
         var history = await ReadHistoryAsync(stateRoot, cancellationToken);
         var entry = history.Entries.LastOrDefault(item => item.RolledBackAt is null);
-        return entry is null
-            ? null
-            : new UpdateRollbackCandidate(
-                entry.PackageId,
-                entry.DisplayName,
-                entry.FromVersion,
-                entry.ToVersion,
-                entry.InstallRoot,
-                entry.OperationId,
-                entry.InstalledAt);
+        if (entry is null)
+        {
+            return null;
+        }
+
+        var batchId = entry.BatchId ?? entry.OperationId;
+        var batch = history.Entries
+            .Where(item => item.RolledBackAt is null
+                           && string.Equals(item.BatchId ?? item.OperationId, batchId, StringComparison.Ordinal))
+            .ToArray();
+        return new UpdateRollbackCandidate(
+            entry.PackageId,
+            batch.Length > 1 ? $"Anthology {entry.ToVersion}" : entry.DisplayName,
+            batch.Select(item => item.FromVersion).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
+                ? entry.FromVersion
+                : "смешанная версия",
+            entry.ToVersion,
+            string.Join(" + ", batch.Select(item => item.InstallRoot).Distinct(StringComparer.OrdinalIgnoreCase)),
+            batchId,
+            batch.Max(item => item.InstalledAt),
+            batch.Length);
     }
 
     public static async Task<UpdateRollbackResult> RollbackLatestAsync(
@@ -248,44 +329,62 @@ public sealed class UpdateCoordinator
         ArgumentNullException.ThrowIfNull(installRoots);
         ArgumentException.ThrowIfNullOrWhiteSpace(stateRoot);
         var history = await ReadHistoryAsync(stateRoot, cancellationToken);
-        var index = history.Entries.FindLastIndex(item => item.RolledBackAt is null);
-        if (index < 0)
+        var latestIndex = history.Entries.FindLastIndex(item => item.RolledBackAt is null);
+        if (latestIndex < 0)
         {
             throw new InvalidOperationException("Нет обновлений, доступных для отката.");
         }
 
-        var entry = history.Entries[index];
-        if (!installRoots.TryGetValue(entry.InstallRoot, out var targetRoot)
-            || string.IsNullOrWhiteSpace(targetRoot))
+        var latest = history.Entries[latestIndex];
+        var batchId = latest.BatchId ?? latest.OperationId;
+        var indexes = history.Entries
+            .Select((entry, index) => (entry, index))
+            .Where(item => item.entry.RolledBackAt is null
+                           && string.Equals(item.entry.BatchId ?? item.entry.OperationId, batchId, StringComparison.Ordinal))
+            .ToArray();
+        foreach (var item in indexes)
         {
-            throw new InvalidOperationException($"Корень установки '{entry.InstallRoot}' не настроен.");
+            if (!installRoots.TryGetValue(item.entry.InstallRoot, out var root)
+                || string.IsNullOrWhiteSpace(root))
+            {
+                throw new InvalidOperationException($"Корень установки '{item.entry.InstallRoot}' не настроен.");
+            }
         }
 
         progress?.Report(new UpdateProgress(
             UpdateStage.RollingBack,
-            $"Откат {entry.DisplayName}",
-            entry.PackageId));
-        var rollback = await TransactionalFileInstaller.RollbackAsync(
-            Path.GetFullPath(targetRoot),
-            stateRoot,
-            entry.OperationId,
-            cancellationToken);
-
+            $"Откат Anthology {latest.ToVersion}",
+            latest.PackageId));
         var installedState = await ReadInstalledStateAsync(stateRoot, cancellationToken);
-        if (entry.FromVersion is null)
+        var restoredFiles = 0;
+        foreach (var item in indexes.Reverse())
         {
-            installedState.Packages.Remove(entry.PackageId);
-        }
-        else
-        {
-            installedState.Packages[entry.PackageId] = entry.FromVersion;
+            var entry = item.entry;
+            var targetRoot = Path.GetFullPath(installRoots[entry.InstallRoot]);
+            var rollback = await TransactionalFileInstaller.RollbackAsync(
+                targetRoot,
+                stateRoot,
+                entry.OperationId,
+                cancellationToken);
+            restoredFiles += rollback.RestoredFiles;
+            var previousManagedFiles = await ReadManagedSnapshotAsync(stateRoot, entry.OperationId, cancellationToken);
+            await WriteManagedFilesAsync(stateRoot, entry.PackageId, previousManagedFiles, cancellationToken);
+            if (entry.FromVersion is null)
+            {
+                installedState.Packages.Remove(entry.PackageId);
+            }
+            else
+            {
+                installedState.Packages[entry.PackageId] = entry.FromVersion;
+            }
+
+            history.Entries[item.index] = entry with { RolledBackAt = DateTimeOffset.UtcNow };
         }
 
-        history.Entries[index] = entry with { RolledBackAt = DateTimeOffset.UtcNow };
         await WriteInstalledStateAsync(stateRoot, installedState, cancellationToken);
         await WriteHistoryAsync(stateRoot, history, cancellationToken);
         progress?.Report(new UpdateProgress(UpdateStage.Completed, "Предыдущая версия восстановлена"));
-        return new UpdateRollbackResult(entry.PackageId, entry.FromVersion, rollback.RestoredFiles);
+        return new UpdateRollbackResult(latest.PackageId, latest.FromVersion, restoredFiles);
     }
 
     private async Task<SignedUpdateManifest> LoadManifestAsync(
@@ -358,6 +457,28 @@ public sealed class UpdateCoordinator
         return fullRoot;
     }
 
+    private static IEnumerable<string> EnumeratePrunableFiles(
+        string targetRoot,
+        IReadOnlyList<string> preservedPaths)
+    {
+        var root = Path.GetFullPath(targetRoot);
+        var preserved = preservedPaths
+            .Select(PathSafety.NormalizeRelativePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return Directory.EnumerateFiles(root, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = false,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            })
+            .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/'))
+            .Select(PathSafety.NormalizeRelativePath)
+            .Where(path => !preserved.Any(item =>
+                string.Equals(path, item, StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(item + "/", StringComparison.OrdinalIgnoreCase)));
+    }
+
     private static async Task<InstalledState> ReadInstalledStateAsync(
         string stateRoot,
         CancellationToken cancellationToken)
@@ -393,6 +514,85 @@ public sealed class UpdateCoordinator
 
     private static string GetInstalledStatePath(string stateRoot) =>
         Path.Combine(Path.GetFullPath(stateRoot), "installed-packages.json");
+
+    private static async Task<string[]> ReadManagedFilesAsync(
+        string stateRoot,
+        string packageId,
+        CancellationToken cancellationToken)
+    {
+        var path = GetManagedFilesPath(stateRoot, packageId);
+        if (!File.Exists(path))
+        {
+            return [];
+        }
+
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 32 * 1024, FileOptions.Asynchronous);
+        var files = await JsonSerializer.DeserializeAsync<string[]>(stream, ManifestJson.Options, cancellationToken) ?? [];
+        return files
+            .Select(PathSafety.NormalizeRelativePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static Task WriteManagedFilesAsync(
+        string stateRoot,
+        string packageId,
+        IEnumerable<string> files,
+        CancellationToken cancellationToken) =>
+        WriteStringArrayAtomicallyAsync(
+            GetManagedFilesPath(stateRoot, packageId),
+            files,
+            cancellationToken);
+
+    private static Task WriteManagedSnapshotAsync(
+        string stateRoot,
+        string operationId,
+        IEnumerable<string> files,
+        CancellationToken cancellationToken) =>
+        WriteStringArrayAtomicallyAsync(
+            Path.Combine(Path.GetFullPath(stateRoot), "managed-snapshots", operationId + ".json"),
+            files,
+            cancellationToken);
+
+    private static async Task<string[]> ReadManagedSnapshotAsync(
+        string stateRoot,
+        string operationId,
+        CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(Path.GetFullPath(stateRoot), "managed-snapshots", operationId + ".json");
+        if (!File.Exists(path))
+        {
+            return [];
+        }
+
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 32 * 1024, FileOptions.Asynchronous);
+        return await JsonSerializer.DeserializeAsync<string[]>(stream, ManifestJson.Options, cancellationToken) ?? [];
+    }
+
+    private static async Task WriteStringArrayAtomicallyAsync(
+        string path,
+        IEnumerable<string> files,
+        CancellationToken cancellationToken)
+    {
+        var normalized = files
+            .Select(PathSafety.NormalizeRelativePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temporary = path + $".tmp-{Guid.NewGuid():N}";
+        await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 32 * 1024, FileOptions.Asynchronous))
+        {
+            await JsonSerializer.SerializeAsync(stream, normalized, ManifestJson.Options, cancellationToken);
+            await stream.FlushAsync(cancellationToken);
+        }
+
+        File.Move(temporary, path, true);
+    }
+
+    private static string GetManagedFilesPath(string stateRoot, string packageId) =>
+        Path.Combine(Path.GetFullPath(stateRoot), "managed-files", packageId + ".json");
 
     private static async Task<UpdateHistory> ReadHistoryAsync(
         string stateRoot,
@@ -430,6 +630,11 @@ public sealed class UpdateCoordinator
 
     private sealed record UpdateHistory(List<UpdateHistoryEntry> Entries);
 
+    private sealed record AppliedPackage(
+        PackageUpdate Update,
+        InstallResult Install,
+        IReadOnlyList<string> PreviousManagedFiles);
+
     private sealed record UpdateHistoryEntry(
         string PackageId,
         string DisplayName,
@@ -438,5 +643,7 @@ public sealed class UpdateCoordinator
         string InstallRoot,
         string OperationId,
         DateTimeOffset InstalledAt,
-        DateTimeOffset? RolledBackAt);
+        DateTimeOffset? RolledBackAt,
+        string? BatchId = null,
+        int DeletedFiles = 0);
 }

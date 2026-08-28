@@ -1,0 +1,320 @@
+@implements IAsyncDisposable
+@inject ReleaserStateStore State
+@inject ReleaserBridge Bridge
+
+<div class="shell">
+    <aside class="sidebar">
+        <div class="brand"><span>A</span><div><strong>ANTHOLOGY</strong><small>RELEASER NEXT</small></div></div>
+        <nav>
+            @foreach (var item in Navigation)
+            {
+                var current = item;
+                <button class="@(_section == current.Id ? "active" : null)" @onclick="() => _section = current.Id"><i>@current.Icon</i><span>@current.Title</span></button>
+            }
+        </nav>
+        <div class="spacer"></div>
+        <div class="revision"><span>РАБОЧАЯ РЕДАКЦИЯ</span><strong>@_workspace.Revision.ToString("0000")</strong><small>@(_workspace.UpdatedBy.Length == 0 ? "локальный проект" : _workspace.UpdatedBy)</small></div>
+        <div class="build-version">RELEASER 0.1 ALPHA · PRIVATE</div>
+    </aside>
+
+    <main>
+        <header><div><span>@CurrentNavigation.Kicker</span><h1>@CurrentNavigation.Heading</h1></div><div class="header-status"><span class="dot @(_busy ? "busy" : null)"></span>@(_busy ? _status : "ГОТОВ К РАБОТЕ")</div></header>
+        <div class="scroll">
+            @if (_loading)
+            {
+                <section class="panel hero"><h2>Загрузка рабочего проекта…</h2></section>
+            }
+            else if (_section == "release")
+            {
+                <section class="hero panel"><div><span class="eyebrow">ЕДИНАЯ СБОРКА</span><h2>Одна версия.<br /><em>Два назначения.</em></h2><p>Релизер сам собирает корень игры и MO2 в один подписанный релиз. DB, MT и прочие части больше не публикуются отдельными обновлениями.</p></div><div class="version-orbit"><small>СЛЕДУЮЩИЙ РЕЛИЗ</small><strong>@_workspace.Version</strong><span>ECDSA · SHA‑256</span></div></section>
+                <section class="grid three">
+                    <article class="panel field-card"><span>ВЕРСИЯ</span><h3>Номер обновления</h3><label>Версия<input @bind="_workspace.Version" placeholder="2.1.131" /></label><label>Канал<input @bind="_workspace.Channel" placeholder="next" /></label><p>Допустимы версии 2.1.131 и выше. Дата больше не используется как номер сборки.</p></article>
+                    <article class="panel field-card"><span>КОРЕНЬ ИГРЫ</span><h3>Полная Anthology</h3><code>@PathOrEmpty(_machine.GameSourceRoot)</code><p>Выберите подготовленную папку сборки. Личные appdata, логи и скриншоты автоматически исключаются.</p><button class="secondary" @onclick="SelectGameRoot">ВЫБРАТЬ КОРЕНЬ</button></article>
+                    <article class="panel field-card"><span>КОРЕНЬ MO2</span><h3>Полный Mod Organizer 2</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>Публикуются профили, mods, downloads и tools. Временный overwrite и кэши не входят в релиз.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ MO2</button></article>
+                </section>
+                <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
+                <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ</span><h3>Закрытый ключ хранится только у разработчика</h3><p>В общий рабочий файл попадают настройки релиза и материалы. Закрытый ключ и пути этой машины никогда не синхронизируются.</p></div><label>ID ключа<input @bind="_machine.KeyId" /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="GenerateKeys">СОЗДАТЬ КЛЮЧИ</button></section>
+                <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Сначала сохраняется рабочая редакция, затем создаются архивы и подписанный manifest.json." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "СБОРКА…" : "СОБРАТЬ РЕЛИЗ")</button></section>
+            }
+            else if (_section == "sources")
+            {
+                <section class="hero panel compact"><div><span class="eyebrow">НЕСКОЛЬКО ИСТОЧНИКОВ</span><h2>Игрок выбирает,<br /><em>откуда скачать.</em></h2><p>Для каждого архива укажите публичные ссылки. Можно использовать шаблон <code>{file}</code>, который будет заменён именем готового ZIP.</p></div></section>
+                <section class="mirror-list">
+                    @foreach (var mirror in _workspace.Mirrors.OrderBy(item => item.Priority))
+                    {
+                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Архив игры<input @bind="mirror.GameUrl" placeholder="https://.../{file}" /></label><label>Архив MO2<input @bind="mirror.Mo2Url" placeholder="https://.../{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button></article>
+                    }
+                </section>
+                <section class="panel action-line"><button class="secondary" @onclick="AddMirror">＋ ДОБАВИТЬ ИСТОЧНИК</button><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ ИСТОЧНИКИ</button></section>
+            }
+            else if (_section == "content")
+            {
+                <section class="content-layout">
+                    <aside class="panel content-list"><div class="section-title"><div><span class="eyebrow">МАТЕРИАЛЫ</span><h3>@_workspace.Content.Count записей</h3></div><button @onclick="AddContent">＋</button></div><div class="content-filters"><button class="@(_contentFilter is null ? "active" : null)" @onclick="() => _contentFilter = null">ВСЕ</button><button class="@(_contentFilter == ContentKind.Mod ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Mod">МОДЫ</button><button class="@(_contentFilter == ContentKind.News ? "active" : null)" @onclick="() => _contentFilter = ContentKind.News">НОВОСТИ</button><button class="@(_contentFilter == ContentKind.Information ? "active" : null)" @onclick="() => _contentFilter = ContentKind.Information">ИНФО</button></div>@foreach (var item in FilteredContent) { var current = item; <button class="content-item @(_selectedContentId == current.Id ? "active" : null)" @onclick="() => _selectedContentId = current.Id"><span>@KindName(current.Kind)</span><strong>@current.Title</strong><small>@current.Section · @current.Id</small></button> }</aside>
+                    @if (SelectedContent is not null)
+                    {
+                        <section class="panel content-editor">
+                            <div class="editor-head"><div><span class="eyebrow">ПОЛНОЕ РЕДАКТИРОВАНИЕ</span><h2>@SelectedContent.Title</h2></div><button class="danger" @onclick="RemoveContent">УДАЛИТЬ</button></div>
+                            <div class="form-grid"><label>Тип<select @bind="SelectedContent.Kind"><option value="@ContentKind.Mod">Мод</option><option value="@ContentKind.News">Новость</option><option value="@ContentKind.Information">Информация</option></select></label><label>Раздел<input @bind="SelectedContent.Section" placeholder="dev / modmakers / plots" /></label><label>ID<input @bind="SelectedContentIdentifier" /></label><label>Заголовок<input @bind="SelectedContent.Title" /></label></div>
+                            <label>Краткое описание<textarea rows="3" @bind="SelectedContent.Summary"></textarea></label>
+                            <label>Полный текст<textarea class="body-editor" rows="11" @bind="SelectedContent.Body"></textarea><small>Абзацы сохраняются. Поддержка расширенного форматирования добавляется поверх этого текста без потери исходника.</small></label>
+                            <div class="media-grid"><label>Картинки — по одной HTTPS-ссылке на строку<textarea rows="5" @bind="SelectedContent.Images" placeholder="https://.../cover.jpg"></textarea></label><label>Видео — «Название | HTTPS-ссылка»<textarea rows="5" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/embed/..."></textarea></label></div>
+                            <section class="download-editor"><div><span class="eyebrow">ФАЙЛ МОДА</span><h3>Загрузка по кнопке в лаунчере</h3><p>Выберите готовый архив: размер и SHA‑256 заполнятся автоматически. Затем укажите зеркала форматом <code>provider | URL</code>.</p></div><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ</button><div class="form-grid"><label>Имя файла<input @bind="SelectedContent.DownloadFileName" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://disk.yandex.ru/d/...&#10;google-drive | https://...&#10;http | https://cdn.example/mod.zip"></textarea></label></section>
+                            <div class="editor-actions"><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ МАТЕРИАЛ</button></div>
+                        </section>
+                    }
+                    else
+                    {
+                        <section class="panel empty"><span>＋</span><h2>Создайте материал</h2><p>Новости, информация и библиотека модов используют один редактор: текст, картинки, видео и скачиваемые файлы.</p><button class="primary" @onclick="AddContent">ДОБАВИТЬ</button></section>
+                    }
+                </section>
+            }
+            else if (_section == "sync")
+            {
+                <section class="hero panel compact"><div><span class="eyebrow">ДВА РАЗРАБОТЧИКА</span><h2>Один рабочий проект.<br /><em>Без обмена ключами.</em></h2><p>Укажите общую папку Яндекс.Диска, Google Drive, сетевого диска или другого синхронизируемого хранилища. Релизер сравнивает редакции и защищает параллельные изменения.</p></div><div class="sync-orbit"><strong>@_workspace.Revision</strong><span>REVISION</span></div></section>
+                <section class="grid two">
+                    <article class="panel field-card"><span>ЭТОТ РАЗРАБОТЧИК</span><h3>Локальная машина</h3><label>Имя<input @bind="_machine.DeveloperName" /></label><code>@State.WorkspacePath</code><p>Пути сборки и закрытые ключи остаются только здесь.</p></article>
+                    <article class="panel field-card"><span>ОБЩАЯ ПАПКА</span><h3>Канал синхронизации</h3><code>@PathOrEmpty(_machine.SharedWorkspaceRoot)</code><div class="inline-actions"><button class="secondary" @onclick="SelectSharedRoot">ВЫБРАТЬ ПАПКУ</button><button class="primary" @onclick="SyncAsync" disabled="@_syncBusy">@(_syncBusy ? "СИНХРОНИЗАЦИЯ…" : "СИНХРОНИЗИРОВАТЬ")</button></div></article>
+                </section>
+                <section class="panel auto-sync"><button class="toggle @(_machine.AutoSync ? "on" : null)" @onclick="ToggleAutoSync"><span></span></button><div><span class="eyebrow">АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ</span><h3>@(_machine.AutoSync ? "Включена" : "Выключена")</h3><p>Проверка общей папки каждые @_machine.AutoSyncSeconds секунд. При одновременном редактировании обе копии сохраняются в <code>Conflicts</code>.</p></div><label>Интервал<input type="number" min="30" max="3600" @bind="_machine.AutoSyncSeconds" /></label></section>
+                <section class="panel sync-state"><span class="dot"></span><div><strong>@_syncMessage</strong><small>Последняя синхронизация: @(_lastSyncAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss") ?? "ещё не выполнялась")</small></div></section>
+            }
+            else
+            {
+                <section class="hero panel compact"><div><span class="eyebrow">БЕЗОПАСНОСТЬ</span><h2>Файлы меняются<br /><em>транзакционно.</em></h2><p>Лаунчер скачивает архивы во временную папку, проверяет подпись и SHA‑256, создаёт резервные копии заменяемых и удаляемых файлов и только затем фиксирует версию.</p></div></section>
+                <section class="grid three"><article class="panel note"><span>01</span><h3>Управляемое удаление</h3><p>Удаляются только файлы, опубликованные старым релизом и отсутствующие в новом. Сохранения и сторонние файлы не затрагиваются.</p></article><article class="panel note"><span>02</span><h3>Общий откат</h3><p>Если корень игры обновился, а MO2 дал ошибку, возвращаются оба назначения. Пользователь также может откатить последний релиз вручную.</p></article><article class="panel note"><span>03</span><h3>Зеркала</h3><p>Выбор игрока задаёт первый источник, но недоступное зеркало не ломает обновление: проверяются остальные подписанные URL.</p></article></section>
+            }
+        </div>
+    </main>
+</div>
+
+@if (_toast is not null)
+{
+    <button class="toast @(_toastError ? "error" : null)" @onclick="() => _toast = null">@_toast <span>×</span></button>
+}
+
+@code {
+    private static readonly Nav[] Navigation =
+    [
+        new("release", "◇", "Релиз", "СБОРКА", "Единый релиз Anthology"),
+        new("sources", "⇣", "Источники", "ЗЕРКАЛА", "Маршруты загрузки"),
+        new("content", "▦", "Контент", "РЕДАКТОР", "Библиотека, новости, информация"),
+        new("sync", "↻", "Синхронизация", "КОМАНДА", "Работа двух разработчиков"),
+        new("safety", "⌾", "Безопасность", "ПРОТОКОЛ", "Удаление и откат"),
+    ];
+
+    private ReleaserWorkspace _workspace = new();
+    private ReleaserMachineSettings _machine = new();
+    private string _section = "release";
+    private string? _selectedContentId;
+    private ContentKind? _contentFilter;
+    private bool _loading = true;
+    private bool _busy;
+    private bool _syncBusy;
+    private string _status = "Настройте источники и соберите релиз";
+    private string _syncMessage = "Общая папка ещё не подключена";
+    private string? _toast;
+    private bool _toastError;
+    private DateTimeOffset? _lastSyncAt;
+    private UnifiedReleaseResult? _lastBuild;
+    private string _lastSavedWorkspaceHash = string.Empty;
+    private CancellationTokenSource? _lifetime;
+    private Task? _autoSyncTask;
+
+    private Nav CurrentNavigation => Navigation.First(item => item.Id == _section);
+    private IEnumerable<ContentDraft> FilteredContent => _workspace.Content.Where(item => _contentFilter is null || item.Kind == _contentFilter);
+    private ContentDraft? SelectedContent => _workspace.Content.FirstOrDefault(item => item.Id == _selectedContentId);
+    private string SelectedContentIdentifier
+    {
+        get => SelectedContent?.Id ?? string.Empty;
+        set
+        {
+            var item = SelectedContent;
+            if (item is null) { return; }
+            item.Id = value;
+            _selectedContentId = value;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await State.LoadAsync();
+        _workspace = state.Workspace;
+        _machine = state.Machine;
+        _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+        _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
+        _loading = false;
+        _lifetime = new CancellationTokenSource();
+        _autoSyncTask = RunAutoSyncAsync(_lifetime.Token);
+    }
+
+    private void SelectGameRoot() => _machine.GameSourceRoot = Bridge.SelectFolder("Выберите подготовленный полный корень Anthology", _machine.GameSourceRoot, false) ?? _machine.GameSourceRoot;
+    private void SelectMo2Root() => _machine.Mo2SourceRoot = Bridge.SelectFolder("Выберите подготовленный полный корень Mod Organizer 2", _machine.Mo2SourceRoot, false) ?? _machine.Mo2SourceRoot;
+    private void SelectOutputRoot() => _machine.OutputRoot = Bridge.SelectFolder("Выберите отдельную папку готовых релизов", _machine.OutputRoot) ?? _machine.OutputRoot;
+    private void SelectSharedRoot() => _machine.SharedWorkspaceRoot = Bridge.SelectFolder("Выберите общую синхронизируемую папку двух разработчиков", _machine.SharedWorkspaceRoot) ?? _machine.SharedWorkspaceRoot;
+    private void SelectPrivateKey() => _machine.PrivateKeyPath = Bridge.SelectFile("Выберите закрытый PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PrivateKeyPath) ?? _machine.PrivateKeyPath;
+    private void SelectPublicKey() => _machine.PublicKeyPath = Bridge.SelectFile("Выберите публичный PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PublicKeyPath) ?? _machine.PublicKeyPath;
+
+    private async Task GenerateKeys()
+    {
+        var root = Bridge.SelectFolder("Выберите закрытую папку для ключей", Path.GetDirectoryName(_machine.PrivateKeyPath));
+        if (root is null) { return; }
+        try
+        {
+            _machine.PrivateKeyPath = Path.Combine(root, "anthology.private.pem");
+            _machine.PublicKeyPath = Path.Combine(root, "anthology.public.pem");
+            UnifiedReleaseBuilder.GenerateKeys(_machine.PrivateKeyPath, _machine.PublicKeyPath);
+            await State.SaveMachineAsync(_workspace, _machine);
+            Toast("Ключи созданы. Закрытый PEM никому не передавайте.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            Toast(exception.Message, true);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            ReleaseVersionRules.Validate(_workspace.Version);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = $"Проект сохранён: редакция {_workspace.Revision}";
+            Toast(_status);
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            Toast(exception.Message, true);
+        }
+    }
+
+    private async Task BuildReleaseAsync()
+    {
+        _busy = true;
+        try
+        {
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            _lastBuild = await UnifiedReleaseBuilder.BuildAsync(new UnifiedReleaseRequest(_workspace, _machine), progress);
+            _status = $"Релиз {_lastBuild.Version} готов";
+            Toast($"Готово: {_lastBuild.ManifestPath}");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Сборка остановлена";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void AddMirror() => _workspace.Mirrors.Add(new ReleaseMirrorSet { Provider = "http", Priority = (_workspace.Mirrors.MaxBy(item => item.Priority)?.Priority ?? 0) + 10 });
+    private void RemoveMirror(ReleaseMirrorSet mirror) => _workspace.Mirrors.Remove(mirror);
+
+    private void AddContent()
+    {
+        var kind = _contentFilter ?? ContentKind.News;
+        var item = new ContentDraft { Kind = kind, Section = kind == ContentKind.Mod ? "dev" : "general" };
+        _workspace.Content.Add(item);
+        _selectedContentId = item.Id;
+    }
+
+    private void RemoveContent()
+    {
+        var item = SelectedContent;
+        if (item is null) { return; }
+        _workspace.Content.Remove(item);
+        _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
+    }
+
+    private async Task SelectContentArchiveAsync()
+    {
+        var item = SelectedContent;
+        if (item is null) { return; }
+        var file = Bridge.SelectFile("Выберите архив мода", "Архивы (*.zip;*.7z;*.rar)|*.zip;*.7z;*.rar|Все файлы (*.*)|*.*", null);
+        if (file is null) { return; }
+        item.DownloadFileName = Path.GetFileName(file);
+        item.DownloadSize = new FileInfo(file).Length;
+        item.DownloadSha256 = await ArtifactHash.ComputeSha256Async(file);
+        Toast("Размер и SHA‑256 архива рассчитаны.");
+    }
+
+    private async Task SyncAsync()
+    {
+        if (_syncBusy || string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot))
+        {
+            if (string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot)) { Toast("Выберите общую папку синхронизации.", true); }
+            return;
+        }
+
+        _syncBusy = true;
+        try
+        {
+            var currentHash = WorkspaceStorage.ComputeHash(_workspace);
+            if (!string.Equals(currentHash, _lastSavedWorkspaceHash, StringComparison.OrdinalIgnoreCase))
+            {
+                await State.SaveWorkspaceAsync(_workspace, _machine, true);
+                _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            }
+            else
+            {
+                await State.SaveMachineAsync(_workspace, _machine);
+            }
+            var result = await WorkspaceSyncService.SyncAsync(_workspace, _machine.SharedWorkspaceRoot, _machine.LastSyncedHash);
+            _workspace = result.Workspace;
+            _machine.LastSyncedHash = result.Hash;
+            _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
+            _syncMessage = result.Message;
+            _lastSyncAt = DateTimeOffset.Now;
+            await State.SaveMachineAsync(_workspace, _machine);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            Toast(result.Message);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            _syncMessage = exception.Message;
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _syncBusy = false;
+        }
+    }
+
+    private async Task ToggleAutoSync()
+    {
+        _machine.AutoSync = !_machine.AutoSync;
+        await State.SaveMachineAsync(_workspace, _machine);
+    }
+
+    private async Task RunAutoSyncAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            if (!_machine.AutoSync || string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot) || _syncBusy || _busy) { continue; }
+            var seconds = Math.Clamp(_machine.AutoSyncSeconds, 30, 3600);
+            if (_lastSyncAt is not null && DateTimeOffset.Now - _lastSyncAt < TimeSpan.FromSeconds(seconds)) { continue; }
+            await InvokeAsync(SyncAsync);
+        }
+    }
+
+    private void Toast(string message, bool error = false) { _toast = message; _toastError = error; }
+    private static string PathOrEmpty(string value) => string.IsNullOrWhiteSpace(value) ? "Не выбрано" : value;
+    private static string KindName(ContentKind kind) => kind switch { ContentKind.Mod => "МОД", ContentKind.News => "НОВОСТЬ", _ => "ИНФОРМАЦИЯ" };
+    private static string FormatBytes(long bytes) { string[] units = ["Б", "КБ", "МБ", "ГБ", "ТБ"]; var value = (double)bytes; var unit = 0; while (value >= 1024 && unit < units.Length - 1) { value /= 1024; unit++; } return $"{value:0.#} {units[unit]}"; }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_lifetime is null) { return; }
+        _lifetime.Cancel();
+        if (_autoSyncTask is not null) { try { await _autoSyncTask; } catch (OperationCanceledException) { } }
+        _lifetime.Dispose();
+    }
+
+    private sealed record Nav(string Id, string Icon, string Title, string Kicker, string Heading);
+}

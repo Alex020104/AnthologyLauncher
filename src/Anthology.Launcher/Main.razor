@@ -36,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.6.0 ALPHA · LOCAL DEV</div>
+        <div class="version-line">LAUNCHER NEXT 0.7.0 ALPHA · LOCAL DEV</div>
     </aside>
 
     <main class="workspace">
@@ -105,13 +105,19 @@
                             <button class="text-button">ВСЕ НОВОСТИ →</button>
                         </div>
                         <div class="news-list">
-                            @foreach (var news in _feed!.News.Take(3))
+                            @if (PublishedNews.Any())
                             {
-                                <article class="news-row">
-                                    <div class="news-date"><strong>@news.PublishedAt.ToLocalTime().ToString("dd")</strong><span>@news.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant()</span></div>
-                                    <div><span class="category-label">@news.Category</span><h4>@news.Title</h4><p>@news.Summary</p></div>
-                                    <span class="row-arrow">↗</span>
-                                </article>
+                                @foreach (var news in PublishedNews.Take(3))
+                                {
+                                    <article class="news-row published-news" @onclick="() => OpenPublishedNews(news.Id)"><div class="news-date"><strong>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("dd") ?? "--")</strong><span>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant() ?? "NEXT")</span></div><div><span class="category-label">@news.Section</span><h4>@news.Title</h4><p>@news.Summary</p></div><span class="row-arrow">↗</span></article>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var news in _feed!.News.Take(3))
+                                {
+                                    <article class="news-row"><div class="news-date"><strong>@news.PublishedAt.ToLocalTime().ToString("dd")</strong><span>@news.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant()</span></div><div><span class="category-label">@news.Category</span><h4>@news.Title</h4><p>@news.Summary</p></div><span class="row-arrow">↗</span></article>
+                                }
                             }
                         </div>
                     </div>
@@ -120,24 +126,18 @@
                         <div class="section-heading compact">
                             <div><span>МЕДИА</span><h3>Видео в лаунчере</h3></div>
                         </div>
-                        @foreach (var video in _feed!.Videos.Take(1))
+                        @if (PublishedVideos.FirstOrDefault() is { } publishedVideo)
                         {
-                            var embedUrl = GetSafeEmbedUrl(video);
-                            <article class="video-card">
-                                @if (embedUrl is not null)
-                                {
-                                    <iframe src="@embedUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-                                }
-                                else
-                                {
-                                    <div class="video-placeholder">
-                                        <div class="video-play">▶</div>
-                                        <span>ВИДЕО-ПЛЕЕР ГОТОВ</span>
-                                        <small>URL управляется через сервер новостей</small>
-                                    </div>
-                                }
-                                <div class="video-caption"><span>@video.Provider.ToUpperInvariant()</span><strong>@video.Title</strong></div>
-                            </article>
+                            var publishedEmbedUrl = GetSafeEmbedUrl(publishedVideo);
+                            <article class="video-card">@if (publishedEmbedUrl is not null) { <iframe src="@publishedEmbedUrl" title="@publishedVideo.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> } else { <div class="video-placeholder"><div class="video-play">▶</div><span>ССЫЛКА НА ВИДЕО</span><small>@publishedVideo.Url</small></div> }<div class="video-caption"><span>RELEASER</span><strong>@publishedVideo.Title</strong></div></article>
+                        }
+                        else
+                        {
+                            @foreach (var video in _feed!.Videos.Take(1))
+                            {
+                                var embedUrl = GetSafeEmbedUrl(video);
+                                <article class="video-card">@if (embedUrl is not null) { <iframe src="@embedUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> } else { <div class="video-placeholder"><div class="video-play">▶</div><span>ВИДЕО-ПЛЕЕР ГОТОВ</span><small>URL управляется через сервер новостей</small></div> }<div class="video-caption"><span>@video.Provider.ToUpperInvariant()</span><strong>@video.Title</strong></div></article>
+                            }
                         }
                     </div>
                 </section>
@@ -155,9 +155,34 @@
                 </section>
                 <section class="library-toolbar">
                     <div class="search-box"><span>⌕</span><input placeholder="Поиск внутри выбранного раздела" @bind="_librarySearch" @bind:event="oninput" /></div>
-                    <div class="library-result-count">@FilteredMods.Count() МАТЕРИАЛОВ</div>
+                    <div class="library-result-count">@(FilteredMods.Count() + FilteredPublishedMods.Count()) МАТЕРИАЛОВ</div>
                 </section>
                 <section class="mod-grid">
+                    @foreach (var item in FilteredPublishedMods)
+                    {
+                        var currentItem = item;
+                        <article class="mod-card published-mod-card @(_openContentId == currentItem.Id ? "open" : null)">
+                            <div class="mod-cover published-cover">
+                                @if (currentItem.Images.FirstOrDefault() is { } imageUrl) { <img src="@imageUrl" alt="" /> } else { <span>@currentItem.Title[..1]</span> }
+                                <small>@(_publishedContent?.Version ?? "NEXT")</small>
+                            </div>
+                            <div class="mod-body">
+                                <div class="mod-author">ПУБЛИКАЦИЯ ANTHOLOGY · @currentItem.Section</div>
+                                <h3>@currentItem.Title</h3><p>@currentItem.Summary</p>
+                                @if (_openContentId == currentItem.Id)
+                                {
+                                    <div class="published-content-body">@currentItem.Body</div>
+                                    @foreach (var video in currentItem.Videos)
+                                    {
+                                        var videoUrl = GetSafeEmbedUrl(video);
+                                        @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> }
+                                    }
+                                }
+                                <div class="published-card-actions"><button class="card-action" @onclick="() => ToggleContent(currentItem.Id)">@(_openContentId == currentItem.Id ? "СВЕРНУТЬ" : "ЧИТАТЬ ПОЛНОСТЬЮ") <span>→</span></button>@if (currentItem.Download is not null) { <button class="primary-button" disabled="@(_contentDownloadId is not null)" @onclick="() => DownloadPublishedContentAsync(currentItem)">@(_contentDownloadId == currentItem.Id ? "ЗАГРУЗКА…" : "СКАЧАТЬ")</button> }</div>
+                                @if (_contentDownloadId == currentItem.Id && _contentDownloadProgress is not null) { <div class="install-progress"><div class="progress-track"><span style="width:@ContentDownloadPercentage%"></span></div><small>@FormatBytes(_contentDownloadProgress.DownloadedBytes) / @FormatBytes(_contentDownloadProgress.TotalBytes) · @_contentDownloadProgress.Provider</small></div> }
+                            </div>
+                        </article>
+                    }
                     @foreach (var mod in FilteredMods)
                     {
                         <article class="mod-card">
@@ -251,9 +276,24 @@
                         }
                     </div>
                 </section>
+                @if (SelectedPublishedNews is not null)
+                {
+                    var openNews = SelectedPublishedNews!;
+                    <section class="section-block published-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @(_publishedContent?.Version)</span><h2>@openNews.Title</h2><p class="information-lead">@openNews.Summary</p>@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }<div class="published-content-body">@openNews.Body</div>@foreach (var video in openNews.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</section>
+                }
             }
             else if (_section == "information")
             {
+                @if (PublishedInformation.Any())
+                {
+                    <section class="published-information-grid">
+                        @foreach (var item in PublishedInformation)
+                        {
+                            var currentItem = item;
+                            <article class="section-block published-information"><span class="eyebrow">ОПУБЛИКОВАНО · @currentItem.Section</span><h2>@currentItem.Title</h2><p class="information-lead">@currentItem.Summary</p><div class="information-body">@currentItem.Body</div>@foreach (var video in currentItem.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</article>
+                        }
+                    </section>
+                }
                 <section class="information-tabs section-block">
                     @foreach (var item in InformationCatalog.Sections)
                     {
@@ -292,8 +332,13 @@
             else if (_section == "updates")
             {
                 <section class="update-hero section-block">
-                    <div><span class="eyebrow">UPDATE PROTOCOL V1</span><h2>Один пакет.<br />Несколько маршрутов.</h2><p>Клиент выбирает доступное зеркало, возобновляет загрузку, проверяет размер, SHA‑256 и подпись манифеста до установки.</p></div>
+                    <div><span class="eyebrow">UPDATE PROTOCOL V2</span><h2>Одна версия.<br />Вся сборка.</h2><p>Корень игры и MO2 обновляются одной транзакцией. Устаревшие управляемые файлы удаляются с резервной копией, а ошибка возвращает всю предыдущую сборку.</p></div>
                     <div class="update-shield"><span>✓</span><strong>SIGNED</strong><small>ECDSA P‑256</small></div>
+                </section>
+                <section class="section-block update-source-choice">
+                    <div><span class="eyebrow">ИСТОЧНИК АРХИВА</span><h3>Предпочитаемое зеркало</h3><p>Выбранный ресурс проверяется первым; если он недоступен, лаунчер безопасно перейдёт к следующему подписанному зеркалу.</p></div>
+                    <label>Ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label>
+                    <button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ВЫБОР</button>
                 </section>
                 <section class="update-console section-block">
                     <div class="update-console-header">
@@ -604,7 +649,7 @@
                     <article class="setting-card setup-card section-block"><span>ОБЫЧНЫЙ УСТАНОВЩИК</span><h3>Запустить Setup</h3><code>@(_setupStatus.ExecutablePath ?? Path.Combine(_setupStatus.SetupRoot, "Setup.exe"))</code><p>Стабильная комплектная папка: <b>App\Setup</b>. Установщик может брать бинарные файлы из <b>Setup\bin</b> или <b>Setup\Payload\bin</b>.</p><div class="setup-state"><span class="status-dot @(_setupStatus.Available ? "online" : "warning")"></span><small>@_setupStatus.StatusText</small></div><div class="setting-actions"><button class="secondary-button" @onclick="SelectSetupAsync">ВЫБРАТЬ SETUP</button><button class="primary-button" disabled="@(!_setupStatus.Available)" @onclick="LaunchSetup">ЗАПУСТИТЬ SETUP</button></div></article>
                     <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
                     <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
-                    <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
+                    <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
                     <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
                     <article class="setting-card section-block"><span>ЛОКАЛЬНЫЕ ДАННЫЕ</span><h3>Community API</h3><code>http://127.0.0.1:5249</code><p>Portable-запуск поднимает локальный API автоматически.</p><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
@@ -678,6 +723,10 @@
     private string _librarySection = "dev";
     private string _librarySearch = string.Empty;
     private UpdateRollbackCandidate? _rollbackCandidate;
+    private ContentCatalog? _publishedContent;
+    private string? _openContentId;
+    private string? _contentDownloadId;
+    private DownloadProgress? _contentDownloadProgress;
     private BundledMediaStatus _bundledMedia = new(false, string.Empty, "Проверка установочного комплекта");
     private bool _installBusy;
     private UpdateProgress? _installProgress;
@@ -722,6 +771,21 @@
                       || mod.Name.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
                       || mod.Author.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
                       || mod.Tags.Any(tag => tag.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)));
+    private IEnumerable<ContentDocument> FilteredPublishedMods => (_publishedContent?.Items ?? [])
+        .Where(item => item.Kind == ContentKind.Mod)
+        .Where(item => string.Equals(item.Section, _librarySection, StringComparison.OrdinalIgnoreCase))
+        .Where(item => string.IsNullOrWhiteSpace(_librarySearch)
+                      || item.Title.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
+                      || item.Summary.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
+                      || item.Body.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<ContentDocument> PublishedInformation => (_publishedContent?.Items ?? [])
+        .Where(item => item.Kind == ContentKind.Information);
+    private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
+        .Where(item => item.Kind == ContentKind.News);
+    private IEnumerable<ContentVideo> PublishedVideos => (_publishedContent?.Items ?? [])
+        .SelectMany(item => item.Videos);
+    private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
+        .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
@@ -739,6 +803,7 @@
         }
         _relayChatRunning = LauncherBridge.IsRelayChatRunning();
         _rollbackCandidate = await Updater.GetLatestRollbackAsync();
+        _publishedContent = await Updater.LoadCachedContentAsync();
         _feed = await Community.GetFeedAsync();
         Community.MessageReceived += OnChatMessageReceived;
         if (!Community.IsOffline && _feed.Channels.Count > 0)
@@ -1401,6 +1466,7 @@
             _updateProgress = new UpdateProgress(UpdateStage.Checking, "Проверка manifest и подписи");
             await InvokeAsync(StateHasChanged);
             _updateCheck = await Updater.CheckAsync(cancellationToken);
+            _publishedContent = _updateCheck.SignedManifest.Payload.Content;
             ShowToast(_updateCheck.HasUpdates ? "Доступны обновления" : "Установлена актуальная версия");
         });
     }
@@ -1500,6 +1566,53 @@
     private string UpdateProgressDetails => _updateProgress is { TotalBytes: > 0 }
         ? $"{FormatBytes(_updateProgress.DownloadedBytes)} / {FormatBytes(_updateProgress.TotalBytes)} · {_updateProgress.Provider ?? "проверка"}"
         : _updateProgress?.Stage.ToString().ToUpperInvariant() ?? string.Empty;
+
+    private int ContentDownloadPercentage => _contentDownloadProgress is { TotalBytes: > 0 }
+        ? Math.Clamp((int)Math.Round(_contentDownloadProgress.DownloadedBytes * 100d / _contentDownloadProgress.TotalBytes), 0, 100)
+        : 0;
+
+    private void ToggleContent(string id) =>
+        _openContentId = string.Equals(_openContentId, id, StringComparison.Ordinal) ? null : id;
+
+    private void OpenPublishedNews(string id) => _openContentId = id;
+
+    private async Task DownloadPublishedContentAsync(ContentDocument content)
+    {
+        if (_contentDownloadId is not null)
+        {
+            return;
+        }
+
+        _contentDownloadId = content.Id;
+        _contentDownloadProgress = null;
+        try
+        {
+            var progress = new Progress<DownloadProgress>(value =>
+            {
+                _contentDownloadProgress = value;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            var path = await Updater.DownloadContentAsync(content, progress);
+            ShowToast($"Файл загружен: {path}");
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Path.GetDirectoryName(path)!)
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or AggregateException)
+        {
+            ShowToast(exception.Message, true);
+        }
+        finally
+        {
+            _contentDownloadId = null;
+        }
+    }
 
     private static string FormatBytes(long bytes)
     {
@@ -1609,6 +1722,39 @@
         }
 
         var allowedHosts = new[] { "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "vk.com", "moddb.com", "www.moddb.com" };
+        return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
+    }
+
+    private static string? GetSafeEmbedUrl(ContentVideo video)
+    {
+        if (!Uri.TryCreate(video.Url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            return null;
+        }
+
+        if (string.Equals(uri.Host, "youtu.be", StringComparison.OrdinalIgnoreCase))
+        {
+            var id = uri.AbsolutePath.Trim('/');
+            return string.IsNullOrWhiteSpace(id) ? null : $"https://www.youtube-nocookie.com/embed/{Uri.EscapeDataString(id)}";
+        }
+
+        if (uri.Host is "youtube.com" or "www.youtube.com" or "youtube-nocookie.com" or "www.youtube-nocookie.com")
+        {
+            if (uri.AbsolutePath.StartsWith("/embed/", StringComparison.OrdinalIgnoreCase))
+            {
+                return uri.AbsoluteUri;
+            }
+
+            var id = uri.Query.TrimStart('?')
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => part.Split('=', 2))
+                .Where(part => part.Length == 2 && string.Equals(part[0], "v", StringComparison.OrdinalIgnoreCase))
+                .Select(part => Uri.UnescapeDataString(part[1]))
+                .FirstOrDefault();
+            return string.IsNullOrWhiteSpace(id) ? null : $"https://www.youtube-nocookie.com/embed/{Uri.EscapeDataString(id)}";
+        }
+
+        var allowedHosts = new[] { "vk.com", "moddb.com", "www.moddb.com" };
         return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
     }
 

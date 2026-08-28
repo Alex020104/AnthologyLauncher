@@ -74,6 +74,35 @@ public sealed class TransactionalFileInstallerTests : IDisposable
         Assert.Contains("rolled-back-by-user", await File.ReadAllTextAsync(rollback.JournalPath));
     }
 
+    [Fact]
+    public async Task ManagedDeletionIsBackedUpAndRestoredByRollback()
+    {
+        var staged = Path.Combine(_root, "delete-staged");
+        var target = Path.Combine(_root, "delete-target");
+        var state = Path.Combine(_root, "delete-state");
+        Directory.CreateDirectory(staged);
+        Directory.CreateDirectory(target);
+        await File.WriteAllTextAsync(Path.Combine(staged, "kept.txt"), "version-2");
+        await File.WriteAllTextAsync(Path.Combine(target, "kept.txt"), "version-1");
+        await File.WriteAllTextAsync(Path.Combine(target, "obsolete.txt"), "restore-me");
+
+        var install = await TransactionalFileInstaller.ApplyAsync(
+            staged,
+            target,
+            state,
+            ["kept.txt"],
+            ["obsolete.txt"]);
+
+        Assert.Equal(1, install.InstalledFiles);
+        Assert.Equal(1, install.DeletedFiles);
+        Assert.False(File.Exists(Path.Combine(target, "obsolete.txt")));
+
+        await TransactionalFileInstaller.RollbackAsync(target, state, install.OperationId);
+
+        Assert.Equal("version-1", await File.ReadAllTextAsync(Path.Combine(target, "kept.txt")));
+        Assert.Equal("restore-me", await File.ReadAllTextAsync(Path.Combine(target, "obsolete.txt")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

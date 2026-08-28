@@ -10,7 +10,8 @@ public sealed record UpdateManifest(
     string Version,
     DateTimeOffset PublishedAt,
     string? MinimumLauncherVersion,
-    IReadOnlyList<PackageManifest> Packages);
+    IReadOnlyList<PackageManifest> Packages,
+    ContentCatalog? Content = null);
 
 public sealed record ManifestSignature(
     string Algorithm,
@@ -27,7 +28,10 @@ public sealed record PackageManifest(
     long Size,
     string Sha256,
     IReadOnlyList<MirrorManifest> Mirrors,
-    IReadOnlyList<string> Files);
+    IReadOnlyList<string> Files,
+    PackageUpdateMode UpdateMode = PackageUpdateMode.Merge,
+    bool PruneInstallRoot = false,
+    IReadOnlyList<string>? PreservedPaths = null);
 
 public sealed record MirrorManifest(
     string Provider,
@@ -44,4 +48,44 @@ public enum PackageKind
     Engine,
     Mod,
     Tool,
+}
+
+public enum PackageUpdateMode
+{
+    Merge,
+    ManagedExact,
+}
+
+public sealed record ContentCatalog(
+    int SchemaVersion,
+    string Version,
+    DateTimeOffset PublishedAt,
+    IReadOnlyList<ContentDocument> Items);
+
+public sealed record ContentDocument(
+    string Id,
+    ContentKind Kind,
+    string Section,
+    string Title,
+    string Summary,
+    string Body,
+    IReadOnlyList<string> Images,
+    IReadOnlyList<ContentVideo> Videos,
+    ContentDownload? Download = null);
+
+public sealed record ContentVideo(
+    string Title,
+    string Url);
+
+public sealed record ContentDownload(
+    string FileName,
+    long Size,
+    string Sha256,
+    IReadOnlyList<MirrorManifest> Mirrors);
+
+public enum ContentKind
+{
+    Mod,
+    News,
+    Information,
 }

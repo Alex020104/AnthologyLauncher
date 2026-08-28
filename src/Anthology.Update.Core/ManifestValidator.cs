@@ -22,7 +22,7 @@ public static partial class ManifestValidator
         var errors = new List<string>();
         var payload = manifest.Payload;
 
-        if (payload.SchemaVersion != 1)
+        if (payload.SchemaVersion is not (1 or 2))
         {
             errors.Add($"Unsupported schema version: {payload.SchemaVersion}.");
         }
@@ -46,6 +46,11 @@ public static partial class ManifestValidator
         foreach (var package in payload.Packages)
         {
             ValidatePackage(package, packageIds, errors);
+        }
+
+        if (payload.Content is not null)
+        {
+            ValidateContent(payload.Content, errors);
         }
 
         if (string.IsNullOrWhiteSpace(manifest.Signature.KeyId))
@@ -167,6 +172,96 @@ public static partial class ManifestValidator
             {
                 errors.Add($"Package '{package.Id}' has unsafe path '{path}': {exception.Message}");
             }
+        }
+
+        foreach (var path in package.PreservedPaths ?? [])
+        {
+            try
+            {
+                PathSafety.NormalizeRelativePath(path);
+            }
+            catch (ArgumentException exception)
+            {
+                errors.Add($"Package '{package.Id}' has unsafe preserved path '{path}': {exception.Message}");
+            }
+        }
+    }
+
+    private static void ValidateContent(ContentCatalog content, List<string> errors)
+    {
+        if (content.SchemaVersion != 1)
+        {
+            errors.Add($"Unsupported content schema version: {content.SchemaVersion}.");
+        }
+
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in content.Items)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id) || !PackageIdRegex().IsMatch(item.Id))
+            {
+                errors.Add($"Invalid content id: '{item.Id}'.");
+            }
+            else if (!ids.Add(item.Id))
+            {
+                errors.Add($"Duplicate content id: '{item.Id}'.");
+            }
+
+            if (string.IsNullOrWhiteSpace(item.Title))
+            {
+                errors.Add($"Content '{item.Id}' has no title.");
+            }
+
+            foreach (var image in item.Images)
+            {
+                ValidatePublicHttpsUrl(image, $"Content '{item.Id}' has unsafe image URL", errors);
+            }
+
+            foreach (var video in item.Videos)
+            {
+                ValidatePublicHttpsUrl(video.Url, $"Content '{item.Id}' has unsafe video URL", errors);
+            }
+
+            if (item.Download is not null)
+            {
+                if (string.IsNullOrWhiteSpace(item.Download.FileName)
+                    || !string.Equals(Path.GetFileName(item.Download.FileName), item.Download.FileName, StringComparison.Ordinal))
+                {
+                    errors.Add($"Content '{item.Id}' has an unsafe download file name.");
+                }
+
+                if (item.Download.Size <= 0 || !Sha256Regex().IsMatch(item.Download.Sha256))
+                {
+                    errors.Add($"Content '{item.Id}' has invalid download metadata.");
+                }
+
+                if (item.Download.Mirrors.Count == 0)
+                {
+                    errors.Add($"Content '{item.Id}' download has no mirrors.");
+                }
+
+                foreach (var mirror in item.Download.Mirrors)
+                {
+                    var localFile = string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
+                    if (string.IsNullOrWhiteSpace(mirror.Provider)
+                        || !Uri.TryCreate(mirror.Url, UriKind.Absolute, out var uri)
+                        || (localFile
+                            ? !uri.IsFile
+                            : uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
+                    {
+                        errors.Add($"Content '{item.Id}' has unsafe download URL '{mirror.Url}'.");
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ValidatePublicHttpsUrl(string value, string prefix, List<string> errors)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            errors.Add($"{prefix} '{value}'.");
         }
     }
 

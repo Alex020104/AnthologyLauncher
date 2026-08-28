@@ -2,11 +2,18 @@ using System.Text.Json;
 
 namespace Anthology.Update.Core;
 
-public sealed record InstallResult(string OperationId, int InstalledFiles, string JournalPath);
+public sealed record InstallResult(
+    string OperationId,
+    int InstalledFiles,
+    string JournalPath,
+    int DeletedFiles = 0);
 
 public sealed record RollbackResult(string OperationId, int RestoredFiles, string JournalPath);
 
-public sealed record FileTransactionEntry(string RelativePath, bool TargetExisted);
+public sealed record FileTransactionEntry(
+    string RelativePath,
+    bool TargetExisted,
+    string Action = "replace");
 
 public sealed record FileTransactionJournal(
     string OperationId,
@@ -26,6 +33,7 @@ public static class TransactionalFileInstaller
         string targetRoot,
         string stateRoot,
         IEnumerable<string> relativePaths,
+        IEnumerable<string>? obsoletePaths = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stagedRoot);
@@ -36,6 +44,12 @@ public static class TransactionalFileInstaller
         var normalizedPaths = relativePaths
             .Select(PathSafety.NormalizeRelativePath)
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var obsolete = (obsoletePaths ?? [])
+            .Select(PathSafety.NormalizeRelativePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Except(normalizedPaths, StringComparer.OrdinalIgnoreCase)
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         if (normalizedPaths.Length == 0)
@@ -79,12 +93,33 @@ public static class TransactionalFileInstaller
                 var temporaryTarget = target + $".anthology-new-{operationId}";
                 File.Copy(source, temporaryTarget, true);
                 File.Move(temporaryTarget, target, true);
-                applied.Add(new FileTransactionEntry(relativePath, targetExisted));
+                applied.Add(new FileTransactionEntry(relativePath, targetExisted, "replace"));
+                await WriteJournalAsync(journalPath, operationId, "applying", applied, cancellationToken);
+            }
+
+            foreach (var relativePath in obsolete)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var target = PathSafety.ResolveUnderRoot(targetRoot, relativePath);
+                if (!File.Exists(target))
+                {
+                    continue;
+                }
+
+                var backup = PathSafety.ResolveUnderRoot(backupRoot, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(backup)!);
+                File.Copy(target, backup, true);
+                File.Delete(target);
+                applied.Add(new FileTransactionEntry(relativePath, true, "delete"));
                 await WriteJournalAsync(journalPath, operationId, "applying", applied, cancellationToken);
             }
 
             await WriteJournalAsync(journalPath, operationId, "completed", applied, cancellationToken);
-            return new InstallResult(operationId, applied.Count, journalPath);
+            return new InstallResult(
+                operationId,
+                applied.Count(item => string.Equals(item.Action, "replace", StringComparison.Ordinal)),
+                journalPath,
+                applied.Count(item => string.Equals(item.Action, "delete", StringComparison.Ordinal)));
         }
         catch
         {

@@ -82,7 +82,7 @@ public sealed class BundledInstallerService(
             ["mods"] = destination,
             ["tools"] = destination,
         };
-        var result = await coordinator.ApplyAsync(check, roots, stateRoot, progress, cancellationToken);
+        var result = await coordinator.ApplyAsync(check, roots, stateRoot, progress, null, cancellationToken);
 
         if (!File.Exists(Path.Combine(destination, "fsgame.ltx"))
             || !Directory.Exists(Path.Combine(destination, "bin")))

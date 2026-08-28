@@ -5,6 +5,8 @@
     <Project Path="src/Anthology.Launcher/Anthology.Launcher.csproj" />
     <Project Path="src/Anthology.Mo2.Core/Anthology.Mo2.Core.csproj" />
     <Project Path="src/Anthology.Releaser/Anthology.Releaser.csproj" />
+    <Project Path="src/Anthology.Releaser.App/Anthology.Releaser.App.csproj" />
+    <Project Path="src/Anthology.Releaser.Core/Anthology.Releaser.Core.csproj" />
     <Project Path="src/Anthology.Update.Core/Anthology.Update.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
