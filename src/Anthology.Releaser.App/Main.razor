@@ -1,6 +1,7 @@
 @implements IAsyncDisposable
 @inject ReleaserStateStore State
 @inject ReleaserBridge Bridge
+@inject IJSRuntime JS
 
 <div class="shell">
     <aside class="sidebar">
@@ -9,7 +10,7 @@
             @foreach (var item in Navigation)
             {
                 var current = item;
-                <button class="@(_section == current.Id ? "active" : null)" @onclick="() => _section = current.Id"><i>@current.Icon</i><span>@current.Title</span></button>
+                <button class="@(_section == current.Id ? "active" : null)" @onclick="() => SelectSectionAsync(current.Id)"><i>@current.Icon</i><span>@current.Title</span></button>
             }
         </nav>
         <div class="spacer"></div>
@@ -19,7 +20,8 @@
 
     <main>
         <header><div><span>@CurrentNavigation.Kicker</span><h1>@CurrentNavigation.Heading</h1></div><div class="header-status"><span class="dot @(_busy ? "busy" : null)"></span>@(_busy ? _status : "ГОТОВ К РАБОТЕ")</div></header>
-        <div class="scroll">
+        <div class="releaser-content-frame">
+        <div class="scroll" id="releaser-content-scroll">
             @if (_loading)
             {
                 <section class="panel hero"><h2>Загрузка рабочего проекта…</h2></section>
@@ -84,6 +86,14 @@
                 <section class="hero panel compact"><div><span class="eyebrow">БЕЗОПАСНОСТЬ</span><h2>Файлы меняются<br /><em>транзакционно.</em></h2><p>Лаунчер скачивает архивы во временную папку, проверяет подпись и SHA‑256, создаёт резервные копии заменяемых и удаляемых файлов и только затем фиксирует версию.</p></div></section>
                 <section class="grid three"><article class="panel note"><span>01</span><h3>Управляемое удаление</h3><p>Удаляются только файлы, опубликованные старым релизом и отсутствующие в новом. Сохранения и сторонние файлы не затрагиваются.</p></article><article class="panel note"><span>02</span><h3>Общий откат</h3><p>Если корень игры обновился, а MO2 дал ошибку, возвращаются оба назначения. Пользователь также может откатить последний релиз вручную.</p></article><article class="panel note"><span>03</span><h3>Зеркала</h3><p>Выбор игрока задаёт первый источник, но недоступное зеркало не ломает обновление: проверяются остальные подписанные URL.</p></article></section>
             }
+        </div>
+        <aside class="releaser-scroll-control" aria-label="Прокрутка страницы">
+            <button type="button" data-scroll-direction="up" title="Прокрутить вверх">↑</button>
+            <div class="releaser-scroll-track" role="scrollbar" aria-controls="releaser-content-scroll" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+                <span class="releaser-scroll-thumb"></span>
+            </div>
+            <button type="button" data-scroll-direction="down" title="Прокрутить вниз">↓</button>
+        </aside>
         </div>
     </main>
 </div>
@@ -164,6 +174,21 @@
     private void SelectSharedRoot() => _machine.SharedWorkspaceRoot = Bridge.SelectFolder("Выберите общую синхронизируемую папку двух разработчиков", _machine.SharedWorkspaceRoot) ?? _machine.SharedWorkspaceRoot;
     private void SelectPrivateKey() => _machine.PrivateKeyPath = Bridge.SelectFile("Выберите закрытый PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PrivateKeyPath) ?? _machine.PrivateKeyPath;
     private void SelectPublicKey() => _machine.PublicKeyPath = Bridge.SelectFile("Выберите публичный PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PublicKeyPath) ?? _machine.PublicKeyPath;
+
+    private async Task SelectSectionAsync(string section)
+    {
+        _section = section;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        try
+        {
+            await JS.InvokeVoidAsync("anthologyReleaserScroll.toTop");
+        }
+        catch (JSException)
+        {
+            // The control will bind itself after WebView finishes loading.
+        }
+    }
 
     private string GetPublicationRoot(ReleaseMirrorSet mirror) =>
         _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) ? root : string.Empty;

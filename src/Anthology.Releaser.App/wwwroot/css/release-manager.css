@@ -1,3 +1,132 @@
+.shell,
+main,
+.sidebar,
+.releaser-content-frame,
+.scroll {
+    min-height: 0;
+}
+
+.shell {
+    width: 100%;
+    max-height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+main {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.sidebar {
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.releaser-content-frame {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 25px;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+.scroll {
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+}
+
+.scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.releaser-scroll-control {
+    grid-row: 1;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 26px minmax(0, 1fr) 26px;
+    overflow: hidden;
+    border-left: 1px solid #20292e;
+    background: linear-gradient(180deg, #0c1114, #080b0d);
+}
+
+.releaser-scroll-control > button {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid #20292e;
+    background: #101619;
+    color: #766747;
+    font: 10px Consolas, monospace;
+}
+
+.releaser-scroll-control > button:last-child {
+    border-top: 1px solid #20292e;
+    border-bottom: 0;
+}
+
+.releaser-scroll-control > button:hover {
+    background: #211d14;
+    color: #e0b84f;
+}
+
+.releaser-scroll-control.disabled {
+    opacity: .42;
+}
+
+.releaser-scroll-track {
+    position: relative;
+    margin: 6px 5px;
+    outline: 0;
+    background: linear-gradient(90deg, transparent 8px, #343125 8px 9px, transparent 9px);
+    cursor: pointer;
+    touch-action: none;
+}
+
+.releaser-scroll-track:focus-visible {
+    box-shadow: inset 0 0 0 1px #8f722d;
+}
+
+.releaser-scroll-thumb {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    width: 13px;
+    min-height: 58px;
+    border: 1px solid #b39459;
+    background: linear-gradient(180deg, #d4b66f, #7e673d);
+    box-shadow: 0 0 12px #c6a6673d, inset 0 0 0 2px #1a1710;
+    cursor: grab;
+}
+
+.releaser-scroll-thumb::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 3px;
+    left: 3px;
+    height: 3px;
+    border-top: 1px solid #2b2518;
+    border-bottom: 1px solid #2b2518;
+    transform: translateY(-50%);
+}
+
+.releaser-scroll-thumb:hover,
+.releaser-scroll-thumb.dragging {
+    background: linear-gradient(180deg, #f0ce77, #9d824d);
+}
+
 .mirror-row {
     grid-template-columns: 180px minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) 95px 40px;
 }
