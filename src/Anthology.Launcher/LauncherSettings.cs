@@ -46,6 +46,28 @@ public sealed class LauncherSettings
 
     public bool RelayChatAlways { get; set; } = true;
 
+    public string RelayChatChannel { get; set; } = "#cocrc_slavik";
+
+    public bool RelayChatAutoFaction { get; set; } = true;
+
+    public string RelayChatFaction { get; set; } = "actor_stalker";
+
+    public bool RelayChatShowTimestamps { get; set; } = true;
+
+    public bool RelayChatSendDeaths { get; set; } = true;
+
+    public bool RelayChatReceiveDeaths { get; set; } = true;
+
+    public int RelayChatDeathInterval { get; set; } = 90;
+
+    public int RelayChatNewsDuration { get; set; } = 10;
+
+    public string RelayChatKey { get; set; } = "RETURN";
+
+    public bool RelayChatNewsSound { get; set; } = true;
+
+    public bool RelayChatCloseAfterSend { get; set; } = true;
+
     public string InterfaceLanguage { get; set; } = "ru";
 
     public int ShadowMapSize { get; set; } = 1536;
@@ -71,6 +93,17 @@ public sealed class LauncherSettings
         ResetUserLtx = ResetUserLtx,
         UseAvx = UseAvx,
         RelayChatAlways = RelayChatAlways,
+        RelayChatChannel = RelayChatChannel,
+        RelayChatAutoFaction = RelayChatAutoFaction,
+        RelayChatFaction = RelayChatFaction,
+        RelayChatShowTimestamps = RelayChatShowTimestamps,
+        RelayChatSendDeaths = RelayChatSendDeaths,
+        RelayChatReceiveDeaths = RelayChatReceiveDeaths,
+        RelayChatDeathInterval = RelayChatDeathInterval,
+        RelayChatNewsDuration = RelayChatNewsDuration,
+        RelayChatKey = RelayChatKey,
+        RelayChatNewsSound = RelayChatNewsSound,
+        RelayChatCloseAfterSend = RelayChatCloseAfterSend,
         InterfaceLanguage = InterfaceLanguage,
         ShadowMapSize = ShadowMapSize,
     };
@@ -192,6 +225,20 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.InterfaceLanguage = settings.InterfaceLanguage.Trim().ToLowerInvariant() is "ru" or "en" or "de"
             ? settings.InterfaceLanguage.Trim().ToLowerInvariant()
             : "ru";
+        settings.RelayChatChannel = settings.RelayChatChannel.Trim().ToLowerInvariant() is
+            "#cocrc_english" or "#cocrc_english_rp" or "#cocrc_slavik"
+                ? settings.RelayChatChannel.Trim().ToLowerInvariant()
+                : "#cocrc_slavik";
+        settings.RelayChatFaction = settings.RelayChatFaction.Trim().ToLowerInvariant() is
+            "actor_bandit" or "actor_csky" or "actor_dolg" or "actor_ecolog" or "actor_freedom"
+            or "actor_stalker" or "actor_killer" or "actor_army" or "actor_monolith" or "actor_renegade"
+                ? settings.RelayChatFaction.Trim().ToLowerInvariant()
+                : "actor_stalker";
+        settings.RelayChatDeathInterval = Math.Clamp(settings.RelayChatDeathInterval, 0, 3600);
+        settings.RelayChatNewsDuration = Math.Clamp(settings.RelayChatNewsDuration, 1, 60);
+        settings.RelayChatKey = string.IsNullOrWhiteSpace(settings.RelayChatKey)
+            ? "RETURN"
+            : settings.RelayChatKey.Trim().ToUpperInvariant().Replace("DIK_", string.Empty, StringComparison.OrdinalIgnoreCase);
         settings.ShadowMapSize = settings.ShadowMapSize is 1536 or 2048 or 2560 or 3072 or 4096
             ? settings.ShadowMapSize
             : 1536;

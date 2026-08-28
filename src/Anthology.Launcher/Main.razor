@@ -27,6 +27,21 @@
             }
         </nav>
 
+        <div class="sidebar-language" aria-label="Язык интерфейса">
+            <div class="sidebar-language-label"><span>◎</span><div><strong>ЯЗЫК</strong><small>@CurrentLanguage.Title</small></div></div>
+            <div class="sidebar-language-switch" role="group" aria-label="Выбор языка">
+                @foreach (var language in InterfaceLanguages)
+                {
+                    var currentLanguage = language;
+                    <button type="button"
+                            class="@(_settings.InterfaceLanguage == currentLanguage.Value ? "active" : null)"
+                            title="@currentLanguage.Title"
+                            aria-pressed="@(_settings.InterfaceLanguage == currentLanguage.Value)"
+                            @onclick="() => ChangeInterfaceLanguageAsync(currentLanguage.Value)">@currentLanguage.ShortLabel</button>
+                }
+            </div>
+        </div>
+
         <div class="sidebar-spacer"></div>
         <div class="build-card">
             <div class="build-card-top">
@@ -241,10 +256,10 @@
                                 }
                                 @foreach (var message in _relayMessages)
                                 {
-                                    <div class="chat-message @(message.IsSystem ? "system" : null) @(message.IsOwn ? "own" : null)"><span>@message.AuthorName[..1].ToUpperInvariant()</span><div><strong>@message.AuthorName <em>@message.Faction</em></strong><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><p>@message.Text</p></div></div>
+                                    <div class="chat-message @(message.IsSystem ? "system" : null) @(message.IsOwn ? "own" : null)"><span>@MessageInitial(message)</span><div><strong>@message.AuthorName <em>@FactionLabel(message.Faction)</em></strong>@if (_settings.RelayChatShowTimestamps) { <small>@message.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</small> }<p>@message.Text</p></div></div>
                                 }
                             </div>
-                            <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в Реальный чат" @bind="_relayText" @bind:event="oninput" @onkeydown="RelayChatKeyDownAsync" disabled="@(!_relayChatRunning)" maxlength="380" /><button class="send-button" @onclick="SendRelayChatMessageAsync" disabled="@(!_relayChatRunning || string.IsNullOrWhiteSpace(_relayText))">↑</button></div>
+                            <div class="chat-composer relay-composer"><button class="relay-recipient-button @(_relayRecipientNick is not null ? "active" : null)" title="@(_relayRecipientNick is null ? "Выберите участника справа для личного сообщения" : "Отменить личное сообщение")" @onclick="ClearRelayRecipient" disabled="@(_relayRecipientNick is null)">@(_relayRecipientNick is null ? "＋" : "×")</button><input placeholder="@RelayComposerPlaceholder" @bind="_relayText" @bind:event="oninput" @onkeydown="RelayChatKeyDownAsync" disabled="@(!_relayChatRunning)" maxlength="380" /><button class="send-button" @onclick="SendRelayChatMessageAsync" disabled="@(!_relayChatRunning || string.IsNullOrWhiteSpace(_relayText))">↑</button></div>
                         }
                         else
                         {
@@ -262,23 +277,80 @@
                             <div class="chat-composer"><button disabled>＋</button><input placeholder="Сообщение в #@CurrentChannel.Name" @bind="_chatText" @bind:event="oninput" @onkeydown="ChatKeyDownAsync" disabled="@(!_chatConnected)" maxlength="2000" /><button class="send-button" @onclick="SendChatMessageAsync" disabled="@(!_chatConnected || string.IsNullOrWhiteSpace(_chatText))">↑</button></div>
                         }
                     </div>
-                    <div class="poll-panel section-block">
-                        <div class="section-heading compact"><div><span>ОБРАТНАЯ СВЯЗЬ</span><h3>Голосование</h3></div></div>
-                        @foreach (var poll in _feed!.Polls.Take(1))
-                        {
-                            var total = Math.Max(1, poll.Options.Sum(option => option.Votes));
-                            <p class="poll-question">@poll.Question</p>
-                            @foreach (var option in poll.Options)
+                    @if (_selectedChannelId == RelayChatChannelId)
+                    {
+                        <aside class="relay-control-panel section-block">
+                            <div class="relay-side-tabs">
+                                <button class="@(_relaySideTab == "participants" ? "active" : null)" @onclick="ShowRelayParticipants">УЧАСТНИКИ <em>@_relayParticipants.Count</em></button>
+                                <button class="@(_relaySideTab == "options" ? "active" : null)" @onclick="ShowRelayOptions">ПАРАМЕТРЫ</button>
+                            </div>
+                            @if (_relaySideTab == "participants")
                             {
-                                var percentage = (int)Math.Round(option.Votes * 100d / total);
-                                <button class="poll-option" @onclick="() => VoteAsync(poll.Id, option.Id)">
-                                    <span class="poll-bar" style="width:@percentage%"></span>
-                                    <span>@option.Text</span><strong>@percentage%</strong>
-                                </button>
+                                <div class="relay-participant-list">
+                                    @if (_relayParticipants.Count == 0)
+                                    {
+                                        <div class="relay-participant-empty"><span>⌁</span><strong>Получаем список</strong><small>Участники появятся после подключения к каналу.</small></div>
+                                    }
+                                    @foreach (var participant in _relayParticipants)
+                                    {
+                                        <button type="button" class="relay-participant @(_relayRecipientNick == participant.Nick ? "selected" : null) @(participant.IsOwn ? "own" : null)" @onclick="() => SelectRelayRecipient(participant)">
+                                            <span>@ParticipantInitial(participant)</span>
+                                            <div><strong>@participant.DisplayName</strong><small>@FactionLabel(participant.Faction)</small></div>
+                                            @if (participant.IsOwn) { <em>ВЫ</em> } else { <em>ЛС</em> }
+                                        </button>
+                                    }
+                                </div>
+                                <div class="relay-side-footer">
+                                    <span class="status-dot @(_relayChatRunning ? "online" : "warning")"></span>
+                                    <div><strong>@(_relayChatRunning ? "Канал подключён" : "Нет подключения")</strong><small>@RelayChat.StatusText</small></div>
+                                    <button title="Открыть параметры" @onclick="ShowRelayOptions">⚙</button>
+                                </div>
                             }
-                            <small class="poll-meta">@total голосов · до @poll.ClosesAt.ToLocalTime().ToString("dd.MM.yyyy")</small>
-                        }
-                    </div>
+                            else
+                            {
+                                <div class="relay-options">
+                                    <div class="relay-option-section"><span>ПОДКЛЮЧЕНИЕ</span><h3>Профиль Реального чата</h3></div>
+                                    <label>Канал<select @bind="_settings.RelayChatChannel">@foreach (var option in RelayChannels) { <option value="@option.Value">@option.Title</option> }</select></label>
+                                    <label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="48" /></label>
+                                    <button class="relay-toggle @ToggleClass(_settings.RelayChatAutoFaction)" @onclick="() => _settings.RelayChatAutoFaction = !_settings.RelayChatAutoFaction"><span></span><div><strong>Определять группировку в игре</strong><small>Автоматически читать состояние Anomaly</small></div></button>
+                                    <label>Группировка<select @bind="_settings.RelayChatFaction" disabled="@_settings.RelayChatAutoFaction">@foreach (var option in RelayFactions) { <option value="@option.Value">@option.Title</option> }</select></label>
+                                    <button class="relay-toggle @ToggleClass(_settings.RelayChatShowTimestamps)" @onclick="() => _settings.RelayChatShowTimestamps = !_settings.RelayChatShowTimestamps"><span></span><div><strong>Время сообщений</strong><small>Показывать отметки времени в истории</small></div></button>
+
+                                    <div class="relay-option-section"><span>СОБЫТИЯ</span><h3>Уведомления о смертях</h3></div>
+                                    <button class="relay-toggle @ToggleClass(_settings.RelayChatSendDeaths)" @onclick="() => _settings.RelayChatSendDeaths = !_settings.RelayChatSendDeaths"><span></span><div><strong>Отправлять события</strong><small>Передавать смерти игрока в канал</small></div></button>
+                                    <button class="relay-toggle @ToggleClass(_settings.RelayChatReceiveDeaths)" @onclick="() => _settings.RelayChatReceiveDeaths = !_settings.RelayChatReceiveDeaths"><span></span><div><strong>Получать события</strong><small>Показывать события других игроков</small></div></button>
+                                    <label>Интервал, секунд<input type="number" min="0" max="3600" @bind="_settings.RelayChatDeathInterval" /></label>
+
+                                    <div class="relay-option-section"><span>ИНТЕРФЕЙС ИГРЫ</span><h3>Окно и новости</h3></div>
+                                    <label>Длительность новости, секунд<input type="number" min="1" max="60" @bind="_settings.RelayChatNewsDuration" /></label>
+                                    <label>Клавиша чата<select @bind="_settings.RelayChatKey">@foreach (var option in RelayChatKeys) { <option value="@option.Value">@option.Title</option> }</select></label>
+                                    <button class="relay-toggle @ToggleClass(_settings.RelayChatNewsSound)" @onclick="() => _settings.RelayChatNewsSound = !_settings.RelayChatNewsSound"><span></span><div><strong>Звук новостей</strong><small>Проигрывать сигнал нового сообщения</small></div></button>
+                                    <button class="relay-toggle @ToggleClass(_settings.RelayChatCloseAfterSend)" @onclick="() => _settings.RelayChatCloseAfterSend = !_settings.RelayChatCloseAfterSend"><span></span><div><strong>Закрывать после отправки</strong><small>Скрывать игровое окно после сообщения</small></div></button>
+                                </div>
+                                <div class="relay-option-actions"><button class="secondary-button" @onclick="ShowRelayParticipants">НАЗАД</button><button class="primary-button" @onclick="SaveRelayChatOptionsAsync">ПРИМЕНИТЬ</button></div>
+                            }
+                        </aside>
+                    }
+                    else
+                    {
+                        <div class="poll-panel section-block">
+                            <div class="section-heading compact"><div><span>ОБРАТНАЯ СВЯЗЬ</span><h3>Голосование</h3></div></div>
+                            @foreach (var poll in _feed!.Polls.Take(1))
+                            {
+                                var total = Math.Max(1, poll.Options.Sum(option => option.Votes));
+                                <p class="poll-question">@poll.Question</p>
+                                @foreach (var option in poll.Options)
+                                {
+                                    var percentage = (int)Math.Round(option.Votes * 100d / total);
+                                    <button class="poll-option" @onclick="() => VoteAsync(poll.Id, option.Id)">
+                                        <span class="poll-bar" style="width:@percentage%"></span>
+                                        <span>@option.Text</span><strong>@percentage%</strong>
+                                    </button>
+                                }
+                                <small class="poll-meta">@total голосов · до @poll.ClosesAt.ToLocalTime().ToString("dd.MM.yyyy")</small>
+                            }
+                        </div>
+                    }
                 </section>
                 @if (SelectedPublishedNews is not null)
                 {
@@ -641,11 +713,6 @@
                         <button class="next-option service-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span class="option-glyph">RC</span><div><strong>Подключать заранее</strong><small>Запускать Реальный чат вместе с лаунчером</small></div><em>@(_settings.RelayChatAlways ? "АВТО" : "ВРУЧНУЮ")</em></button>
                     </article>
 
-                    <article class="settings-module language-module section-block">
-                        <div class="settings-module-heading"><span class="module-index">05</span><div><span class="eyebrow">ЯЗЫК ИНТЕРФЕЙСА</span><h3>Launcher language</h3></div><span class="language-code">@_settings.InterfaceLanguage.ToUpperInvariant()</span></div>
-                        <label>Язык лаунчера<select value="@_settings.InterfaceLanguage" @onchange="ChangeInterfaceLanguageAsync"><option value="ru">Русский</option><option value="en">English</option><option value="de">Deutsch</option></select></label>
-                        <p>Меняется весь интерфейс лаунчера, а новости, информация и библиотека используют опубликованный перевод выбранного языка.</p>
-                    </article>
                 </section>
 
                 <section class="settings-save-dock section-block">
@@ -715,6 +782,49 @@
     private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
     private const string RelayChatChannelId = "relay-chat";
 
+    private static readonly ChoiceOption[] InterfaceLanguages =
+    [
+        new("ru", "RU", "Русский"),
+        new("en", "EN", "English"),
+        new("de", "DE", "Deutsch"),
+    ];
+
+    private static readonly ChoiceOption[] RelayChannels =
+    [
+        new("#cocrc_slavik", "RU", "Русский / Славянский"),
+        new("#cocrc_english", "EN", "English"),
+        new("#cocrc_english_rp", "RP", "English RP"),
+    ];
+
+    private static readonly ChoiceOption[] RelayFactions =
+    [
+        new("actor_stalker", "ST", "Одиночки"),
+        new("actor_bandit", "BN", "Бандиты"),
+        new("actor_csky", "CS", "Чистое небо"),
+        new("actor_dolg", "DG", "Долг"),
+        new("actor_ecolog", "EC", "Учёные"),
+        new("actor_freedom", "FR", "Свобода"),
+        new("actor_killer", "MR", "Наёмники"),
+        new("actor_army", "ML", "Военные"),
+        new("actor_monolith", "MN", "Монолит"),
+        new("actor_renegade", "RN", "Ренегаты"),
+        new("actor_zombied", "ZM", "Зомбированные"),
+    ];
+
+    private static readonly ChoiceOption[] RelayChatKeys =
+    [
+        new("RETURN", "↵", "Enter"),
+        new("F6", "F6", "F6"),
+        new("F7", "F7", "F7"),
+        new("F8", "F8", "F8"),
+        new("F9", "F9", "F9"),
+        new("F10", "F10", "F10"),
+        new("F11", "F11", "F11"),
+        new("F12", "F12", "F12"),
+        new("TAB", "TAB", "Tab"),
+        new("GRAVE", "~", "Тильда (~)"),
+    ];
+
     private string _section = "home";
     private bool _loading = true;
     private CommunityFeed? _feed;
@@ -733,7 +843,10 @@
     private string _chatText = string.Empty;
     private bool _chatConnected;
     private List<RelayChatMessage> _relayMessages = [];
+    private IReadOnlyList<RelayChatParticipant> _relayParticipants = [];
     private string _relayText = string.Empty;
+    private string _relaySideTab = "participants";
+    private string? _relayRecipientNick;
     private string _librarySection = "dev";
     private string _librarySearch = string.Empty;
     private UpdateRollbackCandidate? _rollbackCandidate;
@@ -768,6 +881,9 @@
     private bool _relayChatRunning;
 
     private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
+    private ChoiceOption CurrentLanguage => InterfaceLanguages.FirstOrDefault(option => option.Value == _settings.InterfaceLanguage) ?? InterfaceLanguages[0];
+    private RelayChatParticipant? RelayRecipient => _relayParticipants.FirstOrDefault(participant => string.Equals(participant.Nick, _relayRecipientNick, StringComparison.OrdinalIgnoreCase));
+    private string RelayComposerPlaceholder => RelayRecipient is null ? "Сообщение в Реальный чат" : $"Личное сообщение для {RelayRecipient.DisplayName}";
     private CommunityChannel CurrentChannel =>
         _selectedChannelId == RelayChatChannelId
             ? new CommunityChannel(RelayChatChannelId, "Реальный чат", "Игровой мост Anthology 2.1")
@@ -822,6 +938,7 @@
         }
         _relayChatRunning = RelayChat.IsConnected;
         _relayMessages = RelayChat.Messages.ToList();
+        _relayParticipants = RelayChat.Participants;
         _rollbackCandidate = await Updater.GetLatestRollbackAsync();
         _publishedContent = await Updater.LoadCachedContentAsync();
         _feed = await Community.GetFeedAsync();
@@ -839,9 +956,14 @@
         await JS.InvokeVoidAsync("anthologyLocalization.setLanguage", _settings.InterfaceLanguage);
     }
 
-    private async Task ChangeInterfaceLanguageAsync(ChangeEventArgs args)
+    private async Task ChangeInterfaceLanguageAsync(string requestedLanguage)
     {
-        var language = args.Value?.ToString() is "en" or "de" ? args.Value!.ToString()! : "ru";
+        var language = requestedLanguage is "en" or "de" ? requestedLanguage : "ru";
+        if (string.Equals(_settings.InterfaceLanguage, language, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         _settings.InterfaceLanguage = language;
         var persisted = Settings.Current.Copy();
         persisted.InterfaceLanguage = language;
@@ -892,6 +1014,7 @@
         var result = await Launcher.LaunchRelayChatAsync();
         _relayChatRunning = RelayChat.IsConnected;
         _relayMessages = RelayChat.Messages.ToList();
+        _relayParticipants = RelayChat.Participants;
         ShowToast(result.Message, !result.Success);
     }
 
@@ -1116,7 +1239,7 @@
         _relayText = string.Empty;
         try
         {
-            await RelayChat.SendMessageAsync(text);
+            await RelayChat.SendMessageAsync(text, _relayRecipientNick);
         }
         catch (Exception exception) when (exception is IOException
                                            or SocketException
@@ -1141,6 +1264,7 @@
         _ = InvokeAsync(() =>
         {
             _relayMessages = RelayChat.Messages.ToList();
+            _relayParticipants = RelayChat.Participants;
             StateHasChanged();
         });
     }
@@ -1150,9 +1274,71 @@
         _ = InvokeAsync(() =>
         {
             _relayChatRunning = RelayChat.IsConnected;
+            _relayMessages = RelayChat.Messages.ToList();
+            _relayParticipants = RelayChat.Participants;
+            if (_relayRecipientNick is not null && _relayParticipants.All(participant => !string.Equals(participant.Nick, _relayRecipientNick, StringComparison.OrdinalIgnoreCase)))
+            {
+                _relayRecipientNick = null;
+            }
             StateHasChanged();
         });
     }
+
+    private void SelectRelayRecipient(RelayChatParticipant participant)
+    {
+        if (participant.IsOwn)
+        {
+            _relayRecipientNick = null;
+            return;
+        }
+
+        _relayRecipientNick = string.Equals(_relayRecipientNick, participant.Nick, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : participant.Nick;
+    }
+
+    private void ClearRelayRecipient() => _relayRecipientNick = null;
+
+    private void ShowRelayParticipants() => _relaySideTab = "participants";
+
+    private void ShowRelayOptions() => _relaySideTab = "options";
+
+    private async Task SaveRelayChatOptionsAsync()
+    {
+        await Settings.SaveAsync(_settings);
+        _settings = Settings.Current.Copy();
+        var result = await Launcher.LaunchRelayChatAsync();
+        _relayChatRunning = RelayChat.IsConnected;
+        _relayMessages = RelayChat.Messages.ToList();
+        _relayParticipants = RelayChat.Participants;
+        _relaySideTab = result.Success ? "participants" : "options";
+        ShowToast(result.Success ? "Параметры Реального чата применены" : result.Message, !result.Success);
+    }
+
+    private static string ParticipantInitial(RelayChatParticipant participant) => Initial(participant.DisplayName);
+
+    private static string MessageInitial(RelayChatMessage message) => Initial(message.AuthorName);
+
+    private static string Initial(string? value) => string.IsNullOrWhiteSpace(value)
+        ? "?"
+        : value.Trim()[..1].ToUpperInvariant();
+
+    private static string FactionLabel(string? faction) => faction?.Trim().ToLowerInvariant() switch
+    {
+        "actor_bandit" => "БАНДИТЫ",
+        "actor_csky" => "ЧИСТОЕ НЕБО",
+        "actor_dolg" => "ДОЛГ",
+        "actor_ecolog" => "УЧЁНЫЕ",
+        "actor_freedom" => "СВОБОДА",
+        "actor_stalker" => "ОДИНОЧКИ",
+        "actor_killer" => "НАЁМНИКИ",
+        "actor_army" => "ВОЕННЫЕ",
+        "actor_monolith" => "МОНОЛИТ",
+        "actor_renegade" => "РЕНЕГАТЫ",
+        "actor_zombied" => "ЗОМБИРОВАННЫЕ",
+        "system" => "СИСТЕМА",
+        _ => "НЕИЗВЕСТНО",
+    };
 
     private async Task ChangeMo2ProfileAsync(ChangeEventArgs args)
     {
@@ -1888,6 +2074,8 @@
     private sealed record LibrarySection(string Id, string Index, string Title, string Description);
 
     private sealed record RendererOption(string Id, string Label, string Code);
+
+    private sealed record ChoiceOption(string Value, string ShortLabel, string Title);
 
     private sealed record Mo2ModGroup(Mo2ModEntry? Separator, IReadOnlyList<Mo2ModEntry> Mods);
 
