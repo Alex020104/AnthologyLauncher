@@ -8,41 +8,41 @@ public sealed record InstallationStatus(
     bool ModOrganizerFound,
     string? GameRoot,
     string? ModpackRoot,
-    string StatusText);
+    string StatusText,
+    bool OriginalGameFound = false,
+    bool OnlineModeFound = false,
+    bool RelayChatFound = false);
 
 public sealed record LauncherActionResult(bool Success, string Message);
 
 public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
 {
     private const string ModpackFolder = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT";
+    private const string RelayChatExecutable = "Chernobyl Relay Chat.exe";
+    private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
 
     public InstallationStatus DetectInstallation()
     {
         var gameRoot = FindGameRoot();
         if (gameRoot is null)
         {
-            return new InstallationStatus(false, false, null, null, "Укажите папку Anthology в настройках");
+            return new InstallationStatus(false, false, null, null, "Укажите папку Anthology в разделе «Установка»");
         }
 
         var modpackRoot = FindModpackRoot(gameRoot);
-        if (modpackRoot is null)
-        {
-            return new InstallationStatus(
-                true,
-                false,
-                gameRoot,
-                null,
-                "Игра найдена — укажите папку Mod Organizer 2");
-        }
-
-        var mo2 = Path.Combine(modpackRoot, "ModOrganizer.exe");
-        var mo2Found = File.Exists(mo2);
+        var mo2Found = modpackRoot is not null && File.Exists(Path.Combine(modpackRoot, "ModOrganizer.exe"));
+        var originalFound = File.Exists(GetSelectedGameExecutable(gameRoot, settingsStore.Current));
+        var onlineFound = File.Exists(Path.Combine(gameRoot, "Lan_anthology.bat"));
+        var relayChatFound = File.Exists(Path.Combine(gameRoot, RelayChatExecutable));
         return new InstallationStatus(
             true,
             mo2Found,
             gameRoot,
             mo2Found ? modpackRoot : null,
-            mo2Found ? "Сборка готова к запуску" : "Игра найдена, Mod Organizer 2 отсутствует");
+            mo2Found ? "Сборка готова к запуску" : "Игра найдена, Mod Organizer 2 отсутствует",
+            originalFound,
+            onlineFound,
+            relayChatFound);
     }
 
     public async Task<LauncherActionResult> SelectGameRootAsync(CancellationToken cancellationToken = default)
@@ -85,21 +85,109 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
         return new LauncherActionResult(true, "Папка Mod Organizer 2 сохранена");
     }
 
-    public Task<LauncherActionResult> LaunchModpackAsync()
+    public async Task<LauncherActionResult> LaunchModpackAsync(CancellationToken cancellationToken = default)
     {
         var status = DetectInstallation();
         if (!status.ModOrganizerFound || status.ModpackRoot is null)
         {
-            return Task.FromResult(new LauncherActionResult(false, status.StatusText));
+            return new LauncherActionResult(false, status.StatusText);
         }
 
-        var executable = Path.Combine(status.ModpackRoot, "ModOrganizer.exe");
-        Process.Start(new ProcessStartInfo(executable)
+        try
         {
-            WorkingDirectory = status.ModpackRoot,
-            UseShellExecute = true,
-        });
-        return Task.FromResult(new LauncherActionResult(true, "Mod Organizer 2 запущен"));
+            await PrepareGameLaunchAsync(status.GameRoot!, cancellationToken);
+            StartRelayChatIfEnabled(status.GameRoot!);
+            var executable = Path.Combine(status.ModpackRoot, "ModOrganizer.exe");
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                WorkingDirectory = status.ModpackRoot,
+                UseShellExecute = true,
+            });
+            return new LauncherActionResult(true, "Mod Organizer 2 запущен");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
+    public async Task<LauncherActionResult> LaunchOriginalAsync(CancellationToken cancellationToken = default)
+    {
+        var status = DetectInstallation();
+        if (!status.GameFound || status.GameRoot is null)
+        {
+            return new LauncherActionResult(false, status.StatusText);
+        }
+
+        var executable = GetSelectedGameExecutable(status.GameRoot, settingsStore.Current);
+        if (!File.Exists(executable))
+        {
+            return new LauncherActionResult(false, $"Исполняемый файл выбранного рендера не найден: {executable}");
+        }
+
+        try
+        {
+            await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
+            StartRelayChatIfEnabled(status.GameRoot);
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                WorkingDirectory = Path.GetDirectoryName(executable)!,
+                UseShellExecute = true,
+            });
+            return new LauncherActionResult(true, "Оригинальная Anomaly запущена");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
+    public async Task<LauncherActionResult> LaunchOnlineAsync(CancellationToken cancellationToken = default)
+    {
+        var status = DetectInstallation();
+        if (!status.GameFound || status.GameRoot is null)
+        {
+            return new LauncherActionResult(false, status.StatusText);
+        }
+
+        var launcher = Path.Combine(status.GameRoot, "Lan_anthology.bat");
+        if (!File.Exists(launcher))
+        {
+            return new LauncherActionResult(false, "Файл онлайн-режима Lan_anthology.bat не найден в корне игры");
+        }
+
+        try
+        {
+            await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
+            StartRelayChatIfEnabled(status.GameRoot);
+            Process.Start(new ProcessStartInfo(launcher)
+            {
+                WorkingDirectory = status.GameRoot,
+                UseShellExecute = true,
+            });
+            return new LauncherActionResult(true, "Онлайн-режим Anthology запущен");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
+    public LauncherActionResult LaunchRelayChat()
+    {
+        var status = DetectInstallation();
+        if (!status.GameFound || status.GameRoot is null)
+        {
+            return new LauncherActionResult(false, status.StatusText);
+        }
+
+        return StartRelayChat(status.GameRoot, showAlreadyRunning: true);
     }
 
     public LauncherActionResult OpenGameFolder()
@@ -161,4 +249,112 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore)
     private static bool IsGameRoot(string path) =>
         File.Exists(Path.Combine(path, "fsgame.ltx"))
         && Directory.Exists(Path.Combine(path, "bin"));
+
+    private async Task PrepareGameLaunchAsync(string gameRoot, CancellationToken cancellationToken)
+    {
+        var settings = settingsStore.Current;
+        var shadowMap = ShadowMapSizes.Contains(settings.ShadowMapSize) ? settings.ShadowMapSize : 1536;
+        var configLines = new[]
+        {
+            settings.Renderer,
+            settings.DebugMode ? "DBG" : "NODBG",
+            Array.IndexOf(ShadowMapSizes, shadowMap).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            settings.SoundWorkaround ? "SNDFIX" : "NOSNDFIX",
+            settings.PrefetchSounds ? "SNDPREFETCH" : "NOSNDPREFETCH",
+            "RU",
+            settings.UseAvx ? "AVX" : "NOAVX",
+            settings.RelayChatAlways ? "CHATRELAYALWAYS" : "NOCHATRELAYALWAYS",
+        };
+        await File.WriteAllLinesAsync(Path.Combine(gameRoot, "AnomalyLauncher.cfg"), configLines, cancellationToken);
+
+        var commandLine = new List<string> { $"-smap{shadowMap}" };
+        if (settings.DebugMode)
+        {
+            commandLine.Add("-dbg");
+        }
+
+        if (settings.PrefetchSounds)
+        {
+            commandLine.Add("-prefetch_sounds");
+        }
+
+        await File.WriteAllLinesAsync(Path.Combine(gameRoot, "commandline.txt"), commandLine, cancellationToken);
+        ApplySoundWorkaround(gameRoot, settings.SoundWorkaround);
+        if (settings.ResetUserLtx)
+        {
+            ResetUserConfiguration(gameRoot);
+            var updated = settings.Copy();
+            updated.ResetUserLtx = false;
+            await settingsStore.SaveAsync(updated, cancellationToken);
+        }
+    }
+
+    private static string GetSelectedGameExecutable(string gameRoot, LauncherSettings settings)
+    {
+        var renderer = settings.Renderer.ToUpperInvariant() is "DX11" or "DX10" or "DX9" or "DX8"
+            ? settings.Renderer.ToUpperInvariant()
+            : "DX11";
+        var suffix = settings.UseAvx ? "AVX" : string.Empty;
+        return Path.Combine(gameRoot, "bin", $"Anomaly{renderer}{suffix}.exe");
+    }
+
+    private static void ApplySoundWorkaround(string gameRoot, bool enabled)
+    {
+        var active = Path.Combine(gameRoot, "bin", "alsoft.ini");
+        var backup = active + ".bak";
+        if (enabled && File.Exists(active))
+        {
+            File.Move(active, backup, true);
+        }
+        else if (!enabled && !File.Exists(active) && File.Exists(backup))
+        {
+            File.Move(backup, active);
+        }
+    }
+
+    private static void ResetUserConfiguration(string gameRoot)
+    {
+        var appData = Path.Combine(gameRoot, "appdata");
+        Directory.CreateDirectory(appData);
+        var user = Path.Combine(appData, "user.ltx");
+        if (File.Exists(user))
+        {
+            File.Move(user, user + $".backup-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}", true);
+        }
+
+        var bundledDefault = Path.Combine(AppContext.BaseDirectory, "Defaults", "user.ltx");
+        if (File.Exists(bundledDefault))
+        {
+            File.Copy(bundledDefault, user, true);
+        }
+    }
+
+    private void StartRelayChatIfEnabled(string gameRoot)
+    {
+        if (settingsStore.Current.RelayChatAlways)
+        {
+            StartRelayChat(gameRoot, showAlreadyRunning: false);
+        }
+    }
+
+    private static LauncherActionResult StartRelayChat(string gameRoot, bool showAlreadyRunning)
+    {
+        if (Process.GetProcessesByName("Chernobyl Relay Chat").Any(process => !process.HasExited))
+        {
+            return new LauncherActionResult(true, showAlreadyRunning ? "Реальный Чат уже запущен" : string.Empty);
+        }
+
+        var executable = Path.Combine(gameRoot, RelayChatExecutable);
+        if (!File.Exists(executable))
+        {
+            return new LauncherActionResult(false, $"Реальный Чат не найден в корне игры: {executable}");
+        }
+
+        Process.Start(new ProcessStartInfo(executable)
+        {
+            WorkingDirectory = gameRoot,
+            UseShellExecute = true,
+        });
+        return new LauncherActionResult(true, "Реальный Чат запущен из корня игры");
+    }
 }

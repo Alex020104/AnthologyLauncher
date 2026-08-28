@@ -37,6 +37,24 @@ public sealed class LauncherUpdateService(
             cancellationToken);
     }
 
+    public Task<UpdateRollbackCandidate?> GetLatestRollbackAsync(CancellationToken cancellationToken = default) =>
+        UpdateCoordinator.GetLatestRollbackAsync(settingsStore.UpdaterStateRoot, cancellationToken);
+
+    public Task<UpdateRollbackResult> RollbackLatestAsync(
+        IProgress<UpdateProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = settingsStore.Current;
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        AddRoots(roots, settings.GameRoot, "game", "engine", "database");
+        AddRoots(roots, settings.ModpackRoot, "modpack", "mods", "tools");
+        return UpdateCoordinator.RollbackLatestAsync(
+            roots,
+            settingsStore.UpdaterStateRoot,
+            progress,
+            cancellationToken);
+    }
+
     private static void AddRoots(
         Dictionary<string, string> roots,
         string? path,

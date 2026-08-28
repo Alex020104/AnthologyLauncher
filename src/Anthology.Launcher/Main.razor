@@ -36,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.2.0 ALPHA · DEV CHANNEL</div>
+        <div class="version-line">LAUNCHER NEXT 0.3.0 ALPHA · LOCAL DEV</div>
     </aside>
 
     <main class="workspace">
@@ -73,7 +73,9 @@
                             <button class="primary-button" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)">
                                 <span class="play-triangle">▶</span> ИГРАТЬ С МОДПАКОМ
                             </button>
-                            <button class="secondary-button" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ</button>
+                            <button class="secondary-button" @onclick="LaunchOriginalAsync" disabled="@(!_installation.OriginalGameFound)">ИГРАТЬ В ОРИГИНАЛ</button>
+                            <button class="secondary-button online-button" @onclick="LaunchOnlineAsync" disabled="@(!_installation.OnlineModeFound)">ИГРАТЬ ОНЛАЙН</button>
+                            <button class="text-button hero-update-link" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ →</button>
                         </div>
                     </div>
                     <div class="hero-radar" aria-hidden="true">
@@ -141,12 +143,21 @@
             }
             else if (_section == "library")
             {
+                <section class="library-sections section-block">
+                    @foreach (var section in LibrarySections)
+                    {
+                        var currentSection = section;
+                        <button class="library-section @(_librarySection == currentSection.Id ? "active" : null)" @onclick="() => _librarySection = currentSection.Id">
+                            <span>@currentSection.Index</span><strong>@currentSection.Title</strong><small>@currentSection.Description</small>
+                        </button>
+                    }
+                </section>
                 <section class="library-toolbar">
-                    <div class="search-box"><span>⌕</span><input placeholder="Поиск по библиотеке модов" /></div>
-                    <div class="filter-pills"><button class="active">Все</button><button>Геймплей</button><button>Оружие</button><button>Графика</button><button>Интерфейс</button></div>
+                    <div class="search-box"><span>⌕</span><input placeholder="Поиск внутри выбранного раздела" @bind="_librarySearch" @bind:event="oninput" /></div>
+                    <div class="library-result-count">@FilteredMods.Count() МАТЕРИАЛОВ</div>
                 </section>
                 <section class="mod-grid">
-                    @foreach (var mod in _feed!.Mods)
+                    @foreach (var mod in FilteredMods)
                     {
                         <article class="mod-card">
                             <div class="mod-cover"><span>@mod.Name[..1]</span><small>@mod.Version</small></div>
@@ -159,9 +170,16 @@
                             </div>
                         </article>
                     }
+                    @if (!FilteredMods.Any())
+                    {
+                        <article class="mod-card add-card"><div class="plus-mark">⌕</div><h3>Ничего не найдено</h3><p>Измените строку поиска или выберите другой раздел библиотеки.</p></article>
+                    }
+                    else
+                    {
                     <article class="mod-card add-card">
                         <div class="plus-mark">+</div><h3>Каталог расширяется</h3><p>Публикация модов будет проходить через новый releaser и проверяемый манифест.</p>
                     </article>
+                    }
                 </section>
             }
             else if (_section == "community")
@@ -209,6 +227,10 @@
                         }
                     </div>
                 </section>
+                <section class="relay-chat-card section-block">
+                    <div><span class="eyebrow">ИГРОВОЙ МОСТ</span><h3>Реальный Чат Anthology 2.1</h3><p>Запускается из выбранного корня игры, чтобы связь продолжала работать и внутри Anomaly.</p><code>@(_installation.GameRoot is null ? "Сначала выберите корень игры" : Path.Combine(_installation.GameRoot, "Chernobyl Relay Chat.exe"))</code></div>
+                    <div class="relay-chat-actions"><span class="status-dot @(_installation.RelayChatFound ? "online" : "warning")"></span><button class="primary-button" @onclick="LaunchRelayChat" disabled="@(!_installation.RelayChatFound)">ОТКРЫТЬ РЕАЛЬНЫЙ ЧАТ</button></div>
+                </section>
             }
             else if (_section == "updates")
             {
@@ -232,6 +254,7 @@
                             {
                                 <button class="secondary-button" @onclick="CheckForUpdatesAsync">ПРОВЕРИТЬ</button>
                                 <button class="primary-button" disabled="@(_updateCheck?.HasUpdates != true)" @onclick="InstallUpdatesAsync">СКАЧАТЬ И УСТАНОВИТЬ</button>
+                                <button class="secondary-button rollback-button" disabled="@(_rollbackCandidate is null)" @onclick="RollbackLatestUpdateAsync">ОТКАТИТЬ</button>
                             }
                         </div>
                     </div>
@@ -258,7 +281,11 @@
                     }
                     else if (!UpdateConfigurationReady)
                     {
-                        <div class="configuration-warning">Укажите manifest и доверенный публичный ключ в разделе «Настройки». До этого лаунчер ничего не скачивает и не изменяет.</div>
+                        <div class="configuration-warning">Укажите manifest и доверенный публичный ключ в разделе «Установка». До этого лаунчер ничего не скачивает и не изменяет.</div>
+                    }
+                    @if (_rollbackCandidate is not null)
+                    {
+                        <div class="rollback-summary"><span>ДОСТУПЕН ОТКАТ</span><div><strong>@_rollbackCandidate.DisplayName</strong><small>@(_rollbackCandidate.FromVersion ?? "исходные файлы") ← @_rollbackCandidate.ToVersion · @_rollbackCandidate.InstalledAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></div><button class="text-button" @onclick="RollbackLatestUpdateAsync" disabled="@_updateBusy">ВОССТАНОВИТЬ ПРОШЛУЮ ВЕРСИЮ →</button></div>
                     }
                 </section>
                 <section class="provider-grid">
@@ -276,19 +303,48 @@
             }
             else if (_section == "support")
             {
+                <section class="report-rules section-block">
+                    <span class="eyebrow">ПЕРЕД ОТПРАВКОЙ</span>
+                    <h2>Баг-репорт должен давать разработчику возможность воспроизвести проблему.</h2>
+                    <p>Обращения без описания ситуации, шагов, ожидаемого результата и доказательств могут быть закрыты без разбора. Не называйте багом вопрос, предложение или ошибку установки стороннего аддона.</p>
+                    <div class="report-example">
+                        <strong>ХОРОШИЙ ШАБЛОН</strong>
+                        <ol><li>Где и при каких условиях проявилась проблема.</li><li>Полный текст ошибки или важный фрагмент <code>xray_error.log</code>.</li><li>Точные шаги воспроизведения и повторяемость на одном сейве.</li><li>Что ожидалось и что произошло фактически.</li><li>Версия/дата сборки, настройки MCM и характеристики ПК.</li><li>Мелкие конфиги приложите здесь, а сейвы, видео и полный архив дайте HTTPS-ссылкой.</li></ol>
+                    </div>
+                </section>
                 <section class="support-layout">
                     <div class="report-intro">
-                        <span class="eyebrow">ПРЯМОЕ ОБРАЩЕНИЕ</span><h2>Баг-репорт,<br />который можно исправить.</h2><p>Структурированная форма сразу отделяет симптомы, шаги воспроизведения и ожидаемый результат. После отправки сервер выдаёт номер обращения.</p>
-                        <div class="report-checklist"><span>✓ Версия лаунчера</span><span>✓ Версия сборки</span><span>✓ Шаги воспроизведения</span><span>✓ Фрагмент лога</span></div>
+                        <span class="eyebrow">ПРЯМОЕ ОБРАЩЕНИЕ</span><h2>Дайте нам данные,<br />а не догадки.</h2><p>Хороший отчёт отвечает на три вопроса: что произошло, как это повторить и чем это подтверждается.</p>
+                        <div class="report-checklist"><span>✓ Ситуация и локация</span><span>✓ Повторяемые шаги</span><span>✓ Полный стек ошибки</span><span>✓ Сейв/видео по ссылке</span><span>✓ Версия и PC Specs</span></div>
                     </div>
                     <EditForm Model="_report" OnValidSubmit="SubmitReportAsync" class="report-form section-block">
                         <DataAnnotationsValidator />
-                        <div class="form-heading"><span>НОВОЕ ОБРАЩЕНИЕ</span><strong>Опишите проблему</strong></div>
-                        <label>Краткий заголовок<InputText @bind-Value="_report.Title" placeholder="Например: обновление останавливается на 73%" /></label>
+                        <div class="form-heading"><span>НОВОЕ ОБРАЩЕНИЕ</span><strong>Оформите воспроизводимый баг</strong></div>
+                        <label>Краткий заголовок<InputText @bind-Value="_report.Title" placeholder="Например: вылет при луте тел в депо на Свалке" /></label>
                         <ValidationMessage For="@(() => _report.Title)" />
-                        <label>Что произошло<InputTextArea @bind-Value="_report.Description" placeholder="Опишите наблюдаемое поведение" /></label>
-                        <label>Шаги воспроизведения<InputTextArea @bind-Value="_report.Steps" placeholder="1. Открыл...  2. Нажал...  3. Получил..." /></label>
-                        <div class="form-two"><label>Ожидалось<InputText @bind-Value="_report.Expected" /></label><label>Получилось<InputText @bind-Value="_report.Actual" /></label></div>
+                        <label>Ситуация, локация и что произошло<InputTextArea @bind-Value="_report.Description" placeholder="Сюжет/локация, действия NPC, повторяемость, важные настройки MCM" /></label>
+                        <ValidationMessage For="@(() => _report.Description)" />
+                        <label>Полный текст ошибки или фрагмент лога<InputTextArea class="log-input" @bind-Value="_report.LogExcerpt" placeholder="Expression / Function / File / Line / Description / Arguments / stack trace" /></label>
+                        <label>Шаги для воспроизведения<InputTextArea @bind-Value="_report.Steps" placeholder="1. Загрузить сейв... 2. Подойти... 3. Выполнить... 4. Получить вылет" /></label>
+                        <ValidationMessage For="@(() => _report.Steps)" />
+                        <div class="form-two"><label>Ожидаемый результат<InputText @bind-Value="_report.Expected" /></label><label>Фактический результат<InputText @bind-Value="_report.Actual" /></label></div>
+                        <label>Версия и дата сборки<InputText @bind-Value="_report.GameVersion" placeholder="Anthology 2.1 · Standard · latest · дата обновления" /></label>
+                        <label>PC Specs и файл подкачки<InputText @bind-Value="_report.SystemSpecs" placeholder="CPU · GPU · RAM · Windows · размер файла подкачки" /></label>
+                        <label>HTTPS-ссылка на полный пакет<InputText @bind-Value="_report.EvidenceUrl" placeholder="Яндекс.Диск / Google Drive: сейвы, видео, скриншоты, VirusTotal" /></label>
+                        <div class="attachment-picker">
+                            <button class="secondary-button" type="button" @onclick="SelectReportAttachments">＋ ПРИЛОЖИТЬ МЕЛКИЕ ФАЙЛЫ</button>
+                            <small>До 5 файлов, каждый до 5 МБ: LTX, XML, SCRIPT, LOG, TXT, JSON, CFG, INI, ZIP, 7Z.</small>
+                        </div>
+                        @if (_reportAttachments.Count > 0)
+                        {
+                            <div class="attachment-list">
+                                @foreach (var attachment in _reportAttachments)
+                                {
+                                    var currentAttachment = attachment;
+                                    <div><span>@Path.GetFileName(currentAttachment)</span><small>@FormatBytes(new FileInfo(currentAttachment).Length)</small><button type="button" @onclick="() => RemoveReportAttachment(currentAttachment)">×</button></div>
+                                }
+                            </div>
+                        }
                         <label>Контакт для ответа<InputText @bind-Value="_report.Contact" placeholder="Discord / Telegram / email (необязательно)" /></label>
                         <button class="primary-button submit-report" type="submit" disabled="@_submittingReport">@(_submittingReport ? "ОТПРАВКА..." : "ОТПРАВИТЬ РАЗРАБОТЧИКУ")</button>
                     </EditForm>
@@ -296,30 +352,31 @@
             }
             else if (_section == "settings")
             {
-                <section class="settings-grid">
-                    <article class="setting-card section-block">
-                        <span>ИГРА</span><h3>Корень Anomaly</h3>
-                        <code>@(_settings.GameRoot ?? "Не выбран")</code>
-                        <p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>. Выбор выполняется только вручную.</p>
-                        <div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div>
-                    </article>
-                    <article class="setting-card section-block">
-                        <span>МОДПАК</span><h3>Mod Organizer 2</h3>
-                        <code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code>
-                        <p>Эта папка используется для запуска MO2 и пакетов с корнем <b>modpack</b>.</p>
-                        <button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button>
-                    </article>
-                    <article class="setting-card update-settings-card section-block">
-                        <span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3>
-                        <label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label>
-                        <button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button>
-                        <label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label>
-                        <button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button>
-                        <label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label>
-                        <button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ НАСТРОЙКИ</button>
-                    </article>
-                    <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Идентификатор создаётся локально и сохраняется в portable-настройках. Полноценные аккаунты и роли появятся на production-сервере.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
-                    <article class="setting-card section-block"><span>СЕРВЕР</span><h3>Community API</h3><code>http://127.0.0.1:5249</code><p>Portable-запуск поднимает локальный API автоматически. При недоступности используется встроенная лента.</p><div class="safe-banner">Данные лаунчера: @Settings.DataRoot</div></article>
+                <section class="anomaly-settings section-block">
+                    <div class="settings-heading"><div><span class="eyebrow">ANOMALY 1.5.3</span><h2>Параметры запуска</h2></div><p>Движок здесь не обновляется: вкладка управляет только штатными параметрами запуска Anomaly.</p></div>
+                    <div class="renderer-setting"><span>РЕНДЕР</span><div class="renderer-grid">@foreach (var renderer in Renderers) { var currentRenderer = renderer; <button class="@(_settings.Renderer == currentRenderer.Id ? "active" : null)" @onclick="() => _settings.Renderer = currentRenderer.Id"><strong>@currentRenderer.Label</strong><small>@currentRenderer.Code</small></button> }</div></div>
+                    <div class="anomaly-options">
+                        <button class="setting-toggle @ToggleClass(_settings.DebugMode)" @onclick="() => _settings.DebugMode = !_settings.DebugMode"><span></span><strong>Режим отладки</strong><small>-dbg</small></button>
+                        <button class="setting-toggle @ToggleClass(_settings.SoundWorkaround)" @onclick="() => _settings.SoundWorkaround = !_settings.SoundWorkaround"><span></span><strong>Обход проблем со звуком</strong><small>alsoft.ini</small></button>
+                        <button class="setting-toggle @ToggleClass(_settings.PrefetchSounds)" @onclick="() => _settings.PrefetchSounds = !_settings.PrefetchSounds"><span></span><strong>Предзагрузка звуков</strong><small>-prefetch_sounds</small></button>
+                        <button class="setting-toggle @ToggleClass(_settings.ResetUserLtx)" @onclick="() => _settings.ResetUserLtx = !_settings.ResetUserLtx"><span></span><strong>Стандартный user.ltx</strong><small>один раз при запуске</small></button>
+                        <button class="setting-toggle @ToggleClass(_settings.UseAvx)" @onclick="() => _settings.UseAvx = !_settings.UseAvx"><span></span><strong>Поддержка AVX</strong><small>AVX executable</small></button>
+                        <button class="setting-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span></span><strong>Реальный Чат всегда</strong><small>стартует из корня игры</small></button>
+                    </div>
+                    <div class="shadow-setting"><div><span>КАРТА ТЕНЕЙ</span><strong>@_settings.ShadowMapSize</strong></div><div><button @onclick="() => ChangeShadowMap(-1)">‹</button><button @onclick="() => ChangeShadowMap(1)">›</button></div></div>
+                    <div class="settings-footer"><span>Настройки записываются в совместимые <code>AnomalyLauncher.cfg</code> и <code>commandline.txt</code> перед запуском.</span><button class="primary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ</button></div>
+                </section>
+            }
+            else if (_section == "installation")
+            {
+                <section class="installation-hero section-block"><div><span class="eyebrow">ЛОКАЛЬНАЯ УСТАНОВКА</span><h2>Игра, модпак и канал обновлений</h2><p>Все пути выбираются вручную. Комплектные пакеты устанавливаются только после проверки подписи и SHA-256.</p></div><div class="install-media-state @(_bundledMedia.Available ? "ready" : null)"><span></span><strong>@(_bundledMedia.Available ? "INSTALL MEDIA READY" : "INSTALL MEDIA MISSING")</strong><small>@_bundledMedia.StatusText</small></div></section>
+                <section class="settings-grid installation-grid">
+                    <article class="setting-card section-block"><span>УСТАНОВКА ИГРЫ</span><h3>Комплектные бинарные пакеты</h3><code>@(_settings.InstallDestination ?? "Папка назначения не выбрана")</code><p>Лаунчер ищет подписанный комплект в <b>InstallMedia</b> рядом со своим EXE. Пакеты могут содержать bin, db, gamedata и остальные файлы сборки.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectInstallDestinationAsync">ВЫБРАТЬ ПАПКУ</button><button class="primary-button" disabled="@(!_bundledMedia.Available || string.IsNullOrWhiteSpace(_settings.InstallDestination) || _installBusy)" @onclick="InstallBundledGameAsync">@(_installBusy ? "УСТАНОВКА..." : "УСТАНОВИТЬ ИГРУ")</button></div>@if (_installProgress is not null) { <div class="install-progress"><div class="progress-track"><span style="width:@InstallProgressPercentage%"></span></div><small>@_installProgress.Message</small></div> }</article>
+                    <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
+                    <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
+                    <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
+                    <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
+                    <article class="setting-card section-block"><span>ЛОКАЛЬНЫЕ ДАННЫЕ</span><h3>Community API</h3><code>http://127.0.0.1:5249</code><p>Portable-запуск поднимает локальный API автоматически.</p><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
             }
         </div>
@@ -339,8 +396,26 @@
         new("community", "◉", "Сообщество", "СВЯЗЬ", "Чат и обратная связь"),
         new("updates", "⇣", "Обновления", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
         new("support", "◇", "Баг-репорт", "ПОДДЕРЖКА", "Обращение разработчику"),
-        new("settings", "⚙", "Настройки", "КОНФИГУРАЦИЯ", "Настройки приложения"),
+        new("installation", "⬡", "Установка", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
+        new("settings", "⚙", "Настройки", "КОНФИГУРАЦИЯ", "Параметры Anomaly"),
     ];
+
+    private static readonly LibrarySection[] LibrarySections =
+    [
+        new("dev", "01", "Личные проекты разработчиков", "Активное тестирование и сложные технические решения"),
+        new("modmakers", "02", "Новые проекты от модмейкеров", "Дополнительные проекты и разнообразие для игры"),
+        new("solutions", "03", "Решения спорных механик", "Опциональная отмена или упрощение отдельных решений"),
+    ];
+
+    private static readonly RendererOption[] Renderers =
+    [
+        new("DX11", "DirectX 11", "R4"),
+        new("DX10", "DirectX 10", "R2"),
+        new("DX9", "DirectX 9", "R1"),
+        new("DX8", "DirectX 8", "R0"),
+    ];
+
+    private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
 
     private string _section = "home";
     private bool _loading = true;
@@ -359,16 +434,31 @@
     private List<ChatMessage> _chatMessages = [];
     private string _chatText = string.Empty;
     private bool _chatConnected;
+    private string _librarySection = "dev";
+    private string _librarySearch = string.Empty;
+    private UpdateRollbackCandidate? _rollbackCandidate;
+    private BundledMediaStatus _bundledMedia = new(false, string.Empty, "Проверка установочного комплекта");
+    private bool _installBusy;
+    private UpdateProgress? _installProgress;
+    private List<string> _reportAttachments = [];
 
     private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
     private CommunityChannel CurrentChannel =>
         _feed?.Channels.FirstOrDefault(channel => channel.Id == _selectedChannelId)
         ?? new CommunityChannel(_selectedChannelId, _selectedChannelId, "Канал сообщества");
+    private IEnumerable<ModEntry> FilteredMods => (_feed?.Mods ?? [])
+        .Where(mod => string.Equals(mod.Section, _librarySection, StringComparison.OrdinalIgnoreCase))
+        .Where(mod => string.IsNullOrWhiteSpace(_librarySearch)
+                      || mod.Name.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
+                      || mod.Author.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)
+                      || mod.Tags.Any(tag => tag.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase)));
 
     protected override async Task OnInitializedAsync()
     {
         _settings = await Settings.LoadAsync();
         _installation = Launcher.DetectInstallation();
+        _bundledMedia = Installer.DetectMedia();
+        _rollbackCandidate = await Updater.GetLatestRollbackAsync();
         _feed = await Community.GetFeedAsync();
         Community.MessageReceived += OnChatMessageReceived;
         if (!Community.IsOffline && _feed.Channels.Count > 0)
@@ -386,6 +476,27 @@
     private async Task LaunchModpackAsync()
     {
         var result = await Launcher.LaunchModpackAsync();
+        _settings = Settings.Current.Copy();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task LaunchOriginalAsync()
+    {
+        var result = await Launcher.LaunchOriginalAsync();
+        _settings = Settings.Current.Copy();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task LaunchOnlineAsync()
+    {
+        var result = await Launcher.LaunchOnlineAsync();
+        _settings = Settings.Current.Copy();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private void LaunchRelayChat()
+    {
+        var result = Launcher.LaunchRelayChat();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -444,9 +555,69 @@
     {
         await Settings.SaveAsync(_settings);
         _settings = Settings.Current.Copy();
+        _installation = Launcher.DetectInstallation();
         _updateCheck = null;
         ShowToast("Настройки сохранены");
     }
+
+    private static string ToggleClass(bool enabled) => enabled ? "active" : string.Empty;
+
+    private void ChangeShadowMap(int direction)
+    {
+        var index = Array.IndexOf(ShadowMapSizes, _settings.ShadowMapSize);
+        if (index < 0)
+        {
+            index = 0;
+        }
+
+        _settings.ShadowMapSize = ShadowMapSizes[(index + direction + ShadowMapSizes.Length) % ShadowMapSizes.Length];
+    }
+
+    private async Task SelectInstallDestinationAsync()
+    {
+        var result = await Installer.SelectDestinationAsync();
+        _settings = Settings.Current.Copy();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task InstallBundledGameAsync()
+    {
+        if (_installBusy)
+        {
+            return;
+        }
+
+        _installBusy = true;
+        try
+        {
+            var progress = new Progress<UpdateProgress>(value =>
+            {
+                _installProgress = value;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            var result = await Installer.InstallAsync(progress);
+            _settings = Settings.Current.Copy();
+            _installation = Launcher.DetectInstallation();
+            ShowToast($"Игра установлена: {result.InstalledPackages} пакетов, {result.InstalledFiles} файлов");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or System.Security.Cryptography.CryptographicException
+                                           or AggregateException)
+        {
+            ShowToast(exception.Message, true);
+        }
+        finally
+        {
+            _installBusy = false;
+        }
+    }
+
+    private int InstallProgressPercentage => _installProgress is { TotalBytes: > 0 }
+        ? Math.Clamp((int)Math.Round(_installProgress.DownloadedBytes * 100d / _installProgress.TotalBytes), 0, 100)
+        : _installProgress?.Stage == UpdateStage.Completed ? 100 : 8;
 
     private async Task SelectChannelAsync(string channelId)
     {
@@ -528,7 +699,7 @@
         if (!UpdateConfigurationReady)
         {
             ShowToast("Сначала укажите manifest и публичный ключ", true);
-            SelectSection("settings");
+            SelectSection("installation");
             return;
         }
 
@@ -559,7 +730,29 @@
             });
             var result = await Updater.ApplyAsync(_updateCheck, progress, cancellationToken);
             _updateCheck = await Updater.CheckAsync(cancellationToken);
+            _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
             ShowToast($"Установлено пакетов: {result.InstalledPackages}, файлов: {result.InstalledFiles}");
+        });
+    }
+
+    private async Task RollbackLatestUpdateAsync()
+    {
+        if (_rollbackCandidate is null)
+        {
+            return;
+        }
+
+        await RunUpdateOperationAsync(async cancellationToken =>
+        {
+            var progress = new Progress<UpdateProgress>(value =>
+            {
+                _updateProgress = value;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            var result = await Updater.RollbackLatestAsync(progress, cancellationToken);
+            _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
+            _updateCheck = UpdateConfigurationReady ? await Updater.CheckAsync(cancellationToken) : null;
+            ShowToast($"Восстановлено файлов: {result.RestoredFiles}. Версия: {result.RestoredVersion ?? "исходная"}");
         });
     }
 
@@ -659,11 +852,15 @@
                 _report.Steps,
                 _report.Expected,
                 _report.Actual,
-                "0.2.0-alpha.1",
-                "Anthology 2.1",
-                null,
-                _report.Contact));
+                "0.3.0-alpha.1",
+                _report.GameVersion,
+                _report.LogExcerpt,
+                _report.Contact,
+                _report.SystemSpecs,
+                _report.EvidenceUrl),
+                _reportAttachments);
             _report = new BugReportForm();
+            _reportAttachments = [];
             ShowToast($"Обращение {receipt.Id} зарегистрировано");
         }
         catch (Exception exception) when (exception is HttpRequestException or InvalidDataException)
@@ -675,6 +872,43 @@
             _submittingReport = false;
         }
     }
+
+    private void SelectReportAttachments()
+    {
+        var selected = LauncherDialogService.SelectFiles(
+            "Приложите небольшие конфиги или логи",
+            "Файлы отчёта|*.ltx;*.xml;*.script;*.log;*.txt;*.json;*.cfg;*.ini;*.zip;*.7z|Все файлы (*.*)|*.*",
+            _reportAttachments.FirstOrDefault());
+        foreach (var path in selected)
+        {
+            var file = new FileInfo(path);
+            if (file.Length is <= 0 or > 5 * 1024 * 1024)
+            {
+                ShowToast($"Файл {file.Name} пуст или превышает 5 МБ", true);
+                continue;
+            }
+
+            if (_reportAttachments.Count >= 5)
+            {
+                ShowToast("Можно приложить не более 5 файлов", true);
+                break;
+            }
+
+            if (!_reportAttachments.Contains(path, StringComparer.OrdinalIgnoreCase))
+            {
+                _reportAttachments.Add(path);
+            }
+        }
+
+        if (_reportAttachments.Sum(path => new FileInfo(path).Length) > 15 * 1024 * 1024)
+        {
+            _reportAttachments = [];
+            ShowToast("Общий размер вложений превышает 15 МБ. Используйте ссылку на полный пакет.", true);
+        }
+    }
+
+    private void RemoveReportAttachment(string path) =>
+        _reportAttachments.RemoveAll(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase));
 
     private static string? GetSafeEmbedUrl(VideoItem video)
     {
@@ -703,6 +937,10 @@
 
     private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null);
 
+    private sealed record LibrarySection(string Id, string Index, string Title, string Description);
+
+    private sealed record RendererOption(string Id, string Label, string Code);
+
     private sealed class BugReportForm
     {
         [Required(ErrorMessage = "Укажите заголовок")]
@@ -718,6 +956,16 @@
         public string Expected { get; set; } = string.Empty;
 
         public string Actual { get; set; } = string.Empty;
+
+        public string LogExcerpt { get; set; } = string.Empty;
+
+        [Required]
+        public string GameVersion { get; set; } = "Anthology 2.1 · Standard · latest";
+
+        public string SystemSpecs { get; set; } = string.Empty;
+
+        [Url(ErrorMessage = "Укажите корректную HTTPS-ссылку")]
+        public string? EvidenceUrl { get; set; }
 
         public string? Contact { get; set; }
     }

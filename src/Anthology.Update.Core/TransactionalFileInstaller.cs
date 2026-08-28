@@ -4,6 +4,16 @@ namespace Anthology.Update.Core;
 
 public sealed record InstallResult(string OperationId, int InstalledFiles, string JournalPath);
 
+public sealed record RollbackResult(string OperationId, int RestoredFiles, string JournalPath);
+
+public sealed record FileTransactionEntry(string RelativePath, bool TargetExisted);
+
+public sealed record FileTransactionJournal(
+    string OperationId,
+    string Status,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<FileTransactionEntry> Files);
+
 public static class TransactionalFileInstaller
 {
     private static readonly JsonSerializerOptions JournalJsonOptions = new(JsonSerializerDefaults.Web)
@@ -48,7 +58,7 @@ public static class TransactionalFileInstaller
         var journalPath = Path.Combine(operationRoot, "journal.json");
         Directory.CreateDirectory(backupRoot);
 
-        var applied = new List<JournalEntry>();
+        var applied = new List<FileTransactionEntry>();
         try
         {
             foreach (var relativePath in normalizedPaths)
@@ -69,7 +79,7 @@ public static class TransactionalFileInstaller
                 var temporaryTarget = target + $".anthology-new-{operationId}";
                 File.Copy(source, temporaryTarget, true);
                 File.Move(temporaryTarget, target, true);
-                applied.Add(new JournalEntry(relativePath, targetExisted));
+                applied.Add(new FileTransactionEntry(relativePath, targetExisted));
                 await WriteJournalAsync(journalPath, operationId, "applying", applied, cancellationToken);
             }
 
@@ -79,29 +89,82 @@ public static class TransactionalFileInstaller
         catch
         {
             // A cancelled update must still restore the last known-good installation.
-            await RollbackAsync(targetRoot, backupRoot, applied, CancellationToken.None);
+            await RestoreFilesAsync(targetRoot, backupRoot, applied, CancellationToken.None);
             await WriteJournalAsync(journalPath, operationId, "rolled-back", applied, CancellationToken.None);
             throw;
         }
+    }
+
+    public static async Task<RollbackResult> RollbackAsync(
+        string targetRoot,
+        string stateRoot,
+        string operationId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stateRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
+        if (!string.Equals(Path.GetFileName(operationId), operationId, StringComparison.Ordinal)
+            || operationId is "." or "..")
+        {
+            throw new ArgumentException("Invalid transaction operation id.", nameof(operationId));
+        }
+
+        var operationRoot = Path.Combine(Path.GetFullPath(stateRoot), "transactions", operationId);
+        var journalPath = Path.Combine(operationRoot, "journal.json");
+        if (!File.Exists(journalPath))
+        {
+            throw new FileNotFoundException("Update rollback journal was not found.", journalPath);
+        }
+
+        FileTransactionJournal journal;
+        await using (var stream = new FileStream(
+                         journalPath,
+                         FileMode.Open,
+                         FileAccess.Read,
+                         FileShare.Read,
+                         32 * 1024,
+                         FileOptions.Asynchronous))
+        {
+            journal = await JsonSerializer.DeserializeAsync<FileTransactionJournal>(
+                stream,
+                JournalJsonOptions,
+                cancellationToken) ?? throw new InvalidDataException("Update rollback journal is invalid.");
+        }
+        if (!string.Equals(journal.OperationId, operationId, StringComparison.Ordinal)
+            || !string.Equals(journal.Status, "completed", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("This update transaction cannot be rolled back.");
+        }
+
+        var backupRoot = Path.Combine(operationRoot, "backup");
+        await RestoreFilesAsync(targetRoot, backupRoot, journal.Files, cancellationToken);
+        await WriteJournalAsync(
+            journalPath,
+            operationId,
+            "rolled-back-by-user",
+            journal.Files,
+            cancellationToken);
+        return new RollbackResult(operationId, journal.Files.Count, journalPath);
     }
 
     private static Task WriteJournalAsync(
         string path,
         string operationId,
         string status,
-        IReadOnlyList<JournalEntry> files,
+        IReadOnlyList<FileTransactionEntry> files,
         CancellationToken cancellationToken)
     {
         var payload = JsonSerializer.Serialize(
-            new Journal(operationId, status, DateTimeOffset.UtcNow, files.ToArray()),
+            new FileTransactionJournal(operationId, status, DateTimeOffset.UtcNow, files.ToArray()),
             JournalJsonOptions);
         return File.WriteAllTextAsync(path, payload, cancellationToken);
     }
 
-    private static Task RollbackAsync(
+    private static Task RestoreFilesAsync(
         string targetRoot,
         string backupRoot,
-        IReadOnlyList<JournalEntry> applied,
+        IReadOnlyList<FileTransactionEntry> applied,
         CancellationToken cancellationToken)
     {
         foreach (var entry in applied.Reverse())
@@ -122,12 +185,4 @@ public static class TransactionalFileInstaller
 
         return Task.CompletedTask;
     }
-
-    private sealed record Journal(
-        string OperationId,
-        string Status,
-        DateTimeOffset UpdatedAt,
-        IReadOnlyList<JournalEntry> Files);
-
-    private sealed record JournalEntry(string RelativePath, bool TargetExisted);
 }

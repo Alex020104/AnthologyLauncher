@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.Cryptography;
 using Anthology.Contracts;
 
 namespace Anthology.Community.Api;
@@ -11,6 +12,7 @@ public sealed class CommunityState
     private readonly Dictionary<string, StoredReport> _reports = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<ChatMessage> _messages = new();
     private readonly string _statePath;
+    private readonly string _attachmentsRoot;
 
     public CommunityState()
     {
@@ -23,6 +25,7 @@ public sealed class CommunityState
         }
 
         _statePath = Path.Combine(Path.GetFullPath(dataRoot), "Community", "state.json");
+        _attachmentsRoot = Path.Combine(Path.GetDirectoryName(_statePath)!, "attachments");
         var persisted = LoadState();
         _polls = _seed.Polls.ToDictionary(
             poll => poll.Id,
@@ -93,16 +96,124 @@ public sealed class CommunityState
             throw new ArgumentException("Баг-репорт превышает допустимый размер.");
         }
 
+        if (!string.IsNullOrWhiteSpace(report.EvidenceUrl)
+            && (!Uri.TryCreate(report.EvidenceUrl, UriKind.Absolute, out var evidenceUri)
+                || evidenceUri.Scheme != Uri.UriSchemeHttps
+                || report.EvidenceUrl.Length > 2048))
+        {
+            throw new ArgumentException("Ссылка на полный пакет должна быть корректной HTTPS-ссылкой.");
+        }
+
         lock (_stateLock)
         {
             var receipt = new BugReportReceipt(
                 $"BUG-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
                 DateTimeOffset.UtcNow,
                 "new");
-            _reports[receipt.Id] = new StoredReport(receipt, report);
+            _reports[receipt.Id] = new StoredReport(receipt, report, []);
             SaveState();
             return receipt;
         }
+    }
+
+    public async Task<IReadOnlyList<BugReportAttachment>> SaveAttachmentsAsync(
+        string reportId,
+        IFormFileCollection files,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reportId);
+        ArgumentNullException.ThrowIfNull(files);
+        lock (_stateLock)
+        {
+            if (!_reports.ContainsKey(reportId))
+            {
+                throw new KeyNotFoundException(reportId);
+            }
+        }
+
+        if (files.Count is < 1 or > 5)
+        {
+            throw new ArgumentException("Можно приложить от 1 до 5 небольших файлов.");
+        }
+
+        const long maximumFileSize = 5 * 1024 * 1024;
+        const long maximumTotalSize = 15 * 1024 * 1024;
+        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".ltx", ".xml", ".script", ".log", ".txt", ".json", ".cfg", ".ini", ".zip", ".7z",
+        };
+        if (files.Sum(file => file.Length) > maximumTotalSize)
+        {
+            throw new ArgumentException("Общий размер вложений превышает 15 МБ.");
+        }
+
+        var reportRoot = Path.Combine(_attachmentsRoot, reportId);
+        Directory.CreateDirectory(reportRoot);
+        var saved = new List<BugReportAttachment>();
+        foreach (var file in files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (file.Length is <= 0 or > maximumFileSize)
+            {
+                throw new ArgumentException($"Файл '{file.FileName}' пуст или превышает 5 МБ.");
+            }
+
+            var fileName = Path.GetFileName(file.FileName);
+            if (string.IsNullOrWhiteSpace(fileName)
+                || !allowedExtensions.Contains(Path.GetExtension(fileName)))
+            {
+                throw new ArgumentException($"Тип файла '{file.FileName}' не разрешён.");
+            }
+
+            var safeName = string.Concat(fileName.Select(character =>
+                Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
+            var destination = Path.Combine(reportRoot, safeName);
+            if (File.Exists(destination))
+            {
+                destination = Path.Combine(
+                    reportRoot,
+                    $"{Path.GetFileNameWithoutExtension(safeName)}-{Guid.NewGuid().ToString("N")[..8]}{Path.GetExtension(safeName)}");
+            }
+
+            var temporary = destination + $".tmp-{Guid.NewGuid():N}";
+            try
+            {
+                await using (var source = file.OpenReadStream())
+                await using (var target = new FileStream(
+                                 temporary,
+                                 FileMode.CreateNew,
+                                 FileAccess.Write,
+                                 FileShare.None,
+                                 64 * 1024,
+                                 FileOptions.Asynchronous | FileOptions.SequentialScan))
+                {
+                    await source.CopyToAsync(target, cancellationToken);
+                    await target.FlushAsync(cancellationToken);
+                }
+
+                File.Move(temporary, destination);
+                await using var hashStream = new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var sha256 = Convert.ToHexString(await SHA256.HashDataAsync(hashStream, cancellationToken)).ToLowerInvariant();
+                saved.Add(new BugReportAttachment(Path.GetFileName(destination), file.Length, sha256));
+            }
+            finally
+            {
+                if (File.Exists(temporary))
+                {
+                    File.Delete(temporary);
+                }
+            }
+        }
+
+        lock (_stateLock)
+        {
+            var stored = _reports[reportId];
+            var attachments = (stored.Attachments ?? []).Concat(saved).ToArray();
+            _reports[reportId] = stored with { Attachments = attachments };
+            SaveState();
+        }
+
+        return saved;
     }
 
     public bool ChannelExists(string channelId) =>
@@ -253,5 +364,8 @@ public sealed class CommunityState
         Dictionary<string, int> Votes,
         IReadOnlyList<string> Voters);
 
-    private sealed record StoredReport(BugReportReceipt Receipt, BugReportRequest Report);
+    private sealed record StoredReport(
+        BugReportReceipt Receipt,
+        BugReportRequest Report,
+        IReadOnlyList<BugReportAttachment>? Attachments = null);
 }

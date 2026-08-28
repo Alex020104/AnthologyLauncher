@@ -121,6 +121,7 @@ public sealed class CommunityClient(
 
     public async Task<BugReportReceipt> SubmitBugReportAsync(
         BugReportRequest report,
+        IReadOnlyList<string>? attachmentPaths = null,
         CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.PostAsJsonAsync(
@@ -129,8 +130,52 @@ public sealed class CommunityClient(
             ManifestJson.Options,
             cancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<BugReportReceipt>(ManifestJson.Options, cancellationToken)
+        var receipt = await response.Content.ReadFromJsonAsync<BugReportReceipt>(ManifestJson.Options, cancellationToken)
             ?? throw new InvalidDataException("Сервер не вернул номер обращения.");
+        if (attachmentPaths is { Count: > 0 })
+        {
+            await UploadBugReportAttachmentsAsync(receipt.Id, attachmentPaths, cancellationToken);
+        }
+
+        return receipt;
+    }
+
+    private async Task UploadBugReportAttachmentsAsync(
+        string reportId,
+        IReadOnlyList<string> attachmentPaths,
+        CancellationToken cancellationToken)
+    {
+        using var content = new MultipartFormDataContent();
+        var streams = new List<Stream>();
+        try
+        {
+            foreach (var path in attachmentPaths)
+            {
+                var fullPath = Path.GetFullPath(path);
+                var stream = new FileStream(
+                    fullPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    64 * 1024,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                streams.Add(stream);
+                content.Add(new StreamContent(stream), "files", Path.GetFileName(fullPath));
+            }
+
+            using var response = await httpClient.PostAsync(
+                new Uri(_baseUri, $"api/v1/bug-reports/{Uri.EscapeDataString(reportId)}/attachments"),
+                content,
+                cancellationToken);
+            response.EnsureSuccessStatusCode();
+        }
+        finally
+        {
+            foreach (var stream in streams)
+            {
+                await stream.DisposeAsync();
+            }
+        }
     }
 
     private static Uri GetBaseUri()

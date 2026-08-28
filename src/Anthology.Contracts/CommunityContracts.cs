@@ -31,7 +31,8 @@ public sealed record ModEntry(
     string Summary,
     string Version,
     IReadOnlyList<string> Tags,
-    string? CoverUrl = null);
+    string? CoverUrl = null,
+    string Section = "modmakers");
 
 public sealed record PollItem(
     string Id,
@@ -64,12 +65,19 @@ public sealed record BugReportRequest(
     string LauncherVersion,
     string GameVersion,
     string? LogExcerpt,
-    string? Contact);
+    string? Contact,
+    string? SystemSpecs = null,
+    string? EvidenceUrl = null);
 
 public sealed record BugReportReceipt(
     string Id,
     DateTimeOffset CreatedAt,
     string Status);
+
+public sealed record BugReportAttachment(
+    string FileName,
+    long Size,
+    string Sha256);
 
 public sealed record ChatMessage(
     string Id,

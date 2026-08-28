@@ -4,6 +4,7 @@
         xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Wpf;assembly=Microsoft.AspNetCore.Components.WebView.Wpf"
         xmlns:local="clr-namespace:Anthology.Launcher"
         Title="A.N.T.H.O.L.O.G.Y Next"
+        Icon="Assets/launcher.ico"
         Width="1440"
         Height="900"
         MinWidth="1100"

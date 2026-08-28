@@ -41,6 +41,42 @@ public sealed class LocalFileMirrorResolver : IMirrorResolver
     }
 }
 
+public sealed class BundleFileMirrorResolver
+    : IMirrorResolver
+{
+    private readonly string _bundleRoot;
+
+    public BundleFileMirrorResolver(string bundleRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundleRoot);
+        _bundleRoot = Path.GetFullPath(bundleRoot);
+    }
+
+    public bool CanResolve(MirrorManifest mirror) =>
+        string.Equals(mirror.Provider, "bundle-file", StringComparison.OrdinalIgnoreCase);
+
+    public ValueTask<Uri> ResolveAsync(MirrorManifest mirror, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var uri = new Uri(mirror.Url, UriKind.Absolute);
+        if (!string.Equals(uri.Scheme, "bundle", StringComparison.OrdinalIgnoreCase)
+            || !string.IsNullOrEmpty(uri.Query)
+            || !string.IsNullOrEmpty(uri.Fragment))
+        {
+            throw new InvalidDataException("bundle-file mirror must use a clean bundle:/// relative URI.");
+        }
+
+        var relative = Uri.UnescapeDataString(uri.AbsolutePath).TrimStart('/');
+        if (!string.IsNullOrWhiteSpace(uri.Host))
+        {
+            relative = $"{uri.Host}/{relative}";
+        }
+
+        var path = PathSafety.ResolveUnderRoot(_bundleRoot, relative);
+        return ValueTask.FromResult(new Uri(path));
+    }
+}
+
 public sealed class YandexDiskMirrorResolver(HttpClient httpClient) : IMirrorResolver
 {
     public bool CanResolve(MirrorManifest mirror) =>

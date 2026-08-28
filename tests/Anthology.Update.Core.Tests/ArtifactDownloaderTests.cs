@@ -63,6 +63,40 @@ public sealed class ArtifactDownloaderTests : IDisposable
         Assert.Equal(payload, await File.ReadAllBytesAsync(destination));
     }
 
+    [Fact]
+    public async Task BundleFileMirrorStaysInsideInstallMediaRoot()
+    {
+        var payload = "bundled install payload"u8.ToArray();
+        var mediaRoot = Path.Combine(_root, "InstallMedia");
+        var packagesRoot = Path.Combine(mediaRoot, "packages");
+        Directory.CreateDirectory(packagesRoot);
+        await File.WriteAllBytesAsync(Path.Combine(packagesRoot, "base.zip"), payload);
+        var destination = Path.Combine(_root, "bundle-download.zip");
+        var package = new PackageManifest(
+            "bundle-package",
+            "Bundle package",
+            "1.0.0",
+            PackageKind.Game,
+            "game",
+            "zip",
+            payload.Length,
+            Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(),
+            [new MirrorManifest("bundle-file", "bundle:///packages/base.zip", 10)],
+            ["bin/placeholder.txt"]);
+        using var client = new HttpClient(new RejectHttpHandler());
+        var downloader = new ArtifactDownloader(client, [new BundleFileMirrorResolver(mediaRoot)]);
+
+        var result = await downloader.DownloadAsync(package, destination);
+
+        Assert.Equal("bundle-file", result.Provider);
+        Assert.Equal(payload, await File.ReadAllBytesAsync(destination));
+        await Assert.ThrowsAsync<AggregateException>(() => new ArtifactDownloader(
+            client,
+            [new BundleFileMirrorResolver(mediaRoot)]).DownloadAsync(
+            package with { Mirrors = [new MirrorManifest("bundle-file", "bundle:///../outside.zip")] },
+            Path.Combine(_root, "unsafe-bundle.zip")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

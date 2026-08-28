@@ -6,9 +6,13 @@ namespace Anthology.Launcher;
 
 public sealed class LauncherSettings
 {
+    private const string DefaultRenderer = "DX11";
+
     public string? GameRoot { get; set; }
 
     public string? ModpackRoot { get; set; }
+
+    public string? InstallDestination { get; set; }
 
     public string ManifestSource { get; set; } = string.Empty;
 
@@ -20,15 +24,40 @@ public sealed class LauncherSettings
 
     public string UserId { get; set; } = $"local-{Guid.NewGuid():N}";
 
+    public string Renderer { get; set; } = DefaultRenderer;
+
+    public bool DebugMode { get; set; }
+
+    public bool SoundWorkaround { get; set; }
+
+    public bool PrefetchSounds { get; set; } = true;
+
+    public bool ResetUserLtx { get; set; }
+
+    public bool UseAvx { get; set; } = true;
+
+    public bool RelayChatAlways { get; set; } = true;
+
+    public int ShadowMapSize { get; set; } = 1536;
+
     public LauncherSettings Copy() => new()
     {
         GameRoot = GameRoot,
         ModpackRoot = ModpackRoot,
+        InstallDestination = InstallDestination,
         ManifestSource = ManifestSource,
         PublicKeyPath = PublicKeyPath,
         UpdateChannel = UpdateChannel,
         CommunityNickname = CommunityNickname,
         UserId = UserId,
+        Renderer = Renderer,
+        DebugMode = DebugMode,
+        SoundWorkaround = SoundWorkaround,
+        PrefetchSounds = PrefetchSounds,
+        ResetUserLtx = ResetUserLtx,
+        UseAvx = UseAvx,
+        RelayChatAlways = RelayChatAlways,
+        ShadowMapSize = ShadowMapSize,
     };
 }
 
@@ -123,6 +152,7 @@ public sealed class LauncherSettingsStore : IDisposable
     {
         settings.GameRoot = NormalizeOptionalPath(settings.GameRoot);
         settings.ModpackRoot = NormalizeOptionalPath(settings.ModpackRoot);
+        settings.InstallDestination = NormalizeOptionalPath(settings.InstallDestination);
         settings.PublicKeyPath = NormalizeOptionalPath(settings.PublicKeyPath) ?? string.Empty;
         settings.ManifestSource = settings.ManifestSource.Trim();
         settings.UpdateChannel = string.IsNullOrWhiteSpace(settings.UpdateChannel)
@@ -134,6 +164,12 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.UserId = string.IsNullOrWhiteSpace(settings.UserId)
             ? $"local-{Guid.NewGuid():N}"
             : settings.UserId.Trim();
+        settings.Renderer = settings.Renderer.ToUpperInvariant() is "DX11" or "DX10" or "DX9" or "DX8"
+            ? settings.Renderer.ToUpperInvariant()
+            : "DX11";
+        settings.ShadowMapSize = settings.ShadowMapSize is 1536 or 2048 or 2560 or 3072 or 4096
+            ? settings.ShadowMapSize
+            : 1536;
     }
 
     private static string? NormalizeOptionalPath(string? path) =>

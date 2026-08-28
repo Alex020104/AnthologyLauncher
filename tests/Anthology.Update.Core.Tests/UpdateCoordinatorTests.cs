@@ -36,6 +36,18 @@ public sealed class UpdateCoordinatorTests : IDisposable
         Assert.Equal("working = true", await File.ReadAllTextAsync(Path.Combine(gameRoot, relativePath)));
         var secondCheck = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
         Assert.False(secondCheck.HasUpdates);
+
+        var candidate = await UpdateCoordinator.GetLatestRollbackAsync(stateRoot);
+        Assert.NotNull(candidate);
+        Assert.Equal("1.0.0", candidate.ToVersion);
+        var rollback = await UpdateCoordinator.RollbackLatestAsync(
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["game"] = gameRoot },
+            stateRoot);
+
+        Assert.Equal("anthology-core", rollback.PackageId);
+        Assert.False(File.Exists(Path.Combine(gameRoot, relativePath)));
+        var afterRollback = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
+        Assert.True(afterRollback.HasUpdates);
     }
 
     [Fact]

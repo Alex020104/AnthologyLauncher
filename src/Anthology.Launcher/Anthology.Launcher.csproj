@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>../../assets/launcher_radioactive_icon_round.ico</ApplicationIcon>
     <AssemblyName>AnthologyLauncher.Next</AssemblyName>
-    <Version>0.2.0-alpha.1</Version>
+    <Version>0.3.0-alpha.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,5 +18,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Anthology.Contracts\Anthology.Contracts.csproj" />
     <ProjectReference Include="..\Anthology.Update.Core\Anthology.Update.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\assets\launcher_radioactive_icon_round.ico">
+      <Link>Assets\launcher.ico</Link>
+    </Resource>
   </ItemGroup>
 </Project>

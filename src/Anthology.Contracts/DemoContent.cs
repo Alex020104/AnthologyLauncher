@@ -17,8 +17,9 @@ public static class DemoContent
             ],
             Mods:
             [
-                new("rak", "R.A.K Weapon Pack", "Anthology Team", "Оружейный модуль и адаптации для Anthology.", "OBT", ["оружие", "3DSS", "PiP"]),
-                new("performance", "Anthology Performance", "Anthology Team", "Набор исправлений производительности и стабильности.", "Next", ["движок", "FPS", "стабильность"]),
+                new("rak", "R.A.K Weapon Pack", "Anthology Team", "Оружейный модуль и адаптации для Anthology.", "OBT", ["оружие", "3DSS", "PiP"], Section: "dev"),
+                new("performance", "Anthology Performance", "Anthology Team", "Набор исправлений производительности и стабильности.", "Next", ["движок", "FPS", "стабильность"], Section: "modmakers"),
+                new("classic-balance", "Classic Balance", "Anthology Community", "Альтернативное решение спорных механик без изменения основной сборки.", "1.0", ["баланс", "опционально"], Section: "solutions"),
             ],
             Polls:
             [

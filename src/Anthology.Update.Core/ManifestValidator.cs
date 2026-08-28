@@ -132,10 +132,16 @@ public static partial class ManifestValidator
             }
 
             var localFile = string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
+            var bundleFile = string.Equals(mirror.Provider, "bundle-file", StringComparison.OrdinalIgnoreCase);
             if (!Uri.TryCreate(mirror.Url, UriKind.Absolute, out var uri)
                 || (localFile
                     ? !uri.IsFile
-                    : uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
+                    : bundleFile
+                        ? !string.Equals(uri.Scheme, "bundle", StringComparison.OrdinalIgnoreCase)
+                          || !string.IsNullOrEmpty(uri.Query)
+                          || !string.IsNullOrEmpty(uri.Fragment)
+                          || !string.IsNullOrEmpty(uri.UserInfo)
+                        : uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
             {
                 errors.Add($"Package '{package.Id}' has unsafe mirror URL '{mirror.Url}'.");
             }

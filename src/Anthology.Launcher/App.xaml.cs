@@ -19,7 +19,7 @@ public partial class App : System.Windows.Application
 #endif
         services.AddSingleton(new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(10),
+            Timeout = System.Threading.Timeout.InfiniteTimeSpan,
             DefaultRequestVersion = new Version(2, 0),
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower,
         });
@@ -27,6 +27,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<CommunityClient>();
         services.AddSingleton<LauncherBridge>();
         services.AddSingleton<LauncherUpdateService>();
+        services.AddSingleton<BundledInstallerService>();
 
         _serviceProvider = services.BuildServiceProvider();
         Resources["services"] = _serviceProvider;

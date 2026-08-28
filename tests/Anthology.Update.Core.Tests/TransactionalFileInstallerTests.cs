@@ -46,6 +46,34 @@ public sealed class TransactionalFileInstallerTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(state, "transactions")));
     }
 
+    [Fact]
+    public async Task CompletedTransactionCanBeRolledBackByUser()
+    {
+        var staged = Path.Combine(_root, "rollback-staged");
+        var target = Path.Combine(_root, "rollback-target");
+        var state = Path.Combine(_root, "rollback-state");
+        Directory.CreateDirectory(staged);
+        Directory.CreateDirectory(target);
+        await File.WriteAllTextAsync(Path.Combine(staged, "existing.ltx"), "updated");
+        await File.WriteAllTextAsync(Path.Combine(staged, "new.ltx"), "new");
+        await File.WriteAllTextAsync(Path.Combine(target, "existing.ltx"), "previous");
+
+        var install = await TransactionalFileInstaller.ApplyAsync(
+            staged,
+            target,
+            state,
+            ["existing.ltx", "new.ltx"]);
+        var rollback = await TransactionalFileInstaller.RollbackAsync(
+            target,
+            state,
+            install.OperationId);
+
+        Assert.Equal(2, rollback.RestoredFiles);
+        Assert.Equal("previous", await File.ReadAllTextAsync(Path.Combine(target, "existing.ltx")));
+        Assert.False(File.Exists(Path.Combine(target, "new.ltx")));
+        Assert.Contains("rolled-back-by-user", await File.ReadAllTextAsync(rollback.JournalPath));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

@@ -61,6 +61,36 @@ api.MapPost("/bug-reports", (BugReportRequest report, CommunityState state) =>
         return Results.BadRequest(new { error = exception.Message });
     }
 });
+api.MapPost("/bug-reports/{reportId}/attachments", async (
+    string reportId,
+    HttpRequest request,
+    CommunityState state,
+    CancellationToken cancellationToken) =>
+{
+    if (!request.HasFormContentType)
+    {
+        return Results.BadRequest(new { error = "Ожидается multipart/form-data." });
+    }
+
+    try
+    {
+        var form = await request.ReadFormAsync(cancellationToken);
+        var attachments = await state.SaveAttachmentsAsync(reportId, form.Files, cancellationToken);
+        return Results.Ok(attachments);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound();
+    }
+    catch (ArgumentException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+    catch (InvalidDataException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+});
 
 app.MapHub<CommunityHub>("/hubs/community");
 app.Run();

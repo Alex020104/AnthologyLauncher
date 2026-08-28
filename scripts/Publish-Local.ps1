@@ -36,5 +36,11 @@ foreach ($item in $projects) {
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\Start-AnthologyLauncherNext.ps1") -Destination $destinationRoot -Force
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\Launch Anthology Next.cmd") -Destination $destinationRoot -Force
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\README.txt") -Destination $destinationRoot -Force
+$installMediaSource = Join-Path $sourceRoot "deploy\InstallMedia"
+$installMediaDestination = Join-Path $destinationRoot "App\InstallMedia"
+if (Test-Path -LiteralPath $installMediaSource) {
+    New-Item -ItemType Directory -Path $installMediaDestination -Force | Out-Null
+    Copy-Item -Path (Join-Path $installMediaSource "*") -Destination $installMediaDestination -Recurse -Force
+}
 
 Write-Host "Published: $destinationRoot"

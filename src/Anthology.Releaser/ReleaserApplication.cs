@@ -206,6 +206,7 @@ public static class ReleaserApplication
         Console.WriteLine("    --private-key key.pem --key-id production-01");
         Console.WriteLine("    --mirror github=https://... --mirror yandex-disk=https://disk.yandex.ru/d/...");
         Console.WriteLine("    [--mirror google-drive=https://...] [--mirror local-file=file:///E:/...]");
+        Console.WriteLine("    [--mirror bundle-file=bundle:///packages/base.zip --channel install]");
         Console.WriteLine("    [--channel next] [--force]");
     }
 

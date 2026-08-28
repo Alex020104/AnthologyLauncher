@@ -5,12 +5,12 @@ namespace Anthology.Launcher;
 
 public static class LauncherDialogService
 {
-    public static string? SelectFolder(string description, string? initialPath)
+    public static string? SelectFolder(string description, string? initialPath, bool allowCreate = false)
     {
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
             Description = description,
-            ShowNewFolderButton = false,
+            ShowNewFolderButton = allowCreate,
             SelectedPath = Directory.Exists(initialPath) ? initialPath : string.Empty,
             UseDescriptionForTitle = true,
         };
@@ -36,5 +36,24 @@ public static class LauncherDialogService
         }
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    public static IReadOnlyList<string> SelectFiles(string title, string filter, string? initialPath)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = title,
+            Filter = filter,
+            CheckFileExists = true,
+            Multiselect = true,
+        };
+        if (!string.IsNullOrWhiteSpace(initialPath))
+        {
+            dialog.InitialDirectory = File.Exists(initialPath)
+                ? Path.GetDirectoryName(initialPath)
+                : Directory.Exists(initialPath) ? initialPath : null;
+        }
+
+        return dialog.ShowDialog() == true ? dialog.FileNames : [];
     }
 }
