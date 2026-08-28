@@ -36,7 +36,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.4.0 ALPHA · LOCAL DEV</div>
+        <div class="version-line">LAUNCHER NEXT 0.4.1 ALPHA · LOCAL DEV</div>
     </aside>
 
     <main class="workspace">
@@ -53,7 +53,8 @@
             </div>
         </header>
 
-        <div class="content-scroll">
+        <div class="content-frame">
+        <div class="content-scroll" id="launcher-content-scroll">
             @if (_loading)
             {
                 <section class="loading-grid">
@@ -452,19 +453,68 @@
             }
             else if (_section == "settings")
             {
-                <section class="anomaly-settings section-block">
-                    <div class="settings-heading"><div><span class="eyebrow">ANOMALY 1.5.3</span><h2>Параметры запуска</h2></div><p>Движок здесь не обновляется: вкладка управляет только штатными параметрами запуска Anomaly.</p></div>
-                    <div class="renderer-setting"><span>РЕНДЕР</span><div class="renderer-grid">@foreach (var renderer in Renderers) { var currentRenderer = renderer; <button class="@(_settings.Renderer == currentRenderer.Id ? "active" : null)" @onclick="() => _settings.Renderer = currentRenderer.Id"><strong>@currentRenderer.Label</strong><small>@currentRenderer.Code</small></button> }</div></div>
-                    <div class="anomaly-options">
-                        <button class="setting-toggle @ToggleClass(_settings.DebugMode)" @onclick="() => _settings.DebugMode = !_settings.DebugMode"><span></span><strong>Режим отладки</strong><small>-dbg</small></button>
-                        <button class="setting-toggle @ToggleClass(_settings.SoundWorkaround)" @onclick="() => _settings.SoundWorkaround = !_settings.SoundWorkaround"><span></span><strong>Обход проблем со звуком</strong><small>alsoft.ini</small></button>
-                        <button class="setting-toggle @ToggleClass(_settings.PrefetchSounds)" @onclick="() => _settings.PrefetchSounds = !_settings.PrefetchSounds"><span></span><strong>Предзагрузка звуков</strong><small>-prefetch_sounds</small></button>
-                        <button class="setting-toggle @ToggleClass(_settings.ResetUserLtx)" @onclick="() => _settings.ResetUserLtx = !_settings.ResetUserLtx"><span></span><strong>Стандартный user.ltx</strong><small>один раз при запуске</small></button>
-                        <button class="setting-toggle @ToggleClass(_settings.UseAvx)" @onclick="() => _settings.UseAvx = !_settings.UseAvx"><span></span><strong>Поддержка AVX</strong><small>AVX executable</small></button>
-                        <button class="setting-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span></span><strong>Реальный Чат всегда</strong><small>подключение заранее при старте лаунчера</small></button>
+                <section class="settings-profile-hero section-block panel-grid-texture">
+                    <div class="settings-profile-copy">
+                        <span class="eyebrow">ANOMALY RUNTIME CONTROL</span>
+                        <h2>Соберите свой<br /><em>профиль запуска.</em></h2>
+                        <p>Здесь только параметры игры. Установка, обновления и подключение MO2 вынесены в собственные разделы Anthology Next.</p>
+                        <div class="settings-profile-tags"><span>@_settings.Renderer</span><span>@(_settings.UseAvx ? "AVX ON" : "AVX OFF")</span><span>SMAP @_settings.ShadowMapSize</span><span>@(_settings.RelayChatAlways ? "CHAT READY" : "CHAT MANUAL")</span></div>
                     </div>
-                    <div class="shadow-setting"><div><span>КАРТА ТЕНЕЙ</span><strong>@_settings.ShadowMapSize</strong></div><div><button @onclick="() => ChangeShadowMap(-1)">‹</button><button @onclick="() => ChangeShadowMap(1)">›</button></div></div>
-                    <div class="settings-footer"><span>Настройки записываются в совместимые <code>AnomalyLauncher.cfg</code> и <code>commandline.txt</code> перед запуском.</span><button class="primary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ</button></div>
+                    <div class="settings-profile-terminal">
+                        <span>ТЕКУЩИЙ ПРОФИЛЬ</span>
+                        <strong>@LaunchProfileCode</strong>
+                        <div><small>ИСПОЛНЯЕМЫЙ ФАЙЛ</small><code>@SelectedExecutableName</code></div>
+                        <div><small>КОРЕНЬ ИГРЫ</small><code>@(_settings.GameRoot ?? "НЕ ПОДКЛЮЧЁН")</code></div>
+                        <i></i>
+                    </div>
+                </section>
+
+                <section class="settings-next-grid">
+                    <article class="settings-module graphics-module section-block">
+                        <div class="settings-module-heading"><span class="module-index">01</span><div><span class="eyebrow">ГРАФИЧЕСКИЙ КОНТУР</span><h3>Рендер и карта теней</h3></div><small>Выберите основу запуска</small></div>
+                        <div class="next-renderer-grid">
+                            @foreach (var renderer in Renderers)
+                            {
+                                var currentRenderer = renderer;
+                                <button class="next-renderer @(_settings.Renderer == currentRenderer.Id ? "active" : null)" @onclick="() => _settings.Renderer = currentRenderer.Id">
+                                    <span>@currentRenderer.Code</span><div><strong>@currentRenderer.Label</strong><small>@RendererDescription(currentRenderer.Id)</small></div><i>@(_settings.Renderer == currentRenderer.Id ? "●" : "○")</i>
+                                </button>
+                            }
+                        </div>
+                        <div class="next-shadow-control">
+                            <div><span class="eyebrow">SHADOW MAP</span><strong>@_settings.ShadowMapSize</strong><small>Разрешение карты теней</small></div>
+                            <div class="shadow-scale"><span style="width:@ShadowMapPercentage%"></span></div>
+                            <div class="shadow-buttons"><button @onclick="() => ChangeShadowMap(-1)">−</button><button @onclick="() => ChangeShadowMap(1)">＋</button></div>
+                        </div>
+                    </article>
+
+                    <article class="settings-module system-module section-block">
+                        <div class="settings-module-heading"><span class="module-index">02</span><div><span class="eyebrow">СИСТЕМА</span><h3>Совместимость и диагностика</h3></div></div>
+                        <div class="next-option-stack">
+                            <button class="next-option @ToggleClass(_settings.UseAvx)" @onclick="() => _settings.UseAvx = !_settings.UseAvx"><span class="option-glyph">AX</span><div><strong>Инструкции AVX</strong><small>Выбирает AVX-версию исполняемого файла</small></div><em>@OptionState(_settings.UseAvx)</em></button>
+                            <button class="next-option @ToggleClass(_settings.DebugMode)" @onclick="() => _settings.DebugMode = !_settings.DebugMode"><span class="option-glyph">DB</span><div><strong>Диагностический режим</strong><small>Добавляет ключ -dbg для расширенных логов</small></div><em>@OptionState(_settings.DebugMode)</em></button>
+                            <button class="next-option @ToggleClass(_settings.ResetUserLtx)" @onclick="() => _settings.ResetUserLtx = !_settings.ResetUserLtx"><span class="option-glyph">UL</span><div><strong>Сбросить user.ltx</strong><small>Одноразовое восстановление при следующем запуске</small></div><em>@(_settings.ResetUserLtx ? "ОЖИДАЕТ" : "НЕ НУЖНО")</em></button>
+                        </div>
+                    </article>
+
+                    <article class="settings-module audio-module section-block">
+                        <div class="settings-module-heading"><span class="module-index">03</span><div><span class="eyebrow">АУДИО</span><h3>Загрузка и совместимость звука</h3></div></div>
+                        <div class="next-option-stack">
+                            <button class="next-option @ToggleClass(_settings.PrefetchSounds)" @onclick="() => _settings.PrefetchSounds = !_settings.PrefetchSounds"><span class="option-glyph">PF</span><div><strong>Предзагрузка звуков</strong><small>Передаёт Anomaly параметр -prefetch_sounds</small></div><em>@OptionState(_settings.PrefetchSounds)</em></button>
+                            <button class="next-option @ToggleClass(_settings.SoundWorkaround)" @onclick="() => _settings.SoundWorkaround = !_settings.SoundWorkaround"><span class="option-glyph">AL</span><div><strong>Обход проблем OpenAL</strong><small>Переключает совместимое состояние alsoft.ini</small></div><em>@OptionState(_settings.SoundWorkaround)</em></button>
+                        </div>
+                    </article>
+
+                    <article class="settings-module service-module section-block">
+                        <div class="settings-module-heading"><span class="module-index">04</span><div><span class="eyebrow">ИГРОВОЙ МОСТ</span><h3>Реальный чат</h3></div><span class="status-dot @(_relayChatRunning ? "online" : "warning")"></span></div>
+                        <div class="service-orbit"><span>⌁</span><div><strong>@(_relayChatRunning ? "Мост уже подключён" : "Мост ожидает запуска")</strong><small>Чат работает из корня игры и остаётся доступен внутри Anomaly.</small></div></div>
+                        <button class="next-option service-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span class="option-glyph">RC</span><div><strong>Подключать заранее</strong><small>Запускать Реальный чат вместе с лаунчером</small></div><em>@(_settings.RelayChatAlways ? "АВТО" : "ВРУЧНУЮ")</em></button>
+                    </article>
+                </section>
+
+                <section class="settings-save-dock section-block">
+                    <div><span class="eyebrow">ПРИМЕНЕНИЕ ПРОФИЛЯ</span><strong>@LaunchProfileCode</strong><small>Параметры будут записаны в совместимые <code>AnomalyLauncher.cfg</code> и <code>commandline.txt</code> перед запуском игры.</small></div>
+                    <div><span class="settings-ready-mark">✓</span><button class="primary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ПРОФИЛЬ</button></div>
                 </section>
             }
             else if (_section == "installation")
@@ -480,6 +530,14 @@
                     <article class="setting-card section-block"><span>ЛОКАЛЬНЫЕ ДАННЫЕ</span><h3>Community API</h3><code>http://127.0.0.1:5249</code><p>Portable-запуск поднимает локальный API автоматически.</p><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
             }
+        </div>
+        <aside class="launcher-scroll-control" aria-label="Прокрутка страницы">
+            <button type="button" data-scroll-direction="up" title="Прокрутить вверх">↑</button>
+            <div class="launcher-scroll-track" role="scrollbar" aria-controls="launcher-content-scroll" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+                <span class="launcher-scroll-thumb"></span>
+            </div>
+            <button type="button" data-scroll-direction="down" title="Прокрутить вниз">↓</button>
+        </aside>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(_toast))
@@ -602,9 +660,13 @@
         _loading = false;
     }
 
-    private void SelectSection(string section) => _section = section;
+    private async Task SelectSection(string section)
+    {
+        _section = section;
+        await JS.InvokeVoidAsync("anthologyScroll.toTop");
+    }
 
-    private void ShowUpdates() => SelectSection("updates");
+    private Task ShowUpdates() => SelectSection("updates");
 
     private async Task LaunchModpackAsync()
     {
@@ -711,6 +773,32 @@
     }
 
     private static string ToggleClass(bool enabled) => enabled ? "active" : string.Empty;
+
+    private static string OptionState(bool enabled) => enabled ? "ВКЛ" : "ВЫКЛ";
+
+    private static string RendererDescription(string renderer) => renderer switch
+    {
+        "DX11" => "Основной режим Anthology",
+        "DX10" => "Режим совместимости",
+        "DX9" => "Сниженная нагрузка",
+        "DX8" => "Минимальный контур",
+        _ => "Пользовательский режим",
+    };
+
+    private string LaunchProfileCode =>
+        $"{_settings.Renderer}{(_settings.UseAvx ? "-AVX" : string.Empty)} / SMAP-{_settings.ShadowMapSize}";
+
+    private string SelectedExecutableName =>
+        $"Anomaly{_settings.Renderer}{(_settings.UseAvx ? "AVX" : string.Empty)}.exe";
+
+    private int ShadowMapPercentage
+    {
+        get
+        {
+            var index = Array.IndexOf(ShadowMapSizes, _settings.ShadowMapSize);
+            return index < 0 ? 0 : (int)Math.Round(index * 100d / (ShadowMapSizes.Length - 1));
+        }
+    }
 
     private void ChangeShadowMap(int direction)
     {
@@ -942,7 +1030,7 @@
         if (!UpdateConfigurationReady)
         {
             ShowToast("Сначала укажите manifest и публичный ключ", true);
-            SelectSection("installation");
+            await SelectSection("installation");
             return;
         }
 
@@ -1095,7 +1183,7 @@
                 _report.Steps,
                 _report.Expected,
                 _report.Actual,
-                "0.4.0-alpha.1",
+                "0.4.1-alpha.1",
                 _report.GameVersion,
                 _report.LogExcerpt,
                 _report.Contact,
