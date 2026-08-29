@@ -5,6 +5,14 @@ $launcherPath = Join-Path $deploymentRoot "App\AnthologyLauncher.Next.exe"
 $apiAddress = "http://127.0.0.1:5249"
 $startedApi = $null
 $env:ANTHOLOGY_DATA_ROOT = Join-Path $deploymentRoot "Data"
+$env:ANTHOLOGY_GAME_ROOT = Split-Path -Parent $deploymentRoot
+$modpackCandidates = @(
+    (Join-Path (Split-Path -Parent $env:ANTHOLOGY_GAME_ROOT) "Modpack-1.5.3- Anthology 2.1"),
+    (Join-Path (Split-Path -Parent $env:ANTHOLOGY_GAME_ROOT) "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT")
+)
+$env:ANTHOLOGY_MO2_ROOT = ($modpackCandidates |
+    Where-Object { Test-Path -LiteralPath (Join-Path $_ "ModOrganizer.exe") -PathType Leaf } |
+    Select-Object -First 1)
 
 if (-not (Test-Path -LiteralPath $apiPath) -or -not (Test-Path -LiteralPath $launcherPath)) {
     Add-Type -AssemblyName PresentationFramework
@@ -46,7 +54,6 @@ try {
     }
 
     $env:ANTHOLOGY_COMMUNITY_API = $apiAddress
-    Remove-Item Env:ANTHOLOGY_GAME_ROOT -ErrorAction SilentlyContinue
     $launcher = Start-Process -FilePath $launcherPath -WorkingDirectory (Split-Path -Parent $launcherPath) -PassThru
     $launcher.WaitForExit()
 }

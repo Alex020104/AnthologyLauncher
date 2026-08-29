@@ -382,6 +382,8 @@ public sealed class Mo2IntegrationService(
             startInfo.ArgumentList.Add("run");
             startInfo.ArgumentList.Add("-e");
             startInfo.ArgumentList.Add(workspace.SelectedExecutable);
+            startInfo.ArgumentList.Add("-a");
+            startInfo.ArgumentList.Add(launcherBridge.GetGameArguments());
             Process.Start(startInfo);
             return new LauncherActionResult(
                 true,

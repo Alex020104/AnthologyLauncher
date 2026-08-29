@@ -17,7 +17,11 @@ public sealed record LauncherActionResult(bool Success, string Message);
 
 public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayChatClient relayChat)
 {
-    private const string ModpackFolder = "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT";
+    private static readonly string[] ModpackFolders =
+    [
+        "Modpack-1.5.3- Anthology 2.1",
+        "SYS_A.N.T.H.O.L.O.G.Y_mo2_CBT",
+    ];
     private static readonly int[] ShadowMapSizes = [1536, 2048, 2560, 3072, 4096];
 
     public InstallationStatus DetectInstallation()
@@ -134,6 +138,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
             {
                 WorkingDirectory = Path.GetDirectoryName(executable)!,
                 UseShellExecute = true,
+                Arguments = BuildGameArguments(settingsStore.Current),
             });
             return new LauncherActionResult(true, "Оригинальная Anomaly запущена");
         }
@@ -227,6 +232,8 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
         }
     }
 
+    public string GetGameArguments() => BuildGameArguments(settingsStore.Current);
+
     public LauncherActionResult OpenGameFolder()
     {
         var status = DetectInstallation();
@@ -241,10 +248,10 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
 
     private string? FindGameRoot()
     {
-        var configured = settingsStore.Current.GameRoot;
+        var configured = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");
         if (string.IsNullOrWhiteSpace(configured))
         {
-            configured = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");
+            configured = settingsStore.Current.GameRoot;
         }
 
         if (!string.IsNullOrWhiteSpace(configured))
@@ -279,8 +286,17 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
             }
         }
 
-        var sibling = Path.Combine(Directory.GetParent(gameRoot)?.FullName ?? gameRoot, ModpackFolder);
-        return File.Exists(Path.Combine(sibling, "ModOrganizer.exe")) ? sibling : null;
+        var parent = Directory.GetParent(gameRoot)?.FullName ?? gameRoot;
+        foreach (var folder in ModpackFolders)
+        {
+            var sibling = Path.Combine(parent, folder);
+            if (File.Exists(Path.Combine(sibling, "ModOrganizer.exe")))
+            {
+                return sibling;
+            }
+        }
+
+        return null;
     }
 
     private static bool IsGameRoot(string path) =>
@@ -303,19 +319,11 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
             settings.RelayChatAlways ? "CHATRELAYALWAYS" : "NOCHATRELAYALWAYS",
         };
         await File.WriteAllLinesAsync(Path.Combine(gameRoot, "AnomalyLauncher.cfg"), configLines, cancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(gameRoot, "commandline.txt"),
+            BuildGameArguments(settings) + Environment.NewLine,
+            cancellationToken);
 
-        var commandLine = new List<string> { $"-smap{shadowMap}" };
-        if (settings.DebugMode)
-        {
-            commandLine.Add("-dbg");
-        }
-
-        if (settings.PrefetchSounds)
-        {
-            commandLine.Add("-prefetch_sounds");
-        }
-
-        await File.WriteAllLinesAsync(Path.Combine(gameRoot, "commandline.txt"), commandLine, cancellationToken);
         ApplySoundWorkaround(gameRoot, settings.SoundWorkaround);
         if (settings.ResetUserLtx)
         {
@@ -324,6 +332,21 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
             updated.ResetUserLtx = false;
             await settingsStore.SaveAsync(updated, cancellationToken);
         }
+    }
+
+    private static string BuildGameArguments(LauncherSettings settings)
+    {
+        var shadowMap = ShadowMapSizes.Contains(settings.ShadowMapSize) ? settings.ShadowMapSize : 1536;
+        var arguments = new List<string> { $"-smap{shadowMap}" };
+        if (settings.DebugMode)
+        {
+            arguments.Add("-dbg");
+        }
+        if (settings.PrefetchSounds)
+        {
+            arguments.Add("-prefetch_sounds");
+        }
+        return string.Join(' ', arguments);
     }
 
     private static string GetSelectedGameExecutable(string gameRoot, LauncherSettings settings)

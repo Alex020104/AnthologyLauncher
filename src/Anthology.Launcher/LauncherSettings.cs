@@ -133,6 +133,7 @@ public sealed class LauncherSettingsStore : IDisposable
         {
             if (!File.Exists(_settingsPath))
             {
+                ApplyEnvironmentOverrides(Current);
                 Directory.CreateDirectory(DataRoot);
                 await WriteAsync(Current, cancellationToken);
                 return Current.Copy();
@@ -150,6 +151,7 @@ public sealed class LauncherSettingsStore : IDisposable
                 ManifestJson.Options,
                 cancellationToken) ?? new LauncherSettings();
             Normalize(Current);
+            ApplyEnvironmentOverrides(Current);
             return Current.Copy();
         }
         finally
@@ -249,6 +251,30 @@ public sealed class LauncherSettingsStore : IDisposable
 
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static void ApplyEnvironmentOverrides(LauncherSettings settings)
+    {
+        var gameRoot = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");
+        if (!string.IsNullOrWhiteSpace(gameRoot))
+        {
+            var fullPath = Path.GetFullPath(gameRoot);
+            if (File.Exists(Path.Combine(fullPath, "fsgame.ltx"))
+                && Directory.Exists(Path.Combine(fullPath, "bin")))
+            {
+                settings.GameRoot = fullPath;
+            }
+        }
+
+        var modpackRoot = Environment.GetEnvironmentVariable("ANTHOLOGY_MO2_ROOT");
+        if (!string.IsNullOrWhiteSpace(modpackRoot))
+        {
+            var fullPath = Path.GetFullPath(modpackRoot);
+            if (File.Exists(Path.Combine(fullPath, "ModOrganizer.exe")))
+            {
+                settings.ModpackRoot = fullPath;
+            }
+        }
+    }
 
     private static string ResolveDataRoot()
     {
