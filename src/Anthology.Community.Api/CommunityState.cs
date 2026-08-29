@@ -1,5 +1,6 @@
-using System.Text.Json;
 using System.Security.Cryptography;
+using System.IO.Compression;
+using System.Globalization;
 using Anthology.Contracts;
 
 namespace Anthology.Community.Api;
@@ -11,21 +12,18 @@ public sealed class CommunityState
     private readonly Dictionary<string, MutablePoll> _polls;
     private readonly Dictionary<string, StoredReport> _reports = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<ChatMessage> _messages = new();
-    private readonly string _statePath;
+    private readonly CommunityDatabase _database;
+    private readonly string _legacyStatePath;
     private readonly string _attachmentsRoot;
+    private readonly string _backupsRoot;
 
     public CommunityState()
     {
-        var dataRoot = Environment.GetEnvironmentVariable("ANTHOLOGY_DATA_ROOT");
-        if (string.IsNullOrWhiteSpace(dataRoot))
-        {
-            dataRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "AnthologyLauncherNext");
-        }
-
-        _statePath = Path.Combine(Path.GetFullPath(dataRoot), "Community", "state.json");
-        _attachmentsRoot = Path.Combine(Path.GetDirectoryName(_statePath)!, "attachments");
+        var communityRoot = CommunityPaths.CommunityRoot;
+        _legacyStatePath = Path.Combine(communityRoot, "state.json");
+        _attachmentsRoot = Path.Combine(communityRoot, "attachments");
+        _backupsRoot = Path.Combine(CommunityPaths.ResolveDataRoot(), "Backups");
+        _database = new CommunityDatabase(communityRoot);
         var persisted = LoadState();
         _polls = _seed.Polls.ToDictionary(
             poll => poll.Id,
@@ -149,6 +147,24 @@ public sealed class CommunityState
             return _reports.TryGetValue(reportId, out var report)
                 ? ToDetails(report, includeAccessToken)
                 : null;
+        }
+    }
+
+    public bool DeleteReport(string reportId)
+    {
+        lock (_stateLock)
+        {
+            if (!_reports.Remove(reportId))
+            {
+                return false;
+            }
+            SaveState();
+            var reportRoot = Path.Combine(_attachmentsRoot, reportId);
+            if (Directory.Exists(reportRoot))
+            {
+                Directory.Delete(reportRoot, true);
+            }
+            return true;
         }
     }
 
@@ -395,6 +411,28 @@ public sealed class CommunityState
     public bool ChannelExists(string channelId) =>
         _seed.Channels.Any(channel => string.Equals(channel.Id, channelId, StringComparison.OrdinalIgnoreCase));
 
+    public ChatMessage CreateMessage(string channelId, ChatMessageRequest request, bool isDeveloper)
+    {
+        if (!ChannelExists(channelId))
+        {
+            throw new KeyNotFoundException(channelId);
+        }
+
+        var authorId = RequireText(request.AuthorId, 96, "Не указан пользователь.");
+        var authorName = RequireText(request.AuthorName, 64, "Не указано имя.");
+        var text = RequireText(request.Text, 2_000, "Сообщение пустое.");
+        var message = new ChatMessage(
+            Guid.NewGuid().ToString("N"),
+            channelId,
+            isDeveloper ? $"developer:{authorName}" : authorId,
+            authorName,
+            text,
+            DateTimeOffset.UtcNow,
+            isDeveloper);
+        AppendMessage(message);
+        return message;
+    }
+
     public void AppendMessage(ChatMessage message)
     {
         lock (_stateLock)
@@ -420,6 +458,74 @@ public sealed class CommunityState
         }
     }
 
+    public bool DeleteMessage(string channelId, string messageId)
+    {
+        lock (_stateLock)
+        {
+            var retained = _messages
+                .Where(message => !string.Equals(message.ChannelId, channelId, StringComparison.OrdinalIgnoreCase)
+                                  || !string.Equals(message.Id, messageId, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (retained.Length == _messages.Count)
+            {
+                return false;
+            }
+
+            _messages.Clear();
+            foreach (var message in retained)
+            {
+                _messages.Enqueue(message);
+            }
+            SaveState();
+            return true;
+        }
+    }
+
+    public CommunityStorageStatus GetStorageStatus()
+    {
+        lock (_stateLock)
+        {
+            return new CommunityStorageStatus(
+                "sqlite",
+                _database.DatabasePath,
+                _reports.Count,
+                _messages.Count,
+                Directory.Exists(_attachmentsRoot)
+                    ? Directory.EnumerateFiles(_attachmentsRoot, "*", SearchOption.AllDirectories).LongCount()
+                    : 0);
+        }
+    }
+
+    public CommunityBackupResult CreateBackup()
+    {
+        lock (_stateLock)
+        {
+            SaveState();
+            Directory.CreateDirectory(_backupsRoot);
+            var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
+            var temporaryRoot = Path.Combine(_backupsRoot, $".tmp-{Guid.NewGuid():N}");
+            var archivePath = Path.Combine(_backupsRoot, $"anthology-community-{stamp}.zip");
+            Directory.CreateDirectory(temporaryRoot);
+            try
+            {
+                _database.CreateSnapshot(Path.Combine(temporaryRoot, "community.db"));
+                if (Directory.Exists(_attachmentsRoot))
+                {
+                    CopyDirectory(_attachmentsRoot, Path.Combine(temporaryRoot, "attachments"));
+                }
+                ZipFile.CreateFromDirectory(temporaryRoot, archivePath, CompressionLevel.Optimal, false);
+                return new CommunityBackupResult(archivePath, new FileInfo(archivePath).Length, DateTimeOffset.UtcNow);
+            }
+            finally
+            {
+                if (Directory.Exists(temporaryRoot))
+                {
+                    Directory.Delete(temporaryRoot, true);
+                }
+            }
+        }
+    }
+
     private static BugReportDetails ToDetails(StoredReport stored, bool includeAccessToken)
     {
         var receipt = includeAccessToken
@@ -439,29 +545,23 @@ public sealed class CommunityState
     private static string NormalizeDeveloperName(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "Разработчик Anthology" : value.Trim();
 
+    private static string RequireText(string? value, int maximumLength, string error)
+    {
+        var normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length == 0 || normalized.Length > maximumLength)
+        {
+            throw new ArgumentException(error);
+        }
+        return normalized;
+    }
+
     private PersistedState LoadState()
     {
-        if (!File.Exists(_statePath))
-        {
-            return PersistedState.Empty;
-        }
-
-        try
-        {
-            var state = JsonSerializer.Deserialize<PersistedState>(
-                File.ReadAllText(_statePath),
-                ManifestJson.Options);
-            return state ?? PersistedState.Empty;
-        }
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
-        {
-            return PersistedState.Empty;
-        }
+        return _database.Load(_legacyStatePath, PersistedState.Empty);
     }
 
     private void SaveState()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_statePath)!);
         var state = new PersistedState(
             _polls.ToDictionary(
                 pair => pair.Key,
@@ -469,18 +569,21 @@ public sealed class CommunityState
                 StringComparer.OrdinalIgnoreCase),
             _reports.Values.OrderBy(report => report.Receipt.CreatedAt).ToArray(),
             _messages.ToArray());
-        var temporary = _statePath + $".tmp-{Guid.NewGuid():N}";
-        try
+        _database.Save(state);
+    }
+
+    private static void CopyDirectory(string sourceRoot, string destinationRoot)
+    {
+        Directory.CreateDirectory(destinationRoot);
+        foreach (var directory in Directory.EnumerateDirectories(sourceRoot, "*", SearchOption.AllDirectories))
         {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(state, ManifestJson.Options));
-            File.Move(temporary, _statePath, true);
+            Directory.CreateDirectory(Path.Combine(destinationRoot, Path.GetRelativePath(sourceRoot, directory)));
         }
-        finally
+        foreach (var file in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
         {
-            if (File.Exists(temporary))
-            {
-                File.Delete(temporary);
-            }
+            var destination = Path.Combine(destinationRoot, Path.GetRelativePath(sourceRoot, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(file, destination, true);
         }
     }
 
@@ -566,3 +669,15 @@ public sealed class CommunityState
         IReadOnlyList<BugReportMessage>? Messages = null,
         DateTimeOffset? UpdatedAt = null);
 }
+
+public sealed record CommunityStorageStatus(
+    string Engine,
+    string DatabasePath,
+    int Reports,
+    int Messages,
+    long Attachments);
+
+public sealed record CommunityBackupResult(
+    string Path,
+    long Size,
+    DateTimeOffset CreatedAt);

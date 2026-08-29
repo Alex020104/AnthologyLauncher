@@ -1,10 +1,34 @@
+using System.Net;
+using System.Threading.RateLimiting;
 using Anthology.Community.Api;
 using Anthology.Contracts;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService(options => options.ServiceName = "Anthology Community Server");
+
+var configuredDataRoot = builder.Configuration["Community:DataRoot"];
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHOLOGY_DATA_ROOT"))
+    && !string.IsNullOrWhiteSpace(configuredDataRoot))
+{
+    Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", configuredDataRoot);
+}
+var configuredTranslationUrl = builder.Configuration["Translation:ApiUrl"];
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHOLOGY_TRANSLATION_API"))
+    && !string.IsNullOrWhiteSpace(configuredTranslationUrl))
+{
+    Environment.SetEnvironmentVariable("ANTHOLOGY_TRANSLATION_API", configuredTranslationUrl);
+}
+var configuredTranslationKey = builder.Configuration["Translation:ApiKey"];
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHOLOGY_TRANSLATION_API_KEY"))
+    && !string.IsNullOrWhiteSpace(configuredTranslationKey))
+{
+    Environment.SetEnvironmentVariable("ANTHOLOGY_TRANSLATION_API_KEY", configuredTranslationKey);
+}
+
+builder.Services.AddSingleton<DeveloperAccess>();
 builder.Services.AddSingleton<CommunityState>();
 builder.Services.AddHttpClient<TranslationGateway>(client => client.Timeout = TimeSpan.FromSeconds(90));
 builder.Services.AddSignalR(options =>
@@ -12,27 +36,60 @@ builder.Services.AddSignalR(options =>
     options.MaximumReceiveMessageSize = 16 * 1024;
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 });
-builder.Services.AddCors(options =>
+builder.Services.AddRateLimiter(options =>
 {
-    options.AddDefaultPolicy(policy => policy
-        .SetIsOriginAllowed(origin =>
-            builder.Environment.IsDevelopment()
-            && Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-            && uri.IsLoopback)
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials());
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 180,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+            }));
 });
 
 var app = builder.Build();
-app.UseCors();
+_ = app.Services.GetRequiredService<DeveloperAccess>();
+_ = app.Services.GetRequiredService<CommunityState>();
 
-app.MapGet("/health", () => Results.Ok(new
+app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    service = "anthology-community-api",
-    status = "ok",
-    time = DateTimeOffset.UtcNow,
-}));
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+});
+app.UseRateLimiter();
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        context.Response.Headers.XFrameOptions = "DENY";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers.ContentSecurityPolicy =
+            "default-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data: https:; "
+            + "media-src 'self' https:; style-src 'self'; script-src 'self'; base-uri 'self'; form-action 'self'";
+        return Task.CompletedTask;
+    });
+    await next();
+});
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapGet("/health", (CommunityState state) =>
+{
+    var storage = state.GetStorageStatus();
+    return Results.Ok(new
+    {
+        service = "anthology-community-server",
+        status = "ok",
+        storage = storage.Engine,
+        reports = storage.Reports,
+        messages = storage.Messages,
+        time = DateTimeOffset.UtcNow,
+    });
+});
 
 var api = app.MapGroup("/api/v1");
 api.MapGet("/feed", (CommunityState state) => Results.Ok(state.GetFeed()));
@@ -42,6 +99,43 @@ api.MapGet("/channels/{channelId}/messages", (string channelId, CommunityState s
     state.ChannelExists(channelId)
         ? Results.Ok(state.GetMessages(channelId))
         : Results.NotFound());
+api.MapPost("/channels/{channelId}/messages", async (
+    string channelId,
+    ChatMessageRequest message,
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess,
+    IHubContext<CommunityHub> hub,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        var created = state.CreateMessage(channelId, message, developerAccess.IsAuthorized(request));
+        await hub.Clients.Group(channelId).SendAsync("messageReceived", created, cancellationToken);
+        return Results.Ok(created);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound();
+    }
+    catch (ArgumentException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+});
+api.MapDelete("/channels/{channelId}/messages/{messageId}", (
+    string channelId,
+    string messageId,
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
+{
+    if (!developerAccess.IsAuthorized(request))
+    {
+        return Results.Unauthorized();
+    }
+    return state.DeleteMessage(channelId, messageId) ? Results.NoContent() : Results.NotFound();
+});
 api.MapPost("/polls/{pollId}/votes", (string pollId, PollVoteRequest vote, CommunityState state) =>
 {
     try
@@ -53,6 +147,7 @@ api.MapPost("/polls/{pollId}/votes", (string pollId, PollVoteRequest vote, Commu
         return Results.BadRequest(new { error = exception.Message });
     }
 });
+
 api.MapPost("/bug-reports", (BugReportRequest report, CommunityState state) =>
 {
     try
@@ -65,9 +160,13 @@ api.MapPost("/bug-reports", (BugReportRequest report, CommunityState state) =>
         return Results.BadRequest(new { error = exception.Message });
     }
 });
-api.MapGet("/bug-reports", (HttpRequest request, string? status, CommunityState state) =>
+api.MapGet("/bug-reports", (
+    HttpRequest request,
+    string? status,
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
 {
-    if (!IsDeveloperAuthorized(request))
+    if (!developerAccess.IsAuthorized(request))
     {
         return Results.Unauthorized();
     }
@@ -77,22 +176,39 @@ api.MapGet("/bug-reports", (HttpRequest request, string? status, CommunityState 
     }
     return Results.Ok(state.GetReports(status));
 });
-api.MapGet("/bug-reports/{reportId}", (string reportId, HttpRequest request, CommunityState state) =>
+api.MapGet("/bug-reports/{reportId}", (
+    string reportId,
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
 {
-    if (!HasReportAccess(request, state, reportId))
+    if (!HasReportAccess(request, state, developerAccess, reportId))
     {
         return Results.Unauthorized();
     }
     return state.GetReport(reportId) is { } report ? Results.Ok(report) : Results.NotFound();
 });
+api.MapDelete("/bug-reports/{reportId}", (
+    string reportId,
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
+{
+    if (!developerAccess.IsAuthorized(request))
+    {
+        return Results.Unauthorized();
+    }
+    return state.DeleteReport(reportId) ? Results.NoContent() : Results.NotFound();
+});
 api.MapPost("/bug-reports/{reportId}/messages", (
     string reportId,
     BugReportReplyRequest reply,
     HttpRequest request,
-    CommunityState state) =>
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
 {
-    var developer = IsDeveloperAuthorized(request);
-    if (!developer && !HasReportAccess(request, state, reportId))
+    var developer = developerAccess.IsAuthorized(request);
+    if (!developer && !HasReportAccess(request, state, developerAccess, reportId))
     {
         return Results.Unauthorized();
     }
@@ -117,9 +233,10 @@ api.MapPatch("/bug-reports/{reportId}/status", (
     string reportId,
     BugReportStatusRequest status,
     HttpRequest request,
-    CommunityState state) =>
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
 {
-    if (!IsDeveloperAuthorized(request))
+    if (!developerAccess.IsAuthorized(request))
     {
         return Results.Unauthorized();
     }
@@ -140,9 +257,10 @@ api.MapGet("/bug-reports/{reportId}/attachments/{fileName}", (
     string reportId,
     string fileName,
     HttpRequest request,
-    CommunityState state) =>
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
 {
-    if (!HasReportAccess(request, state, reportId))
+    if (!HasReportAccess(request, state, developerAccess, reportId))
     {
         return Results.Unauthorized();
     }
@@ -150,6 +268,36 @@ api.MapGet("/bug-reports/{reportId}/attachments/{fileName}", (
         ? Results.File(path, "application/octet-stream", Path.GetFileName(path))
         : Results.NotFound();
 });
+api.MapPost("/bug-reports/{reportId}/attachments", async (
+    string reportId,
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess,
+    CancellationToken cancellationToken) =>
+{
+    if (!HasReportAccess(request, state, developerAccess, reportId))
+    {
+        return Results.Unauthorized();
+    }
+    if (!request.HasFormContentType)
+    {
+        return Results.BadRequest(new { error = "Ожидается multipart/form-data." });
+    }
+    try
+    {
+        var form = await request.ReadFormAsync(cancellationToken);
+        return Results.Ok(await state.SaveAttachmentsAsync(reportId, form.Files, cancellationToken));
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound();
+    }
+    catch (Exception exception) when (exception is ArgumentException or InvalidDataException)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+});
+
 api.MapPost("/translate", async (
     TextTranslationRequest request,
     TranslationGateway translations,
@@ -172,66 +320,40 @@ api.MapPost("/translate", async (
         return Results.Json(new { error = exception.Message }, statusCode: StatusCodes.Status502BadGateway);
     }
 });
-api.MapPost("/bug-reports/{reportId}/attachments", async (
-    string reportId,
+
+api.MapGet("/admin/status", (
     HttpRequest request,
     CommunityState state,
-    CancellationToken cancellationToken) =>
+    DeveloperAccess developerAccess) =>
 {
-    if (!HasReportAccess(request, state, reportId))
+    if (!developerAccess.IsAuthorized(request))
     {
         return Results.Unauthorized();
     }
-    if (!request.HasFormContentType)
+    return Results.Ok(state.GetStorageStatus());
+});
+api.MapPost("/admin/backups", (
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess) =>
+{
+    if (!developerAccess.IsAuthorized(request))
     {
-        return Results.BadRequest(new { error = "Ожидается multipart/form-data." });
+        return Results.Unauthorized();
     }
-
-    try
-    {
-        var form = await request.ReadFormAsync(cancellationToken);
-        var attachments = await state.SaveAttachmentsAsync(reportId, form.Files, cancellationToken);
-        return Results.Ok(attachments);
-    }
-    catch (KeyNotFoundException)
-    {
-        return Results.NotFound();
-    }
-    catch (ArgumentException exception)
-    {
-        return Results.BadRequest(new { error = exception.Message });
-    }
-    catch (InvalidDataException exception)
-    {
-        return Results.BadRequest(new { error = exception.Message });
-    }
+    return Results.Ok(state.CreateBackup());
 });
 
 app.MapHub<CommunityHub>("/hubs/community");
+app.MapFallbackToFile("index.html");
 app.Run();
 
-static bool HasReportAccess(HttpRequest request, CommunityState state, string reportId) =>
-    IsDeveloperAuthorized(request)
+static bool HasReportAccess(
+    HttpRequest request,
+    CommunityState state,
+    DeveloperAccess developerAccess,
+    string reportId) =>
+    developerAccess.IsAuthorized(request)
     || state.ReportTokenMatches(reportId, request.Headers["X-Anthology-Report-Token"].FirstOrDefault());
-
-static bool IsDeveloperAuthorized(HttpRequest request)
-{
-    var configured = Environment.GetEnvironmentVariable("ANTHOLOGY_DEVELOPER_TOKEN");
-    if (string.IsNullOrWhiteSpace(configured))
-    {
-        var remoteAddress = request.HttpContext.Connection.RemoteIpAddress;
-        return remoteAddress is not null && IPAddress.IsLoopback(remoteAddress);
-    }
-
-    var supplied = request.Headers["X-Anthology-Developer-Token"].FirstOrDefault();
-    if (string.IsNullOrWhiteSpace(supplied))
-    {
-        return false;
-    }
-    var expectedBytes = Encoding.UTF8.GetBytes(configured.Trim());
-    var suppliedBytes = Encoding.UTF8.GetBytes(supplied.Trim());
-    return expectedBytes.Length == suppliedBytes.Length
-           && CryptographicOperations.FixedTimeEquals(expectedBytes, suppliedBytes);
-}
 
 public partial class Program;

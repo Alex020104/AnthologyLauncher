@@ -138,3 +138,8 @@ public sealed record ChatMessage(
     string Text,
     DateTimeOffset CreatedAt,
     bool IsDeveloper = false);
+
+public sealed record ChatMessageRequest(
+    string AuthorId,
+    string AuthorName,
+    string Text);

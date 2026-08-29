@@ -40,7 +40,7 @@ public sealed class CommunityStateTests : IDisposable
         Assert.Equal(beforeVotes + 1, reloaded.GetPoll("priority-01")!.Options[0].Votes);
         Assert.Contains(reloaded.GetMessages("general"), item => item.Id == message.Id);
         Assert.StartsWith("BUG-", receipt.Id, StringComparison.Ordinal);
-        Assert.True(File.Exists(Path.Combine(_root, "Community", "state.json")));
+        Assert.True(File.Exists(Path.Combine(_root, "Community", "community.db")));
     }
 
     [Fact]
@@ -122,6 +122,29 @@ public sealed class CommunityStateTests : IDisposable
         var reloaded = new CommunityState();
         Assert.Equal(BugReportStatuses.Closed, reloaded.GetReport(receipt.Id)!.Receipt.Status);
         Assert.True(reloaded.ReportTokenMatches(receipt.Id, receipt.AccessToken));
+    }
+
+    [Fact]
+    public void BackupUsesConsistentSqliteSnapshotAndDeletedReportStaysDeleted()
+    {
+        Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
+        var state = new CommunityState();
+        var receipt = state.CreateReport(new BugReportRequest(
+            "Backup test",
+            "Description",
+            "Steps",
+            "Expected",
+            "Actual",
+            "test",
+            "2.1.131",
+            null,
+            null));
+
+        var backup = state.CreateBackup();
+        Assert.True(File.Exists(backup.Path));
+        Assert.True(backup.Size > 0);
+        Assert.True(state.DeleteReport(receipt.Id));
+        Assert.Null(new CommunityState().GetReport(receipt.Id));
     }
 
     public void Dispose()

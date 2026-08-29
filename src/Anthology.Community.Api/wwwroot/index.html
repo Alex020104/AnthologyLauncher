@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A.N.T.H.O.L.O.G.Y Community</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span>A</span><div><strong>A.N.T.H.O.L.O.G.Y</strong><small>COMMUNITY SERVER</small></div></div>
+      <nav>
+        <button class="nav-button active" data-page="community">Сообщество</button>
+        <button class="nav-button" data-page="reports">Баг-репорты</button>
+        <button class="nav-button" data-page="developer">Разработчику</button>
+      </nav>
+      <div class="server-card">
+        <span id="server-dot" class="status-dot"></span>
+        <div><strong id="server-label">Проверка сервера</strong><small id="server-details">Ожидание ответа…</small></div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><small>СВЯЗЬ С КОМАНДОЙ</small><h1 id="page-title">Сообщество Anthology</h1></div>
+        <label class="identity">Имя в сообществе<input id="nickname" maxlength="64" autocomplete="nickname"></label>
+      </header>
+
+      <section id="page-community" class="page active">
+        <div class="community-grid">
+          <aside class="panel channels-panel"><div class="panel-title"><small>КАНАЛЫ</small><h2>Сообщество</h2></div><div id="channels" class="channel-list"></div></aside>
+          <section class="panel chat-panel">
+            <div class="panel-title chat-title"><div><small id="channel-kicker">КАНАЛ</small><h2 id="channel-name">Общий</h2></div><span id="chat-state" class="live-badge">ОБНОВЛЕНИЕ</span></div>
+            <div id="messages" class="messages"><div class="empty">Выберите канал.</div></div>
+            <form id="chat-form" class="composer"><input id="chat-text" maxlength="2000" placeholder="Сообщение" autocomplete="off"><button type="submit">ОТПРАВИТЬ</button></form>
+          </section>
+          <aside class="panel polls-panel"><div class="panel-title"><small>ОБРАТНАЯ СВЯЗЬ</small><h2>Голосования</h2></div><div id="polls"></div></aside>
+        </div>
+      </section>
+
+      <section id="page-reports" class="page">
+        <div class="reports-grid">
+          <form id="report-form" class="panel form-panel">
+            <div class="panel-title"><small>НОВОЕ ОБРАЩЕНИЕ</small><h2>Оформить баг-репорт</h2></div>
+            <label>Короткий заголовок<input id="report-title" maxlength="160" required></label>
+            <label>Что произошло<textarea id="report-description" maxlength="10000" required></textarea></label>
+            <label>Шаги для воспроизведения<textarea id="report-steps" required></textarea></label>
+            <div class="two-columns"><label>Ожидаемый результат<textarea id="report-expected" required></textarea></label><label>Фактический результат<textarea id="report-actual" required></textarea></label></div>
+            <div class="two-columns"><label>Версия игры<input id="report-game-version" value="2.1.131"></label><label>Версия лаунчера<input id="report-launcher-version" value="Next"></label></div>
+            <label>Характеристики ПК<input id="report-specs" placeholder="CPU, GPU, RAM, файл подкачки"></label>
+            <label>Фрагмент лога<textarea id="report-log" placeholder="Последние строки ошибки"></textarea></label>
+            <label>Ссылка на полный пакет<input id="report-url" type="url" placeholder="https://disk.yandex.ru/…"></label>
+            <label>Небольшие файлы<input id="report-files" type="file" multiple accept=".ltx,.xml,.script,.log,.txt,.json,.cfg,.ini,.zip,.7z"></label>
+            <p class="hint">До 5 файлов, каждый до 5 МБ, общий размер до 15 МБ. Видео и большие архивы прикладывайте ссылкой.</p>
+            <button type="submit" class="primary">ОТПРАВИТЬ РАЗРАБОТЧИКУ</button>
+          </form>
+          <section class="panel my-reports-panel">
+            <div class="panel-title"><small>ЛИЧНЫЕ ОБРАЩЕНИЯ</small><h2>Мои баг-репорты</h2></div>
+            <div id="my-reports" class="report-list"></div>
+            <div id="my-report-detail" class="report-detail empty">После отправки обращение появится здесь.</div>
+            <form id="player-reply-form" class="reply-form hidden"><textarea id="player-reply" required placeholder="Дополнить обращение"></textarea><button type="submit">ОТПРАВИТЬ</button></form>
+          </section>
+        </div>
+      </section>
+
+      <section id="page-developer" class="page">
+        <div class="developer-login panel">
+          <div class="panel-title"><small>ЗАЩИЩЁННЫЙ ДОСТУП</small><h2>Панель разработчика</h2></div>
+          <label>Токен разработчика<input id="developer-token" type="password" autocomplete="current-password" placeholder="Токен хранится на сервере"></label>
+          <div class="button-row"><button id="developer-login" class="primary">ВОЙТИ</button><button id="create-backup" disabled>СОЗДАТЬ РЕЗЕРВНУЮ КОПИЮ</button></div>
+          <p id="developer-state" class="hint">Токен не сохраняется на диск браузера и очищается после закрытия вкладки.</p>
+        </div>
+        <div class="developer-grid">
+          <section class="panel"><div class="panel-title"><small>ВХОДЯЩИЕ</small><h2>Баг-репорты</h2></div><div id="developer-reports" class="report-list"></div></section>
+          <section class="panel"><div class="panel-title"><small>ОБРАЩЕНИЕ</small><h2 id="developer-report-title">Выберите баг-репорт</h2></div><div id="developer-report-detail" class="report-detail empty">Здесь появятся описание, файлы и переписка.</div><form id="developer-reply-form" class="reply-form hidden"><textarea id="developer-reply" required placeholder="Ответ игроку"></textarea><div class="button-row"><select id="developer-status"><option value="in-progress">В работе</option><option value="waiting-player">Ждём игрока</option><option value="resolved">Решено</option><option value="closed">Закрыто</option><option value="new">Новое</option></select><button type="submit" class="primary">ОТВЕТИТЬ</button><button type="button" id="set-status">СМЕНИТЬ СТАТУС</button><button type="button" id="delete-report">УДАЛИТЬ</button></div></form></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="js/site.js" defer></script>
+</body>
+</html>
