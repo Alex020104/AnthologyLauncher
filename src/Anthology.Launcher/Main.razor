@@ -80,7 +80,7 @@
         </header>
 
         <div class="content-frame">
-        <div class="content-scroll" id="launcher-content-scroll">
+        <div class="content-scroll @(_section == "community" ? "community-page-scroll" : null)" id="launcher-content-scroll">
             @if (_loading)
             {
                 <section class="loading-grid">
@@ -255,7 +255,7 @@
                         @if (_selectedChannelId == RelayChatChannelId)
                         {
                             <div class="chat-title"><div><span>⌁</span><div><strong>Реальный чат</strong><small>Встроенный чат лаунчера и игровой мост</small></div></div><span class="online-count @(!_relayChatRunning ? "offline" : null)">@(_relayChatRunning ? $"● НА СВЯЗИ · {RelayChat.OnlineCount}" : "○ ПОДКЛЮЧЕНИЕ")</span></div>
-                            <div class="chat-messages relay-messages">
+                            <div class="chat-messages relay-messages" data-chat-scroll="relay">
                                 @if (_relayMessages.Count == 0)
                                 {
                                     <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY RELAY <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@RelayChat.StatusText. Чат работает прямо в лаунчере; отдельное приложение больше не запускается.</p></div></div>
@@ -270,7 +270,7 @@
                         else
                         {
                             <div class="chat-title"><div><span>#</span><div><strong>@CurrentChannel.Name</strong><small>@CurrentChannel.Description</small></div></div><span class="online-count">@(_chatConnected ? "● НА СВЯЗИ" : "○ OFFLINE")</span></div>
-                            <div class="chat-messages">
+                            <div class="chat-messages" data-chat-scroll="community">
                                 @if (_chatMessages.Count == 0)
                                 {
                                     <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@(_chatConnected ? "Канал подключён. Напишите первое сообщение." : "Community API недоступен — чат временно работает только как просмотр интерфейса.")</p></div></div>

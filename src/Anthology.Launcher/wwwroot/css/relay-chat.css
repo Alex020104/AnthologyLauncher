@@ -68,7 +68,8 @@
 
 .relay-control-panel {
     min-width: 0;
-    min-height: 610px;
+    height: 100%;
+    min-height: 0;
     display: grid;
     grid-template-rows: 51px minmax(0, 1fr) auto;
     overflow: hidden;
@@ -101,8 +102,19 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #4d452e transparent;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-color: #a1884c #0b1013;
 }
+
+.relay-participant-list::-webkit-scrollbar,
+.relay-options::-webkit-scrollbar { width: 10px; }
+.relay-participant-list::-webkit-scrollbar-track,
+.relay-options::-webkit-scrollbar-track { background: #0b1013; border-left: 1px solid #20292e; }
+.relay-participant-list::-webkit-scrollbar-thumb,
+.relay-options::-webkit-scrollbar-thumb { min-height: 44px; border: 2px solid #0b1013; background: linear-gradient(180deg, #b89a55, #685730); }
+.relay-participant-list::-webkit-scrollbar-thumb:hover,
+.relay-options::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #d7bb73, #88703c); }
 
 .relay-participant {
     width: 100%;
@@ -181,9 +193,11 @@
 .relay-options {
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     padding: 14px;
     scrollbar-width: thin;
-    scrollbar-color: #4d452e transparent;
+    scrollbar-color: #a1884c #0b1013;
 }
 
 .relay-option-section { margin: 7px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
@@ -238,7 +252,7 @@
 .relay-ai-status code { color: #d8b568; font: inherit; }
 
 @media (max-width: 1240px) {
-    .relay-control-panel { grid-column: 1 / -1; min-height: 420px; }
+    .relay-control-panel { grid-column: 1 / -1; height: 480px; min-height: 420px; }
 }
 
 @media (max-width: 900px) {

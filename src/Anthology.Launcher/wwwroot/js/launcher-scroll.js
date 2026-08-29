@@ -2,6 +2,36 @@
     const contentSelector = "#launcher-content-scroll";
     const trackSelector = ".launcher-scroll-track";
     const thumbSelector = ".launcher-scroll-thumb";
+    const chatSelector = "[data-chat-scroll]";
+    const boundChats = new WeakSet();
+
+    function bindChatScrolls(root = document) {
+        const chats = [];
+        if (root instanceof Element && root.matches(chatSelector)) chats.push(root);
+        if (root.querySelectorAll) chats.push(...root.querySelectorAll(chatSelector));
+
+        for (const chat of chats) {
+            if (boundChats.has(chat)) continue;
+            boundChats.add(chat);
+            let stickToBottom = true;
+
+            const isNearBottom = () => chat.scrollHeight - chat.clientHeight - chat.scrollTop <= 72;
+            const scrollToBottom = () => requestAnimationFrame(() => {
+                if (stickToBottom && chat.isConnected) chat.scrollTop = chat.scrollHeight;
+            });
+
+            chat.addEventListener("scroll", () => {
+                stickToBottom = isNearBottom();
+            }, { passive: true });
+
+            new MutationObserver(records => {
+                if (records.some(record => record.addedNodes.length > 0)) scrollToBottom();
+            }).observe(chat, { childList: true, subtree: true });
+
+            new ResizeObserver(scrollToBottom).observe(chat);
+            scrollToBottom();
+        }
+    }
 
     function bindScrollControl() {
         const content = document.querySelector(contentSelector);
@@ -106,10 +136,19 @@
         update();
     }
 
-    new MutationObserver(bindScrollControl).observe(document.documentElement, { childList: true, subtree: true });
-    window.addEventListener("resize", bindScrollControl);
+    new MutationObserver(records => {
+        bindScrollControl();
+        for (const record of records) {
+            for (const added of record.addedNodes) bindChatScrolls(added);
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    window.addEventListener("resize", () => {
+        bindScrollControl();
+        bindChatScrolls();
+    });
     window.anthologyScroll = {
         toTop: () => document.querySelector(contentSelector)?.scrollTo({ top: 0, behavior: "auto" })
     };
     bindScrollControl();
+    bindChatScrolls();
 })();
