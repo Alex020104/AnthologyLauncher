@@ -1,6 +1,6 @@
 # Anthology Releaser Next
 
-Releaser Next is a separate WPF/Blazor desktop application. Its default deployment root is `E:\AnthologyReleaserNext`; it does not live inside the player launcher and does not modify a game while editing a release.
+Releaser Next is a separate WPF/Blazor desktop application. Its default deployment root is `A:\AnthologyReleaserNext`; it does not live inside the player launcher and does not modify a game while editing a release.
 
 ## Local versus shared state
 
@@ -11,7 +11,7 @@ Releaser Next is a separate WPF/Blazor desktop application. Its default deployme
 - output path;
 - signing-key paths and key id;
 - selected local addon archives and per-source publication folders;
-- selected PNG/JPG/WEBP sources and the pending quick-release add/delete lists;
+- selected PNG/JPG/WEBP sources and the pending quick-release file/folder add/delete lists;
 - shared-folder location and automatic-sync settings.
 
 `App\Data\release-workspace.json` contains the shareable release project:
@@ -29,9 +29,9 @@ When both local and shared copies changed after the last common hash, neither si
 
 1. Enter `2.1.131` or a later `2.1.N` version.
 2. Add direct download URL templates and a local publication folder for every provider. This can be a GitHub working tree, Yandex Disk/Google Drive synchronized folder, mounted server share, or HTTP server staging directory.
-3. For a normal patch, use **Файлы в корень игры** and **Файлы в MO2** as many times as needed. Edit destination paths if required.
-4. Add explicit relative paths under **Удаление у игроков** for files that must be removed. The launcher backs them up before deletion and includes them in rollback.
-5. Use **Опубликовать выбранные файлы**. One signed release is copied to every configured publication folder.
+3. For a normal patch, add any number of individual files or complete folders to the game root or MO2. Edit destination paths if required; a folder keeps its complete nested structure.
+4. Under **Удаление у игроков**, add individual files or complete addon folders. The launcher resolves the folder contents at install time, backs every affected file up and includes the operation in rollback.
+5. Use **Опубликовать выбранное**. One signed release is copied to every configured publication folder.
 6. Use the prepared game/MO2 roots and **Выпустить всю сборку** only when a complete exact snapshot is required.
 
 Output is written to `<output>\<version>` and includes both ZIP artifacts, `manifest.json`, `content.json` and a workspace snapshot. The private signing key is never copied to output.
@@ -68,7 +68,7 @@ Both sections support create, edit, ordering, unpublish and full delete operatio
 ## Publish locally
 
 ```powershell
-scripts\Publish-Releaser.ps1 -Destination E:\AnthologyReleaserNext
+scripts\Publish-Releaser.ps1 -Destination A:\AnthologyReleaserNext
 ```
 
-Launch with `E:\AnthologyReleaserNext\Launch Anthology Releaser Next.cmd`.
+Launch with `A:\AnthologyReleaserNext\Launch Anthology Releaser Next.cmd`.

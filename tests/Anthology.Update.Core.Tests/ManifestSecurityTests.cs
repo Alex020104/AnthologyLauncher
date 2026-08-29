@@ -33,6 +33,19 @@ public sealed class ManifestSecurityTests
         Assert.Contains(errors, error => error.Contains("unsafe path", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void ValidatorRejectsDirectoryDeletionOutsideInstallRoot()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var manifest = CreateManifest() with { SchemaVersion = 4 };
+        var package = manifest.Packages[0] with { DeletedDirectories = ["../other-game"] };
+        var signed = ManifestSecurity.Sign(manifest with { Packages = [package] }, key, "test-key");
+
+        var errors = ManifestValidator.Validate(signed);
+
+        Assert.Contains(errors, error => error.Contains("unsafe directory deletion path", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static UpdateManifest CreateManifest() => new(
         1,
         "next",

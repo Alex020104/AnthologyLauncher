@@ -22,7 +22,7 @@ public static partial class ManifestValidator
         var errors = new List<string>();
         var payload = manifest.Payload;
 
-        if (payload.SchemaVersion is not (1 or 2 or 3))
+        if (payload.SchemaVersion is not (1 or 2 or 3 or 4))
         {
             errors.Add($"Unsupported schema version: {payload.SchemaVersion}.");
         }
@@ -46,7 +46,7 @@ public static partial class ManifestValidator
         var packageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var package in payload.Packages)
         {
-            ValidatePackage(package, packageIds, errors);
+            ValidatePackage(package, payload.SchemaVersion, packageIds, errors);
         }
 
         if (payload.Content is not null)
@@ -83,6 +83,7 @@ public static partial class ManifestValidator
 
     private static void ValidatePackage(
         PackageManifest package,
+        int schemaVersion,
         HashSet<string> packageIds,
         List<string> errors)
     {
@@ -153,7 +154,9 @@ public static partial class ManifestValidator
             }
         }
 
-        if (package.Files.Count == 0 && (package.DeletedFiles is null || package.DeletedFiles.Count == 0))
+        if (package.Files.Count == 0
+            && (package.DeletedFiles is null || package.DeletedFiles.Count == 0)
+            && (package.DeletedDirectories is null || package.DeletedDirectories.Count == 0))
         {
             errors.Add($"Package '{package.Id}' has no files and no deletion paths.");
         }
@@ -206,6 +209,27 @@ public static partial class ManifestValidator
             catch (ArgumentException exception)
             {
                 errors.Add($"Package '{package.Id}' has unsafe deletion path '{path}': {exception.Message}");
+            }
+        }
+
+        var deletedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (schemaVersion < 4 && package.DeletedDirectories is { Count: > 0 })
+        {
+            errors.Add($"Package '{package.Id}' requires schema version 4 for directory deletion paths.");
+        }
+        foreach (var path in package.DeletedDirectories ?? [])
+        {
+            try
+            {
+                var normalized = PathSafety.NormalizeRelativePath(path);
+                if (!deletedDirectories.Add(normalized))
+                {
+                    errors.Add($"Package '{package.Id}' contains duplicate directory deletion path '{path}'.");
+                }
+            }
+            catch (ArgumentException exception)
+            {
+                errors.Add($"Package '{package.Id}' has unsafe directory deletion path '{path}': {exception.Message}");
             }
         }
     }

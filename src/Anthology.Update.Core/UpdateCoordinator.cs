@@ -187,6 +187,10 @@ public sealed class UpdateCoordinator
 
                 var previousManagedFiles = await ReadManagedFilesAsync(stateRoot, package.Id, cancellationToken);
                 var obsoleteFiles = (package.DeletedFiles ?? []).ToList();
+                foreach (var directory in package.DeletedDirectories ?? [])
+                {
+                    obsoleteFiles.AddRange(EnumerateDirectoryFiles(resolvedRoots[package.Id], directory));
+                }
                 if (package.UpdateMode == PackageUpdateMode.ManagedExact)
                 {
                     obsoleteFiles.AddRange(
@@ -209,6 +213,10 @@ public sealed class UpdateCoordinator
                     cancellationToken);
 
                 applied.Add(new AppliedPackage(update, installResult, previousManagedFiles));
+                foreach (var directory in package.DeletedDirectories ?? [])
+                {
+                    DeleteEmptyDirectoryTree(resolvedRoots[package.Id], directory);
+                }
             }
 
             foreach (var item in applied)
@@ -480,6 +488,72 @@ public sealed class UpdateCoordinator
             .Where(path => !preserved.Any(item =>
                 string.Equals(path, item, StringComparison.OrdinalIgnoreCase)
                 || path.StartsWith(item + "/", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static string[] EnumerateDirectoryFiles(string targetRoot, string relativeDirectory)
+    {
+        var root = Path.GetFullPath(targetRoot);
+        var normalizedDirectory = PathSafety.NormalizeRelativePath(relativeDirectory);
+        var directory = PathSafety.ResolveUnderRoot(root, normalizedDirectory);
+        if (!Directory.Exists(directory))
+        {
+            // Keep one safe no-op path so a directory-deletion-only package succeeds
+            // even when this player has already removed the addon.
+            return [normalizedDirectory];
+        }
+
+        if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new InvalidDataException($"Directory deletion cannot follow a reparse point: {normalizedDirectory}");
+        }
+
+        var files = Directory.EnumerateFiles(directory, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = false,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            })
+            .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/'))
+            .Select(PathSafety.NormalizeRelativePath)
+            .ToArray();
+        return files.Length == 0 ? [normalizedDirectory] : files;
+    }
+
+    private static void DeleteEmptyDirectoryTree(string targetRoot, string relativeDirectory)
+    {
+        var root = Path.GetFullPath(targetRoot);
+        var normalizedDirectory = PathSafety.NormalizeRelativePath(relativeDirectory);
+        var directory = PathSafety.ResolveUnderRoot(root, normalizedDirectory);
+        if (!Directory.Exists(directory))
+        {
+            return;
+        }
+
+        if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new InvalidDataException($"Directory deletion cannot follow a reparse point: {normalizedDirectory}");
+        }
+
+        var descendants = Directory.EnumerateDirectories(directory, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = false,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            })
+            .OrderByDescending(path => path.Length)
+            .ToArray();
+        foreach (var child in descendants)
+        {
+            if (!Directory.EnumerateFileSystemEntries(child).Any())
+            {
+                Directory.Delete(child);
+            }
+        }
+
+        if (!Directory.EnumerateFileSystemEntries(directory).Any())
+        {
+            Directory.Delete(directory);
+        }
     }
 
     private static async Task<InstalledState> ReadInstalledStateAsync(

@@ -281,7 +281,7 @@ public static partial class ReleasePublicationService
         ReleaseVersionRules.Validate(workspace.Version);
         UnifiedReleaseBuilder.ValidateMachine(machine);
 
-        var additions = (machine.QuickReleaseFiles ?? [])
+        var selectedFiles = (machine.QuickReleaseFiles ?? [])
             .Select(item => new QuickReleaseFileDraft
             {
                 Id = item.Id,
@@ -290,13 +290,34 @@ public static partial class ReleasePublicationService
                 RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
             })
             .ToArray();
-        foreach (var addition in additions)
+        foreach (var addition in selectedFiles)
         {
             if (!File.Exists(addition.SourcePath))
             {
                 throw new FileNotFoundException("Выбранный для публикации файл больше не найден.", addition.SourcePath);
             }
         }
+
+        var selectedFolders = (machine.QuickReleaseFolders ?? [])
+            .Select(item => new QuickReleaseFolderDraft
+            {
+                Id = item.Id,
+                SourcePath = Path.GetFullPath(item.SourcePath),
+                InstallRoot = NormalizeInstallRoot(item.InstallRoot),
+                RelativePath = NormalizeFolderBase(item.RelativePath),
+            })
+            .ToArray();
+        foreach (var folder in selectedFolders)
+        {
+            if (!Directory.Exists(folder.SourcePath))
+            {
+                throw new DirectoryNotFoundException($"Выбранная для публикации папка больше не найдена: {folder.SourcePath}");
+            }
+        }
+
+        var additions = selectedFiles
+            .Concat(selectedFolders.SelectMany(ExpandQuickFolder))
+            .ToArray();
 
         var deletions = (machine.QuickDeleteFiles ?? [])
             .Select(item => new QuickDeleteFileDraft
@@ -306,9 +327,17 @@ public static partial class ReleasePublicationService
                 RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
             })
             .ToArray();
-        if (additions.Length == 0 && deletions.Length == 0)
+        var directoryDeletions = (machine.QuickDeleteFolders ?? [])
+            .Select(item => new QuickDeleteFolderDraft
+            {
+                Id = item.Id,
+                InstallRoot = NormalizeInstallRoot(item.InstallRoot),
+                RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
+            })
+            .ToArray();
+        if (additions.Length == 0 && deletions.Length == 0 && directoryDeletions.Length == 0)
         {
-            throw new InvalidOperationException("Добавьте хотя бы один файл для загрузки или один путь для удаления.");
+            throw new InvalidOperationException("Добавьте хотя бы один файл или папку для загрузки либо удаления.");
         }
 
         var duplicateAddition = additions
@@ -338,7 +367,13 @@ public static partial class ReleasePublicationService
                 .Except(addedPaths, StringComparer.OrdinalIgnoreCase)
                 .Order(StringComparer.Ordinal)
                 .ToArray();
-            if (rootAdditions.Length == 0 && rootDeletions.Length == 0)
+            var rootDirectoryDeletions = directoryDeletions
+                .Where(item => item.InstallRoot == installRoot)
+                .Select(item => item.RelativePath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+            if (rootAdditions.Length == 0 && rootDeletions.Length == 0 && rootDirectoryDeletions.Length == 0)
             {
                 continue;
             }
@@ -381,14 +416,15 @@ public static partial class ReleasePublicationService
                 PackageUpdateMode.Merge,
                 false,
                 null,
-                rootDeletions));
+                rootDeletions,
+                rootDirectoryDeletions));
             artifacts.Add(artifactPath);
         }
 
         var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
         var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
         var payload = new UpdateManifest(
-            3,
+            4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
             workspace.Version.Trim(),
             DateTimeOffset.UtcNow,
@@ -412,6 +448,8 @@ public static partial class ReleasePublicationService
             manifestPath,
             additions.Length,
             deletions.Length,
+            selectedFolders.Length,
+            directoryDeletions.Length,
             artifacts,
             publication);
     }
@@ -471,7 +509,7 @@ public static partial class ReleasePublicationService
         var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
         var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
         var payload = new UpdateManifest(
-            3,
+            4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
             workspace.Version.Trim(),
             DateTimeOffset.UtcNow,
@@ -699,6 +737,37 @@ public static partial class ReleasePublicationService
         }
         File.Move(temporary, artifactPath, true);
     }
+
+    private static IEnumerable<QuickReleaseFileDraft> ExpandQuickFolder(QuickReleaseFolderDraft folder)
+    {
+        var root = Path.GetFullPath(folder.SourcePath);
+        foreach (var sourcePath in Directory.EnumerateFiles(root, "*", new EnumerationOptions
+                 {
+                     RecurseSubdirectories = true,
+                     IgnoreInaccessible = false,
+                     AttributesToSkip = FileAttributes.ReparsePoint,
+                 }))
+        {
+            var childPath = PathSafety.NormalizeRelativePath(Path.GetRelativePath(root, sourcePath));
+            yield return new QuickReleaseFileDraft
+            {
+                Id = $"{folder.Id}-{Guid.NewGuid():N}",
+                SourcePath = Path.GetFullPath(sourcePath),
+                InstallRoot = folder.InstallRoot,
+                RelativePath = CombineRelativePath(folder.RelativePath, childPath),
+            };
+        }
+    }
+
+    private static string NormalizeFolderBase(string relativePath) =>
+        string.IsNullOrWhiteSpace(relativePath)
+            ? string.Empty
+            : PathSafety.NormalizeRelativePath(relativePath);
+
+    private static string CombineRelativePath(string basePath, string childPath) =>
+        string.IsNullOrWhiteSpace(basePath)
+            ? PathSafety.NormalizeRelativePath(childPath)
+            : PathSafety.NormalizeRelativePath($"{basePath.TrimEnd('/', '\\')}/{childPath}");
 
     private static string NormalizeInstallRoot(string installRoot) =>
         installRoot.Trim().ToLowerInvariant() switch

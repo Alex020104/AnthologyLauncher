@@ -191,7 +191,11 @@ public sealed class ReleaserMachineSettings
 
     public List<QuickReleaseFileDraft> QuickReleaseFiles { get; set; } = [];
 
+    public List<QuickReleaseFolderDraft> QuickReleaseFolders { get; set; } = [];
+
     public List<QuickDeleteFileDraft> QuickDeleteFiles { get; set; } = [];
+
+    public List<QuickDeleteFolderDraft> QuickDeleteFolders { get; set; } = [];
 
     public Dictionary<string, string> PublicationRoots { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
@@ -207,9 +211,30 @@ public sealed class QuickReleaseFileDraft
     public string RelativePath { get; set; } = string.Empty;
 }
 
+public sealed class QuickReleaseFolderDraft
+{
+    public string Id { get; set; } = $"folder-{Guid.NewGuid():N}";
+
+    public string SourcePath { get; set; } = string.Empty;
+
+    public string InstallRoot { get; set; } = "game";
+
+    // Empty means the selected folder contents are placed directly in the install root.
+    public string RelativePath { get; set; } = string.Empty;
+}
+
 public sealed class QuickDeleteFileDraft
 {
     public string Id { get; set; } = $"delete-{Guid.NewGuid():N}";
+
+    public string InstallRoot { get; set; } = "game";
+
+    public string RelativePath { get; set; } = string.Empty;
+}
+
+public sealed class QuickDeleteFolderDraft
+{
+    public string Id { get; set; } = $"delete-folder-{Guid.NewGuid():N}";
 
     public string InstallRoot { get; set; } = "game";
 
@@ -244,6 +269,8 @@ public sealed record QuickReleaseResult(
     string ManifestPath,
     int AddedFiles,
     int DeletedFiles,
+    int AddedFolders,
+    int DeletedFolders,
     IReadOnlyList<string> Artifacts,
     PublicationResult Publication);
 

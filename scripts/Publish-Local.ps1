@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Destination = "E:\AnthologyLauncherNext"
+    [string]$Destination = "A:\AnthologyLauncherNext"
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,18 +12,27 @@ if ($destinationRoot.StartsWith($sourceFullPath + [System.IO.Path]::DirectorySep
     throw "The publish directory cannot be inside Source."
 }
 
-$dotnet = Get-Command dotnet -ErrorAction Stop
+$dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+$portableDotnet = "A:\AnthologyBuildTools\dotnet\dotnet.exe"
+if ($null -eq $dotnet -or -not (& $dotnet.Source --list-sdks | Select-String -SimpleMatch "10.0.400")) {
+    if (-not (Test-Path -LiteralPath $portableDotnet -PathType Leaf)) {
+        throw "The .NET 10.0.400 SDK was not found. Install it or place the portable SDK at $portableDotnet."
+    }
+    $dotnetPath = $portableDotnet
+}
+else {
+    $dotnetPath = $dotnet.Source
+}
 $projects = @(
     @{ Project = "src\Anthology.Launcher\Anthology.Launcher.csproj"; Output = "App" },
-    @{ Project = "src\Anthology.Community.Api\Anthology.Community.Api.csproj"; Output = "Services\CommunityApi" },
-    @{ Project = "src\Anthology.Releaser\Anthology.Releaser.csproj"; Output = "Tools\Releaser" }
+    @{ Project = "src\Anthology.Community.Api\Anthology.Community.Api.csproj"; Output = "Services\CommunityApi" }
 )
 
 foreach ($item in $projects) {
     $projectPath = Join-Path $sourceRoot $item.Project
     $outputPath = Join-Path $destinationRoot $item.Output
     New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
-    & $dotnet.Source publish $projectPath `
+    & $dotnetPath publish $projectPath `
         --configuration Release `
         --runtime win-x64 `
         --self-contained true `

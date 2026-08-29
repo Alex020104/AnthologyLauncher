@@ -29,6 +29,10 @@ All package transactions belong to one release batch. If either target fails:
 
 The user's Rollback action also restores every target from the latest batch, not one archive at a time.
 
+## Folder patches (manifest schema 4)
+
+Quick releases can map a complete source folder into either the game or MO2 while preserving every nested relative path. A package can also carry `deletedDirectories`; the launcher expands each signed directory path only inside its assigned install root, skips reparse points and sends every existing file through the normal transactional backup journal. Older schema 1–3 manifests remain supported, while older launchers reject schema 4 instead of silently ignoring a folder deletion.
+
 ## Mirrors
 
 Each artifact contains an ordered mirror list. Supported provider names are:

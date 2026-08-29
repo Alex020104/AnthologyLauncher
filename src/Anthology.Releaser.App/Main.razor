@@ -35,12 +35,12 @@
                     <article class="panel field-card"><span>КОРЕНЬ MO2</span><h3>Полный Mod Organizer 2</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>Публикуются профили, mods, downloads и tools. Временный overwrite и кэши не входят в релиз.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ MO2</button></article>
                 </section>
                 <section class="panel quick-release">
-                    <div class="quick-release-head"><div><span class="eyebrow">ПРОСТОЙ ВЫПУСК ФАЙЛОВ</span><h3>Добавить или удалить сколько угодно файлов</h3><p>Выберите файлы, проверьте путь назначения и нажмите одну кнопку. Релизер создаст подписанное обновление и скопирует его во все папки GitHub, Яндекс.Диска, Google Drive и HTTP, указанные в «Источниках».</p></div><div class="quick-release-count"><strong>@_machine.QuickReleaseFiles.Count</strong><span>ЗАГРУЗИТЬ</span><strong>@_machine.QuickDeleteFiles.Count</strong><span>УДАЛИТЬ</span></div></div>
-                    <div class="quick-release-tools"><button class="secondary" @onclick="SelectQuickGameFiles">＋ ФАЙЛЫ В КОРЕНЬ ИГРЫ</button><button class="secondary" @onclick="SelectQuickMo2Files">＋ ФАЙЛЫ В MO2</button></div>
+                    <div class="quick-release-head"><div><span class="eyebrow">ПРОСТОЙ ВЫПУСК ФАЙЛОВ И ПАПОК</span><h3>Добавить или удалить сколько угодно файлов и аддонов</h3><p>Выберите отдельные файлы или целые папки, проверьте путь назначения и нажмите одну кнопку. Вложенная структура папки сохраняется. Релизер создаст подписанное обновление и скопирует его во все настроенные источники.</p></div><div class="quick-release-count"><strong>@QuickAddCount</strong><span>ЗАГРУЗИТЬ</span><strong>@QuickDeleteCount</strong><span>УДАЛИТЬ</span></div></div>
+                    <div class="quick-release-tools"><button class="secondary" @onclick="SelectQuickGameFiles">＋ ФАЙЛЫ В ИГРУ</button><button class="secondary" @onclick="SelectQuickGameFolder">＋ ПАПКУ В ИГРУ</button><button class="secondary" @onclick="SelectQuickMo2Files">＋ ФАЙЛЫ В MO2</button><button class="secondary" @onclick="SelectQuickMo2Folder">＋ ПАПКУ В MO2</button></div>
                     <div class="quick-release-ready"><span><b>ВЫХОД</b>@_machine.OutputRoot</span><span><b>ПОДПИСЬ</b>@(File.Exists(_machine.PrivateKeyPath) ? "КЛЮЧ ГОТОВ" : "НЕТ КЛЮЧА")</span><span><b>ИСТОЧНИКИ</b>@ConfiguredPublicationRootsCount</span>@if (ConfiguredPublicationRootsCount == 0) { <button class="text" @onclick="OpenSourcesAsync">НАСТРОИТЬ ИСТОЧНИКИ →</button> }</div>
-                    @if (_machine.QuickReleaseFiles.Count == 0)
+                    @if (QuickAddCount == 0)
                     {
-                        <div class="quick-empty">Файлы для загрузки ещё не выбраны.</div>
+                        <div class="quick-empty">Файлы и папки для загрузки ещё не выбраны.</div>
                     }
                     else
                     {
@@ -50,15 +50,20 @@
                                 var currentFile = file;
                                 <article><div><strong>@Path.GetFileName(currentFile.SourcePath)</strong><small>@currentFile.SourcePath</small></div><select @bind="currentFile.InstallRoot"><option value="game">КОРЕНЬ ИГРЫ</option><option value="modpack">MO2</option></select><input @bind="currentFile.RelativePath" aria-label="Путь назначения" /><button class="remove" title="Убрать из выпуска" @onclick="() => _machine.QuickReleaseFiles.Remove(currentFile)">×</button></article>
                             }
+                            @foreach (var folder in _machine.QuickReleaseFolders)
+                            {
+                                var currentFolder = folder;
+                                <article class="folder"><div><strong><i>ПАПКА</i>@FolderName(currentFolder.SourcePath)</strong><small>@currentFolder.SourcePath</small></div><select @bind="currentFolder.InstallRoot"><option value="game">КОРЕНЬ ИГРЫ</option><option value="modpack">MO2</option></select><input @bind="currentFolder.RelativePath" aria-label="Папка назначения" placeholder="Пусто = прямо в корень" /><button class="remove" title="Убрать папку из выпуска" @onclick="() => _machine.QuickReleaseFolders.Remove(currentFolder)">×</button></article>
+                            }
                         </div>
                     }
-                    <div class="quick-delete-builder"><div><span class="eyebrow">УДАЛЕНИЕ У ИГРОКОВ</span><p>Укажите относительный путь. При обновлении файл будет удалён транзакционно и попадёт в откат.</p></div><select @bind="_quickDeleteRoot"><option value="game">КОРЕНЬ ИГРЫ</option><option value="modpack">MO2</option></select><input @bind="_quickDeletePath" placeholder="gamedata\configs\старый_файл.ltx" /><button class="danger" @onclick="AddQuickDeletion">＋ ДОБАВИТЬ ПУТЬ</button></div>
-                    <div class="quick-delete-tools"><button class="text" @onclick="SelectQuickGameDeletionFiles">ВЫБРАТЬ УДАЛЯЕМЫЕ ФАЙЛЫ ИГРЫ…</button><button class="text" @onclick="SelectQuickMo2DeletionFiles">ВЫБРАТЬ УДАЛЯЕМЫЕ ФАЙЛЫ MO2…</button></div>
-                    @if (_machine.QuickDeleteFiles.Count > 0)
+                    <div class="quick-delete-builder"><div><span class="eyebrow">УДАЛЕНИЕ У ИГРОКОВ</span><p>Файл или всё содержимое папки удаляется транзакционно и попадает в откат.</p></div><select @bind="_quickDeleteRoot"><option value="game">КОРЕНЬ ИГРЫ</option><option value="modpack">MO2</option></select><select @bind="_quickDeleteKind"><option value="file">ФАЙЛ</option><option value="folder">ПАПКА</option></select><input @bind="_quickDeletePath" placeholder="mods\старый аддон" /><button class="danger" @onclick="AddQuickDeletion">＋ ДОБАВИТЬ ПУТЬ</button></div>
+                    <div class="quick-delete-tools"><button class="text" @onclick="SelectQuickGameDeletionFiles">ФАЙЛЫ ИГРЫ…</button><button class="text" @onclick="SelectQuickGameDeletionFolder">ПАПКА ИГРЫ…</button><button class="text" @onclick="SelectQuickMo2DeletionFiles">ФАЙЛЫ MO2…</button><button class="text" @onclick="SelectQuickMo2DeletionFolder">ПАПКА MO2…</button></div>
+                    @if (QuickDeleteCount > 0)
                     {
-                        <div class="quick-delete-list">@foreach (var deletion in _machine.QuickDeleteFiles) { var currentDeletion = deletion; <span><b>@(currentDeletion.InstallRoot == "game" ? "ИГРА" : "MO2")</b>@currentDeletion.RelativePath<button title="Убрать удаление" @onclick="() => _machine.QuickDeleteFiles.Remove(currentDeletion)">×</button></span> }</div>
+                        <div class="quick-delete-list">@foreach (var deletion in _machine.QuickDeleteFiles) { var currentDeletion = deletion; <span><b>@(currentDeletion.InstallRoot == "game" ? "ИГРА · ФАЙЛ" : "MO2 · ФАЙЛ")</b>@currentDeletion.RelativePath<button title="Убрать удаление" @onclick="() => _machine.QuickDeleteFiles.Remove(currentDeletion)">×</button></span> } @foreach (var deletion in _machine.QuickDeleteFolders) { var currentDeletion = deletion; <span class="folder"><b>@(currentDeletion.InstallRoot == "game" ? "ИГРА · ПАПКА" : "MO2 · ПАПКА")</b>@currentDeletion.RelativePath<button title="Убрать удаление папки" @onclick="() => _machine.QuickDeleteFolders.Remove(currentDeletion)">×</button></span> }</div>
                     }
-                    <div class="quick-release-actions"><button class="secondary" @onclick="ClearQuickRelease" disabled="@(_busy || _machine.QuickReleaseFiles.Count + _machine.QuickDeleteFiles.Count == 0)">ОЧИСТИТЬ СПИСОК</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">УДАЛИТЬ ЭТОТ ВЫПУСК ИЗ ИСТОЧНИКОВ</button><button class="primary" @onclick="PublishQuickFilesAsync" disabled="@(_busy || _machine.QuickReleaseFiles.Count + _machine.QuickDeleteFiles.Count == 0)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ВЫБРАННЫЕ ФАЙЛЫ")</button></div>
+                    <div class="quick-release-actions"><button class="secondary" @onclick="ClearQuickRelease" disabled="@(_busy || QuickSelectionCount == 0)">ОЧИСТИТЬ СПИСОК</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">УДАЛИТЬ ЭТОТ ВЫПУСК ИЗ ИСТОЧНИКОВ</button><button class="primary" @onclick="PublishQuickFilesAsync" disabled="@(_busy || QuickSelectionCount == 0)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ВЫБРАННОЕ")</button></div>
                 </section>
                 <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
                 <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ</span><h3>Закрытый ключ хранится только у разработчика</h3><p>В общий рабочий файл попадают настройки релиза и материалы. Закрытый ключ и пути этой машины никогда не синхронизируются.</p></div><label>ID ключа<input @bind="_machine.KeyId" /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="GenerateKeys">СОЗДАТЬ КЛЮЧИ</button></section>
@@ -239,6 +244,7 @@
     private string _selectedContentLanguage = "source";
     private bool _translationBusy;
     private string _quickDeleteRoot = "game";
+    private string _quickDeleteKind = "file";
     private string _quickDeletePath = string.Empty;
 
     private Nav CurrentNavigation => Navigation.First(item => item.Id == _section);
@@ -274,6 +280,9 @@
         : GetImagePaths(ContentMediaPublisher.ContentKey(SelectedContent.Id));
     private int ConfiguredPublicationRootsCount => _workspace.Mirrors.Count(mirror =>
         _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) && !string.IsNullOrWhiteSpace(root));
+    private int QuickAddCount => _machine.QuickReleaseFiles.Count + _machine.QuickReleaseFolders.Count;
+    private int QuickDeleteCount => _machine.QuickDeleteFiles.Count + _machine.QuickDeleteFolders.Count;
+    private int QuickSelectionCount => QuickAddCount + QuickDeleteCount;
     private string SelectedContentIdentifier
     {
         get => SelectedContent?.Id ?? string.Empty;
@@ -372,9 +381,74 @@
 
     private void SelectQuickMo2Files() => SelectQuickFiles("modpack");
 
+    private void SelectQuickGameFolder() => SelectQuickFolder("game");
+
+    private void SelectQuickMo2Folder() => SelectQuickFolder("modpack");
+
+    private void SelectQuickFolder(string installRoot)
+    {
+        var root = installRoot == "game" ? _machine.GameSourceRoot : _machine.Mo2SourceRoot;
+        var selected = Bridge.SelectFolder(
+            installRoot == "game" ? "Выберите папку для корня игры" : "Выберите папку для MO2",
+            root,
+            false);
+        if (string.IsNullOrWhiteSpace(selected))
+        {
+            return;
+        }
+
+        var targetPath = RelativeFolderOrName(root, selected);
+        if (_machine.QuickReleaseFolders.Any(item =>
+                item.InstallRoot.Equals(installRoot, StringComparison.OrdinalIgnoreCase)
+                && item.RelativePath.Equals(targetPath, StringComparison.OrdinalIgnoreCase)))
+        {
+            Toast("Эта папка назначения уже добавлена.", true);
+            return;
+        }
+
+        _machine.QuickReleaseFolders.Add(new QuickReleaseFolderDraft
+        {
+            SourcePath = Path.GetFullPath(selected),
+            InstallRoot = installRoot,
+            RelativePath = targetPath,
+        });
+        Toast($"Папка «{FolderName(selected)}» добавлена целиком. Вложенная структура будет сохранена.");
+    }
+
     private void SelectQuickGameDeletionFiles() => SelectQuickDeletionFiles("game");
 
     private void SelectQuickMo2DeletionFiles() => SelectQuickDeletionFiles("modpack");
+
+    private void SelectQuickGameDeletionFolder() => SelectQuickDeletionFolder("game");
+
+    private void SelectQuickMo2DeletionFolder() => SelectQuickDeletionFolder("modpack");
+
+    private void SelectQuickDeletionFolder(string installRoot)
+    {
+        var root = installRoot == "game" ? _machine.GameSourceRoot : _machine.Mo2SourceRoot;
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+        {
+            Toast(installRoot == "game" ? "Сначала выберите корень игры." : "Сначала выберите корень MO2.", true);
+            return;
+        }
+
+        var folder = Bridge.SelectFolder("Выберите папку, которую нужно удалить у игроков", root, false);
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return;
+        }
+
+        var relative = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(folder));
+        if (relative == "."
+            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            || relative == ".."
+            || Path.IsPathRooted(relative))
+        {
+            Toast("Удаляемая папка должна находиться внутри выбранного корня; удалить сам корень нельзя.", true);
+            return;
+        }
+        AddQuickFolderDeletion(installRoot, relative);
+    }
 
     private void SelectQuickDeletionFiles(string installRoot)
     {
@@ -411,7 +485,14 @@
         }
         try
         {
-            AddQuickDeletion(_quickDeleteRoot, _quickDeletePath);
+            if (_quickDeleteKind == "folder")
+            {
+                AddQuickFolderDeletion(_quickDeleteRoot, _quickDeletePath);
+            }
+            else
+            {
+                AddQuickDeletion(_quickDeleteRoot, _quickDeletePath);
+            }
             _quickDeletePath = string.Empty;
         }
         catch (ArgumentException exception)
@@ -436,6 +517,22 @@
         });
     }
 
+    private void AddQuickFolderDeletion(string installRoot, string relativePath)
+    {
+        var normalized = PathSafety.NormalizeRelativePath(relativePath);
+        if (_machine.QuickDeleteFolders.Any(item =>
+                item.InstallRoot.Equals(installRoot, StringComparison.OrdinalIgnoreCase)
+                && item.RelativePath.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+        _machine.QuickDeleteFolders.Add(new QuickDeleteFolderDraft
+        {
+            InstallRoot = installRoot,
+            RelativePath = normalized,
+        });
+    }
+
     private void ClearQuickRelease()
     {
         if (!Bridge.Confirm("Очистить локальный список загрузки и удаления? Уже опубликованные файлы это не изменит.", "Очистить список"))
@@ -443,7 +540,9 @@
             return;
         }
         _machine.QuickReleaseFiles.Clear();
+        _machine.QuickReleaseFolders.Clear();
         _machine.QuickDeleteFiles.Clear();
+        _machine.QuickDeleteFolders.Clear();
         Toast("Список быстрого выпуска очищен.");
     }
 
@@ -460,6 +559,29 @@
             ? Path.GetFileName(file)
             : PathSafety.NormalizeRelativePath(relative);
     }
+
+    private static string RelativeFolderOrName(string root, string folder)
+    {
+        var fullFolder = Path.GetFullPath(folder);
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+        {
+            return FolderName(fullFolder);
+        }
+
+        var relative = Path.GetRelativePath(Path.GetFullPath(root), fullFolder);
+        if (relative == ".")
+        {
+            return string.Empty;
+        }
+        return relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+               || relative == ".."
+               || Path.IsPathRooted(relative)
+            ? FolderName(fullFolder)
+            : PathSafety.NormalizeRelativePath(relative);
+    }
+
+    private static string FolderName(string path) =>
+        Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
 
     private async Task SelectSectionAsync(string section)
     {
@@ -629,7 +751,7 @@
                 : $"Выбранные файлы опубликованы в {result.Publication.Targets} источник(а)";
             Toast(result.Publication.Targets == 0
                 ? $"Готово: {result.ManifestPath}. Укажите папки выгрузки в «Источниках», чтобы отправить выпуск."
-                : $"Загружено: {result.AddedFiles}; на удаление: {result.DeletedFiles}; источников: {result.Publication.Targets}.");
+                : $"Загружено файлов: {result.AddedFiles} из {result.AddedFolders} папок; удаление: {result.DeletedFiles} файлов и {result.DeletedFolders} папок; источников: {result.Publication.Targets}.");
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
         {

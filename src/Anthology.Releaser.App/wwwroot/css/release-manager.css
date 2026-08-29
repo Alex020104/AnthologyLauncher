@@ -196,18 +196,21 @@ main {
 .quick-file-list small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quick-file-list strong { color: #dce3e6; font-size: 10px; }
 .quick-file-list small { color: #64737b; font: 8px Consolas, monospace; }
-.quick-delete-builder { display: grid; grid-template-columns: minmax(240px, 1fr) 145px minmax(260px, 1fr) auto; gap: 10px; align-items: end; padding-top: 14px; border-top: 1px solid #2a353b; }
+.quick-file-list article.folder { border-color: #64552c; background: linear-gradient(90deg, #17170f, #0b1114 45%); }
+.quick-file-list strong i { margin-right: 8px; padding: 3px 5px; border: 1px solid #67572c; color: #deb84f; font: normal 7px "Segoe UI", sans-serif; letter-spacing: .12em; }
+.quick-delete-builder { display: grid; grid-template-columns: minmax(240px, 1fr) 135px 105px minmax(220px, 1fr) auto; gap: 10px; align-items: end; padding-top: 14px; border-top: 1px solid #2a353b; }
 .quick-delete-tools { justify-content: flex-end; }
 .quick-delete-list { display: flex; flex-wrap: wrap; gap: 7px; }
 .quick-delete-list > span { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 10px; border: 1px solid #633f38; background: #211514; color: #d2aaa2; font: 9px Consolas, monospace; }
+.quick-delete-list > span.folder { border-color: #78522d; background: #241b11; color: #e0bb87; }
 .quick-delete-list b { color: #e0806e; font: 7px "Segoe UI", sans-serif; letter-spacing: .12em; }
 .quick-delete-list button { border: 0; background: transparent; color: #d86e5c; font-size: 16px; }
 .quick-release-actions { justify-content: flex-end; padding-top: 13px; border-top: 1px solid #2a353b; }
 
 @media (max-width: 1250px) {
     .quick-file-list article { grid-template-columns: minmax(180px, 1fr) 130px minmax(180px, 1fr) 40px; }
-    .quick-delete-builder { grid-template-columns: 1fr 130px 1fr; }
-    .quick-delete-builder > button { grid-column: 3; }
+    .quick-delete-builder { grid-template-columns: 1fr 130px 105px 1fr; }
+    .quick-delete-builder > button { grid-column: 4; }
 }
 
 @media (max-width: 1450px) {

@@ -172,6 +172,67 @@ public sealed class UpdateCoordinatorTests : IDisposable
         Assert.Equal("restore-me", await File.ReadAllTextAsync(Path.Combine(gameRoot, "obsolete.txt")));
     }
 
+    [Fact]
+    public async Task DirectoryDeletionRemovesNestedAddonAndRollbackRestoresIt()
+    {
+        var archiveBytes = CreateArchive();
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var gameRoot = Path.Combine(_root, "delete-folder-game");
+        var stateRoot = Path.Combine(_root, "delete-folder-state");
+        var addonRoot = Path.Combine(gameRoot, "gamedata", "addons", "legacy-addon");
+        Directory.CreateDirectory(Path.Combine(addonRoot, "configs"));
+        Directory.CreateDirectory(Path.Combine(addonRoot, "scripts"));
+        await File.WriteAllTextAsync(Path.Combine(addonRoot, "configs", "legacy.ltx"), "restore-config");
+        await File.WriteAllTextAsync(Path.Combine(addonRoot, "scripts", "legacy.script"), "restore-script");
+        var package = CreatePackage(archiveBytes, []) with
+        {
+            Version = "2.1.151",
+            DeletedDirectories = ["gamedata/addons/legacy-addon"],
+        };
+        var manifest = ManifestSecurity.Sign(new UpdateManifest(
+            4, "next", "2.1.151", DateTimeOffset.UtcNow, null, [package]), key, "test-key-01");
+        var manifestPath = await WriteTrustFilesAsync(key, manifest);
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["game"] = gameRoot };
+        using var client = new HttpClient(new ArtifactHandler(archiveBytes));
+        var coordinator = new UpdateCoordinator(client);
+
+        var check = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
+        var result = await coordinator.ApplyAsync(check, roots, stateRoot);
+
+        Assert.Equal(2, result.DeletedFiles);
+        Assert.False(Directory.Exists(addonRoot));
+        await UpdateCoordinator.RollbackLatestAsync(roots, stateRoot);
+        Assert.Equal("restore-config", await File.ReadAllTextAsync(Path.Combine(addonRoot, "configs", "legacy.ltx")));
+        Assert.Equal("restore-script", await File.ReadAllTextAsync(Path.Combine(addonRoot, "scripts", "legacy.script")));
+    }
+
+    [Fact]
+    public async Task MissingDirectoryDeletionIsSuccessfulNoOp()
+    {
+        var archiveBytes = CreateArchive();
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var gameRoot = Path.Combine(_root, "missing-folder-game");
+        var stateRoot = Path.Combine(_root, "missing-folder-state");
+        Directory.CreateDirectory(gameRoot);
+        var package = CreatePackage(archiveBytes, []) with
+        {
+            Version = "2.1.152",
+            DeletedDirectories = ["mods/already-removed-addon"],
+        };
+        var manifest = ManifestSecurity.Sign(new UpdateManifest(
+            4, "next", "2.1.152", DateTimeOffset.UtcNow, null, [package]), key, "test-key-01");
+        var manifestPath = await WriteTrustFilesAsync(key, manifest);
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["game"] = gameRoot };
+        using var client = new HttpClient(new ArtifactHandler(archiveBytes));
+        var coordinator = new UpdateCoordinator(client);
+
+        var check = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
+        var result = await coordinator.ApplyAsync(check, roots, stateRoot);
+
+        Assert.Equal(0, result.DeletedFiles);
+        Assert.Equal(1, result.InstalledPackages);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

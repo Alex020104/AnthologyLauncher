@@ -121,7 +121,9 @@ public sealed class ReleaserStateStore : IDisposable
                 .ToList();
         }
         machine.QuickReleaseFiles ??= [];
+        machine.QuickReleaseFolders ??= [];
         machine.QuickDeleteFiles ??= [];
+        machine.QuickDeleteFolders ??= [];
         machine.PublicationRoots = new Dictionary<string, string>(machine.PublicationRoots ?? [], StringComparer.OrdinalIgnoreCase);
         machine.DeveloperName = string.IsNullOrWhiteSpace(machine.DeveloperName) ? Environment.UserName : machine.DeveloperName.Trim();
         machine.AutoSyncSeconds = Math.Clamp(machine.AutoSyncSeconds, 30, 3600);

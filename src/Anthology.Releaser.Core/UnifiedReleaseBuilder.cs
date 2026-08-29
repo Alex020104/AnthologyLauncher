@@ -108,7 +108,7 @@ public static class UnifiedReleaseBuilder
             cancellationToken);
         var catalog = CreateContentCatalog(workspace, media);
         var payload = new UpdateManifest(
-            3,
+            4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
             workspace.Version.Trim(),
             DateTimeOffset.UtcNow,

@@ -32,7 +32,8 @@ public sealed record PackageManifest(
     PackageUpdateMode UpdateMode = PackageUpdateMode.Merge,
     bool PruneInstallRoot = false,
     IReadOnlyList<string>? PreservedPaths = null,
-    IReadOnlyList<string>? DeletedFiles = null);
+    IReadOnlyList<string>? DeletedFiles = null,
+    IReadOnlyList<string>? DeletedDirectories = null);
 
 public sealed record MirrorManifest(
     string Provider,

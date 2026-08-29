@@ -3,9 +3,9 @@ ANTHOLOGY LAUNCHER NEXT
 
 Запуск: дважды нажмите "Launch Anthology Next.cmd".
 
-Эта portable-сборка полностью находится на диске E: и не подключает
+Эта portable-сборка полностью находится на диске A: и не подключает
 существующую игру автоматически. Папка App содержит лаунчер, Services —
-локальный Community API, Tools — новый Releaser, Source — исходный проект.
+локальный Community API. Releaser Next находится отдельно в A:\AnthologyReleaserNext.
 
 Это самостоятельная версия для разработки и просмотра, не публичный релиз.
 

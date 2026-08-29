@@ -69,7 +69,7 @@ public sealed class ReleaserCoreTests : IDisposable
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
         Assert.NotNull(manifest);
-        Assert.Equal(3, manifest.Payload.SchemaVersion);
+        Assert.Equal(4, manifest.Payload.SchemaVersion);
         Assert.All(manifest.Payload.Packages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
         Assert.All(manifest.Payload.Packages, package => Assert.True(package.PruneInstallRoot));
         var localizedNews = Assert.Single(manifest.Payload.Content!.Items);
@@ -354,8 +354,11 @@ public sealed class ReleaserCoreTests : IDisposable
         var secondTarget = Path.Combine(_root, "quick-google");
         var keys = Path.Combine(_root, "quick-keys");
         var source = Path.Combine(_root, "new-config.ltx");
+        var addonFolder = Path.Combine(_root, "new-addon");
         Directory.CreateDirectory(keys);
+        Directory.CreateDirectory(Path.Combine(addonFolder, "gamedata", "scripts"));
         await File.WriteAllTextAsync(source, "enabled = true");
+        await File.WriteAllTextAsync(Path.Combine(addonFolder, "gamedata", "scripts", "addon.script"), "return true");
         var privateKey = Path.Combine(keys, "private.pem");
         var publicKey = Path.Combine(keys, "public.pem");
         UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
@@ -389,9 +392,22 @@ public sealed class ReleaserCoreTests : IDisposable
                     RelativePath = "gamedata/configs/new-config.ltx",
                 },
             ],
+            QuickReleaseFolders =
+            [
+                new QuickReleaseFolderDraft
+                {
+                    SourcePath = addonFolder,
+                    InstallRoot = "game",
+                    RelativePath = "addons/example",
+                },
+            ],
             QuickDeleteFiles =
             [
                 new QuickDeleteFileDraft { InstallRoot = "game", RelativePath = "gamedata/configs/obsolete.ltx" },
+            ],
+            QuickDeleteFolders =
+            [
+                new QuickDeleteFolderDraft { InstallRoot = "game", RelativePath = "gamedata/scripts/old-addon" },
             ],
             PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -402,15 +418,18 @@ public sealed class ReleaserCoreTests : IDisposable
 
         var result = await ReleasePublicationService.PublishQuickFilesAsync(workspace, machine);
 
-        Assert.Equal(1, result.AddedFiles);
+        Assert.Equal(2, result.AddedFiles);
         Assert.Equal(1, result.DeletedFiles);
+        Assert.Equal(1, result.AddedFolders);
+        Assert.Equal(1, result.DeletedFolders);
         Assert.Equal(2, result.Publication.Targets);
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
         var package = Assert.Single(manifest!.Payload.Packages);
-        Assert.Equal(3, manifest.Payload.SchemaVersion);
-        Assert.Equal(["gamedata/configs/new-config.ltx"], package.Files);
+        Assert.Equal(4, manifest.Payload.SchemaVersion);
+        Assert.Equal(["addons/example/gamedata/scripts/addon.script", "gamedata/configs/new-config.ltx"], package.Files);
         Assert.Equal(["gamedata/configs/obsolete.ltx"], package.DeletedFiles);
+        Assert.Equal(["gamedata/scripts/old-addon"], package.DeletedDirectories);
         var artifactName = Path.GetFileName(Assert.Single(result.Artifacts));
         Assert.True(File.Exists(Path.Combine(firstTarget, workspace.Version, artifactName)));
         Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, artifactName)));

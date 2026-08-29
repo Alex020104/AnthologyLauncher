@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Destination = "E:\AnthologyReleaserNext"
+    [string]$Destination = "A:\AnthologyReleaserNext"
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,9 +11,19 @@ if ($destinationRoot.StartsWith($sourceFullPath + [System.IO.Path]::DirectorySep
     throw "The standalone releaser directory cannot be inside Source."
 }
 
-$dotnet = Get-Command dotnet -ErrorAction Stop
+$dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+$portableDotnet = "A:\AnthologyBuildTools\dotnet\dotnet.exe"
+if ($null -eq $dotnet -or -not (& $dotnet.Source --list-sdks | Select-String -SimpleMatch "10.0.400")) {
+    if (-not (Test-Path -LiteralPath $portableDotnet -PathType Leaf)) {
+        throw "The .NET 10.0.400 SDK was not found. Install it or place the portable SDK at $portableDotnet."
+    }
+    $dotnetPath = $portableDotnet
+}
+else {
+    $dotnetPath = $dotnet.Source
+}
 New-Item -ItemType Directory -Path $destinationRoot -Force | Out-Null
-& $dotnet.Source publish (Join-Path $sourceRoot "src\Anthology.Releaser.App\Anthology.Releaser.App.csproj") `
+& $dotnetPath publish (Join-Path $sourceRoot "src\Anthology.Releaser.App\Anthology.Releaser.App.csproj") `
     --configuration Release `
     --runtime win-x64 `
     --self-contained true `
