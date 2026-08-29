@@ -201,6 +201,26 @@ public static partial class ReleasePublicationService
                 await MoveFileToTrashAsync(published, Path.Combine(trash, "published", target.Id, workspace.Version, fileName), cancellationToken);
                 removed.Add(published);
             }
+
+            if (fileName.Equals("manifest.json", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var target in GetPublicationTargets(workspace, machine))
+                {
+                    var stableManifest = Path.Combine(target.Root, "manifest.json");
+                    if (!File.Exists(stableManifest))
+                    {
+                        continue;
+                    }
+
+                    await MoveFileToTrashAsync(
+                        stableManifest,
+                        Path.Combine(trash, "published", target.Id, "manifest.json"),
+                        cancellationToken);
+                    removed.Add(stableManifest);
+                }
+
+                await LauncherUpdateConfigurationPublisher.RemoveLocalManifestAsync(machine, trash, cancellationToken);
+            }
         }
 
         return new PublicationResult(GetPublicationTargets(workspace, machine).Length, removed.Count, 0, removed);
@@ -256,7 +276,9 @@ public static partial class ReleasePublicationService
             {
                 await MoveFileToTrashAsync(Path.Combine(target.Root, workspace.Version, "manifest.json"), Path.Combine(trash, "published", target.Id, workspace.Version, "manifest.json"), cancellationToken);
                 await MoveFileToTrashAsync(Path.Combine(target.Root, workspace.Version, "content.json"), Path.Combine(trash, "published", target.Id, workspace.Version, "content.json"), cancellationToken);
+                await MoveFileToTrashAsync(Path.Combine(target.Root, "manifest.json"), Path.Combine(trash, "published", target.Id, "manifest.json"), cancellationToken);
             }
+            await LauncherUpdateConfigurationPublisher.RemoveLocalManifestAsync(machine, trash, cancellationToken);
         }
         else
         {
@@ -473,16 +495,22 @@ public static partial class ReleasePublicationService
         var moved = new List<string>();
         progress?.Report($"Снятие версии {version} с публикации…");
 
-        foreach (var target in GetPublicationTargets(workspace, machine))
+        var targets = GetPublicationTargets(workspace, machine);
+        foreach (var target in targets)
         {
             var publishedVersion = Path.Combine(target.Root, version);
-            if (!Directory.Exists(publishedVersion))
+            if (Directory.Exists(publishedVersion))
             {
-                continue;
+                await MoveDirectoryToTrashAsync(publishedVersion, Path.Combine(trash, "published", target.Id, version), cancellationToken);
+                moved.Add(publishedVersion);
             }
 
-            await MoveDirectoryToTrashAsync(publishedVersion, Path.Combine(trash, "published", target.Id, version), cancellationToken);
-            moved.Add(publishedVersion);
+            var stableManifest = Path.Combine(target.Root, "manifest.json");
+            if (File.Exists(stableManifest))
+            {
+                await MoveFileToTrashAsync(stableManifest, Path.Combine(trash, "published", target.Id, "manifest.json"), cancellationToken);
+                moved.Add(stableManifest);
+            }
         }
 
         var localVersion = Path.Combine(outputRoot, version);
@@ -492,8 +520,13 @@ public static partial class ReleasePublicationService
             moved.Add(localVersion);
         }
 
+        if (await LauncherUpdateConfigurationPublisher.RemoveLocalManifestAsync(machine, trash, cancellationToken))
+        {
+            moved.Add("manifest.json лаунчера");
+        }
+
         progress?.Report($"Версия {version} снята с публикации; резервная копия сохранена в {trash}.");
-        return new PublicationResult(GetPublicationTargets(workspace, machine).Length, moved.Count, 0, moved);
+        return new PublicationResult(targets.Length, moved.Count, 0, moved);
     }
 
     private static async Task<ManifestRefreshResult> RefreshManifestAsync(
@@ -549,9 +582,19 @@ public static partial class ReleasePublicationService
         CancellationToken cancellationToken)
     {
         var targets = GetPublicationTargets(workspace, machine);
+        await LauncherUpdateConfigurationPublisher.PrepareAsync(
+            workspace,
+            machine,
+            progress,
+            cancellationToken);
         var destinations = new List<string>();
         long bytes = 0;
         var files = 0;
+        var manifestRelativePath = relativeFiles
+            .FirstOrDefault(relative => relative.Equals("manifest.json", StringComparison.OrdinalIgnoreCase));
+        var manifestPath = manifestRelativePath is null
+            ? null
+            : Path.GetFullPath(Path.Combine(versionRoot, manifestRelativePath));
         foreach (var target in targets)
         {
             progress?.Report($"Выгрузка в {target.Provider}: {target.Root}…");
@@ -570,7 +613,27 @@ public static partial class ReleasePublicationService
                 bytes += new FileInfo(source).Length;
             }
 
+            // Every publication root also exposes the latest manifest at a stable,
+            // version-independent path used by installed launchers.
+            if (manifestPath is not null && File.Exists(manifestPath))
+            {
+                await CopyFileAtomicallyAsync(
+                    manifestPath,
+                    Path.Combine(target.Root, "manifest.json"),
+                    cancellationToken);
+                files++;
+                bytes += new FileInfo(manifestPath).Length;
+            }
+
             destinations.Add(Path.Combine(target.Root, workspace.Version.Trim()));
+        }
+
+        if (manifestPath is not null && File.Exists(manifestPath))
+        {
+            await LauncherUpdateConfigurationPublisher.UpdateLocalManifestAsync(
+                manifestPath,
+                machine,
+                cancellationToken);
         }
 
         return new PublicationResult(targets.Length, files, bytes, destinations);

@@ -11,8 +11,16 @@ public sealed record RelayChatParticipant(string Nick, string DisplayName, strin
 
 public sealed class RelayChatClient : IAsyncDisposable, IDisposable
 {
-    private const string Server = "irc.gamesurge.net";
     private const int Port = 6667;
+    private static readonly string[] Servers =
+    [
+        "irc.eu.gamesurge.net",
+        "irc.gamesurge.net",
+        "irc.us.gamesurge.net",
+    ];
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan RegistrationTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan MinimumSendInterval = TimeSpan.FromMilliseconds(400);
     private const string DefaultChannel = "#cocrc_slavik";
     private const string DefaultFaction = "actor_stalker";
     private const int MaximumMessages = 300;
@@ -39,6 +47,8 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     private string _chatKey = "RETURN";
     private bool _newsSound = true;
     private bool _closeAfterSend = true;
+    private int _nextServerIndex;
+    private DateTimeOffset _nextSendAtUtc = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDeathMessageAt = DateTimeOffset.MinValue;
     private bool _disposed;
 
@@ -197,7 +207,9 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            try { await RunConnectionAsync(cancellationToken); }
+            var server = Servers[Math.Abs(Interlocked.Increment(ref _nextServerIndex) - 1) % Servers.Length];
+            SetStatus(false, $"Подключение к Реальному чату через {server}…");
+            try { await RunConnectionAsync(server, cancellationToken); }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { break; }
             catch (Exception exception) when (exception is IOException or SocketException or InvalidOperationException)
             {
@@ -209,10 +221,24 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         }
     }
 
-    private async Task RunConnectionAsync(CancellationToken cancellationToken)
+    private async Task RunConnectionAsync(string server, CancellationToken cancellationToken)
     {
-        using var client = new TcpClient();
-        await client.ConnectAsync(Server, Port, cancellationToken);
+        // Some GameSurge IPv6 endpoints accept TCP but never complete IRC registration.
+        // The original Relay Chat uses the IPv4 network, so keep the embedded client on
+        // that same path and rotate official round-robin hosts after a timed-out attempt.
+        using var client = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
+        using (var connectCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            connectCancellation.CancelAfter(ConnectTimeout);
+            try
+            {
+                await client.ConnectAsync(server, Port, connectCancellation.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new IOException($"{server} не ответил за {ConnectTimeout.TotalSeconds:0} секунд");
+            }
+        }
         await using var stream = client.GetStream();
         using var reader = new StreamReader(stream, new UTF8Encoding(false), false, 16 * 1024, leaveOpen: true);
         await using var writer = new StreamWriter(stream, new UTF8Encoding(false), 16 * 1024, leaveOpen: true) { AutoFlush = true, NewLine = "\r\n" };
@@ -225,10 +251,33 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
             var bridgeTask = RunGameBridgeAsync(bridgeCancellation.Token);
             try
             {
+                var registrationCompleted = false;
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var line = await reader.ReadLineAsync(cancellationToken) ?? throw new IOException("IRC-сервер закрыл соединение");
+                    string? line;
+                    if (registrationCompleted)
+                    {
+                        line = await reader.ReadLineAsync(cancellationToken);
+                    }
+                    else
+                    {
+                        using var registrationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        registrationCancellation.CancelAfter(RegistrationTimeout);
+                        try
+                        {
+                            line = await reader.ReadLineAsync(registrationCancellation.Token);
+                        }
+                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                        {
+                            throw new IOException($"{server} не завершил вход в IRC за {RegistrationTimeout.TotalSeconds:0} секунд");
+                        }
+                    }
+                    if (line is null)
+                    {
+                        throw new IOException("IRC-сервер закрыл соединение");
+                    }
                     await ProcessIrcLineAsync(line, cancellationToken);
+                    registrationCompleted = IsConnected;
                 }
             }
             finally
@@ -292,7 +341,6 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     {
         foreach (var participant in Participants.Where(item => !item.IsOwn).Take(80))
         {
-            await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001CLIENTINFO\u0001", cancellationToken);
             await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001DISPLAY\u0001", cancellationToken);
             await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001FACTION\u0001", cancellationToken);
         }
@@ -541,10 +589,17 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         await _sendGate.WaitAsync(cancellationToken);
         try
         {
+            var delay = _nextSendAtUtc - DateTimeOffset.UtcNow;
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, cancellationToken);
+            }
+
             StreamWriter? writer;
             lock (_stateLock) { writer = _writer; }
             if (writer is null) throw new InvalidOperationException("IRC-соединение ещё не готово");
             await writer.WriteLineAsync(line.AsMemory(), cancellationToken);
+            _nextSendAtUtc = DateTimeOffset.UtcNow + MinimumSendInterval;
         }
         finally { _sendGate.Release(); }
     }

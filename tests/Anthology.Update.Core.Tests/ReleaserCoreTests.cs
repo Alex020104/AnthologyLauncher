@@ -225,6 +225,42 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public void ProjectSupportIsAnIndependentRichContentType()
+    {
+        var support = new ContentDraft
+        {
+            Id = "project-support",
+            Kind = ContentKind.ProjectSupport,
+            Section = "general",
+            Title = "Поддержка проекта",
+            Summary = "Как помочь Anthology",
+            Body = "Основной текст",
+            IsPublished = true,
+            Videos = "Дневник | https://www.youtube.com/watch?v=example",
+            Blocks =
+            [
+                new ContentBlockDraft
+                {
+                    Id = "support-link",
+                    Kind = ContentBlockKind.Link,
+                    Title = "Поддержать",
+                    Url = "https://example.com/support",
+                },
+            ],
+        };
+        support.Translation("en").Title = "Project Support";
+        var workspace = new ReleaserWorkspace { Version = "2.1.140", Content = [support] };
+
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+
+        var document = Assert.Single(catalog.Items);
+        Assert.Equal(ContentKind.ProjectSupport, document.Kind);
+        Assert.Equal("Project Support", ContentLocalization.Resolve(document, "en").Title);
+        Assert.Equal("https://example.com/support", Assert.Single(document.Blocks!).Url);
+        Assert.Equal("https://www.youtube.com/watch?v=example", Assert.Single(document.Videos).Url);
+    }
+
+    [Fact]
     public void EditorialSeedImportsOldLauncherCopyAsEditableDrafts()
     {
         var content = new List<ContentDraft>();
@@ -435,6 +471,51 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, artifactName)));
         Assert.True(File.Exists(Path.Combine(firstTarget, workspace.Version, "manifest.json")));
         Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(firstTarget, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(secondTarget, "manifest.json")));
+    }
+
+    [Fact]
+    public async Task ReleaserPreparesIntegratedLauncherWithoutManualPublicKeySelection()
+    {
+        var game = Path.Combine(_root, "launcher-game");
+        var launcher = Path.Combine(game, "AnthologyLauncher");
+        var app = Path.Combine(launcher, "App");
+        var keys = Path.Combine(_root, "launcher-keys");
+        Directory.CreateDirectory(app);
+        Directory.CreateDirectory(keys);
+        await File.WriteAllTextAsync(Path.Combine(app, "AnthologyLauncher.Next.exe"), "launcher");
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var workspace = new ReleaserWorkspace
+        {
+            Channel = "next",
+            Mirrors =
+            [
+                new ReleaseMirrorSet
+                {
+                    Provider = "github",
+                    ManifestUrl = "https://cdn.example/anthology/manifest.json",
+                    Priority = 10,
+                },
+            ],
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            GameSourceRoot = game,
+            PublicKeyPath = publicKey,
+        };
+
+        var result = await LauncherUpdateConfigurationPublisher.PrepareAsync(workspace, machine);
+
+        Assert.True(result.LauncherFound);
+        Assert.True(result.PublicKeyCopied);
+        Assert.Equal("https://cdn.example/anthology/manifest.json", result.ManifestSource);
+        Assert.True(File.Exists(Path.Combine(app, "TrustedKeys", "anthology.public.pem")));
+        var descriptor = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(launcher, "Update", "channel.json")));
+        Assert.Equal("https://cdn.example/anthology/manifest.json", descriptor.RootElement.GetProperty("manifestSource").GetString());
+        Assert.Equal("next", descriptor.RootElement.GetProperty("channel").GetString());
     }
 
     public void Dispose()

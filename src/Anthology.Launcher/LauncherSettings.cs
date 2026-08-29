@@ -159,6 +159,7 @@ public sealed class LauncherSettingsStore : IDisposable
             if (!File.Exists(_settingsPath))
             {
                 ApplyEnvironmentOverrides(Current);
+                ApplyBundledUpdateConfiguration(Current);
                 Directory.CreateDirectory(DataRoot);
                 await WriteAsync(Current, cancellationToken);
                 return Current.Copy();
@@ -177,6 +178,7 @@ public sealed class LauncherSettingsStore : IDisposable
                 cancellationToken) ?? new LauncherSettings();
             Normalize(Current);
             ApplyEnvironmentOverrides(Current);
+            ApplyBundledUpdateConfiguration(Current);
             return Current.Copy();
         }
         finally
@@ -321,7 +323,123 @@ public sealed class LauncherSettingsStore : IDisposable
         {
             settings.CommunityApiUrl = NormalizeHttpUrl(communityApi, settings.CommunityApiUrl);
         }
+
+        var manifestSource = Environment.GetEnvironmentVariable("ANTHOLOGY_MANIFEST_SOURCE");
+        if (!string.IsNullOrWhiteSpace(manifestSource))
+        {
+            settings.ManifestSource = manifestSource.Trim();
+        }
     }
+
+    private static void ApplyBundledUpdateConfiguration(LauncherSettings settings)
+    {
+        if (string.IsNullOrWhiteSpace(settings.PublicKeyPath)
+            || !File.Exists(settings.PublicKeyPath))
+        {
+            var bundledKey = FindFirstExistingFile(
+                Path.Combine(AppContext.BaseDirectory, "TrustedKeys", "anthology.public.pem"),
+                Path.Combine(GetDeploymentRoot(), "TrustedKeys", "anthology.public.pem"));
+            if (bundledKey is not null)
+            {
+                settings.PublicKeyPath = bundledKey;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.ManifestSource)
+            && !IsManagedLocalManifest(settings.ManifestSource))
+        {
+            return;
+        }
+
+        foreach (var descriptorPath in new[]
+                 {
+                     Path.Combine(AppContext.BaseDirectory, "Update", "channel.json"),
+                     Path.Combine(GetDeploymentRoot(), "Update", "channel.json"),
+                 })
+        {
+            var configuredSource = ReadManifestSource(descriptorPath);
+            if (!string.IsNullOrWhiteSpace(configuredSource))
+            {
+                settings.ManifestSource = configuredSource;
+                return;
+            }
+        }
+
+        var localManifest = FindFirstExistingFile(
+            Path.Combine(AppContext.BaseDirectory, "Update", "manifest.json"),
+            Path.Combine(AppContext.BaseDirectory, "manifest.json"),
+            Path.Combine(GetDeploymentRoot(), "Update", "manifest.json"),
+            Path.Combine(GetDeploymentRoot(), "manifest.json"));
+        if (localManifest is not null)
+        {
+            settings.ManifestSource = localManifest;
+        }
+    }
+
+    private static string? ReadManifestSource(string descriptorPath)
+    {
+        if (!File.Exists(descriptorPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(descriptorPath));
+            var source = document.RootElement.TryGetProperty("manifestSource", out var node)
+                ? node.GetString()?.Trim()
+                : null;
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return null;
+            }
+            if (Uri.TryCreate(source, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                return uri.AbsoluteUri;
+            }
+            return Path.GetFullPath(source, Path.GetDirectoryName(descriptorPath)!);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string GetDeploymentRoot() =>
+        Directory.GetParent(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))?.FullName
+        ?? AppContext.BaseDirectory;
+
+    private static bool IsManagedLocalManifest(string source)
+    {
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri) && !uri.IsFile)
+        {
+            return false;
+        }
+
+        try
+        {
+            var sourcePath = uri?.LocalPath ?? Path.GetFullPath(source);
+            var candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "Update", "manifest.json"),
+                Path.Combine(AppContext.BaseDirectory, "manifest.json"),
+                Path.Combine(GetDeploymentRoot(), "Update", "manifest.json"),
+                Path.Combine(GetDeploymentRoot(), "manifest.json"),
+            };
+            return candidates.Any(candidate => string.Equals(
+                Path.GetFullPath(candidate),
+                Path.GetFullPath(sourcePath),
+                StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    private static string? FindFirstExistingFile(params string[] candidates) =>
+        candidates.Select(Path.GetFullPath).FirstOrDefault(File.Exists);
 
     private static string NormalizeHttpUrl(string? value, string fallback)
     {

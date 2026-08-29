@@ -169,4 +169,5 @@ public enum ContentKind
     Mod,
     News,
     Information,
+    ProjectSupport,
 }

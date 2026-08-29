@@ -39,6 +39,12 @@ public sealed class ReleaseMirrorSet
 
     public string ContentUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Stable public address of the latest signed manifest. Unlike package URLs,
+    /// this address must not contain a version placeholder.
+    /// </summary>
+    public string ManifestUrl { get; set; } = string.Empty;
+
     public int Priority { get; set; } = 100;
 }
 

@@ -145,6 +145,7 @@ public sealed class ReleaserStateStore : IDisposable
         foreach (var mirror in workspace.Mirrors)
         {
             mirror.Id = string.IsNullOrWhiteSpace(mirror.Id) ? $"source-{Guid.NewGuid():N}" : mirror.Id.Trim();
+            mirror.ManifestUrl = mirror.ManifestUrl?.Trim() ?? string.Empty;
         }
 
         if (previousSchemaVersion < 3 || seedEditorialContent)

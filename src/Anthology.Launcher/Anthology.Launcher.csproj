@@ -27,5 +27,10 @@
     <Resource Include="..\..\assets\A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico">
       <Link>Assets\launcher.ico</Link>
     </Resource>
+    <Content Include="TrustedKeys\anthology.public.pem">
+      <Link>TrustedKeys\anthology.public.pem</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 </Project>

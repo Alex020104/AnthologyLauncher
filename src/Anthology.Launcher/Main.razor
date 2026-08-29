@@ -12,7 +12,7 @@
         </div>
 
         <nav class="navigation" aria-label="Основная навигация">
-            @foreach (var item in Navigation)
+            @foreach (var item in Navigation.Where(item => !item.Bottom))
             {
                 var currentItem = item;
                 <button class="nav-item @(_section == currentItem.Id ? "active" : null)"
@@ -43,6 +43,17 @@
         </div>
 
         <div class="sidebar-spacer"></div>
+        <nav class="navigation bottom-navigation" aria-label="Поддержка проекта">
+            @foreach (var item in Navigation.Where(item => item.Bottom))
+            {
+                var currentItem = item;
+                <button class="nav-item @(_section == currentItem.Id ? "active" : null)"
+                        @onclick="() => SelectSection(currentItem.Id)">
+                    <span class="nav-icon">@currentItem.Icon</span>
+                    <span>@currentItem.Label</span>
+                </button>
+            }
+        </nav>
         <div class="build-card">
             <div class="build-card-top">
                 <span class="status-dot @(_installation.GameFound ? "online" : "warning")"></span>
@@ -473,6 +484,66 @@
                     <section class="managed-content-empty section-block"><span>0</span><div><strong>Раздел «Информация» пуст</strong><small>Все вкладки создаются, сортируются и удаляются в Releaser Next.</small></div></section>
                 }
             }
+            else if (_section == "project-support")
+            {
+                <section class="project-support-hero section-block">
+                    <div><span class="eyebrow">ПОДДЕРЖКА ПРОЕКТА</span><h2>Помочь Anthology<br /><em>двигаться дальше.</em></h2><p>Способы поддержки, важные ссылки и обращения команды публикуются здесь напрямую через Releaser Next.</p></div>
+                    <div class="project-support-mark"><span>♡</span><strong>ANTHOLOGY</strong><small>COMMUNITY SUPPORTED</small></div>
+                </section>
+                @if (PublishedProjectSupport.Any())
+                {
+                    @foreach (var supportItem in PublishedProjectSupport)
+                    {
+                        var currentSupport = supportItem;
+                        var localizedSupport = Localized(currentSupport);
+                        <section class="published-information-page project-support-page section-block @(currentSupport.Images.Count == 0 ? "no-cover" : null)">
+                            @if (currentSupport.Images.Count > 0)
+                            {
+                                <div class="published-information-cover project-support-cover"><img src="@currentSupport.Images[0]" alt="@localizedSupport.Title" /><span>ANTHOLOGY PROJECT SUPPORT</span></div>
+                            }
+                            <article class="published-information-copy">
+                                <span class="eyebrow">ПОДДЕРЖКА ПРОЕКТА · @currentSupport.Section</span>
+                                <h2>@localizedSupport.Title</h2>
+                                <p class="information-lead">@localizedSupport.Summary</p>
+                                @if (!string.IsNullOrWhiteSpace(localizedSupport.Body))
+                                {
+                                    <div class="information-body published-intro">@localizedSupport.Body</div>
+                                }
+                                @foreach (var block in currentSupport.Blocks ?? [])
+                                {
+                                    var localizedBlock = Localized(block);
+                                    @if (block.Kind == ContentBlockKind.Section)
+                                    {
+                                        <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section>
+                                    }
+                                    else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
+                                    {
+                                        <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
+                                    }
+                                    else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl)
+                                    {
+                                        <a class="published-information-block link-block project-support-link" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a>
+                                    }
+                                }
+                                @foreach (var image in currentSupport.Images.Skip(1))
+                                {
+                                    <figure class="published-information-block image-block"><img src="@image" alt="" /></figure>
+                                }
+                                @foreach (var video in currentSupport.Videos)
+                                {
+                                    var videoUrl = GetSafeEmbedUrl(video);
+                                    var directVideoUrl = GetSafeDirectVideoUrl(video);
+                                    @if (directVideoUrl is not null) { <video src="@directVideoUrl" controls preload="metadata" playsinline></video> } else if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> }
+                                }
+                            </article>
+                        </section>
+                    }
+                }
+                else
+                {
+                    <section class="managed-content-empty section-block"><span>♡</span><div><strong>Страница поддержки готовится</strong><small>Создайте и опубликуйте её в отдельном разделе «Поддержка проекта» приложения Releaser Next.</small></div></section>
+                }
+            }
             else if (_section == "updates")
             {
                 <section class="update-hero section-block">
@@ -847,7 +918,7 @@
                     <article class="setting-card setup-card section-block"><span>ОБЫЧНЫЙ УСТАНОВЩИК</span><h3>Запустить Setup</h3><code>@(_setupStatus.ExecutablePath ?? Path.Combine(_setupStatus.SetupRoot, "Setup.exe"))</code><p>Стабильная комплектная папка: <b>App\Setup</b>. Установщик может брать бинарные файлы из <b>Setup\bin</b> или <b>Setup\Payload\bin</b>.</p><div class="setup-state"><span class="status-dot @(_setupStatus.Available ? "online" : "warning")"></span><small>@_setupStatus.StatusText</small></div><div class="setting-actions"><button class="secondary-button" @onclick="SelectSetupAsync">ВЫБРАТЬ SETUP</button><button class="primary-button" disabled="@(!_setupStatus.Available)" @onclick="LaunchSetup">ЗАПУСТИТЬ SETUP</button></div></article>
                     <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
                     <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
-                    <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
+                    <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Автоматический подписанный канал</h3><div class="automatic-update-state @(UpdateConfigurationReady ? "ready" : null)"><i></i><div><strong>@ManifestConfigurationStatus</strong><small>@PublicKeyConfigurationStatus</small></div></div><p>Публичный ключ Anthology уже встроен в лаунчер. Manifest подхватывается автоматически из папки <b>Update</b> рядом с лаунчером или из настроенного командой онлайн-канала.</p><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><details class="advanced-update-settings"><summary>РАСШИРЕННАЯ НАСТРОЙКА ДЛЯ РАЗРАБОТЧИКА</summary><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Переопределить публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="Встроенный ключ используется автоматически" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ ДРУГОЙ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label></details><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
                     <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
                     <article class="setting-card section-block"><span>ОБЩИЙ СЕРВЕР</span><h3>Community API</h3><label>Адрес сервера<input @bind="_settings.CommunityApiUrl" placeholder="https://community.anthology.example/" /></label><p>Один адрес используется для чата, голосований и баг-репортов. Для локальной проверки оставьте http://127.0.0.1:5249; для работы с другими игроками укажите опубликованный HTTPS-адрес команды.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ СЕРВЕР</button><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
@@ -882,6 +953,7 @@
         new("support", "◇", "Баг-репорт", "ПОДДЕРЖКА", "Обращение разработчику"),
         new("installation", "⬡", "Установка", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
         new("settings", "⚙", "Настройки", "КОНФИГУРАЦИЯ", "Параметры Anomaly"),
+        new("project-support", "♡", "Поддержка проекта", "ПОДДЕРЖКА ПРОЕКТА", "Помочь Anthology", Bottom: true),
     ];
 
     private static readonly LibrarySection[] LibrarySections =
@@ -1032,6 +1104,8 @@
                       || Localized(item).Body.Contains(_librarySearch, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ContentDocument> PublishedInformation => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.Information);
+    private IEnumerable<ContentDocument> PublishedProjectSupport => (_publishedContent?.Items ?? [])
+        .Where(item => item.Kind == ContentKind.ProjectSupport);
     private ContentDocument? SelectedPublishedInformation => _informationSection.StartsWith(PublishedInformationPrefix, StringComparison.Ordinal)
         ? PublishedInformation.FirstOrDefault(item => string.Equals(PublishedInformationPrefix + item.Id, _informationSection, StringComparison.Ordinal))
           ?? PublishedInformation.FirstOrDefault()
@@ -2076,7 +2150,19 @@
 
     private bool UpdateConfigurationReady =>
         !string.IsNullOrWhiteSpace(_settings.ManifestSource)
-        && !string.IsNullOrWhiteSpace(_settings.PublicKeyPath);
+        && !string.IsNullOrWhiteSpace(_settings.PublicKeyPath)
+        && File.Exists(_settings.PublicKeyPath);
+
+    private string ManifestConfigurationStatus => string.IsNullOrWhiteSpace(_settings.ManifestSource)
+        ? "ОЖИДАЕТСЯ MANIFEST ОТ РЕЛИЗЕРА"
+        : Uri.TryCreate(_settings.ManifestSource, UriKind.Absolute, out var manifestUri)
+          && (manifestUri.Scheme == Uri.UriSchemeHttp || manifestUri.Scheme == Uri.UriSchemeHttps)
+            ? "ОНЛАЙН-КАНАЛ ПОДКЛЮЧЁН"
+            : "ЛОКАЛЬНЫЙ MANIFEST НАЙДЕН";
+
+    private string PublicKeyConfigurationStatus => File.Exists(_settings.PublicKeyPath)
+        ? "Публичный ключ встроен и готов к проверке подписи"
+        : "Встроенный публичный ключ не найден — переустановите лаунчер";
 
     private string UpdateHeadline => _updateBusy
         ? _updateProgress?.Message ?? "Выполняется операция"
@@ -2478,7 +2564,7 @@
         _mo2ContentCancellation?.Dispose();
     }
 
-    private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null);
+    private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null, bool Bottom = false);
 
     private sealed record LibrarySection(string Id, string Index, string Title, string Description);
 

@@ -131,8 +131,22 @@ main {
     grid-template-columns: 180px minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) 95px 40px;
 }
 
+.manifest-source,
 .publish-root {
     grid-column: 1 / -1;
+}
+
+.manifest-source {
+    padding-top: 13px;
+    border-top: 1px solid #263139;
+}
+
+.manifest-source small {
+    color: #6f7d85;
+    line-height: 1.4;
+}
+
+.publish-root {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
@@ -229,6 +243,7 @@ main {
     }
 
     .mirror-row > label:nth-of-type(3),
+    .manifest-source,
     .publish-root {
         grid-column: 1 / -1;
     }
