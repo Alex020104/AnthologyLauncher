@@ -103,6 +103,32 @@ public sealed class TransactionalFileInstallerTests : IDisposable
         Assert.Equal("restore-me", await File.ReadAllTextAsync(Path.Combine(target, "obsolete.txt")));
     }
 
+    [Fact]
+    public async Task DeletionOnlyTransactionIsBackedUpAndCanBeRolledBack()
+    {
+        var staged = Path.Combine(_root, "deletion-only-staged");
+        var target = Path.Combine(_root, "deletion-only-target");
+        var state = Path.Combine(_root, "deletion-only-state");
+        Directory.CreateDirectory(staged);
+        Directory.CreateDirectory(target);
+        await File.WriteAllTextAsync(Path.Combine(target, "obsolete.ltx"), "restore-me");
+
+        var install = await TransactionalFileInstaller.ApplyAsync(
+            staged,
+            target,
+            state,
+            [],
+            ["obsolete.ltx"]);
+
+        Assert.Equal(0, install.InstalledFiles);
+        Assert.Equal(1, install.DeletedFiles);
+        Assert.False(File.Exists(Path.Combine(target, "obsolete.ltx")));
+
+        await TransactionalFileInstaller.RollbackAsync(target, state, install.OperationId);
+
+        Assert.Equal("restore-me", await File.ReadAllTextAsync(Path.Combine(target, "obsolete.ltx")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

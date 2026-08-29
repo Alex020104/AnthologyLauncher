@@ -41,6 +41,26 @@ public sealed class ReleaserBridge
         }
     }
 
+    public IReadOnlyList<string> SelectFiles(string title, string filter, string? initialDirectory = null)
+    {
+        lock (_dialogGate)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = title,
+                Filter = filter,
+                CheckFileExists = true,
+                Multiselect = true,
+            };
+            if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            return dialog.ShowDialog() == true ? dialog.FileNames : [];
+        }
+    }
+
     public void OpenFolder(string? path)
     {
         lock (_dialogGate)

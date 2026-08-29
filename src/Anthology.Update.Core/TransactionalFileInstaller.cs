@@ -52,9 +52,9 @@ public static class TransactionalFileInstaller
             .Except(normalizedPaths, StringComparer.OrdinalIgnoreCase)
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        if (normalizedPaths.Length == 0)
+        if (normalizedPaths.Length == 0 && obsolete.Length == 0)
         {
-            throw new ArgumentException("No files were selected for installation.", nameof(relativePaths));
+            throw new ArgumentException("No files were selected for installation or deletion.", nameof(relativePaths));
         }
 
         foreach (var relativePath in normalizedPaths)

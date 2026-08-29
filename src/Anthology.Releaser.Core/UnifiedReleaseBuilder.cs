@@ -100,9 +100,15 @@ public static class UnifiedReleaseBuilder
             throw new InvalidOperationException("Укажите подготовленный корень игры и/или MO2.");
         }
 
-        var catalog = CreateContentCatalog(workspace);
+        var media = await ContentMediaPublisher.PrepareAsync(
+            workspace,
+            machine,
+            outputRoot,
+            progress,
+            cancellationToken);
+        var catalog = CreateContentCatalog(workspace, media);
         var payload = new UpdateManifest(
-            2,
+            3,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
             workspace.Version.Trim(),
             DateTimeOffset.UtcNow,
@@ -221,11 +227,20 @@ public static class UnifiedReleaseBuilder
             CommonExcludedRoots.Concat(specificExcludedRoots).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()), artifactPath);
     }
 
-    public static ContentCatalog CreateContentCatalog(ReleaserWorkspace workspace)
+    public static ContentCatalog CreateContentCatalog(
+        ReleaserWorkspace workspace,
+        PreparedContentMedia? media = null)
     {
+        media ??= PreparedContentMedia.Empty;
         var items = workspace.Content.Where(item => item.IsPublished).Select(item =>
         {
-            var images = SplitLines(item.Images).ToArray();
+            var uploadedImages = media.ContentImages.TryGetValue(item.Id, out var resolvedImages)
+                ? resolvedImages
+                : [];
+            var images = uploadedImages
+                .Concat(SplitLines(item.Images))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             var videos = SplitLines(item.Videos)
                 .Select(line => SplitPair(line, "Видео"))
                 .Select(pair => new ContentVideo(pair.Left, pair.Right))
@@ -276,12 +291,17 @@ public static class UnifiedReleaseBuilder
                     {
                         AddBlockTranslation(blockTranslations, AnthologyLanguages.Normalize(language), translation.Title, translation.Body);
                     }
+                    var resolvedUrl = media.BlockImages.TryGetValue(
+                        ContentMediaPublisher.BlockKey(item.Id, block.Id),
+                        out var uploadedImage)
+                            ? uploadedImage
+                            : string.IsNullOrWhiteSpace(block.Url) ? null : block.Url.Trim();
                     return new ContentBlock(
                         block.Id.Trim().ToLowerInvariant(),
                         block.Kind,
                         block.Title.Trim(),
                         block.Body.Trim(),
-                        string.IsNullOrWhiteSpace(block.Url) ? null : block.Url.Trim(),
+                        resolvedUrl,
                         blockTranslations);
                 })
                 .ToArray();

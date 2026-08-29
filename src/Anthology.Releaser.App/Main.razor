@@ -34,6 +34,32 @@
                     <article class="panel field-card"><span>КОРЕНЬ ИГРЫ</span><h3>Полная Anthology</h3><code>@PathOrEmpty(_machine.GameSourceRoot)</code><p>Выберите подготовленную папку сборки. Личные appdata, логи и скриншоты автоматически исключаются.</p><button class="secondary" @onclick="SelectGameRoot">ВЫБРАТЬ КОРЕНЬ</button></article>
                     <article class="panel field-card"><span>КОРЕНЬ MO2</span><h3>Полный Mod Organizer 2</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>Публикуются профили, mods, downloads и tools. Временный overwrite и кэши не входят в релиз.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ MO2</button></article>
                 </section>
+                <section class="panel quick-release">
+                    <div class="quick-release-head"><div><span class="eyebrow">ПРОСТОЙ ВЫПУСК ФАЙЛОВ</span><h3>Добавить или удалить сколько угодно файлов</h3><p>Выберите файлы, проверьте путь назначения и нажмите одну кнопку. Релизер создаст подписанное обновление и скопирует его во все папки GitHub, Яндекс.Диска, Google Drive и HTTP, указанные в «Источниках».</p></div><div class="quick-release-count"><strong>@_machine.QuickReleaseFiles.Count</strong><span>ЗАГРУЗИТЬ</span><strong>@_machine.QuickDeleteFiles.Count</strong><span>УДАЛИТЬ</span></div></div>
+                    <div class="quick-release-tools"><button class="secondary" @onclick="SelectQuickGameFiles">＋ ФАЙЛЫ В КОРЕНЬ ИГРЫ</button><button class="secondary" @onclick="SelectQuickMo2Files">＋ ФАЙЛЫ В MO2</button></div>
+                    <div class="quick-release-ready"><span><b>ВЫХОД</b>@_machine.OutputRoot</span><span><b>ПОДПИСЬ</b>@(File.Exists(_machine.PrivateKeyPath) ? "КЛЮЧ ГОТОВ" : "НЕТ КЛЮЧА")</span><span><b>ИСТОЧНИКИ</b>@ConfiguredPublicationRootsCount</span>@if (ConfiguredPublicationRootsCount == 0) { <button class="text" @onclick="OpenSourcesAsync">НАСТРОИТЬ ИСТОЧНИКИ →</button> }</div>
+                    @if (_machine.QuickReleaseFiles.Count == 0)
+                    {
+                        <div class="quick-empty">Файлы для загрузки ещё не выбраны.</div>
+                    }
+                    else
+                    {
+                        <div class="quick-file-list">
+                            @foreach (var file in _machine.QuickReleaseFiles)
+                            {
+                                var currentFile = file;
+                                <article><div><strong>@Path.GetFileName(currentFile.SourcePath)</strong><small>@currentFile.SourcePath</small></div><select @bind="currentFile.InstallRoot"><option value="game">КОРЕНЬ ИГРЫ</option><option value="modpack">MO2</option></select><input @bind="currentFile.RelativePath" aria-label="Путь назначения" /><button class="remove" title="Убрать из выпуска" @onclick="() => _machine.QuickReleaseFiles.Remove(currentFile)">×</button></article>
+                            }
+                        </div>
+                    }
+                    <div class="quick-delete-builder"><div><span class="eyebrow">УДАЛЕНИЕ У ИГРОКОВ</span><p>Укажите относительный путь. При обновлении файл будет удалён транзакционно и попадёт в откат.</p></div><select @bind="_quickDeleteRoot"><option value="game">КОРЕНЬ ИГРЫ</option><option value="modpack">MO2</option></select><input @bind="_quickDeletePath" placeholder="gamedata\configs\старый_файл.ltx" /><button class="danger" @onclick="AddQuickDeletion">＋ ДОБАВИТЬ ПУТЬ</button></div>
+                    <div class="quick-delete-tools"><button class="text" @onclick="SelectQuickGameDeletionFiles">ВЫБРАТЬ УДАЛЯЕМЫЕ ФАЙЛЫ ИГРЫ…</button><button class="text" @onclick="SelectQuickMo2DeletionFiles">ВЫБРАТЬ УДАЛЯЕМЫЕ ФАЙЛЫ MO2…</button></div>
+                    @if (_machine.QuickDeleteFiles.Count > 0)
+                    {
+                        <div class="quick-delete-list">@foreach (var deletion in _machine.QuickDeleteFiles) { var currentDeletion = deletion; <span><b>@(currentDeletion.InstallRoot == "game" ? "ИГРА" : "MO2")</b>@currentDeletion.RelativePath<button title="Убрать удаление" @onclick="() => _machine.QuickDeleteFiles.Remove(currentDeletion)">×</button></span> }</div>
+                    }
+                    <div class="quick-release-actions"><button class="secondary" @onclick="ClearQuickRelease" disabled="@(_busy || _machine.QuickReleaseFiles.Count + _machine.QuickDeleteFiles.Count == 0)">ОЧИСТИТЬ СПИСОК</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">УДАЛИТЬ ЭТОТ ВЫПУСК ИЗ ИСТОЧНИКОВ</button><button class="primary" @onclick="PublishQuickFilesAsync" disabled="@(_busy || _machine.QuickReleaseFiles.Count + _machine.QuickDeleteFiles.Count == 0)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ВЫБРАННЫЕ ФАЙЛЫ")</button></div>
+                </section>
                 <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
                 <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ</span><h3>Закрытый ключ хранится только у разработчика</h3><p>В общий рабочий файл попадают настройки релиза и материалы. Закрытый ключ и пути этой машины никогда не синхронизируются.</p></div><label>ID ключа<input @bind="_machine.KeyId" /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="GenerateKeys">СОЗДАТЬ КЛЮЧИ</button></section>
                 <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ ВСЕЙ СБОРКИ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Полный слепок добавит новые файлы и пометит отсутствующие для безопасного удаления у игрока." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">СНЯТЬ ВЕРСИЮ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ ВСЮ СБОРКУ")</button></section>
@@ -44,7 +70,7 @@
                 <section class="mirror-list">
                     @foreach (var mirror in _workspace.Mirrors.OrderBy(item => item.Priority))
                     {
-                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Архив игры<input @bind="mirror.GameUrl" placeholder="https://.../{version}/{file}" /></label><label>Архив MO2<input @bind="mirror.Mo2Url" placeholder="https://.../{version}/{file}" /></label><label>Аддоны<input @bind="mirror.ContentUrl" placeholder="https://.../{version}/addons/{id}/{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button><div class="publish-root"><label>Папка автоматической выгрузки на этой машине<input value="@GetPublicationRoot(mirror)" @onchange="eventArgs => SetPublicationRoot(mirror, eventArgs.Value?.ToString())" placeholder="Например, папка Яндекс.Диска или каталог HTTP-сервера" /></label><button class="secondary" @onclick="() => SelectPublicationRoot(mirror)">ВЫБРАТЬ ПАПКУ</button></div></article>
+                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Архив игры<input @bind="mirror.GameUrl" placeholder="https://.../{version}/{file}" /></label><label>Архив MO2<input @bind="mirror.Mo2Url" placeholder="https://.../{version}/{file}" /></label><label>Аддоны и фотографии<input @bind="mirror.ContentUrl" placeholder="https://.../{version}/addons/{id}/{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button><div class="publish-root"><label>Папка автоматической выгрузки на этой машине<input value="@GetPublicationRoot(mirror)" @onchange="eventArgs => SetPublicationRoot(mirror, eventArgs.Value?.ToString())" placeholder="Локальная папка GitHub-репозитория, Яндекс.Диска, Google Drive или HTTP-сервера" /></label><button class="secondary" @onclick="() => SelectPublicationRoot(mirror)">ВЫБРАТЬ ПАПКУ</button></div></article>
                     }
                 </section>
                 <section class="panel action-line"><button class="secondary" @onclick="AddMirror">＋ ДОБАВИТЬ ИСТОЧНИК</button><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ ИСТОЧНИКИ</button></section>
@@ -109,9 +135,13 @@
                                         var currentBlock = block;
                                         <article class="information-block @BlockCssClass(currentBlock.Kind)">
                                             <header><div><span>@BlockKindName(currentBlock.Kind)</span><strong>@(string.IsNullOrWhiteSpace(currentBlock.Title) ? "Без названия" : currentBlock.Title)</strong></div><div><button title="Выше" @onclick="() => MoveInformationBlock(currentBlock, -1)">↑</button><button title="Ниже" @onclick="() => MoveInformationBlock(currentBlock, 1)">↓</button><button class="remove-block" title="Удалить блок" @onclick="() => RemoveInformationBlock(currentBlock)">×</button></div></header>
-                                            @if (currentBlock.Kind is ContentBlockKind.Image or ContentBlockKind.Link or ContentBlockKind.Article)
+                                            @if (currentBlock.Kind == ContentBlockKind.Link)
                                             {
                                                 <label>@BlockUrlLabel(currentBlock.Kind)<input @bind="currentBlock.Url" placeholder="https://..." /></label>
+                                            }
+                                            else if (currentBlock.Kind is ContentBlockKind.Image or ContentBlockKind.Article)
+                                            {
+                                                <div class="block-photo-upload"><div><span>@(currentBlock.Kind == ContentBlockKind.Article ? "ФОНОВАЯ ФОТОГРАФИЯ" : "ФОТОГРАФИЯ")</span><code>@PathOrEmpty(GetBlockImagePath(currentBlock))</code></div><button class="secondary" @onclick="() => SelectBlockImage(currentBlock)">ЗАГРУЗИТЬ PNG / JPG / WEBP</button>@if (GetBlockImagePath(currentBlock).Length > 0) { <button class="remove" @onclick="() => RemoveBlockImage(currentBlock)">×</button> }</div>
                                             }
                                             <div class="block-locale-grid">
                                                 @if (_selectedContentLanguage == "source")
@@ -130,7 +160,7 @@
                                 </section>
                             }
 
-                            <div class="media-grid"><label>@(ActiveContentKind == ContentKind.Information ? "Обложки вкладки — по одной HTTPS-ссылке" : "Картинки — по одной HTTPS-ссылке на строку")<textarea rows="5" @bind="SelectedContent.Images" placeholder="https://.../cover.jpg"></textarea></label><label>Видео — «Название | HTTPS-ссылка»<textarea rows="5" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/embed/..."></textarea></label></div>
+                            <div class="media-grid"><section class="photo-upload"><div><span>@(ActiveContentKind == ContentKind.Information ? "ФОТОГРАФИИ И ОБЛОЖКА ВКЛАДКИ" : "ФОТОГРАФИИ МАТЕРИАЛА")</span><p>Выберите PNG, JPG или WEBP с компьютера. Первая фотография станет обложкой; файлы автоматически попадут во все источники при публикации.</p></div><button class="secondary" @onclick="SelectContentImages">＋ ЗАГРУЗИТЬ ФОТОГРАФИИ</button>@if (SelectedContentImagePaths.Count == 0) { <div class="photo-empty">Фотографии не выбраны</div> } else { <div class="photo-file-list">@foreach (var photo in SelectedContentImagePaths) { var currentPhoto = photo; <span><b>@Path.GetFileName(currentPhoto)</b><small>@currentPhoto</small><button title="Удалить фотографию" @onclick="() => RemoveContentImage(currentPhoto)">×</button></span> }</div> }</section><label class="video-url-editor">Видео по URL — «Название | HTTPS-ссылка»<textarea rows="7" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/watch?v=..."></textarea><small>YouTube, VK, ModDB и прямые HTTPS-ссылки на MP4/WEBM воспроизводятся внутри лаунчера.</small></label></div>
                             @if (ActiveContentKind == ContentKind.Mod)
                             {
                                 <section class="download-editor"><div><span class="eyebrow">ПАКЕТ ДЛЯ БИБЛИОТЕКИ МОДОВ</span><h3>Автоматическая установка в MO2\mods</h3><p>Выберите готовый архив мода. Лаунчер скачает его с выбранного зеркала, проверит SHA‑256, распакует в папку <b>MO2\mods</b> и сразу включит в выбранном профиле. Повторная публикация безопасно заменит старую версию этого же мода.</p></div><code>@PathOrEmpty(SelectedContentArchivePath)</code><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ МОДА</button><div class="form-grid"><label>Имя архива<input @bind="SelectedContent.DownloadFileName" /></label><label>Папка мода в MO2<input @bind="SelectedContent.InstallFolderName" placeholder="Если пусто — используется ID публикации" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://.../{version}/addons/{id}/{file}&#10;google-drive | https://...&#10;http | https://cdn.example/{file}"></textarea></label><div class="publish-actions"><button class="danger" @onclick="UnpublishAddonAsync" disabled="@(_busy || !SelectedContent.IsPublished)">СНЯТЬ МОД</button><button class="primary" @onclick="PublishAddonAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ В БИБЛИОТЕКЕ")</button></div></section>
@@ -208,6 +238,8 @@
     private readonly LibreTranslationClient _translator = new();
     private string _selectedContentLanguage = "source";
     private bool _translationBusy;
+    private string _quickDeleteRoot = "game";
+    private string _quickDeletePath = string.Empty;
 
     private Nav CurrentNavigation => Navigation.First(item => item.Id == _section);
     private bool IsContentSection => _section is "library" or "news" or "information";
@@ -237,6 +269,11 @@
         && _machine.ContentArchivePaths.TryGetValue(SelectedContent.Id, out var path)
             ? path
             : string.Empty;
+    private IReadOnlyList<string> SelectedContentImagePaths => SelectedContent is null
+        ? []
+        : GetImagePaths(ContentMediaPublisher.ContentKey(SelectedContent.Id));
+    private int ConfiguredPublicationRootsCount => _workspace.Mirrors.Count(mirror =>
+        _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) && !string.IsNullOrWhiteSpace(root));
     private string SelectedContentIdentifier
     {
         get => SelectedContent?.Id ?? string.Empty;
@@ -250,6 +287,18 @@
             if (_machine.ContentArchivePaths.Remove(oldId, out var archivePath))
             {
                 _machine.ContentArchivePaths[value] = archivePath;
+            }
+            var mediaMappings = _machine.ContentImagePaths
+                .Where(pair => pair.Key.Equals(ContentMediaPublisher.ContentKey(oldId), StringComparison.OrdinalIgnoreCase)
+                               || pair.Key.StartsWith($"block/{oldId}/", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            foreach (var mapping in mediaMappings)
+            {
+                _machine.ContentImagePaths.Remove(mapping.Key);
+                var replacementKey = mapping.Key.Equals(ContentMediaPublisher.ContentKey(oldId), StringComparison.OrdinalIgnoreCase)
+                    ? ContentMediaPublisher.ContentKey(value)
+                    : $"block/{value}/{mapping.Key[(mapping.Key.LastIndexOf('/') + 1)..]}";
+                _machine.ContentImagePaths[replacementKey] = mapping.Value;
             }
         }
     }
@@ -290,6 +339,128 @@
     private void SelectPrivateKey() => _machine.PrivateKeyPath = Bridge.SelectFile("Выберите закрытый PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PrivateKeyPath) ?? _machine.PrivateKeyPath;
     private void SelectPublicKey() => _machine.PublicKeyPath = Bridge.SelectFile("Выберите публичный PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PublicKeyPath) ?? _machine.PublicKeyPath;
 
+    private void SelectQuickFiles(string installRoot)
+    {
+        var root = installRoot == "game" ? _machine.GameSourceRoot : _machine.Mo2SourceRoot;
+        var files = Bridge.SelectFiles(
+            installRoot == "game" ? "Выберите файлы для корня игры" : "Выберите файлы для MO2",
+            "Все файлы (*.*)|*.*",
+            root);
+        foreach (var file in files)
+        {
+            var relativePath = RelativePathOrFileName(root, file);
+            if (_machine.QuickReleaseFiles.Any(item =>
+                    item.InstallRoot.Equals(installRoot, StringComparison.OrdinalIgnoreCase)
+                    && item.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+            _machine.QuickReleaseFiles.Add(new QuickReleaseFileDraft
+            {
+                SourcePath = file,
+                InstallRoot = installRoot,
+                RelativePath = relativePath,
+            });
+        }
+        if (files.Count > 0)
+        {
+            Toast($"Добавлено файлов: {files.Count}. Проверьте пути назначения перед публикацией.");
+        }
+    }
+
+    private void SelectQuickGameFiles() => SelectQuickFiles("game");
+
+    private void SelectQuickMo2Files() => SelectQuickFiles("modpack");
+
+    private void SelectQuickGameDeletionFiles() => SelectQuickDeletionFiles("game");
+
+    private void SelectQuickMo2DeletionFiles() => SelectQuickDeletionFiles("modpack");
+
+    private void SelectQuickDeletionFiles(string installRoot)
+    {
+        var root = installRoot == "game" ? _machine.GameSourceRoot : _machine.Mo2SourceRoot;
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+        {
+            Toast(installRoot == "game" ? "Сначала выберите корень игры." : "Сначала выберите корень MO2.", true);
+            return;
+        }
+        var files = Bridge.SelectFiles(
+            "Выберите файлы, которые должны быть удалены у игроков",
+            "Все файлы (*.*)|*.*",
+            root);
+        foreach (var file in files)
+        {
+            var relative = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(file));
+            if (relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                || relative == ".."
+                || Path.IsPathRooted(relative))
+            {
+                Toast("Удаляемый файл должен находиться внутри выбранного корня.", true);
+                continue;
+            }
+            AddQuickDeletion(installRoot, relative);
+        }
+    }
+
+    private void AddQuickDeletion()
+    {
+        if (string.IsNullOrWhiteSpace(_quickDeletePath))
+        {
+            Toast("Укажите относительный путь удаляемого файла.", true);
+            return;
+        }
+        try
+        {
+            AddQuickDeletion(_quickDeleteRoot, _quickDeletePath);
+            _quickDeletePath = string.Empty;
+        }
+        catch (ArgumentException exception)
+        {
+            Toast(exception.Message, true);
+        }
+    }
+
+    private void AddQuickDeletion(string installRoot, string relativePath)
+    {
+        var normalized = PathSafety.NormalizeRelativePath(relativePath);
+        if (_machine.QuickDeleteFiles.Any(item =>
+                item.InstallRoot.Equals(installRoot, StringComparison.OrdinalIgnoreCase)
+                && item.RelativePath.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+        _machine.QuickDeleteFiles.Add(new QuickDeleteFileDraft
+        {
+            InstallRoot = installRoot,
+            RelativePath = normalized,
+        });
+    }
+
+    private void ClearQuickRelease()
+    {
+        if (!Bridge.Confirm("Очистить локальный список загрузки и удаления? Уже опубликованные файлы это не изменит.", "Очистить список"))
+        {
+            return;
+        }
+        _machine.QuickReleaseFiles.Clear();
+        _machine.QuickDeleteFiles.Clear();
+        Toast("Список быстрого выпуска очищен.");
+    }
+
+    private static string RelativePathOrFileName(string root, string file)
+    {
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+        {
+            return Path.GetFileName(file);
+        }
+        var relative = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(file));
+        return relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+               || relative == ".."
+               || Path.IsPathRooted(relative)
+            ? Path.GetFileName(file)
+            : PathSafety.NormalizeRelativePath(relative);
+    }
+
     private async Task SelectSectionAsync(string section)
     {
         _section = section;
@@ -309,6 +480,8 @@
             // The control will bind itself after WebView finishes loading.
         }
     }
+
+    private Task OpenSourcesAsync() => SelectSectionAsync("sources");
 
     private string GetPublicationRoot(ReleaseMirrorSet mirror) =>
         _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) ? root : string.Empty;
@@ -441,6 +614,34 @@
         if (!string.IsNullOrWhiteSpace(text)) segments.Add((text.Trim(), apply));
     }
 
+    private async Task PublishQuickFilesAsync()
+    {
+        _busy = true;
+        try
+        {
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.PublishQuickFilesAsync(_workspace, _machine, progress);
+            _lastPublication = result.Publication;
+            _status = result.Publication.Targets == 0
+                ? $"Выбранные файлы версии {_workspace.Version} готовы локально"
+                : $"Выбранные файлы опубликованы в {result.Publication.Targets} источник(а)";
+            Toast(result.Publication.Targets == 0
+                ? $"Готово: {result.ManifestPath}. Укажите папки выгрузки в «Источниках», чтобы отправить выпуск."
+                : $"Загружено: {result.AddedFiles}; на удаление: {result.DeletedFiles}; источников: {result.Publication.Targets}.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Публикация выбранных файлов остановлена";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
     private async Task BuildReleaseAsync()
     {
         _busy = true;
@@ -556,6 +757,7 @@
             }
 
             _machine.ContentArchivePaths.Remove(item.Id);
+            RemoveContentImageMappings(item.Id);
             _workspace.Content.Remove(item);
             _selectedContentId = _workspace.Content.FirstOrDefault(candidate => candidate.Kind == ActiveContentKind)?.Id;
             await State.SaveWorkspaceAsync(_workspace, _machine, true);
@@ -615,6 +817,93 @@
         });
     }
 
+    private void SelectContentImages()
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        var selected = Bridge.SelectFiles(
+            "Выберите фотографии материала",
+            "Изображения (*.png;*.jpg;*.jpeg;*.webp)|*.png;*.jpg;*.jpeg;*.webp",
+            GetImagePaths(ContentMediaPublisher.ContentKey(content.Id)).FirstOrDefault());
+        if (selected.Count == 0) { return; }
+        var key = ContentMediaPublisher.ContentKey(content.Id);
+        var paths = GetOrCreateImagePaths(key);
+        foreach (var path in selected)
+        {
+            if (!paths.Contains(path, StringComparer.OrdinalIgnoreCase))
+            {
+                paths.Add(path);
+            }
+        }
+        Toast($"Добавлено фотографий: {selected.Count}. Они попадут в публикацию автоматически.");
+    }
+
+    private void RemoveContentImage(string path)
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        var key = ContentMediaPublisher.ContentKey(content.Id);
+        if (!_machine.ContentImagePaths.TryGetValue(key, out var paths)) { return; }
+        paths.RemoveAll(item => item.Equals(path, StringComparison.OrdinalIgnoreCase));
+        if (paths.Count == 0)
+        {
+            _machine.ContentImagePaths.Remove(key);
+        }
+    }
+
+    private void SelectBlockImage(ContentBlockDraft block)
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        var selected = Bridge.SelectFile(
+            "Выберите фотографию",
+            "Изображения (*.png;*.jpg;*.jpeg;*.webp)|*.png;*.jpg;*.jpeg;*.webp",
+            GetBlockImagePath(block));
+        if (selected is null) { return; }
+        _machine.ContentImagePaths[ContentMediaPublisher.BlockKey(content.Id, block.Id)] = [selected];
+        block.Url = string.Empty;
+    }
+
+    private string GetBlockImagePath(ContentBlockDraft block)
+    {
+        var content = SelectedContent;
+        return content is null
+            ? string.Empty
+            : GetImagePaths(ContentMediaPublisher.BlockKey(content.Id, block.Id)).FirstOrDefault() ?? string.Empty;
+    }
+
+    private void RemoveBlockImage(ContentBlockDraft block)
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        _machine.ContentImagePaths.Remove(ContentMediaPublisher.BlockKey(content.Id, block.Id));
+    }
+
+    private IReadOnlyList<string> GetImagePaths(string key) =>
+        _machine.ContentImagePaths.TryGetValue(key, out var paths) ? paths : [];
+
+    private List<string> GetOrCreateImagePaths(string key)
+    {
+        if (!_machine.ContentImagePaths.TryGetValue(key, out var paths))
+        {
+            paths = [];
+            _machine.ContentImagePaths[key] = paths;
+        }
+        return paths;
+    }
+
+    private void RemoveContentImageMappings(string contentId)
+    {
+        var keys = _machine.ContentImagePaths.Keys
+            .Where(key => key.Equals(ContentMediaPublisher.ContentKey(contentId), StringComparison.OrdinalIgnoreCase)
+                          || key.StartsWith($"block/{contentId}/", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (var key in keys)
+        {
+            _machine.ContentImagePaths.Remove(key);
+        }
+    }
+
     private void MoveInformationBlock(ContentBlockDraft block, int direction)
     {
         var blocks = SelectedContent?.Blocks;
@@ -625,7 +914,11 @@
         (blocks[index], blocks[target]) = (blocks[target], blocks[index]);
     }
 
-    private void RemoveInformationBlock(ContentBlockDraft block) => SelectedContent?.Blocks.Remove(block);
+    private void RemoveInformationBlock(ContentBlockDraft block)
+    {
+        RemoveBlockImage(block);
+        SelectedContent?.Blocks.Remove(block);
+    }
 
     private static string BlockKindName(ContentBlockKind kind) => kind switch
     {
@@ -655,8 +948,8 @@
 
     private static string BlockUrlLabel(ContentBlockKind kind) => kind switch
     {
-        ContentBlockKind.Image => "HTTPS URL картинки",
-        ContentBlockKind.Article => "HTTPS URL фонового изображения (необязательно)",
+        ContentBlockKind.Image => "Загруженная фотография",
+        ContentBlockKind.Article => "Загруженная фоновая фотография (необязательно)",
         _ => "HTTPS URL страницы или файла",
     };
 

@@ -69,7 +69,7 @@ public sealed class ReleaserCoreTests : IDisposable
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
         Assert.NotNull(manifest);
-        Assert.Equal(2, manifest.Payload.SchemaVersion);
+        Assert.Equal(3, manifest.Payload.SchemaVersion);
         Assert.All(manifest.Payload.Packages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
         Assert.All(manifest.Payload.Packages, package => Assert.True(package.PruneInstallRoot));
         var localizedNews = Assert.Single(manifest.Payload.Content!.Items);
@@ -291,6 +291,131 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.False(news.IsPublished);
         Assert.False(File.Exists(Path.Combine(output, workspace.Version, "content.json")));
         Assert.False(File.Exists(Path.Combine(published, workspace.Version, "content.json")));
+    }
+
+    [Fact]
+    public async Task UploadedPhotoIsPublishedWithContentAndRemovedWithIt()
+    {
+        var output = Path.Combine(_root, "photo-output");
+        var published = Path.Combine(_root, "photo-published");
+        var keys = Path.Combine(_root, "photo-keys");
+        var sourcePhoto = Path.Combine(_root, "cover.png");
+        Directory.CreateDirectory(keys);
+        await File.WriteAllBytesAsync(sourcePhoto, [0x89, 0x50, 0x4e, 0x47]);
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var mirror = new ReleaseMirrorSet
+        {
+            Id = "photo-cdn",
+            Provider = "http",
+            ContentUrl = "https://cdn.example/{version}/addons/{id}/{file}",
+            Priority = 10,
+        };
+        var news = new ContentDraft { Id = "photo-news", Kind = ContentKind.News, Title = "Новость с фото" };
+        var workspace = new ReleaserWorkspace { Version = "2.1.141", Mirrors = [mirror], Content = [news] };
+        var machine = new ReleaserMachineSettings
+        {
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "photo-test-key",
+            ContentImagePaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ContentMediaPublisher.ContentKey(news.Id)] = [sourcePhoto],
+            },
+            PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [mirror.Id] = published,
+            },
+        };
+
+        await ReleasePublicationService.PublishContentAsync(news, workspace, machine);
+
+        var catalog = JsonSerializer.Deserialize<ContentCatalog>(
+            await File.ReadAllTextAsync(Path.Combine(output, workspace.Version, "content.json")),
+            ManifestJson.Options);
+        var imageUrl = Assert.Single(Assert.Single(catalog!.Items).Images);
+        Assert.Equal("https://cdn.example/2.1.141/addons/photo-news/media/01-cover.png", imageUrl);
+        Assert.True(File.Exists(Path.Combine(output, workspace.Version, "addons", news.Id, "media", "01-cover.png")));
+        Assert.True(File.Exists(Path.Combine(published, workspace.Version, "addons", news.Id, "media", "01-cover.png")));
+
+        await ReleasePublicationService.UnpublishContentAsync(news, workspace, machine);
+
+        Assert.False(Directory.Exists(Path.Combine(output, workspace.Version, "addons", news.Id, "media")));
+        Assert.False(Directory.Exists(Path.Combine(published, workspace.Version, "addons", news.Id, "media")));
+    }
+
+    [Fact]
+    public async Task QuickReleasePublishesAnyFilesAndExplicitDeletionToEverySource()
+    {
+        var output = Path.Combine(_root, "quick-output");
+        var firstTarget = Path.Combine(_root, "quick-yandex");
+        var secondTarget = Path.Combine(_root, "quick-google");
+        var keys = Path.Combine(_root, "quick-keys");
+        var source = Path.Combine(_root, "new-config.ltx");
+        Directory.CreateDirectory(keys);
+        await File.WriteAllTextAsync(source, "enabled = true");
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var yandex = new ReleaseMirrorSet
+        {
+            Id = "yandex",
+            Provider = "yandex-disk",
+            GameUrl = "https://yandex.example/{version}/{file}",
+            Priority = 10,
+        };
+        var google = new ReleaseMirrorSet
+        {
+            Id = "google",
+            Provider = "google-drive",
+            GameUrl = "https://google.example/{version}/{file}",
+            Priority = 20,
+        };
+        var workspace = new ReleaserWorkspace { Version = "2.1.142", Mirrors = [yandex, google] };
+        var machine = new ReleaserMachineSettings
+        {
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "quick-test-key",
+            QuickReleaseFiles =
+            [
+                new QuickReleaseFileDraft
+                {
+                    SourcePath = source,
+                    InstallRoot = "game",
+                    RelativePath = "gamedata/configs/new-config.ltx",
+                },
+            ],
+            QuickDeleteFiles =
+            [
+                new QuickDeleteFileDraft { InstallRoot = "game", RelativePath = "gamedata/configs/obsolete.ltx" },
+            ],
+            PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [yandex.Id] = firstTarget,
+                [google.Id] = secondTarget,
+            },
+        };
+
+        var result = await ReleasePublicationService.PublishQuickFilesAsync(workspace, machine);
+
+        Assert.Equal(1, result.AddedFiles);
+        Assert.Equal(1, result.DeletedFiles);
+        Assert.Equal(2, result.Publication.Targets);
+        await using var stream = File.OpenRead(result.ManifestPath);
+        var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
+        var package = Assert.Single(manifest!.Payload.Packages);
+        Assert.Equal(3, manifest.Payload.SchemaVersion);
+        Assert.Equal(["gamedata/configs/new-config.ltx"], package.Files);
+        Assert.Equal(["gamedata/configs/obsolete.ltx"], package.DeletedFiles);
+        var artifactName = Path.GetFileName(Assert.Single(result.Artifacts));
+        Assert.True(File.Exists(Path.Combine(firstTarget, workspace.Version, artifactName)));
+        Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, artifactName)));
+        Assert.True(File.Exists(Path.Combine(firstTarget, workspace.Version, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, "manifest.json")));
     }
 
     public void Dispose()

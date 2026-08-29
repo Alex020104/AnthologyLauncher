@@ -186,9 +186,12 @@ public sealed class UpdateCoordinator
                 await SafeZipExtractor.ExtractAsync(artifactPath, stagingRoot, package, cancellationToken);
 
                 var previousManagedFiles = await ReadManagedFilesAsync(stateRoot, package.Id, cancellationToken);
-                var obsoleteFiles = package.UpdateMode == PackageUpdateMode.ManagedExact
-                    ? previousManagedFiles.Except(package.Files, StringComparer.OrdinalIgnoreCase).ToList()
-                    : [];
+                var obsoleteFiles = (package.DeletedFiles ?? []).ToList();
+                if (package.UpdateMode == PackageUpdateMode.ManagedExact)
+                {
+                    obsoleteFiles.AddRange(
+                        previousManagedFiles.Except(package.Files, StringComparer.OrdinalIgnoreCase));
+                }
                 if (package.PruneInstallRoot)
                 {
                     obsoleteFiles.AddRange(EnumeratePrunableFiles(

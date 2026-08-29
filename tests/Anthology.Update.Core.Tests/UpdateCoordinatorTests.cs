@@ -142,6 +142,36 @@ public sealed class UpdateCoordinatorTests : IDisposable
         Assert.Equal("old", await File.ReadAllTextAsync(Path.Combine(gameRoot, "obsolete.txt")));
     }
 
+    [Fact]
+    public async Task ExplicitDeletionOnlyPackageRemovesFileAndRollbackRestoresIt()
+    {
+        var archiveBytes = CreateArchive();
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var gameRoot = Path.Combine(_root, "delete-only-game");
+        var stateRoot = Path.Combine(_root, "delete-only-state");
+        Directory.CreateDirectory(gameRoot);
+        await File.WriteAllTextAsync(Path.Combine(gameRoot, "obsolete.txt"), "restore-me");
+        var package = CreatePackage(archiveBytes, []) with
+        {
+            Version = "2.1.150",
+            DeletedFiles = ["obsolete.txt"],
+        };
+        var manifest = ManifestSecurity.Sign(new UpdateManifest(
+            3, "next", "2.1.150", DateTimeOffset.UtcNow, null, [package]), key, "test-key-01");
+        var manifestPath = await WriteTrustFilesAsync(key, manifest);
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["game"] = gameRoot };
+        using var client = new HttpClient(new ArtifactHandler(archiveBytes));
+        var coordinator = new UpdateCoordinator(client);
+
+        var check = await coordinator.CheckAsync(manifestPath, GetPublicKeyPath(), "next", stateRoot);
+        var result = await coordinator.ApplyAsync(check, roots, stateRoot);
+
+        Assert.Equal(1, result.DeletedFiles);
+        Assert.False(File.Exists(Path.Combine(gameRoot, "obsolete.txt")));
+        await UpdateCoordinator.RollbackLatestAsync(roots, stateRoot);
+        Assert.Equal("restore-me", await File.ReadAllTextAsync(Path.Combine(gameRoot, "obsolete.txt")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

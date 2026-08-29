@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.IO.Compression;
 using Anthology.Contracts;
 using Anthology.Update.Core;
 
@@ -92,16 +93,17 @@ public static partial class ReleasePublicationService
             addon.DownloadMirrors = $"local-file | {new Uri(artifact).AbsoluteUri}";
         }
 
-        var manifestPath = await RefreshManifestAsync(workspace, machine, cancellationToken);
-        var relativeFiles = new[]
+        var refresh = await RefreshManifestAsync(workspace, machine, progress, cancellationToken);
+        var relativeFiles = new List<string>
         {
             relativeArtifact,
             "manifest.json",
             "content.json",
         };
+        relativeFiles.AddRange(refresh.MediaFiles);
         var publication = await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
         progress?.Report($"Аддон {addon.Title} выпущен.");
-        return new AddonPublicationResult(id, artifact, manifestPath, publication);
+        return new AddonPublicationResult(id, artifact, refresh.ManifestPath, publication);
     }
 
     public static async Task<PublicationResult> PublishContentAsync(
@@ -129,10 +131,12 @@ public static partial class ReleasePublicationService
         content.IsPublished = true;
         progress?.Report($"Публикация материала {content.Title}…");
         var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
-        await RefreshManifestAsync(workspace, machine, cancellationToken);
+        var refresh = await RefreshManifestAsync(workspace, machine, progress, cancellationToken);
+        var relativeFiles = new List<string> { "manifest.json", "content.json" };
+        relativeFiles.AddRange(refresh.MediaFiles);
         var publication = await PublishFilesAsync(
             versionRoot,
-            ["manifest.json", "content.json"],
+            relativeFiles,
             workspace,
             machine,
             progress,
@@ -158,15 +162,18 @@ public static partial class ReleasePublicationService
         UnifiedReleaseBuilder.ValidateMachine(machine);
         content.IsPublished = false;
         var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
+        await MoveContentMediaToTrashAsync(content, workspace, machine, cancellationToken);
         var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
         var packages = await LoadExistingPackagesAsync(Path.Combine(versionRoot, "manifest.json"), cancellationToken);
         progress?.Report($"Снятие материала {content.Title}…");
         if (packages.Count > 0 || catalog.Items.Count > 0)
         {
-            await RefreshManifestAsync(workspace, machine, cancellationToken);
+            var refresh = await RefreshManifestAsync(workspace, machine, progress, cancellationToken);
+            var relativeFiles = new List<string> { "manifest.json", "content.json" };
+            relativeFiles.AddRange(refresh.MediaFiles);
             return await PublishFilesAsync(
                 versionRoot,
-                ["manifest.json", "content.json"],
+                relativeFiles,
                 workspace,
                 machine,
                 progress,
@@ -253,12 +260,160 @@ public static partial class ReleasePublicationService
         }
         else
         {
-            await RefreshManifestAsync(workspace, machine, cancellationToken);
-            await PublishFilesAsync(versionRoot, ["manifest.json", "content.json"], workspace, machine, progress, cancellationToken);
+            var refresh = await RefreshManifestAsync(workspace, machine, progress, cancellationToken);
+            var relativeFiles = new List<string> { "manifest.json", "content.json" };
+            relativeFiles.AddRange(refresh.MediaFiles);
+            await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
         }
 
         progress?.Report($"Аддон {addon.Title} снят с публикации; резервная копия сохранена.");
         return new PublicationResult(GetPublicationTargets(workspace, machine).Length, removed.Count, 0, removed);
+    }
+
+    public static async Task<QuickReleaseResult> PublishQuickFilesAsync(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(machine);
+        ReleaseVersionRules.Validate(workspace.Version);
+        UnifiedReleaseBuilder.ValidateMachine(machine);
+
+        var additions = (machine.QuickReleaseFiles ?? [])
+            .Select(item => new QuickReleaseFileDraft
+            {
+                Id = item.Id,
+                SourcePath = Path.GetFullPath(item.SourcePath),
+                InstallRoot = NormalizeInstallRoot(item.InstallRoot),
+                RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
+            })
+            .ToArray();
+        foreach (var addition in additions)
+        {
+            if (!File.Exists(addition.SourcePath))
+            {
+                throw new FileNotFoundException("Выбранный для публикации файл больше не найден.", addition.SourcePath);
+            }
+        }
+
+        var deletions = (machine.QuickDeleteFiles ?? [])
+            .Select(item => new QuickDeleteFileDraft
+            {
+                Id = item.Id,
+                InstallRoot = NormalizeInstallRoot(item.InstallRoot),
+                RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
+            })
+            .ToArray();
+        if (additions.Length == 0 && deletions.Length == 0)
+        {
+            throw new InvalidOperationException("Добавьте хотя бы один файл для загрузки или один путь для удаления.");
+        }
+
+        var duplicateAddition = additions
+            .GroupBy(item => $"{item.InstallRoot}|{item.RelativePath}", StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateAddition is not null)
+        {
+            throw new InvalidDataException($"Один путь добавлен несколько раз: {duplicateAddition.First().RelativePath}");
+        }
+
+        var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
+        Directory.CreateDirectory(versionRoot);
+        var manifestPath = Path.Combine(versionRoot, "manifest.json");
+        var existingPackages = await LoadExistingPackagesAsync(manifestPath, cancellationToken);
+        var packages = existingPackages
+            .Where(package => !package.Id.StartsWith("anthology-files-", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var artifacts = new List<string>();
+        foreach (var installRoot in new[] { "game", "modpack" })
+        {
+            var rootAdditions = additions.Where(item => item.InstallRoot == installRoot).ToArray();
+            var addedPaths = rootAdditions.Select(item => item.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var rootDeletions = deletions
+                .Where(item => item.InstallRoot == installRoot)
+                .Select(item => item.RelativePath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Except(addedPaths, StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+            if (rootAdditions.Length == 0 && rootDeletions.Length == 0)
+            {
+                continue;
+            }
+
+            var packageId = $"anthology-files-{installRoot}";
+            var artifactName = $"{packageId}-{workspace.Version.Trim()}.zip";
+            var artifactPath = Path.Combine(versionRoot, artifactName);
+            progress?.Report($"Упаковка выбранных файлов: {installRoot}…");
+            await CreateMappedArchiveAsync(artifactPath, rootAdditions, cancellationToken);
+            var hash = await ArtifactHash.ComputeSha256Async(artifactPath, cancellationToken);
+            var mirrors = workspace.Mirrors
+                .Select(mirror => new
+                {
+                    Mirror = mirror,
+                    Url = (installRoot == "game" ? mirror.GameUrl : mirror.Mo2Url).Trim(),
+                })
+                .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+                .Select(item => new MirrorManifest(
+                    UnifiedReleaseBuilder.NormalizeProvider(item.Mirror.Provider),
+                    UnifiedReleaseBuilder.ExpandUrl(item.Url, workspace.Version, packageId, artifactName),
+                    item.Mirror.Priority))
+                .OrderBy(item => item.Priority)
+                .ToArray();
+            if (mirrors.Length == 0)
+            {
+                mirrors = [new MirrorManifest("local-file", new Uri(artifactPath).AbsoluteUri, 1000)];
+            }
+
+            packages.Add(new PackageManifest(
+                packageId,
+                installRoot == "game" ? "Выбранные файлы Anthology" : "Выбранные файлы Mod Organizer 2",
+                workspace.Version.Trim(),
+                installRoot == "game" ? PackageKind.Game : PackageKind.Modpack,
+                installRoot,
+                "zip",
+                new FileInfo(artifactPath).Length,
+                hash,
+                mirrors,
+                rootAdditions.Select(item => item.RelativePath).Order(StringComparer.Ordinal).ToArray(),
+                PackageUpdateMode.Merge,
+                false,
+                null,
+                rootDeletions));
+            artifacts.Add(artifactPath);
+        }
+
+        var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
+        var payload = new UpdateManifest(
+            3,
+            string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
+            workspace.Version.Trim(),
+            DateTimeOffset.UtcNow,
+            null,
+            packages,
+            catalog);
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
+        var signed = ManifestSecurity.Sign(payload, privateKey, machine.KeyId.Trim());
+        ManifestValidator.ValidateAndThrow(signed);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(Path.Combine(versionRoot, "content.json"), catalog, cancellationToken);
+
+        var relativeFiles = artifacts.Select(path => Path.GetFileName(path)!).ToList();
+        relativeFiles.Add("manifest.json");
+        relativeFiles.Add("content.json");
+        relativeFiles.AddRange(media.RelativeFiles);
+        var publication = await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
+        progress?.Report("Выбранные файлы опубликованы во все настроенные источники.");
+        return new QuickReleaseResult(
+            manifestPath,
+            additions.Length,
+            deletions.Length,
+            artifacts,
+            publication);
     }
 
     public static async Task<PublicationResult> UnpublishVersionAsync(
@@ -303,18 +458,20 @@ public static partial class ReleasePublicationService
         return new PublicationResult(GetPublicationTargets(workspace, machine).Length, moved.Count, 0, moved);
     }
 
-    private static async Task<string> RefreshManifestAsync(
+    private static async Task<ManifestRefreshResult> RefreshManifestAsync(
         ReleaserWorkspace workspace,
         ReleaserMachineSettings machine,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
         Directory.CreateDirectory(versionRoot);
         var manifestPath = Path.Combine(versionRoot, "manifest.json");
         var packages = await LoadExistingPackagesAsync(manifestPath, cancellationToken);
-        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+        var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
         var payload = new UpdateManifest(
-            2,
+            3,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
             workspace.Version.Trim(),
             DateTimeOffset.UtcNow,
@@ -327,7 +484,7 @@ public static partial class ReleasePublicationService
         ManifestValidator.ValidateAndThrow(signed);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(Path.Combine(versionRoot, "content.json"), catalog, cancellationToken);
-        return manifestPath;
+        return new ManifestRefreshResult(manifestPath, media.RelativeFiles);
     }
 
     private static async Task<IReadOnlyList<PackageManifest>> LoadExistingPackagesAsync(
@@ -466,6 +623,91 @@ public static partial class ReleasePublicationService
         }
     }
 
+    private static async Task MoveContentMediaToTrashAsync(
+        ContentDraft content,
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        CancellationToken cancellationToken)
+    {
+        var id = NormalizeId(content.Id);
+        var version = workspace.Version.Trim();
+        var outputRoot = Path.GetFullPath(machine.OutputRoot);
+        var stamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var trash = Path.Combine(outputRoot, ".releaser-trash", stamp);
+        var localMedia = Path.Combine(outputRoot, version, "addons", id, "media");
+        if (Directory.Exists(localMedia))
+        {
+            await MoveDirectoryToTrashAsync(
+                localMedia,
+                Path.Combine(trash, "local", version, "addons", id, "media"),
+                cancellationToken);
+        }
+        foreach (var target in GetPublicationTargets(workspace, machine))
+        {
+            var publishedMedia = Path.Combine(target.Root, version, "addons", id, "media");
+            if (!Directory.Exists(publishedMedia))
+            {
+                continue;
+            }
+            await MoveDirectoryToTrashAsync(
+                publishedMedia,
+                Path.Combine(trash, "published", target.Id, version, "addons", id, "media"),
+                cancellationToken);
+        }
+    }
+
+    private static async Task CreateMappedArchiveAsync(
+        string artifactPath,
+        IReadOnlyList<QuickReleaseFileDraft> files,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(artifactPath)!);
+        var temporary = artifactPath + $".tmp-{Guid.NewGuid():N}";
+        try
+        {
+            await using var output = new FileStream(
+                temporary,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                1024 * 1024,
+                FileOptions.Asynchronous);
+            using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
+            foreach (var file in files.OrderBy(item => item.RelativePath, StringComparer.Ordinal))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var entry = archive.CreateEntry(file.RelativePath.Replace('\\', '/'), CompressionLevel.SmallestSize);
+                entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                await using var entryStream = entry.Open();
+                await using var sourceStream = new FileStream(
+                    file.SourcePath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    1024 * 1024,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                await sourceStream.CopyToAsync(entryStream, cancellationToken);
+            }
+        }
+        catch
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+            throw;
+        }
+        File.Move(temporary, artifactPath, true);
+    }
+
+    private static string NormalizeInstallRoot(string installRoot) =>
+        installRoot.Trim().ToLowerInvariant() switch
+        {
+            "game" => "game",
+            "modpack" or "mo2" => "modpack",
+            _ => throw new InvalidDataException("Назначение файла должно быть «Корень игры» или «MO2»."),
+        };
+
     private static string NormalizeId(string id)
     {
         var normalized = id.Trim().ToLowerInvariant();
@@ -485,6 +727,8 @@ public static partial class ReleasePublicationService
 
     [GeneratedRegex("^[a-z0-9][a-z0-9._-]{1,79}$", RegexOptions.CultureInvariant)]
     private static partial Regex SafeIdRegex();
+
+    private sealed record ManifestRefreshResult(string ManifestPath, IReadOnlyList<string> MediaFiles);
 
     private sealed record PublicationTarget(string Id, string Provider, string Root);
 }

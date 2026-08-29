@@ -160,6 +160,56 @@ main {
     padding-top: 4px;
 }
 
+.quick-release {
+    display: grid;
+    gap: 15px;
+    margin: 16px 0;
+    border-color: #665329;
+    background: linear-gradient(135deg, #15170f, #0d1417 58%, #11171a);
+}
+
+.quick-release-head,
+.quick-release-tools,
+.quick-release-actions,
+.quick-delete-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quick-release-head > div:first-child { flex: 1; }
+.quick-release-head h3 { margin: 6px 0 8px; font-size: 24px; font-weight: 400; }
+.quick-release-head p,
+.quick-delete-builder p { margin: 0; color: #87969f; font-size: 11px; line-height: 1.6; }
+.quick-release-count { display: grid; grid-template-columns: auto auto; gap: 4px 9px; align-items: baseline; padding: 14px 18px; border: 1px solid #514725; background: #0c1111; }
+.quick-release-count strong { color: #e0b84f; font-size: 22px; font-weight: 400; text-align: right; }
+.quick-release-count span { color: #728087; font-size: 8px; letter-spacing: .14em; }
+.quick-empty { padding: 20px; border: 1px dashed #38434a; color: #66757e; font-size: 10px; text-align: center; }
+.quick-release-ready { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid #2c383d; background: #0a1012; }
+.quick-release-ready > span { min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; color: #87969f; font: 8px Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.quick-release-ready > span:first-child { flex: 1; }
+.quick-release-ready b { color: #b99a4c; font: 7px "Segoe UI", sans-serif; letter-spacing: .12em; }
+.quick-file-list { display: grid; gap: 7px; }
+.quick-file-list article { display: grid; grid-template-columns: minmax(220px, 1fr) 145px minmax(220px, 1fr) 40px; gap: 8px; align-items: center; padding: 9px; border: 1px solid #2a353b; background: #0b1114; }
+.quick-file-list article > div { min-width: 0; display: grid; gap: 3px; }
+.quick-file-list strong,
+.quick-file-list small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-file-list strong { color: #dce3e6; font-size: 10px; }
+.quick-file-list small { color: #64737b; font: 8px Consolas, monospace; }
+.quick-delete-builder { display: grid; grid-template-columns: minmax(240px, 1fr) 145px minmax(260px, 1fr) auto; gap: 10px; align-items: end; padding-top: 14px; border-top: 1px solid #2a353b; }
+.quick-delete-tools { justify-content: flex-end; }
+.quick-delete-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.quick-delete-list > span { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 10px; border: 1px solid #633f38; background: #211514; color: #d2aaa2; font: 9px Consolas, monospace; }
+.quick-delete-list b { color: #e0806e; font: 7px "Segoe UI", sans-serif; letter-spacing: .12em; }
+.quick-delete-list button { border: 0; background: transparent; color: #d86e5c; font-size: 16px; }
+.quick-release-actions { justify-content: flex-end; padding-top: 13px; border-top: 1px solid #2a353b; }
+
+@media (max-width: 1250px) {
+    .quick-file-list article { grid-template-columns: minmax(180px, 1fr) 130px minmax(180px, 1fr) 40px; }
+    .quick-delete-builder { grid-template-columns: 1fr 130px 1fr; }
+    .quick-delete-builder > button { grid-column: 3; }
+}
+
 @media (max-width: 1450px) {
     .mirror-row {
         grid-template-columns: 165px repeat(2, minmax(180px, 1fr)) 95px 40px;
@@ -187,8 +237,17 @@ main {
     }
 
     .publish-actions,
-    .build-dock {
+    .build-dock,
+    .quick-release-head,
+    .quick-release-tools,
+    .quick-release-actions,
+    .quick-delete-tools {
         align-items: stretch;
         flex-direction: column;
     }
+
+    .quick-file-list article,
+    .quick-delete-builder { grid-template-columns: 1fr; }
+
+    .quick-delete-builder > button { grid-column: auto; }
 }

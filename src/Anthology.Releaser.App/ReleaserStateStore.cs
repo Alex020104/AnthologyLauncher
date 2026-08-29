@@ -1,5 +1,6 @@
 using Anthology.Releaser.Core;
 using System.IO;
+using System.Security.Cryptography;
 
 namespace Anthology.Releaser.App;
 
@@ -32,7 +33,8 @@ public sealed class ReleaserStateStore : IDisposable
             var machine = await WorkspaceStorage.LoadAsync(MachinePath, () => new ReleaserMachineSettings(), cancellationToken);
             var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 3;
             Normalize(workspace, machine, seedEditorialContent: requiresMigrationSave);
-            if (requiresMigrationSave)
+            var machineDefaultsChanged = EnsureMachineDefaults(machine);
+            if (requiresMigrationSave || machineDefaultsChanged)
             {
                 await WorkspaceStorage.SaveAsync(WorkspacePath, workspace, cancellationToken);
                 await WorkspaceStorage.SaveAsync(MachinePath, machine, cancellationToken);
@@ -107,6 +109,19 @@ public sealed class ReleaserStateStore : IDisposable
             }
         }
         machine.ContentArchivePaths = new Dictionary<string, string>(machine.ContentArchivePaths ?? [], StringComparer.OrdinalIgnoreCase);
+        machine.ContentImagePaths = new Dictionary<string, List<string>>(
+            machine.ContentImagePaths ?? [],
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var key in machine.ContentImagePaths.Keys.ToArray())
+        {
+            machine.ContentImagePaths[key] = (machine.ContentImagePaths[key] ?? [])
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        machine.QuickReleaseFiles ??= [];
+        machine.QuickDeleteFiles ??= [];
         machine.PublicationRoots = new Dictionary<string, string>(machine.PublicationRoots ?? [], StringComparer.OrdinalIgnoreCase);
         machine.DeveloperName = string.IsNullOrWhiteSpace(machine.DeveloperName) ? Environment.UserName : machine.DeveloperName.Trim();
         machine.AutoSyncSeconds = Math.Clamp(machine.AutoSyncSeconds, 30, 3600);
@@ -158,6 +173,46 @@ public sealed class ReleaserStateStore : IDisposable
             return;
         }
         translations[language] = new ContentBlockTranslationDraft { Title = title, Body = body };
+    }
+
+    private bool EnsureMachineDefaults(ReleaserMachineSettings machine)
+    {
+        var changed = false;
+        if (string.IsNullOrWhiteSpace(machine.OutputRoot))
+        {
+            machine.OutputRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Releases"));
+            changed = true;
+        }
+
+        var keyRoot = Path.Combine(DataRoot, "Keys");
+        if (string.IsNullOrWhiteSpace(machine.PrivateKeyPath))
+        {
+            machine.PrivateKeyPath = Path.Combine(keyRoot, "anthology.private.pem");
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(machine.PublicKeyPath))
+        {
+            machine.PublicKeyPath = Path.Combine(keyRoot, "anthology.public.pem");
+            changed = true;
+        }
+
+        var privateExists = File.Exists(machine.PrivateKeyPath);
+        var publicExists = File.Exists(machine.PublicKeyPath);
+        if (!privateExists && !publicExists)
+        {
+            UnifiedReleaseBuilder.GenerateKeys(machine.PrivateKeyPath, machine.PublicKeyPath);
+            changed = true;
+        }
+        else if (privateExists && !publicExists)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(machine.PublicKeyPath)!);
+            using var key = ECDsa.Create();
+            key.ImportFromPem(File.ReadAllText(machine.PrivateKeyPath));
+            File.WriteAllText(machine.PublicKeyPath, key.ExportSubjectPublicKeyInfoPem());
+            changed = true;
+        }
+
+        return changed;
     }
 
     public void Dispose() => _gate.Dispose();

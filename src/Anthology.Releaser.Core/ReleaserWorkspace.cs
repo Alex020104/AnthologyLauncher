@@ -185,7 +185,35 @@ public sealed class ReleaserMachineSettings
     // Local paths never enter the shared workspace.
     public Dictionary<string, string> ContentArchivePaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    // Image sources stay local to this developer machine. The signed catalog only receives
+    // HTTPS URLs after the files have been copied into every configured publication root.
+    public Dictionary<string, List<string>> ContentImagePaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public List<QuickReleaseFileDraft> QuickReleaseFiles { get; set; } = [];
+
+    public List<QuickDeleteFileDraft> QuickDeleteFiles { get; set; } = [];
+
     public Dictionary<string, string> PublicationRoots { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class QuickReleaseFileDraft
+{
+    public string Id { get; set; } = $"file-{Guid.NewGuid():N}";
+
+    public string SourcePath { get; set; } = string.Empty;
+
+    public string InstallRoot { get; set; } = "game";
+
+    public string RelativePath { get; set; } = string.Empty;
+}
+
+public sealed class QuickDeleteFileDraft
+{
+    public string Id { get; set; } = $"delete-{Guid.NewGuid():N}";
+
+    public string InstallRoot { get; set; } = "game";
+
+    public string RelativePath { get; set; } = string.Empty;
 }
 
 public sealed record UnifiedReleaseRequest(
@@ -210,6 +238,13 @@ public sealed record AddonPublicationResult(
     string AddonId,
     string ArtifactPath,
     string ManifestPath,
+    PublicationResult Publication);
+
+public sealed record QuickReleaseResult(
+    string ManifestPath,
+    int AddedFiles,
+    int DeletedFiles,
+    IReadOnlyList<string> Artifacts,
     PublicationResult Publication);
 
 public enum WorkspaceSyncDirection

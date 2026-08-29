@@ -22,7 +22,7 @@ public static partial class ManifestValidator
         var errors = new List<string>();
         var payload = manifest.Payload;
 
-        if (payload.SchemaVersion is not (1 or 2))
+        if (payload.SchemaVersion is not (1 or 2 or 3))
         {
             errors.Add($"Unsupported schema version: {payload.SchemaVersion}.");
         }
@@ -153,9 +153,9 @@ public static partial class ManifestValidator
             }
         }
 
-        if (package.Files.Count == 0)
+        if (package.Files.Count == 0 && (package.DeletedFiles is null || package.DeletedFiles.Count == 0))
         {
-            errors.Add($"Package '{package.Id}' has no files.");
+            errors.Add($"Package '{package.Id}' has no files and no deletion paths.");
         }
 
         var filePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -184,6 +184,28 @@ public static partial class ManifestValidator
             catch (ArgumentException exception)
             {
                 errors.Add($"Package '{package.Id}' has unsafe preserved path '{path}': {exception.Message}");
+            }
+        }
+
+
+        var deletedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in package.DeletedFiles ?? [])
+        {
+            try
+            {
+                var normalized = PathSafety.NormalizeRelativePath(path);
+                if (!deletedPaths.Add(normalized))
+                {
+                    errors.Add($"Package '{package.Id}' contains duplicate deletion path '{path}'.");
+                }
+                if (filePaths.Contains(normalized))
+                {
+                    errors.Add($"Package '{package.Id}' both installs and deletes '{path}'.");
+                }
+            }
+            catch (ArgumentException exception)
+            {
+                errors.Add($"Package '{package.Id}' has unsafe deletion path '{path}': {exception.Message}");
             }
         }
     }
