@@ -190,7 +190,7 @@ public static partial class ManifestValidator
 
     private static void ValidateContent(ContentCatalog content, List<string> errors)
     {
-        if (content.SchemaVersion is not (1 or 2 or 3))
+        if (content.SchemaVersion is not (1 or 2 or 3 or 4))
         {
             errors.Add($"Unsupported content schema version: {content.SchemaVersion}.");
         }
@@ -249,13 +249,14 @@ public static partial class ManifestValidator
                     errors.Add($"Content '{item.Id}' has duplicate block id '{block.Id}'.");
                 }
 
-                if (block.Kind is ContentBlockKind.Section or ContentBlockKind.Link
+                if (block.Kind is ContentBlockKind.Section or ContentBlockKind.Link or ContentBlockKind.Article
                     && string.IsNullOrWhiteSpace(block.Title))
                 {
                     errors.Add($"Content '{item.Id}' block '{block.Id}' has no title.");
                 }
 
-                if (block.Kind is ContentBlockKind.Image or ContentBlockKind.Link)
+                if (block.Kind is ContentBlockKind.Image or ContentBlockKind.Link
+                    || block.Kind == ContentBlockKind.Article && !string.IsNullOrWhiteSpace(block.Url))
                 {
                     ValidatePublicHttpsUrl(block.Url ?? string.Empty, $"Content '{item.Id}' block '{block.Id}' has unsafe URL", errors);
                 }

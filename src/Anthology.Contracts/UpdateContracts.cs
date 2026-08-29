@@ -73,7 +73,8 @@ public sealed record ContentDocument(
     IReadOnlyList<ContentVideo> Videos,
     ContentDownload? Download = null,
     IReadOnlyDictionary<string, ContentTranslation>? Translations = null,
-    IReadOnlyList<ContentBlock>? Blocks = null);
+    IReadOnlyList<ContentBlock>? Blocks = null,
+    DateTimeOffset? PublishedAt = null);
 
 public sealed record ContentTranslation(
     string Title,
@@ -150,6 +151,7 @@ public enum ContentBlockKind
     Section,
     Image,
     Link,
+    Article,
 }
 
 public sealed record ContentDownload(

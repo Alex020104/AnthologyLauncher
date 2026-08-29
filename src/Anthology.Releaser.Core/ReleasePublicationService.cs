@@ -122,6 +122,10 @@ public static partial class ReleasePublicationService
         ReleaseVersionRules.Validate(workspace.Version);
         UnifiedReleaseBuilder.ValidateMachine(machine);
         _ = NormalizeId(content.Id);
+        if (content.Kind == ContentKind.News && content.PublishedAt is null)
+        {
+            content.PublishedAt = DateTimeOffset.UtcNow;
+        }
         content.IsPublished = true;
         progress?.Report($"Публикация материала {content.Title}…");
         var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());

@@ -6,15 +6,8 @@ public static class DemoContent
     {
         var now = DateTimeOffset.UtcNow;
         return new CommunityFeed(
-            News:
-            [
-                new("next-architecture", "Anthology Next: новая платформа", "Лаунчер, апдейтер, релизер и сообщество теперь развиваются как независимые модули.", now.AddHours(-4), "Разработка"),
-                new("mirror-protocol", "Обновления без привязки к GitHub", "Пакет может иметь несколько зеркал: GitHub, Яндекс.Диск, Google Drive или обычный HTTPS/CDN.", now.AddDays(-1), "Обновления"),
-            ],
-            Videos:
-            [
-                new("dev-diary-01", "Дневник разработки: Anthology Next", "youtube", string.Empty, null, TimeSpan.FromMinutes(8)),
-            ],
+            News: [],
+            Videos: [],
             Mods:
             [
                 new("rak", "R.A.K Weapon Pack", "Anthology Team", "Оружейный модуль и адаптации для Anthology.", "OBT", ["оружие", "3DSS", "PiP"], Section: "dev"),

@@ -117,7 +117,7 @@
                     <div class="section-block news-block">
                         <div class="section-heading">
                             <div><span>ПОСЛЕДНИЕ СОБЫТИЯ</span><h3>Новости разработки</h3></div>
-                            <button class="text-button">ВСЕ НОВОСТИ →</button>
+                            <button class="text-button" @onclick="ShowNews">ВСЕ НОВОСТИ →</button>
                         </div>
                         <div class="news-list">
                             @if (PublishedNews.Any())
@@ -125,15 +125,12 @@
                                 @foreach (var news in PublishedNews.Take(3))
                                 {
                                     var localizedNews = Localized(news);
-                                    <article class="news-row published-news" @onclick="() => OpenPublishedNews(news.Id)"><div class="news-date"><strong>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("dd") ?? "--")</strong><span>@(_publishedContent?.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant() ?? "NEXT")</span></div><div><span class="category-label">@news.Section</span><h4>@localizedNews.Title</h4><p>@localizedNews.Summary</p></div><span class="row-arrow">↗</span></article>
+                                    <article class="news-row published-news" @onclick="() => OpenPublishedNews(news.Id)"><div class="news-date"><strong>@NewsDate(news).ToString("dd")</strong><span>@NewsDate(news).ToString("MMM").ToUpperInvariant()</span></div><div><span class="category-label">@news.Section</span><h4>@localizedNews.Title</h4><p>@localizedNews.Summary</p></div><span class="row-arrow">↗</span></article>
                                 }
                             }
                             else
                             {
-                                @foreach (var news in _feed!.News.Take(3))
-                                {
-                                    <article class="news-row"><div class="news-date"><strong>@news.PublishedAt.ToLocalTime().ToString("dd")</strong><span>@news.PublishedAt.ToLocalTime().ToString("MMM").ToUpperInvariant()</span></div><div><span class="category-label">@news.Category</span><h4>@news.Title</h4><p>@news.Summary</p></div><span class="row-arrow">↗</span></article>
-                                }
+                                <div class="managed-content-empty compact"><span>0</span><div><strong>Новостей пока нет</strong><small>Они появятся после публикации из Releaser Next.</small></div></div>
                             }
                         </div>
                     </div>
@@ -149,11 +146,7 @@
                         }
                         else
                         {
-                            @foreach (var video in _feed!.Videos.Take(1))
-                            {
-                                var embedUrl = GetSafeEmbedUrl(video);
-                                <article class="video-card">@if (embedUrl is not null) { <iframe src="@embedUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> } else { <div class="video-placeholder"><div class="video-play">▶</div><span>ВИДЕО-ПЛЕЕР ГОТОВ</span><small>URL управляется через сервер новостей</small></div> }<div class="video-caption"><span>@video.Provider.ToUpperInvariant()</span><strong>@video.Title</strong></div></article>
-                            }
+                            <div class="video-placeholder"><div class="video-play">＋</div><span>МЕДИА НЕ ОПУБЛИКОВАНО</span><small>Видео добавляется к новости в Releaser Next.</small></div>
                         }
                     </div>
                 </section>
@@ -355,104 +348,126 @@
                         </div>
                     }
                 </section>
-                @if (SelectedPublishedNews is not null)
+            }
+            else if (_section == "news")
+            {
+                <section class="news-catalog-hero section-block"><div><span class="eyebrow">УПРАВЛЯЕМАЯ ЛЕНТА</span><h2>Новости Anthology</h2><p>Все записи, порядок, даты, изображения, ссылки и видео публикуются из Releaser Next. Встроенных несъёмных новостей здесь больше нет.</p></div><strong>@PublishedNews.Count().ToString("00")</strong></section>
+                @if (PublishedNews.Any())
                 {
-                    var openNews = SelectedPublishedNews!;
-                    var localizedNews = Localized(openNews);
-                    <section class="section-block published-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @(_publishedContent?.Version)</span><h2>@localizedNews.Title</h2><p class="information-lead">@localizedNews.Summary</p>@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }<div class="published-content-body">@localizedNews.Body</div>@foreach (var video in openNews.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</section>
+                    <section class="managed-news-grid">
+                        @foreach (var news in PublishedNews)
+                        {
+                            var currentNews = news;
+                            var localizedNews = Localized(currentNews);
+                            <button class="managed-news-card @(_openContentId == currentNews.Id ? "active" : null)" @onclick="() => _openContentId = currentNews.Id">
+                                <span>@NewsDate(currentNews).ToString("dd.MM.yyyy") · @currentNews.Section</span>
+                                <strong>@localizedNews.Title</strong>
+                                <small>@localizedNews.Summary</small>
+                                <i>ЧИТАТЬ →</i>
+                            </button>
+                        }
+                    </section>
+                    @if (SelectedPublishedNews is not null)
+                    {
+                        var openNews = SelectedPublishedNews!;
+                        var localizedNews = Localized(openNews);
+                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead">@localizedNews.Summary</p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body">@localizedNews.Body</div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" /><figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }@foreach (var video in openNews.Videos) { var videoUrl = GetSafeEmbedUrl(video); @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</section>
+                    }
+                }
+                else
+                {
+                    <section class="managed-content-empty section-block"><span>0</span><div><strong>Новостная лента пуста</strong><small>Создайте и опубликуйте первую новость в отдельном разделе Releaser Next.</small></div></section>
                 }
             }
             else if (_section == "information")
             {
-                <section class="information-tabs dynamic section-block">
-                    @foreach (var item in InformationCatalog.Sections)
-                    {
-                        var currentItem = item;
-                        <button class="information-tab @(_informationSection == currentItem.Id ? "active" : null)" @onclick="() => SelectInformation(currentItem.Id)">
-                            <span>@currentItem.Index</span><strong>@currentItem.Title</strong><small>@currentItem.Summary</small>
-                        </button>
-                    }
-                    @{ var publishedInformationIndex = InformationCatalog.Sections.Count + 1; }
-                    @foreach (var item in PublishedInformation)
-                    {
-                        var currentItem = item;
-                        var localizedItem = Localized(currentItem);
-                        var sectionId = PublishedInformationPrefix + currentItem.Id;
-                        <button class="information-tab published @(_informationSection == sectionId ? "active" : null)" @onclick="() => SelectInformation(sectionId)">
-                            <span>@publishedInformationIndex.ToString("00")</span><strong>@localizedItem.Title</strong><small>@localizedItem.Summary</small>
-                        </button>
-                        publishedInformationIndex++;
-                    }
-                </section>
-                @if (SelectedPublishedInformation is not null)
+                @if (PublishedInformation.Any())
                 {
-                    var publishedInformation = SelectedPublishedInformation!;
-                    var localizedInformation = Localized(publishedInformation);
-                    <section class="published-information-page section-block">
-                        @if (publishedInformation.Images.Count > 0)
+                    <section class="information-tabs dynamic section-block">
+                        @{ var publishedInformationIndex = 1; }
+                        @foreach (var item in PublishedInformation)
                         {
-                            <div class="published-information-cover"><img src="@publishedInformation.Images[0]" alt="@localizedInformation.Title" /><span>ANTHOLOGY INFORMATION</span></div>
+                            var currentItem = item;
+                            var localizedItem = Localized(currentItem);
+                            var sectionId = PublishedInformationPrefix + currentItem.Id;
+                            <button class="information-tab published @(_informationSection == sectionId ? "active" : null)" @onclick="() => SelectInformation(sectionId)">
+                                <span>@publishedInformationIndex.ToString("00")</span><strong>@localizedItem.Title</strong><small>@localizedItem.Summary</small>
+                            </button>
+                            publishedInformationIndex++;
                         }
-                        <article class="published-information-copy">
-                            <span class="eyebrow">СПРАВОЧНИК ANTHOLOGY · @publishedInformation.Section</span>
-                            <h2>@localizedInformation.Title</h2>
-                            <p class="information-lead">@localizedInformation.Summary</p>
-                            @if (!string.IsNullOrWhiteSpace(localizedInformation.Body))
-                            {
-                                <div class="information-body published-intro">@localizedInformation.Body</div>
-                            }
-                            @foreach (var block in publishedInformation.Blocks ?? [])
-                            {
-                                var localizedBlock = Localized(block);
-                                @if (block.Kind == ContentBlockKind.Section)
-                                {
-                                    <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section>
-                                }
-                                else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
-                                {
-                                    <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
-                                }
-                                else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl)
-                                {
-                                    <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a>
-                                }
-                            }
-                            @foreach (var image in publishedInformation.Images.Skip(1))
-                            {
-                                <figure class="published-information-block image-block"><img src="@image" alt="" /></figure>
-                            }
-                            @foreach (var video in publishedInformation.Videos)
-                            {
-                                var videoUrl = GetSafeEmbedUrl(video);
-                                @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> }
-                            }
-                        </article>
                     </section>
-                }
-                else if (_informationSection != "stories")
-                {
-                    var information = CurrentInformation;
-                    <section class="information-article section-block">
-                        <div class="information-visual"><span>@information.Index</span><small>ФОНОВОЕ ИЗОБРАЖЕНИЕ БУДЕТ ДОБАВЛЕНО</small></div>
-                        <article><span class="eyebrow">СПРАВОЧНИК ANTHOLOGY</span><h2>@information.Title</h2><p class="information-lead">@information.Summary</p><div class="information-body">@information.Body</div></article>
-                    </section>
+                    @if (SelectedPublishedInformation is not null)
+                    {
+                        var publishedInformation = SelectedPublishedInformation!;
+                        var localizedInformation = Localized(publishedInformation);
+                        <section class="published-information-page section-block @(publishedInformation.Images.Count == 0 ? "no-cover" : null)">
+                            @if (publishedInformation.Images.Count > 0)
+                            {
+                                <div class="published-information-cover"><img src="@publishedInformation.Images[0]" alt="@localizedInformation.Title" /><span>ANTHOLOGY INFORMATION</span></div>
+                            }
+                            <article class="published-information-copy">
+                                <span class="eyebrow">СПРАВОЧНИК ANTHOLOGY · @publishedInformation.Section</span>
+                                <h2>@localizedInformation.Title</h2>
+                                <p class="information-lead">@localizedInformation.Summary</p>
+                                @if (!string.IsNullOrWhiteSpace(localizedInformation.Body))
+                                {
+                                    <div class="information-body published-intro">@localizedInformation.Body</div>
+                                }
+                                @foreach (var block in (publishedInformation.Blocks ?? []).Where(block => block.Kind != ContentBlockKind.Article))
+                                {
+                                    var localizedBlock = Localized(block);
+                                    @if (block.Kind == ContentBlockKind.Section)
+                                    {
+                                        <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section>
+                                    }
+                                    else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
+                                    {
+                                        <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
+                                    }
+                                    else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl)
+                                    {
+                                        <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a>
+                                    }
+                                }
+                                @if (CurrentInformationArticles.Count > 0)
+                                {
+                                    <section class="managed-article-layout">
+                                        <div class="managed-article-list">
+                                            <span>@CurrentInformationArticles.Count ПОДРАЗДЕЛОВ</span>
+                                            @foreach (var articleBlock in CurrentInformationArticles)
+                                            {
+                                                var currentArticleBlock = articleBlock;
+                                                var localizedArticleBlock = Localized(currentArticleBlock);
+                                                <button class="@(_selectedInformationArticleId == currentArticleBlock.Id ? "active" : null)" @onclick="() => _selectedInformationArticleId = currentArticleBlock.Id"><strong>@localizedArticleBlock.Title</strong><small>@ArticleStatus(localizedArticleBlock.Body)</small></button>
+                                            }
+                                        </div>
+                                        @if (CurrentInformationArticle is not null)
+                                        {
+                                            var selectedArticleBlock = CurrentInformationArticle!;
+                                            var selectedArticleCopy = Localized(selectedArticleBlock);
+                                            <article class="managed-article-copy">
+                                                @if (GetSafeExternalUrl(selectedArticleBlock.Url) is string articleBackground) { <img src="@articleBackground" alt="" /> }
+                                                <div><span class="eyebrow">@ArticleStatus(selectedArticleCopy.Body)</span><h3>@selectedArticleCopy.Title</h3><div class="information-body">@ArticleText(selectedArticleCopy.Body)</div></div>
+                                            </article>
+                                        }
+                                    </section>
+                                }
+                                @foreach (var image in publishedInformation.Images.Skip(1))
+                                {
+                                    <figure class="published-information-block image-block"><img src="@image" alt="" /></figure>
+                                }
+                                @foreach (var video in publishedInformation.Videos)
+                                {
+                                    var videoUrl = GetSafeEmbedUrl(video);
+                                    @if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> }
+                                }
+                            </article>
+                        </section>
+                    }
                 }
                 else
                 {
-                    <section class="stories-layout">
-                        <div class="story-list section-block">
-                            <div class="section-heading compact"><div><span>СЮЖЕТНЫЙ КАТАЛОГ</span><h3>@InformationCatalog.Stories.Count историй</h3></div></div>
-                            @foreach (var story in InformationCatalog.Stories)
-                            {
-                                var currentStory = story;
-                                <button class="story-row @(_selectedStoryId == currentStory.Id ? "active" : null)" @onclick="() => _selectedStoryId = currentStory.Id"><div><span>@currentStory.Source</span><strong>@currentStory.Title</strong></div><small>@currentStory.Status</small></button>
-                            }
-                        </div>
-                        <article class="story-article section-block">
-                            <div class="story-backdrop"><span>A</span><small>BACKGROUND PLACEHOLDER</small></div>
-                            <div class="story-copy"><span class="eyebrow">@CurrentStory.Source · @CurrentStory.Status</span><h2>@CurrentStory.Title</h2><p class="information-lead">@CurrentStory.Summary</p><div class="information-body">@CurrentStory.Body</div></div>
-                        </article>
-                    </section>
+                    <section class="managed-content-empty section-block"><span>0</span><div><strong>Раздел «Информация» пуст</strong><small>Все вкладки создаются, сортируются и удаляются в Releaser Next.</small></div></section>
                 }
             }
             else if (_section == "updates")
@@ -802,6 +817,7 @@
     private static readonly NavItem[] Navigation =
     [
         new("home", "⌂", "Главная", "КОМАНДНЫЙ ЦЕНТР", "Добро пожаловать в Зону"),
+        new("news", "▤", "Новости", "ЛЕНТА", "Новости Anthology"),
         new("library", "▦", "Библиотека", "КАТАЛОГ", "Моды и дополнения", "NEW"),
         new("information", "i", "Информация", "СПРАВОЧНИК", "Anthology и сюжеты"),
         new("community", "◉", "Сообщество", "СВЯЗЬ", "Чат и обратная связь"),
@@ -925,8 +941,8 @@
     private string? _mo2ContentError;
     private CancellationTokenSource? _mo2ContentCancellation;
     private readonly HashSet<string> _collapsedMo2Separators = new(StringComparer.OrdinalIgnoreCase);
-    private string _informationSection = "requirements";
-    private string _selectedStoryId = "soc";
+    private string _informationSection = string.Empty;
+    private string _selectedInformationArticleId = string.Empty;
     private bool _relayChatRunning;
 
     private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
@@ -939,12 +955,6 @@
             :
         _feed?.Channels.FirstOrDefault(channel => channel.Id == _selectedChannelId)
         ?? new CommunityChannel(_selectedChannelId, _selectedChannelId, "Канал сообщества");
-    private InformationSection CurrentInformation =>
-        InformationCatalog.Sections.FirstOrDefault(item => item.Id == _informationSection)
-        ?? InformationCatalog.Sections[0];
-    private StoryArticle CurrentStory =>
-        InformationCatalog.Stories.FirstOrDefault(item => item.Id == _selectedStoryId)
-        ?? InformationCatalog.Stories[0];
     private IEnumerable<ModEntry> FilteredMods => (_feed?.Mods ?? [])
         .Where(mod => string.Equals(mod.Section, _librarySection, StringComparison.OrdinalIgnoreCase))
         .Where(mod => string.IsNullOrWhiteSpace(_librarySearch)
@@ -962,11 +972,17 @@
         .Where(item => item.Kind == ContentKind.Information);
     private ContentDocument? SelectedPublishedInformation => _informationSection.StartsWith(PublishedInformationPrefix, StringComparison.Ordinal)
         ? PublishedInformation.FirstOrDefault(item => string.Equals(PublishedInformationPrefix + item.Id, _informationSection, StringComparison.Ordinal))
-        : null;
+          ?? PublishedInformation.FirstOrDefault()
+        : PublishedInformation.FirstOrDefault();
+    private IReadOnlyList<ContentBlock> CurrentInformationArticles => (SelectedPublishedInformation?.Blocks ?? [])
+        .Where(block => block.Kind == ContentBlockKind.Article)
+        .ToArray();
+    private ContentBlock? CurrentInformationArticle => CurrentInformationArticles
+        .FirstOrDefault(block => string.Equals(block.Id, _selectedInformationArticleId, StringComparison.Ordinal))
+        ?? CurrentInformationArticles.FirstOrDefault();
     private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.News);
-    private IEnumerable<ContentVideo> PublishedVideos => (_publishedContent?.Items ?? [])
-        .SelectMany(item => item.Videos);
+    private IEnumerable<ContentVideo> PublishedVideos => PublishedNews.SelectMany(item => item.Videos);
     private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
         .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
@@ -997,6 +1013,7 @@
         _relayParticipants = RelayChat.Participants;
         _rollbackCandidate = await Updater.GetLatestRollbackAsync();
         _publishedContent = await Updater.LoadCachedContentAsync();
+        EnsurePublishedContentSelection();
         _feed = await Community.GetFeedAsync();
         Community.MessageReceived += OnChatMessageReceived;
         if (!Community.IsOffline && _feed.Channels.Count > 0)
@@ -1260,9 +1277,20 @@
     private void SelectInformation(string id)
     {
         _informationSection = id;
-        if (id == "stories" && InformationCatalog.Stories.All(story => story.Id != _selectedStoryId))
+        _selectedInformationArticleId = CurrentInformationArticles.FirstOrDefault()?.Id ?? string.Empty;
+    }
+
+    private void EnsurePublishedContentSelection()
+    {
+        var information = PublishedInformation.FirstOrDefault(item =>
+                              string.Equals(PublishedInformationPrefix + item.Id, _informationSection, StringComparison.Ordinal))
+                          ?? PublishedInformation.FirstOrDefault();
+        _informationSection = information is null ? string.Empty : PublishedInformationPrefix + information.Id;
+        _selectedInformationArticleId = (information?.Blocks ?? [])
+            .FirstOrDefault(block => block.Kind == ContentBlockKind.Article)?.Id ?? string.Empty;
+        if (_openContentId is not null && (_publishedContent?.Items ?? []).All(item => item.Id != _openContentId))
         {
-            _selectedStoryId = InformationCatalog.Stories[0].Id;
+            _openContentId = null;
         }
     }
 
@@ -1886,6 +1914,7 @@
             await InvokeAsync(StateHasChanged);
             _updateCheck = await Updater.CheckAsync(cancellationToken);
             _publishedContent = _updateCheck.SignedManifest.Payload.Content;
+            EnsurePublishedContentSelection();
             ShowToast(_updateCheck.HasUpdates ? "Доступны обновления" : "Установлена актуальная версия");
         });
     }
@@ -1993,7 +2022,30 @@
     private void ToggleContent(string id) =>
         _openContentId = string.Equals(_openContentId, id, StringComparison.Ordinal) ? null : id;
 
-    private void OpenPublishedNews(string id) => _openContentId = id;
+    private async Task OpenPublishedNews(string id)
+    {
+        _openContentId = id;
+        await SelectSection("news");
+    }
+
+    private Task ShowNews() => SelectSection("news");
+
+    private DateTimeOffset NewsDate(ContentDocument news) =>
+        (news.PublishedAt ?? _publishedContent?.PublishedAt ?? DateTimeOffset.UtcNow).ToLocalTime();
+
+    private static string ArticleStatus(string body)
+    {
+        var normalized = body.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var separator = normalized.IndexOf("\n\n", StringComparison.Ordinal);
+        return separator > 0 ? normalized[..separator].Trim() : "ПОДРАЗДЕЛ";
+    }
+
+    private static string ArticleText(string body)
+    {
+        var normalized = body.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var separator = normalized.IndexOf("\n\n", StringComparison.Ordinal);
+        return separator > 0 ? normalized[(separator + 2)..].Trim() : normalized.Trim();
+    }
 
     private async Task DownloadPublishedContentAsync(ContentDocument content)
     {

@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 2;
+    public int SchemaVersion { get; set; } = 3;
 
     public int Revision { get; set; }
 
@@ -55,6 +55,8 @@ public sealed class ContentDraft
     public string Summary { get; set; } = string.Empty;
 
     public string Body { get; set; } = string.Empty;
+
+    public DateTimeOffset? PublishedAt { get; set; }
 
     public string SourceLanguage { get; set; } = "auto";
 

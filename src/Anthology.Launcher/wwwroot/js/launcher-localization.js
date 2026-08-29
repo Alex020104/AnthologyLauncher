@@ -2,6 +2,7 @@
     const dictionary = {
         "Основная навигация": ["Main navigation", "Hauptnavigation", "Główna nawigacja", "Navigation principale", "Navegación principal", "主导航", "メインナビゲーション"],
         "Главная": ["Home", "Start", "Strona główna", "Accueil", "Inicio", "主页", "ホーム"],
+        "Новости": ["News", "Neuigkeiten", "Aktualności", "Actualités", "Noticias", "新闻", "ニュース"],
         "Библиотека": ["Library", "Bibliothek", "Biblioteka", "Bibliothèque", "Biblioteca", "模组库", "ライブラリ"],
         "Информация": ["Information", "Informationen", "Informacje", "Informations", "Información", "信息", "情報"],
         "Сообщество": ["Community", "Community", "Społeczność", "Communauté", "Comunidad", "社区", "コミュニティ"],
@@ -19,6 +20,8 @@
         "РАЗВЁРТЫВАНИЕ": ["DEPLOYMENT", "BEREITSTELLUNG", "WDROŻENIE", "DÉPLOIEMENT", "DESPLIEGUE", "部署", "展開"],
         "КОНФИГУРАЦИЯ": ["CONFIGURATION", "KONFIGURATION", "KONFIGURACJA", "CONFIGURATION", "CONFIGURACIÓN", "配置", "構成"],
         "Добро пожаловать в Зону": ["Welcome to the Zone", "Willkommen in der Zone", "Witamy w Zonie", "Bienvenue dans la Zone", "Bienvenido a la Zona", "欢迎来到禁区", "ゾーンへようこそ"],
+        "ЛЕНТА": ["FEED", "FEED", "AKTUALNOŚCI", "FIL", "FUENTE", "动态", "フィード"],
+        "Новости Anthology": ["Anthology News", "Anthology-Neuigkeiten", "Aktualności Anthology", "Actualités Anthology", "Noticias de Anthology", "Anthology 新闻", "Anthology ニュース"],
         "Моды и дополнения": ["Mods and add-ons", "Mods und Erweiterungen"],
         "Anthology и сюжеты": ["Anthology and stories", "Anthology und Handlungen"],
         "Профили и моды": ["Profiles and mods", "Profile und Mods"],

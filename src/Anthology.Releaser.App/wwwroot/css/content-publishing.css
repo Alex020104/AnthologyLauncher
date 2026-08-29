@@ -79,6 +79,7 @@
 }
 .information-block.image { border-left-color: #577f72; }
 .information-block.link { border-left-color: #647b9b; }
+.information-block.article { border-left-color: #9a7234; background: linear-gradient(120deg, #15140f, #0d1417); }
 .information-block > header {
     min-height: 39px;
     display: flex;

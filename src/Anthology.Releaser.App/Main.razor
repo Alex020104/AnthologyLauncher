@@ -64,7 +64,7 @@
                     @if (SelectedContent is not null && SelectedContent.Kind == ActiveContentKind)
                     {
                         <section class="panel content-editor">
-                            <div class="editor-head"><div><span class="eyebrow">@ContentEditorKicker</span><h2>@SelectedContent.Title</h2></div><div class="editor-head-actions">@if (ActiveContentKind == ContentKind.Information) { <button class="secondary compact-button" title="Переместить вкладку влево" @onclick="() => MoveSelectedContent(-1)">←</button><button class="secondary compact-button" title="Переместить вкладку вправо" @onclick="() => MoveSelectedContent(1)">→</button> }<button class="danger" @onclick="RemoveContent">УДАЛИТЬ</button></div></div>
+                            <div class="editor-head"><div><span class="eyebrow">@ContentEditorKicker</span><h2>@SelectedContent.Title</h2></div><div class="editor-head-actions">@if (ActiveContentKind is ContentKind.Information or ContentKind.News) { <button class="secondary compact-button" title="Переместить запись выше" @onclick="() => MoveSelectedContent(-1)">←</button><button class="secondary compact-button" title="Переместить запись ниже" @onclick="() => MoveSelectedContent(1)">→</button> }<button class="danger" @onclick="DeleteContentAsync" disabled="@_busy">УДАЛИТЬ ПОЛНОСТЬЮ</button></div></div>
                             <div class="form-grid">
                                 @if (ActiveContentKind == ContentKind.Mod)
                                 {
@@ -75,6 +75,10 @@
                                     <label>@(ActiveContentKind == ContentKind.News ? "Раздел новостей" : "Группа вкладки")<input @bind="SelectedContent.Section" placeholder="general" /></label>
                                 }
                                 <label>ID публикации<input @bind="SelectedContentIdentifier" /></label>
+                                @if (ActiveContentKind == ContentKind.News)
+                                {
+                                    <label>Дата и время новости<input type="datetime-local" @bind="SelectedContentPublishedAt" /></label>
+                                }
                             </div>
                             <section class="translation-workbench">
                                 <div class="translation-head"><div><span class="eyebrow">АВТОПЕРЕВОД</span><h3>Один исходник — восемь языков</h3><p>Пишите на любом языке. Релизер определит исходный язык, заполнит переводы и сохранит их в подписанном каталоге. Игроку ключ перевода не передаётся.</p></div><button class="primary" @onclick="AutoTranslateContentAsync" disabled="@(_translationBusy || _busy)">@(_translationBusy ? "ПЕРЕВОДИМ…" : "ПЕРЕВЕСТИ НА ВСЕ ЯЗЫКИ")</button></div>
@@ -92,22 +96,22 @@
                                 <section class="locale-editor translated-locale"><div class="locale-heading"><span>@selectedLanguage.ShortLabel</span><strong>@selectedLanguage.NativeName</strong><small>Автоперевод можно исправить вручную перед публикацией</small></div><label>Заголовок<input @bind="selectedTranslation.Title" /></label><label>Краткое описание<textarea rows="3" @bind="selectedTranslation.Summary"></textarea></label><label>Полный текст<textarea class="body-editor" rows="7" @bind="selectedTranslation.Body"></textarea></label></section>
                             }
 
-                            @if (ActiveContentKind == ContentKind.Information)
+                            @if (ActiveContentKind is ContentKind.Information or ContentKind.News)
                             {
                                 <section class="information-builder">
-                                    <div class="information-builder-head"><div><span class="eyebrow">СОДЕРЖИМОЕ ВКЛАДКИ</span><h3>Заголовки, текст, картинки и ссылки</h3><p>Блоки идут в лаунчере сверху вниз. Картинку или URL файла можно поставить между любыми текстовыми разделами.</p></div><div><button class="secondary" @onclick="() => AddInformationBlock(ContentBlockKind.Section)">＋ ЗАГОЛОВОК</button><button class="secondary" @onclick="() => AddInformationBlock(ContentBlockKind.Image)">＋ КАРТИНКА</button><button class="secondary" @onclick="() => AddInformationBlock(ContentBlockKind.Link)">＋ URL / ФАЙЛ</button></div></div>
+                                    <div class="information-builder-head"><div><span class="eyebrow">СОДЕРЖИМОЕ МАТЕРИАЛА</span><h3>Заголовки, текст, картинки и ссылки</h3><p>Блоки идут в лаунчере сверху вниз. Их можно добавлять, перемещать, переписывать и удалять. Карточка-подраздел создаёт отдельную читаемую статью внутри информационной вкладки.</p></div><div><button class="secondary" @onclick="() => AddContentBlock(ContentBlockKind.Section)">＋ ЗАГОЛОВОК</button><button class="secondary" @onclick="() => AddContentBlock(ContentBlockKind.Image)">＋ КАРТИНКА</button><button class="secondary" @onclick="() => AddContentBlock(ContentBlockKind.Link)">＋ URL / ФАЙЛ</button>@if (ActiveContentKind == ContentKind.Information) { <button class="secondary" @onclick="() => AddContentBlock(ContentBlockKind.Article)">＋ КАРТОЧКА-ПОДРАЗДЕЛ</button> }</div></div>
                                     @if (SelectedContent.Blocks.Count == 0)
                                     {
-                                        <div class="information-block-empty">Добавьте первый заголовок, картинку или ссылку. Они появятся внутри выбранной вкладки «Информация».</div>
+                                        <div class="information-block-empty">Добавьте первый блок. Он появится в выбранной новости или информационной вкладке.</div>
                                     }
                                     @foreach (var block in SelectedContent.Blocks)
                                     {
                                         var currentBlock = block;
                                         <article class="information-block @BlockCssClass(currentBlock.Kind)">
                                             <header><div><span>@BlockKindName(currentBlock.Kind)</span><strong>@(string.IsNullOrWhiteSpace(currentBlock.Title) ? "Без названия" : currentBlock.Title)</strong></div><div><button title="Выше" @onclick="() => MoveInformationBlock(currentBlock, -1)">↑</button><button title="Ниже" @onclick="() => MoveInformationBlock(currentBlock, 1)">↓</button><button class="remove-block" title="Удалить блок" @onclick="() => RemoveInformationBlock(currentBlock)">×</button></div></header>
-                                            @if (currentBlock.Kind is ContentBlockKind.Image or ContentBlockKind.Link)
+                                            @if (currentBlock.Kind is ContentBlockKind.Image or ContentBlockKind.Link or ContentBlockKind.Article)
                                             {
-                                                <label>@(currentBlock.Kind == ContentBlockKind.Image ? "HTTPS URL картинки" : "HTTPS URL страницы или файла")<input @bind="currentBlock.Url" placeholder="https://..." /></label>
+                                                <label>@BlockUrlLabel(currentBlock.Kind)<input @bind="currentBlock.Url" placeholder="https://..." /></label>
                                             }
                                             <div class="block-locale-grid">
                                                 @if (_selectedContentLanguage == "source")
@@ -247,6 +251,23 @@
             {
                 _machine.ContentArchivePaths[value] = archivePath;
             }
+        }
+    }
+
+    private DateTime? SelectedContentPublishedAt
+    {
+        get => SelectedContent?.PublishedAt?.ToLocalTime().DateTime;
+        set
+        {
+            var item = SelectedContent;
+            if (item is null) { return; }
+            if (value is null)
+            {
+                item.PublishedAt = null;
+                return;
+            }
+            var local = DateTime.SpecifyKind(value.Value, DateTimeKind.Unspecified);
+            item.PublishedAt = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local));
         }
     }
 
@@ -504,22 +525,61 @@
         _selectedContentId = item.Id;
     }
 
-    private void RemoveContent()
+    private async Task DeleteContentAsync()
     {
         var item = SelectedContent;
         if (item is null) { return; }
-        if (item.IsPublished)
-        {
-            Toast(item.Kind == ContentKind.Mod
-                ? "Сначала нажмите «Снять мод», затем удаляйте его карточку."
-                : "Сначала снимите материал с публикации, затем удаляйте его черновик.", true);
-            return;
-        }
+        var confirmation = item.IsPublished
+            ? $"Снять «{item.Title}» с публикации и полностью удалить запись из релизера? Опубликованные файлы сначала будут перенесены в резервную корзину."
+            : $"Полностью удалить черновик «{item.Title}»?";
+        if (!Bridge.Confirm(confirmation, "Полное удаление материала")) { return; }
 
-        if (!Bridge.Confirm($"Удалить черновик «{item.Title}»?", "Удаление материала")) { return; }
-        _machine.ContentArchivePaths.Remove(item.Id);
-        _workspace.Content.Remove(item);
-        _selectedContentId = _workspace.Content.FirstOrDefault(candidate => candidate.Kind == ActiveContentKind)?.Id;
+        var previousState = item.IsPublished;
+        var previousIndex = _workspace.Content.IndexOf(item);
+        var unpublished = !previousState;
+        _busy = true;
+        try
+        {
+            if (item.IsPublished)
+            {
+                var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+                if (item.Kind == ContentKind.Mod)
+                {
+                    await ReleasePublicationService.UnpublishAddonAsync(item, _workspace, _machine, progress);
+                }
+                else
+                {
+                    await ReleasePublicationService.UnpublishContentAsync(item, _workspace, _machine, progress);
+                }
+                unpublished = true;
+                await State.SaveWorkspaceAsync(_workspace, _machine, false);
+            }
+
+            _machine.ContentArchivePaths.Remove(item.Id);
+            _workspace.Content.Remove(item);
+            _selectedContentId = _workspace.Content.FirstOrDefault(candidate => candidate.Kind == ActiveContentKind)?.Id;
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = $"Материал {item.Title} удалён";
+            Toast(previousState
+                ? "Материал снят с публикации и удалён из проекта. Резервная копия публикации сохранена."
+                : "Черновик полностью удалён из проекта.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            if (!_workspace.Content.Contains(item))
+            {
+                _workspace.Content.Insert(Math.Clamp(previousIndex, 0, _workspace.Content.Count), item);
+            }
+            item.IsPublished = previousState && !unpublished;
+            _selectedContentId = item.Id;
+            _status = "Удаление материала остановлено";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private void MoveSelectedContent(int direction)
@@ -537,10 +597,11 @@
         _workspace.Content[targetWorkspaceIndex] = item;
     }
 
-    private void AddInformationBlock(ContentBlockKind kind)
+    private void AddContentBlock(ContentBlockKind kind)
     {
         var content = SelectedContent;
-        if (content is null || content.Kind != ContentKind.Information) { return; }
+        if (content is null || content.Kind == ContentKind.Mod) { return; }
+        if (kind == ContentBlockKind.Article && content.Kind != ContentKind.Information) { return; }
         content.Blocks.Add(new ContentBlockDraft
         {
             Kind = kind,
@@ -548,6 +609,7 @@
             {
                 ContentBlockKind.Image => "Подпись к изображению",
                 ContentBlockKind.Link => "Название файла или ссылки",
+                ContentBlockKind.Article => "Новый подраздел",
                 _ => "Новый заголовок",
             },
         });
@@ -569,6 +631,7 @@
     {
         ContentBlockKind.Image => "КАРТИНКА В ТЕКСТЕ",
         ContentBlockKind.Link => "URL / ФАЙЛ В ТЕКСТЕ",
+        ContentBlockKind.Article => "КАРТОЧКА-ПОДРАЗДЕЛ",
         _ => "ЗАГОЛОВОК И ТЕКСТ",
     };
 
@@ -578,6 +641,7 @@
     {
         ContentBlockKind.Image => "Подпись",
         ContentBlockKind.Link => "Название ссылки",
+        ContentBlockKind.Article => "Название подраздела",
         _ => "Заголовок",
     };
 
@@ -585,7 +649,15 @@
     {
         ContentBlockKind.Image => "Описание изображения",
         ContentBlockKind.Link => "Описание ссылки или файла",
+        ContentBlockKind.Article => "Статус, аннотация и полный текст",
         _ => "Текст раздела",
+    };
+
+    private static string BlockUrlLabel(ContentBlockKind kind) => kind switch
+    {
+        ContentBlockKind.Image => "HTTPS URL картинки",
+        ContentBlockKind.Article => "HTTPS URL фонового изображения (необязательно)",
+        _ => "HTTPS URL страницы или файла",
     };
 
     private async Task SelectContentArchiveAsync()

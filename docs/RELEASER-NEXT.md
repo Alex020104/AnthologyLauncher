@@ -51,6 +51,12 @@ The content editor supports LibreTranslate-compatible endpoints. The endpoint UR
 
 The source language can be detected automatically or selected explicitly. Automatic translation fills all eight locale tabs for the main document and its information blocks. Every generated field remains editable before signing and publication. A remote endpoint must use HTTPS; loopback HTTP is accepted for a self-hosted developer instance.
 
+## Editorial ownership
+
+News and information contain no permanent launcher-owned entries. On the first schema-3 migration, the previous built-in requirements, project descriptions, news and story cards are imported into the shared workspace as unpublished editable drafts. The migration is one-time, so a deliberately deleted entry is never recreated.
+
+Both sections support create, edit, ordering, unpublish and full delete operations. Full deletion of a published item first updates the signed catalog and publication targets, then removes the workspace draft. Information also supports nested article cards for story catalogs; every card has editable localized copy and an optional background URL.
+
 ## Publish locally
 
 ```powershell

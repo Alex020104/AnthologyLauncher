@@ -27,9 +27,16 @@ public sealed class ReleaserStateStore : IDisposable
         try
         {
             Directory.CreateDirectory(DataRoot);
+            var workspaceExists = File.Exists(WorkspacePath);
             var workspace = await WorkspaceStorage.LoadAsync(WorkspacePath, () => new ReleaserWorkspace(), cancellationToken);
             var machine = await WorkspaceStorage.LoadAsync(MachinePath, () => new ReleaserMachineSettings(), cancellationToken);
-            Normalize(workspace, machine);
+            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 3;
+            Normalize(workspace, machine, seedEditorialContent: requiresMigrationSave);
+            if (requiresMigrationSave)
+            {
+                await WorkspaceStorage.SaveAsync(WorkspacePath, workspace, cancellationToken);
+                await WorkspaceStorage.SaveAsync(MachinePath, machine, cancellationToken);
+            }
             return (workspace, machine);
         }
         finally
@@ -70,12 +77,15 @@ public sealed class ReleaserStateStore : IDisposable
         CancellationToken cancellationToken = default) =>
         SaveWorkspaceAsync(workspace, machine, false, cancellationToken);
 
-    private static void Normalize(ReleaserWorkspace workspace, ReleaserMachineSettings machine)
+    private static void Normalize(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        bool seedEditorialContent = false)
     {
         var previousSchemaVersion = workspace.SchemaVersion;
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 2);
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 3);
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;
@@ -114,6 +124,11 @@ public sealed class ReleaserStateStore : IDisposable
         foreach (var mirror in workspace.Mirrors)
         {
             mirror.Id = string.IsNullOrWhiteSpace(mirror.Id) ? $"source-{Guid.NewGuid():N}" : mirror.Id.Trim();
+        }
+
+        if (previousSchemaVersion < 3 || seedEditorialContent)
+        {
+            EditorialContentSeed.AddMissing(workspace.Content);
         }
     }
 

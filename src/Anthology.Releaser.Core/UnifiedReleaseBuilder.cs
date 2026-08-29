@@ -297,10 +297,11 @@ public static class UnifiedReleaseBuilder
                 videos,
                 download,
                 translations,
-                blocks);
+                blocks,
+                item.PublishedAt);
         }).ToArray();
 
-        return new ContentCatalog(3, workspace.Version, DateTimeOffset.UtcNow, items);
+        return new ContentCatalog(4, workspace.Version, DateTimeOffset.UtcNow, items);
     }
 
     private static void AddTranslation(

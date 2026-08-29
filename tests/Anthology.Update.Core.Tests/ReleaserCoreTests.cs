@@ -73,7 +73,7 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.All(manifest.Payload.Packages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
         Assert.All(manifest.Payload.Packages, package => Assert.True(package.PruneInstallRoot));
         var localizedNews = Assert.Single(manifest.Payload.Content!.Items);
-        Assert.Equal(3, manifest.Payload.Content.SchemaVersion);
+        Assert.Equal(4, manifest.Payload.Content.SchemaVersion);
         Assert.Equal("Full text", ContentLocalization.Resolve(localizedNews, "en").Body);
         Assert.Equal("Vollständiger Text", ContentLocalization.Resolve(localizedNews, "de").Body);
         Assert.Equal("Полный текст", ContentLocalization.Resolve(localizedNews, "fr").Body);
@@ -215,13 +215,31 @@ public sealed class ReleaserCoreTests : IDisposable
 
         var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
 
-        Assert.Equal(3, catalog.SchemaVersion);
+        Assert.Equal(4, catalog.SchemaVersion);
         var information = Assert.Single(catalog.Items);
         var blocks = Assert.IsAssignableFrom<IReadOnlyList<ContentBlock>>(information.Blocks);
         Assert.Equal(["requirements", "download"], blocks.Select(block => block.Id));
         Assert.Equal("Requirements", ContentBlockLocalization.Resolve(blocks[0], "en").Title);
         Assert.Equal("Требования", ContentBlockLocalization.Resolve(blocks[0], "de").Title);
         Assert.Equal("https://cdn.example/guide.pdf", blocks[1].Url);
+    }
+
+    [Fact]
+    public void EditorialSeedImportsOldLauncherCopyAsEditableDrafts()
+    {
+        var content = new List<ContentDraft>();
+
+        Assert.True(EditorialContentSeed.AddMissing(content));
+        Assert.Equal(2, content.Count(item => item.Kind == ContentKind.News));
+        Assert.Equal(4, content.Count(item => item.Kind == ContentKind.Information));
+        Assert.All(content, item => Assert.False(item.IsPublished));
+        var stories = Assert.Single(content, item => item.Id == "stories");
+        Assert.Equal(12, stories.Blocks.Count(block => block.Kind == ContentBlockKind.Article));
+
+        content.RemoveAll(item => item.Kind == ContentKind.News);
+        Assert.True(EditorialContentSeed.AddMissing(content));
+        Assert.Equal(2, content.Count(item => item.Kind == ContentKind.News));
+        Assert.Equal(4, content.Count(item => item.Kind == ContentKind.Information));
     }
 
     [Fact]
@@ -263,6 +281,7 @@ public sealed class ReleaserCoreTests : IDisposable
         var result = await ReleasePublicationService.PublishContentAsync(news, workspace, machine);
 
         Assert.True(news.IsPublished);
+        Assert.NotNull(news.PublishedAt);
         Assert.Equal(1, result.Targets);
         Assert.True(File.Exists(Path.Combine(output, workspace.Version, "content.json")));
         Assert.True(File.Exists(Path.Combine(published, workspace.Version, "content.json")));
