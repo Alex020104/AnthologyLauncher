@@ -67,17 +67,68 @@ public sealed record BugReportRequest(
     string? LogExcerpt,
     string? Contact,
     string? SystemSpecs = null,
-    string? EvidenceUrl = null);
+    string? EvidenceUrl = null,
+    string ReporterId = "",
+    string ReporterName = "",
+    string InterfaceLanguage = "ru");
 
 public sealed record BugReportReceipt(
     string Id,
     DateTimeOffset CreatedAt,
-    string Status);
+    string Status,
+    string? AccessToken = null);
 
 public sealed record BugReportAttachment(
     string FileName,
     long Size,
     string Sha256);
+
+public sealed record BugReportMessage(
+    string Id,
+    string AuthorId,
+    string AuthorName,
+    string AuthorRole,
+    string Text,
+    DateTimeOffset CreatedAt,
+    string Language = "ru");
+
+public sealed record BugReportDetails(
+    BugReportReceipt Receipt,
+    BugReportRequest Report,
+    IReadOnlyList<BugReportAttachment> Attachments,
+    IReadOnlyList<BugReportMessage> Messages,
+    DateTimeOffset UpdatedAt);
+
+public sealed record BugReportReplyRequest(
+    string AuthorId,
+    string AuthorName,
+    string Text,
+    string Language = "ru");
+
+public sealed record BugReportStatusRequest(
+    string Status,
+    string DeveloperName);
+
+public static class BugReportStatuses
+{
+    public const string New = "new";
+    public const string InProgress = "in-progress";
+    public const string WaitingForPlayer = "waiting-player";
+    public const string Resolved = "resolved";
+    public const string Closed = "closed";
+
+    public static IReadOnlyList<string> All { get; } =
+    [
+        New,
+        InProgress,
+        WaitingForPlayer,
+        Resolved,
+        Closed,
+    ];
+
+    public static bool IsSupported(string? status) =>
+        All.Contains(status ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+}
 
 public sealed record ChatMessage(
     string Id,

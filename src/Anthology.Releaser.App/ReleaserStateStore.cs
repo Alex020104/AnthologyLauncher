@@ -126,6 +126,10 @@ public sealed class ReleaserStateStore : IDisposable
         machine.QuickDeleteFolders ??= [];
         machine.PublicationRoots = new Dictionary<string, string>(machine.PublicationRoots ?? [], StringComparer.OrdinalIgnoreCase);
         machine.DeveloperName = string.IsNullOrWhiteSpace(machine.DeveloperName) ? Environment.UserName : machine.DeveloperName.Trim();
+        machine.CommunityApiUrl = string.IsNullOrWhiteSpace(machine.CommunityApiUrl)
+            ? Environment.GetEnvironmentVariable("ANTHOLOGY_COMMUNITY_API") ?? "http://127.0.0.1:5249"
+            : machine.CommunityApiUrl.Trim();
+        machine.CommunityDeveloperToken = machine.CommunityDeveloperToken?.Trim() ?? string.Empty;
         machine.AutoSyncSeconds = Math.Clamp(machine.AutoSyncSeconds, 30, 3600);
         if (workspace.Mirrors.Count == 0)
         {

@@ -551,11 +551,11 @@
             {
                 <section class="report-rules section-block">
                     <span class="eyebrow">ПЕРЕД ОТПРАВКОЙ</span>
-                    <h2>Баг-репорт должен давать разработчику возможность воспроизвести проблему.</h2>
-                    <p>Обращения без описания ситуации, шагов, ожидаемого результата и доказательств могут быть закрыты без разбора. Не называйте багом вопрос, предложение или ошибку установки стороннего аддона.</p>
+                    <h2>Один отчёт — одна конкретная проблема, которую разработчик сможет повторить.</h2>
+                    <p>Не пишите только «у меня вылетело» или «почините». Сначала кратко назовите проблему, затем укажите место и условия, перечислите действия по порядку и приложите подтверждения. Если проблема относится к стороннему моду, установке или настройке, прямо напишите об этом.</p>
                     <div class="report-example">
-                        <strong>ХОРОШИЙ ШАБЛОН</strong>
-                        <ol><li>Где и при каких условиях проявилась проблема.</li><li>Полный текст ошибки или важный фрагмент <code>xray_error.log</code>.</li><li>Точные шаги воспроизведения и повторяемость на одном сейве.</li><li>Что ожидалось и что произошло фактически.</li><li>Версия/дата сборки, настройки MCM и характеристики ПК.</li><li>Мелкие конфиги приложите здесь, а сейвы, видео и полный архив дайте HTTPS-ссылкой.</li></ol>
+                        <strong>ЗАПОЛНИТЕ ПО ПОРЯДКУ</strong>
+                        <ol><li><b>Заголовок:</b> что сломалось и где.</li><li><b>Ситуация:</b> сюжет, локация, NPC и важные настройки.</li><li><b>Шаги:</b> действия от загрузки сейва до появления ошибки.</li><li><b>Результат:</b> что должно было произойти и что произошло.</li><li><b>Доказательства:</b> полный лог, небольшой конфиг или HTTPS-ссылка на сейв и видео.</li><li><b>Окружение:</b> версия Anthology, вариант сборки, CPU, GPU, RAM и файл подкачки.</li></ol>
                     </div>
                 </section>
                 <section class="support-layout">
@@ -594,6 +594,59 @@
                         <label>Контакт для ответа<InputText @bind-Value="_report.Contact" placeholder="Discord / Telegram / email (необязательно)" /></label>
                         <button class="primary-button submit-report" type="submit" disabled="@_submittingReport">@(_submittingReport ? "ОТПРАВКА..." : "ОТПРАВИТЬ РАЗРАБОТЧИКУ")</button>
                     </EditForm>
+                </section>
+                <section class="report-inbox section-block">
+                    <div class="report-inbox-head"><div><span class="eyebrow">МОИ ОБРАЩЕНИЯ</span><h2>Ответы команды Anthology</h2><p>Здесь сохраняется переписка по вашим отчётам. Когда разработчик ответит, изменит статус или закроет запрос, обновление появится в этой карточке.</p></div><button class="secondary-button" @onclick="RefreshBugReportsAsync" disabled="@_bugReportsLoading">@(_bugReportsLoading ? "ОБНОВЛЕНИЕ…" : "↻ ОБНОВИТЬ")</button></div>
+                    @if (_settings.BugReports.Count == 0)
+                    {
+                        <div class="report-inbox-empty">После отправки первый баг-репорт появится здесь.</div>
+                    }
+                    else
+                    {
+                        <div class="report-ticket-layout">
+                            <aside class="report-ticket-list">
+                                @foreach (var ticket in _bugReports.OrderByDescending(item => item.UpdatedAt))
+                                {
+                                    var currentTicket = ticket;
+                                    <button class="@(_selectedBugReportId == currentTicket.Receipt.Id ? "active" : null)" @onclick="() => _selectedBugReportId = currentTicket.Receipt.Id"><span class="report-status @BugReportStatusClass(currentTicket.Receipt.Status)">@BugReportStatusText(currentTicket.Receipt.Status)</span><strong>@currentTicket.Report.Title</strong><small>@currentTicket.Receipt.Id · @currentTicket.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></button>
+                                }
+                                @if (_bugReportsLoading)
+                                {
+                                    <div class="report-ticket-loading">Получаем ответы разработчиков…</div>
+                                }
+                                else if (_bugReports.Count == 0)
+                                {
+                                    <div class="report-ticket-loading">Не удалось получить обращения. Проверьте соединение и обновите список.</div>
+                                }
+                            </aside>
+                            @if (SelectedBugReport is { } selectedReport)
+                            {
+                                <article class="report-ticket-detail">
+                                    <header><div><span>@selectedReport.Receipt.Id</span><h3>@selectedReport.Report.Title</h3></div><span class="report-status @BugReportStatusClass(selectedReport.Receipt.Status)">@BugReportStatusText(selectedReport.Receipt.Status)</span></header>
+                                    <details class="report-original"><summary>ИСХОДНЫЙ ОТЧЁТ</summary><div><strong>Ситуация</strong><p>@selectedReport.Report.Description</p><strong>Шаги</strong><p>@selectedReport.Report.ReproductionSteps</p><strong>Ожидаемый результат</strong><p>@selectedReport.Report.ExpectedResult</p><strong>Фактический результат</strong><p>@selectedReport.Report.ActualResult</p>@if (!string.IsNullOrWhiteSpace(selectedReport.Report.LogExcerpt)) { <strong>Лог</strong><pre>@selectedReport.Report.LogExcerpt</pre> }@if (!string.IsNullOrWhiteSpace(selectedReport.Report.EvidenceUrl)) { <a href="@selectedReport.Report.EvidenceUrl" target="_blank" rel="noopener noreferrer">ОТКРЫТЬ ПАКЕТ ФАЙЛОВ ↗</a> }</div></details>
+                                    <div class="report-conversation">
+                                        @if (selectedReport.Messages.Count == 0)
+                                        {
+                                            <div class="report-waiting">Обращение принято. Ответ разработчика появится здесь.</div>
+                                        }
+                                        @foreach (var message in selectedReport.Messages)
+                                        {
+                                            var currentMessage = message;
+                                            <div class="report-message @currentMessage.AuthorRole"><div><strong>@currentMessage.AuthorName</strong><span>@(currentMessage.AuthorRole == "developer" ? "DEV" : currentMessage.AuthorRole == "system" ? "STATUS" : "PLAYER")</span><small>@currentMessage.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small></div><p>@BugReportMessageText(currentMessage)</p>@if (HasActiveBugReportTranslation(currentMessage)) { <small class="translation-original">ОРИГИНАЛ: @currentMessage.Text</small> }@if (currentMessage.AuthorRole != "system") { <button class="message-translate" @onclick="() => TranslateBugReportMessageAsync(currentMessage)" disabled="@_translationMessagesBusy.Contains(currentMessage.Id)">@(_translationMessagesBusy.Contains(currentMessage.Id) ? "ПЕРЕВОД…" : $"ПЕРЕВЕСТИ → {CurrentLanguage.ShortLabel}")</button> }</div>
+                                        }
+                                    </div>
+                                    @if (selectedReport.Receipt.Status != BugReportStatuses.Closed)
+                                    {
+                                        <div class="report-reply"><textarea @bind="_bugReportReply" placeholder="Ответить разработчику или приложить уточнение"></textarea><button class="primary-button" @onclick="ReplyToBugReportAsync" disabled="@(_bugReportReplying || string.IsNullOrWhiteSpace(_bugReportReply))">@(_bugReportReplying ? "ОТПРАВКА…" : "ОТПРАВИТЬ ОТВЕТ")</button></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="report-closed-note">Обращение закрыто разработчиком. Переписка сохранена для просмотра.</div>
+                                    }
+                                </article>
+                            }
+                        </div>
+                    }
                 </section>
             }
             else if (_section == "mo2")
@@ -796,7 +849,7 @@
                     <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
                     <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Подписанный канал</h3><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Доверенный публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="production.pub.pem" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
                     <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
-                    <article class="setting-card section-block"><span>ЛОКАЛЬНЫЕ ДАННЫЕ</span><h3>Community API</h3><code>http://127.0.0.1:5249</code><p>Portable-запуск поднимает локальный API автоматически.</p><div class="safe-banner">@Settings.DataRoot</div></article>
+                    <article class="setting-card section-block"><span>ОБЩИЙ СЕРВЕР</span><h3>Community API</h3><label>Адрес сервера<input @bind="_settings.CommunityApiUrl" placeholder="https://community.anthology.example/" /></label><p>Один адрес используется для чата, голосований и баг-репортов. Для локальной проверки оставьте http://127.0.0.1:5249; для работы с другими игроками укажите опубликованный HTTPS-адрес команды.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ СЕРВЕР</button><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
             }
         </div>
@@ -914,6 +967,7 @@
     private string? _relayRecipientNick;
     private readonly Dictionary<string, TextTranslationResponse> _relayTranslations = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TextTranslationResponse> _communityTranslations = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TextTranslationResponse> _bugReportTranslations = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _translationMessagesBusy = new(StringComparer.OrdinalIgnoreCase);
     private string _librarySection = "dev";
     private string _librarySearch = string.Empty;
@@ -926,6 +980,11 @@
     private bool _installBusy;
     private UpdateProgress? _installProgress;
     private List<string> _reportAttachments = [];
+    private List<BugReportDetails> _bugReports = [];
+    private string? _selectedBugReportId;
+    private string _bugReportReply = string.Empty;
+    private bool _bugReportsLoading;
+    private bool _bugReportReplying;
     private SetupLauncherStatus _setupStatus = new(false, string.Empty, null, false, "Проверка Setup");
     private Mo2WorkspaceSnapshot _mo2Workspace = new(
         new(false, string.Empty, null, [], [], "Проверка MO2"),
@@ -991,6 +1050,8 @@
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
+    private BugReportDetails? SelectedBugReport => _bugReports.FirstOrDefault(report =>
+        string.Equals(report.Receipt.Id, _selectedBugReportId, StringComparison.OrdinalIgnoreCase));
 
     private ContentTranslation Localized(ContentDocument content) =>
         ContentLocalization.Resolve(content, _settings.InterfaceLanguage);
@@ -1056,6 +1117,10 @@
         if (section == "mo2" && _mo2Workspace.Instance.Available)
         {
             await LoadMo2ContentAsync();
+        }
+        if (section == "support")
+        {
+            await RefreshBugReportsAsync();
         }
     }
 
@@ -1455,11 +1520,24 @@
         _communityTranslations.TryGetValue(message.Id, out var translation)
         && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase);
 
+    private string BugReportMessageText(BugReportMessage message) =>
+        _bugReportTranslations.TryGetValue(message.Id, out var translation)
+        && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase)
+            ? translation.TranslatedText
+            : message.Text;
+
+    private bool HasActiveBugReportTranslation(BugReportMessage message) =>
+        _bugReportTranslations.TryGetValue(message.Id, out var translation)
+        && string.Equals(translation.TargetLanguage, _settings.InterfaceLanguage, StringComparison.OrdinalIgnoreCase);
+
     private async Task TranslateRelayMessageAsync(RelayChatMessage message) =>
         await TranslateMessageAsync(message.Id, message.Text, _relayTranslations);
 
     private async Task TranslateCommunityMessageAsync(ChatMessage message) =>
         await TranslateMessageAsync(message.Id, message.Text, _communityTranslations);
+
+    private async Task TranslateBugReportMessageAsync(BugReportMessage message) =>
+        await TranslateMessageAsync(message.Id, message.Text, _bugReportTranslations);
 
     private async Task TranslateMessageAsync(
         string messageId,
@@ -2132,6 +2210,7 @@
         _submittingReport = true;
         try
         {
+            var submittedTitle = _report.Title;
             var receipt = await Community.SubmitBugReportAsync(new BugReportRequest(
                 _report.Title,
                 _report.Description,
@@ -2143,10 +2222,24 @@
                 _report.LogExcerpt,
                 _report.Contact,
                 _report.SystemSpecs,
-                _report.EvidenceUrl),
+                _report.EvidenceUrl,
+                _settings.UserId,
+                _settings.CommunityNickname,
+                _settings.InterfaceLanguage),
                 _reportAttachments);
+            _settings.BugReports.Insert(0, new BugReportReference
+            {
+                Id = receipt.Id,
+                AccessToken = receipt.AccessToken!,
+                Title = submittedTitle,
+                CreatedAt = receipt.CreatedAt,
+            });
+            await Settings.SaveAsync(_settings);
+            _settings = Settings.Current.Copy();
             _report = new BugReportForm();
             _reportAttachments = [];
+            _selectedBugReportId = receipt.Id;
+            await RefreshBugReportsAsync();
             ShowToast($"Обращение {receipt.Id} зарегистрировано");
         }
         catch (Exception exception) when (exception is HttpRequestException or InvalidDataException)
@@ -2158,6 +2251,104 @@
             _submittingReport = false;
         }
     }
+
+    private async Task RefreshBugReportsAsync()
+    {
+        if (_bugReportsLoading)
+        {
+            return;
+        }
+
+        _bugReportsLoading = true;
+        try
+        {
+            var loaded = new List<BugReportDetails>();
+            foreach (var reference in _settings.BugReports.OrderByDescending(item => item.CreatedAt))
+            {
+                try
+                {
+                    loaded.Add(await Community.GetBugReportAsync(reference.Id, reference.AccessToken));
+                }
+                catch (Exception exception) when (exception is HttpRequestException
+                                                   or InvalidDataException
+                                                   or TaskCanceledException)
+                {
+                    // Keep the local receipt. A later refresh can retrieve it when the service returns.
+                }
+            }
+
+            _bugReports = loaded.OrderByDescending(item => item.UpdatedAt).ToList();
+            if (_selectedBugReportId is null
+                || !_bugReports.Any(item => string.Equals(item.Receipt.Id, _selectedBugReportId, StringComparison.OrdinalIgnoreCase)))
+            {
+                _selectedBugReportId = _bugReports.FirstOrDefault()?.Receipt.Id;
+            }
+        }
+        finally
+        {
+            _bugReportsLoading = false;
+        }
+    }
+
+    private async Task ReplyToBugReportAsync()
+    {
+        var selected = SelectedBugReport;
+        var reference = selected is null
+            ? null
+            : _settings.BugReports.FirstOrDefault(item =>
+                string.Equals(item.Id, selected.Receipt.Id, StringComparison.OrdinalIgnoreCase));
+        if (selected is null || reference is null || string.IsNullOrWhiteSpace(_bugReportReply))
+        {
+            return;
+        }
+
+        _bugReportReplying = true;
+        try
+        {
+            var updated = await Community.ReplyToBugReportAsync(
+                reference.Id,
+                reference.AccessToken,
+                _bugReportReply,
+                _settings.InterfaceLanguage);
+            var index = _bugReports.FindIndex(item =>
+                string.Equals(item.Receipt.Id, updated.Receipt.Id, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0)
+            {
+                _bugReports[index] = updated;
+            }
+            _bugReportReply = string.Empty;
+            ShowToast("Ответ разработчику отправлен");
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidDataException
+                                           or TaskCanceledException)
+        {
+            ShowToast("Не удалось отправить ответ. Проверьте соединение и повторите.", true);
+        }
+        finally
+        {
+            _bugReportReplying = false;
+        }
+    }
+
+    private static string BugReportStatusText(string status) => status switch
+    {
+        BugReportStatuses.New => "НОВОЕ",
+        BugReportStatuses.InProgress => "В РАБОТЕ",
+        BugReportStatuses.WaitingForPlayer => "НУЖЕН ОТВЕТ ИГРОКА",
+        BugReportStatuses.Resolved => "РЕШЕНО",
+        BugReportStatuses.Closed => "ЗАКРЫТО",
+        _ => status.ToUpperInvariant(),
+    };
+
+    private static string BugReportStatusClass(string status) => status switch
+    {
+        BugReportStatuses.InProgress => "progress",
+        BugReportStatuses.WaitingForPlayer => "waiting",
+        BugReportStatuses.Resolved => "resolved",
+        BugReportStatuses.Closed => "closed",
+        _ => "new",
+    };
 
     private void SelectReportAttachments()
     {

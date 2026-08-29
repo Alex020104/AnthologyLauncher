@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anthology.Releaser.App;
@@ -17,6 +18,13 @@ public partial class App : System.Windows.Application
 #endif
         services.AddSingleton<ReleaserStateStore>();
         services.AddSingleton<ReleaserBridge>();
+        services.AddSingleton(new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(45),
+            DefaultRequestVersion = new Version(2, 0),
+            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower,
+        });
+        services.AddSingleton<BugReportDeveloperClient>();
         _services = services.BuildServiceProvider();
         Resources["services"] = _services;
         MainWindow = new MainWindow();

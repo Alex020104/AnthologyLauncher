@@ -1,6 +1,7 @@
 @implements IAsyncDisposable
 @inject ReleaserStateStore State
 @inject ReleaserBridge Bridge
+@inject BugReportDeveloperClient BugReports
 @inject IJSRuntime JS
 
 <div class="shell">
@@ -15,7 +16,7 @@
         </nav>
         <div class="spacer"></div>
         <div class="revision"><span>РАБОЧАЯ РЕДАКЦИЯ</span><strong>@_workspace.Revision.ToString("0000")</strong><small>@(_workspace.UpdatedBy.Length == 0 ? "локальный проект" : _workspace.UpdatedBy)</small></div>
-        <div class="build-version">RELEASER 0.1 ALPHA · PRIVATE</div>
+        <div class="build-version">RELEASER 0.2 ALPHA · PRIVATE</div>
     </aside>
 
     <main>
@@ -179,6 +180,47 @@
                     }
                 </section>
             }
+            else if (_section == "reports")
+            {
+                <section class="hero panel compact bug-report-hero"><div><span class="eyebrow">ОБРАЩЕНИЯ ИГРОКОВ</span><h2>Очередь поддержки<br /><em>внутри релизера.</em></h2><p>Новые отчёты из лаунчера появляются здесь. Разработчик видит исходные данные и вложения, ведёт переписку с игроком, переводит запрос в работу и закрывает его после решения.</p></div><div class="bug-report-counters"><span><strong>@_developerReports.Count(item => item.Receipt.Status == BugReportStatuses.New)</strong>НОВЫХ</span><span><strong>@_developerReports.Count(item => item.Receipt.Status == BugReportStatuses.WaitingForPlayer)</strong>ЖДУТ ИГРОКА</span><span><strong>@_developerReports.Count(item => item.Receipt.Status == BugReportStatuses.Closed)</strong>ЗАКРЫТО</span></div></section>
+                <section class="panel bug-report-api"><div><span class="eyebrow">COMMUNITY API</span><h3>Единый сервер лаунчера и разработчиков</h3><p>Для проверки на этой машине можно использовать локальный адрес. Для работы с игроками укажите публичный HTTPS-адрес сервера и тот же закрытый токен разработчика, который задан на сервере.</p></div><label>Адрес API<input @bind="_machine.CommunityApiUrl" placeholder="https://community.anthology.example/" /></label><label>Токен разработчика<input type="password" @bind="_machine.CommunityDeveloperToken" autocomplete="off" placeholder="X-Anthology-Developer-Token" /></label><button class="secondary" @onclick="SaveBugReportSettingsAsync">СОХРАНИТЬ</button><button class="primary" @onclick="RefreshDeveloperReportsAsync" disabled="@_developerReportsLoading">@(_developerReportsLoading ? "ПОЛУЧАЕМ…" : "↻ ОБНОВИТЬ")</button></section>
+                <section class="bug-report-workspace">
+                    <aside class="panel bug-report-queue">
+                        <div class="section-title"><div><span class="eyebrow">ОЧЕРЕДЬ</span><h3>@FilteredDeveloperReports.Count() запросов</h3></div></div>
+                        <div class="bug-report-filters"><button class="@(_developerReportFilter == "all" ? "active" : null)" @onclick='() => _developerReportFilter = "all"'>ВСЕ</button><button class="@(_developerReportFilter == BugReportStatuses.New ? "active" : null)" @onclick='() => _developerReportFilter = BugReportStatuses.New'>НОВЫЕ</button><button class="@(_developerReportFilter == BugReportStatuses.InProgress ? "active" : null)" @onclick='() => _developerReportFilter = BugReportStatuses.InProgress'>В РАБОТЕ</button><button class="@(_developerReportFilter == BugReportStatuses.WaitingForPlayer ? "active" : null)" @onclick='() => _developerReportFilter = BugReportStatuses.WaitingForPlayer'>ЖДУТ ИГРОКА</button><button class="@(_developerReportFilter == BugReportStatuses.Resolved ? "active" : null)" @onclick='() => _developerReportFilter = BugReportStatuses.Resolved'>РЕШЕНО</button><button class="@(_developerReportFilter == BugReportStatuses.Closed ? "active" : null)" @onclick='() => _developerReportFilter = BugReportStatuses.Closed'>ЗАКРЫТО</button></div>
+                        <input class="bug-report-search" @bind="_developerReportSearch" placeholder="ID, заголовок или игрок" />
+                        <div class="bug-report-list">
+                            @foreach (var report in FilteredDeveloperReports)
+                            {
+                                var currentReport = report;
+                                <button class="@(_selectedDeveloperReportId == currentReport.Receipt.Id ? "active" : null)" @onclick="() => _selectedDeveloperReportId = currentReport.Receipt.Id"><span class="ticket-status @DeveloperStatusClass(currentReport.Receipt.Status)">@DeveloperStatusText(currentReport.Receipt.Status)</span><strong>@currentReport.Report.Title</strong><small>@currentReport.Report.ReporterName · @currentReport.UpdatedAt.ToLocalTime().ToString("dd.MM HH:mm")</small><code>@currentReport.Receipt.Id</code></button>
+                            }
+                            @if (_developerReportsLoading)
+                            {
+                                <div class="bug-report-list-empty">Получаем обращения…</div>
+                            }
+                            else if (!FilteredDeveloperReports.Any())
+                            {
+                                <div class="bug-report-list-empty">В выбранной очереди обращений нет.</div>
+                            }
+                        </div>
+                    </aside>
+                    @if (SelectedDeveloperReport is { } selectedDeveloperReport)
+                    {
+                        <article class="panel bug-report-detail">
+                            <div class="bug-report-detail-head"><div><span class="eyebrow">@selectedDeveloperReport.Receipt.Id</span><h2>@selectedDeveloperReport.Report.Title</h2><p>@selectedDeveloperReport.Report.ReporterName · @selectedDeveloperReport.Report.GameVersion · @selectedDeveloperReport.Report.InterfaceLanguage.ToUpperInvariant()</p></div><span class="ticket-status @DeveloperStatusClass(selectedDeveloperReport.Receipt.Status)">@DeveloperStatusText(selectedDeveloperReport.Receipt.Status)</span></div>
+                            <section class="bug-report-source"><div><strong>СИТУАЦИЯ</strong><p>@selectedDeveloperReport.Report.Description</p></div><div><strong>ШАГИ ВОСПРОИЗВЕДЕНИЯ</strong><p>@selectedDeveloperReport.Report.ReproductionSteps</p></div><div class="two"><section><strong>ОЖИДАЛОСЬ</strong><p>@selectedDeveloperReport.Report.ExpectedResult</p></section><section><strong>ПРОИЗОШЛО</strong><p>@selectedDeveloperReport.Report.ActualResult</p></section></div>@if (!string.IsNullOrWhiteSpace(selectedDeveloperReport.Report.LogExcerpt)) { <div><strong>ЛОГ / СТЕК ОШИБКИ</strong><pre>@selectedDeveloperReport.Report.LogExcerpt</pre></div> }<div class="two"><section><strong>СИСТЕМА</strong><p>@selectedDeveloperReport.Report.SystemSpecs</p></section><section><strong>КОНТАКТ</strong><p>@selectedDeveloperReport.Report.Contact</p></section></div>@if (!string.IsNullOrWhiteSpace(selectedDeveloperReport.Report.EvidenceUrl)) { <a href="@selectedDeveloperReport.Report.EvidenceUrl" target="_blank" rel="noopener noreferrer">ОТКРЫТЬ ПОЛНЫЙ ПАКЕТ ↗</a> }</section>
+                            <section class="bug-report-attachments"><div><span class="eyebrow">ВЛОЖЕНИЯ</span><strong>@selectedDeveloperReport.Attachments.Count файлов</strong></div>@foreach (var attachment in selectedDeveloperReport.Attachments) { <span><b>@attachment.FileName</b><small>@FormatBytes(attachment.Size) · @ShortHash(attachment.Sha256)</small></span> }<button class="secondary" @onclick="DownloadDeveloperAttachmentsAsync" disabled="@(_developerReportBusy || selectedDeveloperReport.Attachments.Count == 0)">СКАЧАТЬ И ОТКРЫТЬ ПАПКУ</button></section>
+                            <section class="bug-report-thread"><div class="thread-title"><span class="eyebrow">ПЕРЕПИСКА</span><strong>@selectedDeveloperReport.Messages.Count сообщений</strong></div>@if (selectedDeveloperReport.Messages.Count == 0) { <div class="thread-empty">Ответов пока нет. Напишите игроку, какие данные нужны, или переведите запрос в работу.</div> }@foreach (var message in selectedDeveloperReport.Messages) { <article class="@message.AuthorRole"><header><strong>@message.AuthorName</strong><span>@message.AuthorRole.ToUpperInvariant()</span><small>@message.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></header><p>@message.Text</p></article> }</section>
+                            <section class="bug-report-response"><label>Ответ игроку<textarea rows="5" @bind="_developerReportReply" placeholder="Опишите решение или запросите недостающие данные. Ответ появится у игрока в лаунчере."></textarea></label><div><button class="secondary" @onclick='() => SetDeveloperReportStatusAsync(BugReportStatuses.InProgress)' disabled="@_developerReportBusy">ВЗЯТЬ В РАБОТУ</button><button class="primary" @onclick="ReplyAsDeveloperAsync" disabled="@(_developerReportBusy || string.IsNullOrWhiteSpace(_developerReportReply))">ОТВЕТИТЬ И ЖДАТЬ ИГРОКА</button><button class="secondary resolved" @onclick='() => SetDeveloperReportStatusAsync(BugReportStatuses.Resolved)' disabled="@_developerReportBusy">РЕШЕНО</button><button class="danger" @onclick='() => SetDeveloperReportStatusAsync(BugReportStatuses.Closed)' disabled="@_developerReportBusy">ЗАКРЫТЬ</button>@if (selectedDeveloperReport.Receipt.Status == BugReportStatuses.Closed) { <button class="secondary" @onclick='() => SetDeveloperReportStatusAsync(BugReportStatuses.InProgress)' disabled="@_developerReportBusy">ОТКРЫТЬ СНОВА</button> }</div></section>
+                        </article>
+                    }
+                    else
+                    {
+                        <section class="panel empty"><span>◇</span><h2>Выберите обращение</h2><p>Слева находится общая очередь запросов игроков.</p></section>
+                    }
+                </section>
+            }
             else if (_section == "sync")
             {
                 <section class="hero panel compact"><div><span class="eyebrow">ДВА РАЗРАБОТЧИКА</span><h2>Один рабочий проект.<br /><em>Без обмена ключами.</em></h2><p>Укажите общую папку Яндекс.Диска, Google Drive, сетевого диска или другого синхронизируемого хранилища. Релизер сравнивает редакции и защищает параллельные изменения.</p></div><div class="sync-orbit"><strong>@_workspace.Revision</strong><span>REVISION</span></div></section>
@@ -219,6 +261,7 @@
         new("library", "▦", "Библиотека модов", "МОДЫ", "Публикация модов в MO2"),
         new("news", "▤", "Новости", "НОВОСТИ", "Лента новостей Anthology"),
         new("information", "i", "Информация", "СПРАВОЧНИК", "Вкладки и материалы"),
+        new("reports", "◇", "Баг-репорты", "ПОДДЕРЖКА", "Обращения игроков"),
         new("sync", "↻", "Синхронизация", "КОМАНДА", "Работа двух разработчиков"),
         new("safety", "⌾", "Безопасность", "ПРОТОКОЛ", "Удаление и откат"),
     ];
@@ -240,12 +283,20 @@
     private string _lastSavedWorkspaceHash = string.Empty;
     private CancellationTokenSource? _lifetime;
     private Task? _autoSyncTask;
+    private Task? _bugReportRefreshTask;
     private readonly LibreTranslationClient _translator = new();
     private string _selectedContentLanguage = "source";
     private bool _translationBusy;
     private string _quickDeleteRoot = "game";
     private string _quickDeleteKind = "file";
     private string _quickDeletePath = string.Empty;
+    private List<BugReportDetails> _developerReports = [];
+    private string? _selectedDeveloperReportId;
+    private string _developerReportFilter = "all";
+    private string _developerReportSearch = string.Empty;
+    private string _developerReportReply = string.Empty;
+    private bool _developerReportsLoading;
+    private bool _developerReportBusy;
 
     private Nav CurrentNavigation => Navigation.First(item => item.Id == _section);
     private bool IsContentSection => _section is "library" or "news" or "information";
@@ -283,6 +334,16 @@
     private int QuickAddCount => _machine.QuickReleaseFiles.Count + _machine.QuickReleaseFolders.Count;
     private int QuickDeleteCount => _machine.QuickDeleteFiles.Count + _machine.QuickDeleteFolders.Count;
     private int QuickSelectionCount => QuickAddCount + QuickDeleteCount;
+    private IEnumerable<BugReportDetails> FilteredDeveloperReports => _developerReports
+        .Where(report => _developerReportFilter == "all"
+                         || string.Equals(report.Receipt.Status, _developerReportFilter, StringComparison.OrdinalIgnoreCase))
+        .Where(report => string.IsNullOrWhiteSpace(_developerReportSearch)
+                         || report.Receipt.Id.Contains(_developerReportSearch, StringComparison.OrdinalIgnoreCase)
+                         || report.Report.Title.Contains(_developerReportSearch, StringComparison.OrdinalIgnoreCase)
+                         || report.Report.ReporterName.Contains(_developerReportSearch, StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(report => report.UpdatedAt);
+    private BugReportDetails? SelectedDeveloperReport => _developerReports.FirstOrDefault(report =>
+        string.Equals(report.Receipt.Id, _selectedDeveloperReportId, StringComparison.OrdinalIgnoreCase));
     private string SelectedContentIdentifier
     {
         get => SelectedContent?.Id ?? string.Empty;
@@ -339,6 +400,7 @@
         _loading = false;
         _lifetime = new CancellationTokenSource();
         _autoSyncTask = RunAutoSyncAsync(_lifetime.Token);
+        _bugReportRefreshTask = RunBugReportRefreshAsync(_lifetime.Token);
     }
 
     private void SelectGameRoot() => _machine.GameSourceRoot = Bridge.SelectFolder("Выберите подготовленный полный корень Anthology", _machine.GameSourceRoot, false) ?? _machine.GameSourceRoot;
@@ -590,6 +652,10 @@
             && (SelectedContent is null || SelectedContent.Kind != ActiveContentKind))
         {
             _selectedContentId = _workspace.Content.FirstOrDefault(item => item.Kind == ActiveContentKind)?.Id;
+        }
+        if (section == "reports")
+        {
+            await RefreshDeveloperReportsAsync();
         }
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
@@ -1210,6 +1276,215 @@
         }
     }
 
+    private async Task SaveBugReportSettingsAsync()
+    {
+        try
+        {
+            await State.SaveMachineAsync(_workspace, _machine);
+            Toast("Настройки Community API сохранены на этой машине.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Toast(exception.Message, true);
+        }
+    }
+
+    private async Task RefreshDeveloperReportsAsync()
+    {
+        if (_developerReportsLoading || string.IsNullOrWhiteSpace(_machine.CommunityApiUrl))
+        {
+            return;
+        }
+
+        _developerReportsLoading = true;
+        try
+        {
+            _developerReports = (await BugReports.GetReportsAsync(
+                    _machine.CommunityApiUrl,
+                    _machine.CommunityDeveloperToken))
+                .OrderByDescending(report => report.UpdatedAt)
+                .ToList();
+            if (_selectedDeveloperReportId is null
+                || !_developerReports.Any(report => string.Equals(
+                    report.Receipt.Id,
+                    _selectedDeveloperReportId,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                _selectedDeveloperReportId = _developerReports.FirstOrDefault()?.Receipt.Id;
+            }
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidDataException
+                                           or TaskCanceledException
+                                           or ArgumentException)
+        {
+            Toast($"Не удалось получить баг-репорты: {exception.Message}", true);
+        }
+        finally
+        {
+            _developerReportsLoading = false;
+        }
+    }
+
+    private async Task ReplyAsDeveloperAsync()
+    {
+        var report = SelectedDeveloperReport;
+        if (report is null || _developerReportBusy || string.IsNullOrWhiteSpace(_developerReportReply))
+        {
+            return;
+        }
+
+        _developerReportBusy = true;
+        try
+        {
+            var updated = await BugReports.ReplyAsync(
+                _machine.CommunityApiUrl,
+                _machine.CommunityDeveloperToken,
+                report.Receipt.Id,
+                _machine.DeveloperName,
+                _developerReportReply);
+            ReplaceDeveloperReport(updated);
+            _developerReportReply = string.Empty;
+            Toast($"Ответ отправлен игроку. {report.Receipt.Id} ожидает уточнения.");
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidDataException
+                                           or TaskCanceledException
+                                           or ArgumentException)
+        {
+            Toast($"Ответ не отправлен: {exception.Message}", true);
+        }
+        finally
+        {
+            _developerReportBusy = false;
+        }
+    }
+
+    private async Task SetDeveloperReportStatusAsync(string status)
+    {
+        var report = SelectedDeveloperReport;
+        if (report is null || _developerReportBusy)
+        {
+            return;
+        }
+        if (status == BugReportStatuses.Closed
+            && !Bridge.Confirm(
+                $"Закрыть обращение {report.Receipt.Id}? Игрок увидит закрытый статус и больше не сможет отвечать.",
+                "Закрыть баг-репорт"))
+        {
+            return;
+        }
+
+        _developerReportBusy = true;
+        try
+        {
+            var updated = await BugReports.SetStatusAsync(
+                _machine.CommunityApiUrl,
+                _machine.CommunityDeveloperToken,
+                report.Receipt.Id,
+                _machine.DeveloperName,
+                status);
+            ReplaceDeveloperReport(updated);
+            Toast($"Статус {report.Receipt.Id}: {DeveloperStatusText(status)}");
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidDataException
+                                           or TaskCanceledException
+                                           or ArgumentException)
+        {
+            Toast($"Статус не изменён: {exception.Message}", true);
+        }
+        finally
+        {
+            _developerReportBusy = false;
+        }
+    }
+
+    private async Task DownloadDeveloperAttachmentsAsync()
+    {
+        var report = SelectedDeveloperReport;
+        if (report is null || _developerReportBusy || report.Attachments.Count == 0)
+        {
+            return;
+        }
+
+        _developerReportBusy = true;
+        try
+        {
+            var destination = await BugReports.DownloadAttachmentsAsync(
+                _machine.CommunityApiUrl,
+                _machine.CommunityDeveloperToken,
+                report,
+                Path.Combine(State.DataRoot, "BugReports"));
+            Bridge.OpenFolder(destination);
+            Toast($"Вложения {report.Receipt.Id} сохранены.");
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or IOException
+                                           or UnauthorizedAccessException
+                                           or TaskCanceledException
+                                           or ArgumentException)
+        {
+            Toast($"Вложения не загружены: {exception.Message}", true);
+        }
+        finally
+        {
+            _developerReportBusy = false;
+        }
+    }
+
+    private void ReplaceDeveloperReport(BugReportDetails updated)
+    {
+        var index = _developerReports.FindIndex(report => string.Equals(
+            report.Receipt.Id,
+            updated.Receipt.Id,
+            StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+        {
+            _developerReports[index] = updated;
+        }
+        else
+        {
+            _developerReports.Add(updated);
+        }
+        _developerReports = _developerReports.OrderByDescending(report => report.UpdatedAt).ToList();
+        _selectedDeveloperReportId = updated.Receipt.Id;
+    }
+
+    private async Task RunBugReportRefreshAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(20));
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            if (_section == "reports" && !_developerReportsLoading && !_developerReportBusy)
+            {
+                await InvokeAsync(RefreshDeveloperReportsAsync);
+            }
+        }
+    }
+
+    private static string DeveloperStatusText(string status) => status switch
+    {
+        BugReportStatuses.New => "НОВОЕ",
+        BugReportStatuses.InProgress => "В РАБОТЕ",
+        BugReportStatuses.WaitingForPlayer => "ЖДЁМ ИГРОКА",
+        BugReportStatuses.Resolved => "РЕШЕНО",
+        BugReportStatuses.Closed => "ЗАКРЫТО",
+        _ => status.ToUpperInvariant(),
+    };
+
+    private static string DeveloperStatusClass(string status) => status switch
+    {
+        BugReportStatuses.InProgress => "progress",
+        BugReportStatuses.WaitingForPlayer => "waiting",
+        BugReportStatuses.Resolved => "resolved",
+        BugReportStatuses.Closed => "closed",
+        _ => "new",
+    };
+
+    private static string ShortHash(string hash) =>
+        string.IsNullOrWhiteSpace(hash) ? "—" : hash[..Math.Min(12, hash.Length)];
+
     private async Task SyncAsync()
     {
         if (_syncBusy || string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot))
@@ -1282,6 +1557,7 @@
         if (_lifetime is null) { return; }
         _lifetime.Cancel();
         if (_autoSyncTask is not null) { try { await _autoSyncTask; } catch (OperationCanceledException) { } }
+        if (_bugReportRefreshTask is not null) { try { await _bugReportRefreshTask; } catch (OperationCanceledException) { } }
         _lifetime.Dispose();
         _translator.Dispose();
     }

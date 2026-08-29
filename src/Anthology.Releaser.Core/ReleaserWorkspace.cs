@@ -182,6 +182,10 @@ public sealed class ReleaserMachineSettings
 
     public string TranslationApiKey { get; set; } = string.Empty;
 
+    public string CommunityApiUrl { get; set; } = "http://127.0.0.1:5249";
+
+    public string CommunityDeveloperToken { get; set; } = string.Empty;
+
     // Local paths never enter the shared workspace.
     public Dictionary<string, string> ContentArchivePaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 

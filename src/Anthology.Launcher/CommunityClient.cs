@@ -10,7 +10,6 @@ public sealed class CommunityClient(
     HttpClient httpClient,
     LauncherSettingsStore settingsStore) : IDisposable
 {
-    private readonly Uri _baseUri = GetBaseUri();
     private HubConnection? _hubConnection;
     private string? _joinedChannel;
 
@@ -25,7 +24,7 @@ public sealed class CommunityClient(
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(2));
             var feed = await httpClient.GetFromJsonAsync<CommunityFeed>(
-                new Uri(_baseUri, "api/v1/feed"),
+                new Uri(BaseUri, "api/v1/feed"),
                 ManifestJson.Options,
                 timeout.Token);
             IsOffline = false;
@@ -46,7 +45,7 @@ public sealed class CommunityClient(
         CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.PostAsJsonAsync(
-            new Uri(_baseUri, $"api/v1/polls/{Uri.EscapeDataString(pollId)}/votes"),
+            new Uri(BaseUri, $"api/v1/polls/{Uri.EscapeDataString(pollId)}/votes"),
             new PollVoteRequest(settingsStore.Current.UserId, [optionId]),
             ManifestJson.Options,
             cancellationToken);
@@ -74,7 +73,7 @@ public sealed class CommunityClient(
         }
 
         return await httpClient.GetFromJsonAsync<IReadOnlyList<ChatMessage>>(
-                   new Uri(_baseUri, $"api/v1/channels/{Uri.EscapeDataString(channelId)}/messages"),
+            new Uri(BaseUri, $"api/v1/channels/{Uri.EscapeDataString(channelId)}/messages"),
                    ManifestJson.Options,
                    cancellationToken) ?? [];
     }
@@ -100,7 +99,7 @@ public sealed class CommunityClient(
         CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.PostAsJsonAsync(
-            new Uri(_baseUri, "api/v1/translate"),
+            new Uri(BaseUri, "api/v1/translate"),
             new TextTranslationRequest(text, targetLanguage),
             ManifestJson.Options,
             cancellationToken);
@@ -126,7 +125,7 @@ public sealed class CommunityClient(
         if (_hubConnection is null)
         {
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl(new Uri(_baseUri, "hubs/community"))
+                .WithUrl(new Uri(BaseUri, "hubs/community"))
                 .WithAutomaticReconnect()
                 .Build();
             _hubConnection.On<ChatMessage>("messageReceived", message => MessageReceived?.Invoke(message));
@@ -144,23 +143,67 @@ public sealed class CommunityClient(
         CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.PostAsJsonAsync(
-            new Uri(_baseUri, "api/v1/bug-reports"),
+            new Uri(BaseUri, "api/v1/bug-reports"),
             report,
             ManifestJson.Options,
             cancellationToken);
         response.EnsureSuccessStatusCode();
         var receipt = await response.Content.ReadFromJsonAsync<BugReportReceipt>(ManifestJson.Options, cancellationToken)
             ?? throw new InvalidDataException("Сервер не вернул номер обращения.");
+        if (string.IsNullOrWhiteSpace(receipt.AccessToken))
+        {
+            throw new InvalidDataException("Сервер не вернул приватный ключ обращения.");
+        }
         if (attachmentPaths is { Count: > 0 })
         {
-            await UploadBugReportAttachmentsAsync(receipt.Id, attachmentPaths, cancellationToken);
+            await UploadBugReportAttachmentsAsync(receipt.Id, receipt.AccessToken, attachmentPaths, cancellationToken);
         }
 
         return receipt;
     }
 
+    public async Task<BugReportDetails> GetBugReportAsync(
+        string reportId,
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = CreateReportRequest(
+            HttpMethod.Get,
+            $"api/v1/bug-reports/{Uri.EscapeDataString(reportId)}",
+            accessToken);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<BugReportDetails>(ManifestJson.Options, cancellationToken)
+            ?? throw new InvalidDataException("Сервер вернул пустое обращение.");
+    }
+
+    public async Task<BugReportDetails> ReplyToBugReportAsync(
+        string reportId,
+        string accessToken,
+        string text,
+        string language,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = CreateReportRequest(
+            HttpMethod.Post,
+            $"api/v1/bug-reports/{Uri.EscapeDataString(reportId)}/messages",
+            accessToken);
+        request.Content = JsonContent.Create(
+            new BugReportReplyRequest(
+                settingsStore.Current.UserId,
+                settingsStore.Current.CommunityNickname,
+                text,
+                language),
+            options: ManifestJson.Options);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<BugReportDetails>(ManifestJson.Options, cancellationToken)
+            ?? throw new InvalidDataException("Сервер не вернул обновлённое обращение.");
+    }
+
     private async Task UploadBugReportAttachmentsAsync(
         string reportId,
+        string accessToken,
         IReadOnlyList<string> attachmentPaths,
         CancellationToken cancellationToken)
     {
@@ -182,10 +225,12 @@ public sealed class CommunityClient(
                 content.Add(new StreamContent(stream), "files", Path.GetFileName(fullPath));
             }
 
-            using var response = await httpClient.PostAsync(
-                new Uri(_baseUri, $"api/v1/bug-reports/{Uri.EscapeDataString(reportId)}/attachments"),
-                content,
-                cancellationToken);
+            using var request = CreateReportRequest(
+                HttpMethod.Post,
+                $"api/v1/bug-reports/{Uri.EscapeDataString(reportId)}/attachments",
+                accessToken);
+            request.Content = content;
+            using var response = await httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
         }
         finally
@@ -197,11 +242,14 @@ public sealed class CommunityClient(
         }
     }
 
-    private static Uri GetBaseUri()
+    private HttpRequestMessage CreateReportRequest(HttpMethod method, string relativeUrl, string accessToken)
     {
-        var configured = Environment.GetEnvironmentVariable("ANTHOLOGY_COMMUNITY_API");
-        return Uri.TryCreate(configured, UriKind.Absolute, out var uri)
-            ? uri
-            : new Uri("http://localhost:5249/");
+        var request = new HttpRequestMessage(method, new Uri(BaseUri, relativeUrl));
+        request.Headers.TryAddWithoutValidation("X-Anthology-Report-Token", accessToken);
+        return request;
     }
+
+    private Uri BaseUri => Uri.TryCreate(settingsStore.Current.CommunityApiUrl, UriKind.Absolute, out var uri)
+        ? new Uri(uri.AbsoluteUri.TrimEnd('/') + "/")
+        : new Uri("http://127.0.0.1:5249/");
 }

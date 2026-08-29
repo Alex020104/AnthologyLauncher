@@ -80,6 +80,50 @@ public sealed class CommunityStateTests : IDisposable
             "test-config.ltx")));
     }
 
+    [Fact]
+    public void DeveloperCanReplyAndCloseReportWhilePlayerKeepsPrivateAccess()
+    {
+        Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
+        var state = new CommunityState();
+        var receipt = state.CreateReport(new BugReportRequest(
+            "Crash near depot",
+            "Crash while looting bodies",
+            "Load save and loot",
+            "No crash",
+            "Lua crash",
+            "0.7.0-alpha.1",
+            "2.1.131",
+            "stack trace",
+            null,
+            "Test PC",
+            null,
+            "player-01",
+            "Шура",
+            "ru"));
+
+        Assert.False(string.IsNullOrWhiteSpace(receipt.AccessToken));
+        Assert.True(state.ReportTokenMatches(receipt.Id, receipt.AccessToken));
+        Assert.False(state.ReportTokenMatches(receipt.Id, "wrong-token"));
+
+        var answered = state.AddReportMessage(
+            receipt.Id,
+            new BugReportReplyRequest("developer", "Alex020104", "Нужен сейв.", "ru"),
+            isDeveloper: true);
+        Assert.Equal(BugReportStatuses.WaitingForPlayer, answered.Receipt.Status);
+        Assert.Equal("developer", Assert.Single(answered.Messages).AuthorRole);
+        Assert.Null(answered.Receipt.AccessToken);
+
+        var closed = state.SetReportStatus(
+            receipt.Id,
+            new BugReportStatusRequest(BugReportStatuses.Closed, "Alex020104"));
+        Assert.Equal(BugReportStatuses.Closed, closed.Receipt.Status);
+        Assert.Equal(2, closed.Messages.Count);
+
+        var reloaded = new CommunityState();
+        Assert.Equal(BugReportStatuses.Closed, reloaded.GetReport(receipt.Id)!.Receipt.Status);
+        Assert.True(reloaded.ReportTokenMatches(receipt.Id, receipt.AccessToken));
+    }
+
     public void Dispose()
     {
         Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _previousDataRoot);

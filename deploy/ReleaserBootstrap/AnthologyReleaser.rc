@@ -1,0 +1,38 @@
+#pragma code_page(65001)
+
+#include <windows.h>
+#include "resource.h"
+
+IDI_ANTHOLOGY_RELEASER_ICON ICON "../../assets/launcher_radioactive_icon_round.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 0,2,0,0
+ PRODUCTVERSION 0,2,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041904B0"
+        BEGIN
+            VALUE "CompanyName", "A.N.T.H.O.L.O.G.Y Team"
+            VALUE "FileDescription", "A.N.T.H.O.L.O.G.Y Releaser Next"
+            VALUE "FileVersion", "0.2.0-alpha.1"
+            VALUE "InternalName", "AnthologyReleaser.Next"
+            VALUE "OriginalFilename", "AnthologyReleaser.Next.exe"
+            VALUE "ProductName", "A.N.T.H.O.L.O.G.Y Releaser"
+            VALUE "ProductVersion", "0.2.0-alpha.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x419, 1200
+    END
+END

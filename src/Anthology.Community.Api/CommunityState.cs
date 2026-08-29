@@ -106,13 +106,185 @@ public sealed class CommunityState
 
         lock (_stateLock)
         {
+            var now = DateTimeOffset.UtcNow;
             var receipt = new BugReportReceipt(
-                $"BUG-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
-                DateTimeOffset.UtcNow,
-                "new");
-            _reports[receipt.Id] = new StoredReport(receipt, report, []);
+                $"BUG-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+                now,
+                BugReportStatuses.New,
+                Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant());
+            var normalized = report with
+            {
+                Title = report.Title.Trim(),
+                Description = report.Description.Trim(),
+                ReproductionSteps = report.ReproductionSteps.Trim(),
+                ReporterId = string.IsNullOrWhiteSpace(report.ReporterId) ? "anonymous" : report.ReporterId.Trim(),
+                ReporterName = string.IsNullOrWhiteSpace(report.ReporterName) ? "Игрок" : report.ReporterName.Trim(),
+                InterfaceLanguage = AnthologyLanguages.IsSupported(report.InterfaceLanguage)
+                    ? AnthologyLanguages.Normalize(report.InterfaceLanguage)
+                    : "ru",
+            };
+            _reports[receipt.Id] = new StoredReport(receipt, normalized, [], [], now);
             SaveState();
             return receipt;
+        }
+    }
+
+    public IReadOnlyList<BugReportDetails> GetReports(string? status = null)
+    {
+        lock (_stateLock)
+        {
+            return _reports.Values
+                .Where(report => string.IsNullOrWhiteSpace(status)
+                                 || string.Equals(report.Receipt.Status, status, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(ReportUpdatedAt)
+                .Select(report => ToDetails(report, includeAccessToken: false))
+                .ToArray();
+        }
+    }
+
+    public BugReportDetails? GetReport(string reportId, bool includeAccessToken = false)
+    {
+        lock (_stateLock)
+        {
+            return _reports.TryGetValue(reportId, out var report)
+                ? ToDetails(report, includeAccessToken)
+                : null;
+        }
+    }
+
+    public bool ReportTokenMatches(string reportId, string? accessToken)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return false;
+        }
+
+        lock (_stateLock)
+        {
+            if (!_reports.TryGetValue(reportId, out var report)
+                || string.IsNullOrWhiteSpace(report.Receipt.AccessToken))
+            {
+                return false;
+            }
+
+            var expected = System.Text.Encoding.UTF8.GetBytes(report.Receipt.AccessToken);
+            var supplied = System.Text.Encoding.UTF8.GetBytes(accessToken.Trim());
+            return expected.Length == supplied.Length
+                   && CryptographicOperations.FixedTimeEquals(expected, supplied);
+        }
+    }
+
+    public BugReportDetails AddReportMessage(
+        string reportId,
+        BugReportReplyRequest request,
+        bool isDeveloper)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Text);
+        if (request.Text.Length > 10_000)
+        {
+            throw new ArgumentException("Ответ превышает допустимый размер.");
+        }
+
+        lock (_stateLock)
+        {
+            if (!_reports.TryGetValue(reportId, out var stored))
+            {
+                throw new KeyNotFoundException(reportId);
+            }
+            if (string.Equals(stored.Receipt.Status, BugReportStatuses.Closed, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Закрытое обращение нельзя дополнять. Разработчик может открыть его повторно.");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var authorId = isDeveloper
+                ? $"developer:{NormalizeDeveloperName(request.AuthorName)}"
+                : stored.Report.ReporterId;
+            var authorName = isDeveloper
+                ? NormalizeDeveloperName(request.AuthorName)
+                : stored.Report.ReporterName;
+            var message = new BugReportMessage(
+                Guid.NewGuid().ToString("N"),
+                authorId,
+                authorName,
+                isDeveloper ? "developer" : "player",
+                request.Text.Trim(),
+                now,
+                AnthologyLanguages.IsSupported(request.Language)
+                    ? AnthologyLanguages.Normalize(request.Language)
+                    : "ru");
+            var status = isDeveloper
+                ? BugReportStatuses.WaitingForPlayer
+                : stored.Receipt.Status == BugReportStatuses.New
+                    ? BugReportStatuses.New
+                    : BugReportStatuses.InProgress;
+            var updated = stored with
+            {
+                Receipt = stored.Receipt with { Status = status },
+                Messages = (stored.Messages ?? []).Append(message).ToArray(),
+                UpdatedAt = now,
+            };
+            _reports[reportId] = updated;
+            SaveState();
+            return ToDetails(updated, includeAccessToken: false);
+        }
+    }
+
+    public BugReportDetails SetReportStatus(
+        string reportId,
+        BugReportStatusRequest request)
+    {
+        if (!BugReportStatuses.IsSupported(request.Status))
+        {
+            throw new ArgumentException("Неизвестный статус обращения.");
+        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.DeveloperName);
+
+        lock (_stateLock)
+        {
+            if (!_reports.TryGetValue(reportId, out var stored))
+            {
+                throw new KeyNotFoundException(reportId);
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var status = request.Status.Trim().ToLowerInvariant();
+            var systemMessage = new BugReportMessage(
+                Guid.NewGuid().ToString("N"),
+                $"developer:{NormalizeDeveloperName(request.DeveloperName)}",
+                NormalizeDeveloperName(request.DeveloperName),
+                "system",
+                $"Статус изменён: {status}",
+                now,
+                "ru");
+            var updated = stored with
+            {
+                Receipt = stored.Receipt with { Status = status },
+                Messages = (stored.Messages ?? []).Append(systemMessage).ToArray(),
+                UpdatedAt = now,
+            };
+            _reports[reportId] = updated;
+            SaveState();
+            return ToDetails(updated, includeAccessToken: false);
+        }
+    }
+
+    public string? GetAttachmentPath(string reportId, string fileName)
+    {
+        lock (_stateLock)
+        {
+            if (!_reports.TryGetValue(reportId, out var report))
+            {
+                return null;
+            }
+            var safeName = Path.GetFileName(fileName);
+            if (!(report.Attachments ?? []).Any(item =>
+                    string.Equals(item.FileName, safeName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+            var path = Path.Combine(_attachmentsRoot, reportId, safeName);
+            return File.Exists(path) ? path : null;
         }
     }
 
@@ -209,7 +381,11 @@ public sealed class CommunityState
         {
             var stored = _reports[reportId];
             var attachments = (stored.Attachments ?? []).Concat(saved).ToArray();
-            _reports[reportId] = stored with { Attachments = attachments };
+            _reports[reportId] = stored with
+            {
+                Attachments = attachments,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
             SaveState();
         }
 
@@ -243,6 +419,25 @@ public sealed class CommunityState
                 .ToArray();
         }
     }
+
+    private static BugReportDetails ToDetails(StoredReport stored, bool includeAccessToken)
+    {
+        var receipt = includeAccessToken
+            ? stored.Receipt
+            : stored.Receipt with { AccessToken = null };
+        return new BugReportDetails(
+            receipt,
+            stored.Report,
+            stored.Attachments ?? [],
+            stored.Messages ?? [],
+            ReportUpdatedAt(stored));
+    }
+
+    private static DateTimeOffset ReportUpdatedAt(StoredReport stored) =>
+        stored.UpdatedAt ?? stored.Receipt.CreatedAt;
+
+    private static string NormalizeDeveloperName(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "Разработчик Anthology" : value.Trim();
 
     private PersistedState LoadState()
     {
@@ -367,5 +562,7 @@ public sealed class CommunityState
     private sealed record StoredReport(
         BugReportReceipt Receipt,
         BugReportRequest Report,
-        IReadOnlyList<BugReportAttachment>? Attachments = null);
+        IReadOnlyList<BugReportAttachment>? Attachments = null,
+        IReadOnlyList<BugReportMessage>? Messages = null,
+        DateTimeOffset? UpdatedAt = null);
 }

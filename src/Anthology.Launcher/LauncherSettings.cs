@@ -28,6 +28,8 @@ public sealed class LauncherSettings
 
     public string PreferredMirrorProvider { get; set; } = "auto";
 
+    public string CommunityApiUrl { get; set; } = "http://127.0.0.1:5249";
+
     public string CommunityNickname { get; set; } = $"Stalker-{Random.Shared.Next(1000, 9999)}";
 
     public string UserId { get; set; } = $"local-{Guid.NewGuid():N}";
@@ -72,6 +74,8 @@ public sealed class LauncherSettings
 
     public int ShadowMapSize { get; set; } = 1536;
 
+    public List<BugReportReference> BugReports { get; set; } = [];
+
     public LauncherSettings Copy() => new()
     {
         GameRoot = GameRoot,
@@ -84,6 +88,7 @@ public sealed class LauncherSettings
         PublicKeyPath = PublicKeyPath,
         UpdateChannel = UpdateChannel,
         PreferredMirrorProvider = PreferredMirrorProvider,
+        CommunityApiUrl = CommunityApiUrl,
         CommunityNickname = CommunityNickname,
         UserId = UserId,
         Renderer = Renderer,
@@ -106,6 +111,26 @@ public sealed class LauncherSettings
         RelayChatCloseAfterSend = RelayChatCloseAfterSend,
         InterfaceLanguage = InterfaceLanguage,
         ShadowMapSize = ShadowMapSize,
+        BugReports = (BugReports ?? []).Select(report => report.Copy()).ToList(),
+    };
+}
+
+public sealed class BugReportReference
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string AccessToken { get; set; } = string.Empty;
+
+    public string Title { get; set; } = string.Empty;
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public BugReportReference Copy() => new()
+    {
+        Id = Id,
+        AccessToken = AccessToken,
+        Title = Title,
+        CreatedAt = CreatedAt,
     };
 }
 
@@ -215,6 +240,7 @@ public sealed class LauncherSettingsStore : IDisposable
             "github" or "yandex-disk" or "google-drive" or "http" or "auto"
                 ? settings.PreferredMirrorProvider.Trim().ToLowerInvariant()
                 : "auto";
+        settings.CommunityApiUrl = NormalizeHttpUrl(settings.CommunityApiUrl, "http://127.0.0.1:5249");
         settings.CommunityNickname = string.IsNullOrWhiteSpace(settings.CommunityNickname)
             ? $"Stalker-{Random.Shared.Next(1000, 9999)}"
             : settings.CommunityNickname.Trim();
@@ -244,6 +270,21 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.ShadowMapSize = settings.ShadowMapSize is 1536 or 2048 or 2560 or 3072 or 4096
             ? settings.ShadowMapSize
             : 1536;
+        settings.BugReports = (settings.BugReports ?? [])
+            .Where(report => !string.IsNullOrWhiteSpace(report.Id)
+                             && !string.IsNullOrWhiteSpace(report.AccessToken))
+            .GroupBy(report => report.Id.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderByDescending(report => report.CreatedAt)
+            .Take(100)
+            .Select(report => new BugReportReference
+            {
+                Id = report.Id.Trim(),
+                AccessToken = report.AccessToken.Trim(),
+                Title = report.Title?.Trim() ?? string.Empty,
+                CreatedAt = report.CreatedAt,
+            })
+            .ToList();
     }
 
     private static string? NormalizeOptionalPath(string? path) =>
@@ -274,6 +315,23 @@ public sealed class LauncherSettingsStore : IDisposable
                 settings.ModpackRoot = fullPath;
             }
         }
+
+        var communityApi = Environment.GetEnvironmentVariable("ANTHOLOGY_COMMUNITY_API");
+        if (!string.IsNullOrWhiteSpace(communityApi))
+        {
+            settings.CommunityApiUrl = NormalizeHttpUrl(communityApi, settings.CommunityApiUrl);
+        }
+    }
+
+    private static string NormalizeHttpUrl(string? value, string fallback)
+    {
+        if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri)
+            || !string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return fallback;
+        }
+        return uri.AbsoluteUri.TrimEnd('/');
     }
 
     private static string ResolveDataRoot()

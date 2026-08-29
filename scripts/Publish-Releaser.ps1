@@ -34,4 +34,10 @@ if ($LASTEXITCODE -ne 0) {
 
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\Launch Anthology Releaser Next.cmd") -Destination $destinationRoot -Force
 Copy-Item -LiteralPath (Join-Path $sourceRoot "deploy\RELEASER-README.txt") -Destination $destinationRoot -Force
+$bootstrapStage = "A:\AnthologyDeployStage\ReleaserBootstrap"
+& (Join-Path $sourceRoot "scripts\Build-ReleaserBootstrap.ps1") -OutputDirectory $bootstrapStage
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to build standalone Anthology Releaser Next entry point."
+}
+Copy-Item -LiteralPath (Join-Path $bootstrapStage "AnthologyReleaser.Next.exe") -Destination $destinationRoot -Force
 Write-Host "Standalone releaser published: $destinationRoot"
