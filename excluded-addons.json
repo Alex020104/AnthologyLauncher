@@ -1,0 +1,119 @@
+{
+    "schemaVersion":  1,
+    "generatedAt":  "\/Date(1788074397805)\/",
+    "count":  16,
+    "items":  [
+                  {
+                      "name":  "[BS] Exo System - new_system",
+                      "category":  "BS",
+                      "sourceBytes":  151616633,
+                      "archiveBytes":  122408765,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[GFX] Arrival — новые аномалии",
+                      "category":  "GFX",
+                      "sourceBytes":  456506649,
+                      "archiveBytes":  115743839,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[GFX] ScreenSpaceShaders Update 23.5 — Обновление шейдеров",
+                      "category":  "GFX",
+                      "sourceBytes":  183684782,
+                      "archiveBytes":  121940132,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[HUD] High Quality MAPS — 4K карты для КПК от ��������_������������",
+                      "category":  "HUD",
+                      "sourceBytes":  1256900839,
+                      "archiveBytes":  1087421626,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[HUD] High Quality MAPS — 4K карты для КПК от 𝙍𝙚𝙑𝙤_𝙊𝖓𝖑𝟏𝖓𝖊",
+                      "category":  "HUD",
+                      "sourceBytes":  1256900839,
+                      "archiveBytes":  1087421623,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[MOD] Hands GFY HoC",
+                      "category":  "MOD",
+                      "sourceBytes":  240449286,
+                      "archiveBytes":  114047468,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[QUE] VAsgens Cozy Spots Scary Fairy ьTales — Квест Страшные Сказки в Тёмной Лощине",
+                      "category":  "QUE",
+                      "sourceBytes":  748434747,
+                      "archiveBytes":  178710805,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[QUE] Western Goods — Западные товары и квест",
+                      "category":  "QUE",
+                      "sourceBytes":  747111046,
+                      "archiveBytes":  140307838,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[QUE] Western Goods Readables Extended — Читаемые журналы",
+                      "category":  "QUE",
+                      "sourceBytes":  1241529243,
+                      "archiveBytes":  317658142,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[SEA] Gardener of the Zone NEW (Осень) yurivernadsky",
+                      "category":  "SEA",
+                      "sourceBytes":  1737620911,
+                      "archiveBytes":  978123141,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[SND] Audio Expansion",
+                      "category":  "SND",
+                      "sourceBytes":  197877607,
+                      "archiveBytes":  191464624,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[TMA] Faction_backpacks",
+                      "category":  "TMA",
+                      "sourceBytes":  529267389,
+                      "archiveBytes":  245396219,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[TMA] FDDA Redone — Улучшенный FDDA + Разные допы",
+                      "category":  "TMA",
+                      "sourceBytes":  1053317155,
+                      "archiveBytes":  385338674,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[TMA] GFY ANOMALY — Модели Сталкера 2(Nestandart_5443)",
+                      "category":  "TMA",
+                      "sourceBytes":  13082891081,
+                      "archiveBytes":  11594156962,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[TMA] M.H.P. — Пак моделей рук",
+                      "category":  "TMA",
+                      "sourceBytes":  2542914321,
+                      "archiveBytes":  1024594226,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  },
+                  {
+                      "name":  "[TMA] RE Mesh — Переработанные объекты",
+                      "category":  "TMA",
+                      "sourceBytes":  380225222,
+                      "archiveBytes":  278305171,
+                      "reason":  "Archive exceeds the safe 95 MiB limit for regular GitHub Git"
+                  }
+              ]
+}
