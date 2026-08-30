@@ -4,9 +4,9 @@
 @inject BugReportDeveloperClient BugReports
 @inject IJSRuntime JS
 
-<div class="shell">
+<div class="shell" @oninput="MarkEditorInteraction" @onclick="MarkEditorInteraction">
     <aside class="sidebar">
-        <div class="brand"><span>A</span><div><strong>ANTHOLOGY</strong><small>RELEASER NEXT</small></div></div>
+        <div class="brand"><span><img src="assets/anthology-logo.png" alt="A.N.T.H.O.L.O.G.Y" /></span><div><strong>ANTHOLOGY</strong><small>RELEASER NEXT</small></div></div>
         <nav>
             @foreach (var item in Navigation)
             {
@@ -296,6 +296,7 @@
     private string? _toast;
     private bool _toastError;
     private DateTimeOffset? _lastSyncAt;
+    private DateTimeOffset _lastEditorInteractionAt = DateTimeOffset.UtcNow;
     private UnifiedReleaseResult? _lastBuild;
     private PublicationResult? _lastPublication;
     private string _lastSavedWorkspaceHash = string.Empty;
@@ -417,6 +418,7 @@
         _machine = state.Machine;
         _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
         _selectedContentId = _workspace.Content.FirstOrDefault()?.Id;
+        _lastEditorInteractionAt = DateTimeOffset.UtcNow;
         _loading = false;
         _lifetime = new CancellationTokenSource();
         _autoSyncTask = RunAutoSyncAsync(_lifetime.Token);
@@ -667,6 +669,7 @@
 
     private async Task SelectSectionAsync(string section)
     {
+        MarkEditorInteraction();
         _section = section;
         if (IsContentSection
             && (SelectedContent is null || SelectedContent.Kind != ActiveContentKind))
@@ -1598,8 +1601,15 @@
     private static string ShortHash(string hash) =>
         string.IsNullOrWhiteSpace(hash) ? "—" : hash[..Math.Min(12, hash.Length)];
 
-    private async Task SyncAsync()
+    private Task SyncAsync() => SyncAsync(false);
+
+    private async Task SyncAsync(bool automatic)
     {
+        if (automatic && DateTimeOffset.UtcNow - _lastEditorInteractionAt < TimeSpan.FromSeconds(20))
+        {
+            return;
+        }
+
         if (_syncBusy || string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot))
         {
             if (string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot)) { Toast("Выберите общую папку синхронизации.", true); }
@@ -1619,12 +1629,18 @@
             {
                 await State.SaveMachineAsync(_workspace, _machine);
             }
+            var selectedContentId = _selectedContentId;
             var result = await WorkspaceSyncService.SyncAsync(_workspace, _machine.SharedWorkspaceRoot, _machine.LastSyncedHash);
             _workspace = result.Workspace;
             _machine.LastSyncedHash = result.Hash;
-            _selectedContentId = IsContentSection
-                ? _workspace.Content.FirstOrDefault(item => item.Kind == ActiveContentKind)?.Id
-                : _workspace.Content.FirstOrDefault()?.Id;
+            _selectedContentId = IsContentSection && selectedContentId is not null
+                && _workspace.Content.Any(item => item.Id == selectedContentId && item.Kind == ActiveContentKind)
+                    ? selectedContentId
+                    : IsContentSection
+                        ? _workspace.Content.FirstOrDefault(item => item.Kind == ActiveContentKind)?.Id
+                        : selectedContentId is not null && _workspace.Content.Any(item => item.Id == selectedContentId)
+                            ? selectedContentId
+                            : _workspace.Content.FirstOrDefault()?.Id;
             _syncMessage = result.Message;
             _lastSyncAt = DateTimeOffset.Now;
             await State.SaveMachineAsync(_workspace, _machine);
@@ -1656,9 +1672,11 @@
             if (!_machine.AutoSync || string.IsNullOrWhiteSpace(_machine.SharedWorkspaceRoot) || _syncBusy || _busy) { continue; }
             var seconds = Math.Clamp(_machine.AutoSyncSeconds, 30, 3600);
             if (_lastSyncAt is not null && DateTimeOffset.Now - _lastSyncAt < TimeSpan.FromSeconds(seconds)) { continue; }
-            await InvokeAsync(SyncAsync);
+            await InvokeAsync(() => SyncAsync(true));
         }
     }
+
+    private void MarkEditorInteraction() => _lastEditorInteractionAt = DateTimeOffset.UtcNow;
 
     private void Toast(string message, bool error = false) { _toast = message; _toastError = error; }
     private static string PathOrEmpty(string value) => string.IsNullOrWhiteSpace(value) ? "Не выбрано" : value;

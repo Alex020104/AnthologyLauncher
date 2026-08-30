@@ -3,7 +3,7 @@
 #include <windows.h>
 #include "resource.h"
 
-IDI_ANTHOLOGY_RELEASER_ICON ICON "../../assets/launcher_radioactive_icon_round.ico"
+IDI_ANTHOLOGY_RELEASER_ICON ICON "../../assets/A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 0,2,0,0

@@ -4,7 +4,7 @@
 <div class="app-shell @(ShowTransferDock ? "transfer-active" : null)">
     <aside class="sidebar">
         <div class="brand">
-            <div class="brand-mark"><span>A</span></div>
+            <div class="brand-mark"><img src="assets/anthology-logo.png" alt="A.N.T.H.O.L.O.G.Y" /></div>
             <div>
                 <div class="brand-name">ANTHOLOGY</div>
                 <div class="brand-edition">NEXT / ANOMALY 1.5.3</div>
@@ -106,11 +106,18 @@
                         </div>
                     </div>
                     <div class="hero-radar" aria-hidden="true">
+                        <div class="scanner-grid"></div>
+                        <div class="scanner-axis axis-horizontal"></div>
+                        <div class="scanner-axis axis-vertical"></div>
                         <div class="radar-ring ring-one"></div>
                         <div class="radar-ring ring-two"></div>
                         <div class="radar-ring ring-three"></div>
-                        <div class="radar-sweep"></div>
-                        <div class="radar-core">A</div>
+                        <div class="radar-sweep"><span></span></div>
+                        <span class="scanner-blip blip-one"><i></i></span>
+                        <span class="scanner-blip blip-two"><i></i></span>
+                        <span class="scanner-blip blip-three"><i></i></span>
+                        <div class="radar-core"><img src="assets/anthology-logo.png" alt="" /></div>
+                        <div class="scanner-readout"><span>ZONE SCANNER</span><strong>SIGNAL LOCKED</strong></div>
                         <span class="radar-label label-a">01 · LAUNCHER</span>
                         <span class="radar-label label-b">02 · COMMUNITY</span>
                         <span class="radar-label label-c">03 · UPDATE CORE</span>
@@ -258,7 +265,7 @@
                             <div class="chat-messages relay-messages" data-chat-scroll="relay">
                                 @if (_relayMessages.Count == 0)
                                 {
-                                    <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY RELAY <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@RelayChat.StatusText. Чат работает прямо в лаунчере; отдельное приложение больше не запускается.</p></div></div>
+                                    <div class="chat-message system"><span><img class="system-avatar-logo" src="assets/anthology-logo.png" alt="" /></span><div><strong>ANTHOLOGY RELAY <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@RelayChat.StatusText. Чат работает прямо в лаунчере; отдельное приложение больше не запускается.</p></div></div>
                                 }
                                 @foreach (var message in _relayMessages)
                                 {
@@ -273,7 +280,7 @@
                             <div class="chat-messages" data-chat-scroll="community">
                                 @if (_chatMessages.Count == 0)
                                 {
-                                    <div class="chat-message system"><span>A</span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@(_chatConnected ? "Канал подключён. Напишите первое сообщение." : "Community API недоступен — чат временно работает только как просмотр интерфейса.")</p></div></div>
+                                    <div class="chat-message system"><span><img class="system-avatar-logo" src="assets/anthology-logo.png" alt="" /></span><div><strong>ANTHOLOGY BOT <em>СИСТЕМА</em></strong><small>Сейчас</small><p>@(_chatConnected ? "Канал подключён. Напишите первое сообщение." : "Community API недоступен — чат временно работает только как просмотр интерфейса.")</p></div></div>
                                 }
                                 @foreach (var message in _chatMessages)
                                 {
@@ -813,13 +820,15 @@
                                     {
                                         var currentMod = mod;
                                         var conflict = GetMo2Conflict(currentMod.Name);
-                                        <div class="mo2-mod-row @(group.Separator is not null ? "grouped" : null) @(_selectedMo2ModName == currentMod.Name ? "selected" : null) @(_draggedMo2ModName == currentMod.Name ? "dragging" : null)"
-                                             draggable="@(!currentMod.IsUnmanaged && !_mo2Workspace.RuntimeBusy)"
+                                        <div @key="currentMod.Name"
+                                             class="mo2-mod-row @(group.Separator is not null ? "grouped" : null) @(_selectedMo2ModName == currentMod.Name ? "selected" : null)"
+                                             data-mo2-mod="@currentMod.Name"
+                                             draggable="@((!currentMod.IsUnmanaged && !_mo2Workspace.RuntimeBusy).ToString().ToLowerInvariant())"
                                              title="Удерживайте левую кнопку мыши и перетащите мод на новую позицию"
-                                             @ondragstart="() => BeginMo2Drag(currentMod)"
                                              @ondragover:preventDefault="true"
+                                             @ondragenter:preventDefault="true"
                                              @ondrop="() => DropMo2ModAsync(currentMod)"
-                                             @ondragend="EndMo2Drag"
+                                             @ondrop:preventDefault="true"
                                              @onclick="() => SelectMo2ModAsync(currentMod)">
                                             <button class="mo2-switch @(currentMod.Enabled ? "active" : null)" disabled="@(currentMod.IsUnmanaged || _mo2Workspace.RuntimeBusy)" @onclick="() => ToggleMo2Mod(currentMod)" @onclick:stopPropagation="true"><span></span></button>
                                             <div><strong>@currentMod.DisplayName</strong><small>@(currentMod.IsUnmanaged ? "НЕУПРАВЛЯЕМЫЙ" : conflict is null ? "ОЖИДАНИЕ АНАЛИЗА" : $"{conflict.FileCount:N0} ФАЙЛОВ")</small></div>
@@ -1150,7 +1159,6 @@
     private string _mo2FileSearch = string.Empty;
     private IReadOnlyList<Mo2VirtualEntry> _mo2FileSearchResults = [];
     private CancellationTokenSource? _mo2FileSearchCancellation;
-    private string? _draggedMo2ModName;
     private Mo2ContentOverview? _mo2Content;
     private IReadOnlyList<Mo2VirtualEntry> _mo2DataEntries = [];
     private IReadOnlyList<Mo2ConflictEntry> _mo2ConflictEntries = [];
@@ -2098,20 +2106,9 @@
         }
     }
 
-    private void BeginMo2Drag(Mo2ModEntry mod)
-    {
-        if (!mod.IsUnmanaged && !_mo2Workspace.RuntimeBusy)
-        {
-            _draggedMo2ModName = mod.Name;
-        }
-    }
-
-    private void EndMo2Drag() => _draggedMo2ModName = null;
-
     private async Task DropMo2ModAsync(Mo2ModEntry target)
     {
-        var source = _draggedMo2ModName;
-        _draggedMo2ModName = null;
+        var source = await JS.InvokeAsync<string?>("anthologyMo2Drag.consumeSource");
         if (_mo2Workspace.SelectedProfile is null
             || string.IsNullOrWhiteSpace(source)
             || string.Equals(source, target.Name, StringComparison.Ordinal))
