@@ -575,13 +575,10 @@
                             }
                         </div>
                     </div>
-                    @if (_updateProgress is not null)
-                    {
-                        <div class="update-progress-row">
-                            <div class="progress-track"><span style="width:@UpdateProgressPercentage%"></span></div>
-                            <div><strong>@_updateProgress.Message</strong><small>@UpdateProgressDetails</small></div>
-                        </div>
-                    }
+                    <div class="update-progress-row @(_updateBusy ? "busy" : "idle")" aria-live="polite">
+                        <div class="progress-track"><span style="width:@UpdateDockPercentage%"></span></div>
+                        <div><strong>@UpdateDockTitle</strong><small>@UpdateDockDetails</small></div>
+                    </div>
                     @if (_updateCheck is not null)
                     {
                         <div class="package-list">
@@ -808,19 +805,32 @@
                         </div>
                         <aside class="mo2-right-pane">
                             <div class="mo2-tabs">
-                                <button class="@(_mo2RightTab == "data" ? "active" : null)" @onclick='() => SelectMo2RightTabAsync("data")'>ДАННЫЕ</button>
+                                <button class="@(_mo2RightTab == "files" ? "active" : null)" @onclick='() => SelectMo2RightTabAsync("files")'>ВСЕ ФАЙЛЫ <em>@(_mo2Content?.UniqueFiles ?? 0)</em></button>
+                                <button class="@(_mo2RightTab == "data" ? "active" : null)" @onclick='() => SelectMo2RightTabAsync("data")'>ДЕРЕВО</button>
                                 <button class="@(_mo2RightTab == "saves" ? "active" : null)" @onclick='() => SelectMo2RightTabAsync("saves")'>СОХРАНЕНИЯ <em>@(_mo2Content?.Saves.Count ?? 0)</em></button>
                                 <button class="@(_mo2RightTab == "downloads" ? "active" : null)" @onclick='() => SelectMo2RightTabAsync("downloads")'>ЗАГРУЗКИ <em>@(_mo2Content?.Downloads.Count ?? 0)</em></button>
                             </div>
-                            @if (_mo2RightTab == "data")
+                            @if (_mo2RightTab == "files")
                             {
                                 <div class="mo2-file-search">
-                                    <div class="search-box"><span>⌕</span><input value="@_mo2FileSearch" @oninput="SearchMo2FilesChangedAsync" placeholder="Поиск по всем подключённым файлам" /></div>
+                                    <label>ОБЩИЙ ПОИСК ПО ФАЙЛАМ ВСЕХ ПОДКЛЮЧЁННЫХ МОДОВ</label>
+                                    <div class="search-box"><span>⌕</span><input value="@_mo2FileSearch" @oninput="SearchMo2FilesChangedAsync" placeholder="Например: wpn_ak74, textures или ui_icon" /></div>
                                     @if (!string.IsNullOrWhiteSpace(_mo2FileSearch)) { <button @onclick="ClearMo2FileSearchAsync" title="Очистить поиск">×</button> }
                                 </div>
-                                <div class="mo2-pathbar"><button @onclick="BrowseMo2DataUpAsync" disabled="@(string.IsNullOrEmpty(_mo2DataPath) || !string.IsNullOrWhiteSpace(_mo2FileSearch))">←</button><span>@(string.IsNullOrWhiteSpace(_mo2FileSearch) ? $"/{_mo2DataPath}" : $"НАЙДЕНО: {_mo2FileSearchResults.Count} · запрос «{_mo2FileSearch}»")</span></div>
+                                <div class="mo2-pathbar"><button disabled>⌕</button><span>@(string.IsNullOrWhiteSpace(_mo2FileSearch) ? $"ПОКАЗАНО: {_mo2FileSearchResults.Count} ИЗ {_mo2Content?.UniqueFiles ?? 0}" : $"НАЙДЕНО: {_mo2FileSearchResults.Count} · запрос «{_mo2FileSearch}»")</span></div>
                                 <div class="mo2-file-list">
-                                    @foreach (var item in Mo2VisibleDataEntries)
+                                    @foreach (var item in _mo2FileSearchResults)
+                                    {
+                                        var currentItem = item;
+                                        <button class="file" @onclick="() => OpenMo2DataEntryAsync(currentItem)"><span>·</span><div><strong>@currentItem.RelativePath</strong><small>ПОБЕДИТЕЛЬ: @currentItem.Source · ИСТОЧНИКИ: @string.Join(" → ", currentItem.Providers)</small></div></button>
+                                    }
+                                </div>
+                            }
+                            else if (_mo2RightTab == "data")
+                            {
+                                <div class="mo2-pathbar"><button @onclick="BrowseMo2DataUpAsync" disabled="@(string.IsNullOrEmpty(_mo2DataPath))">←</button><span>/@_mo2DataPath</span></div>
+                                <div class="mo2-file-list">
+                                    @foreach (var item in _mo2DataEntries)
                                     {
                                         var currentItem = item;
                                         <button class="@(currentItem.IsDirectory ? "folder" : "file")" @onclick="() => OpenMo2DataEntryAsync(currentItem)"><span>@(currentItem.IsDirectory ? "▰" : "·")</span><div><strong>@currentItem.Name</strong><small>@currentItem.Source · @(currentItem.ProviderCount > 1 ? $"{currentItem.ProviderCount} ИСТОЧНИКА" : FormatBytes(currentItem.Size))</small></div></button>
@@ -936,13 +946,6 @@
                 </section>
             }
         </div>
-        <aside class="launcher-scroll-control" aria-label="Прокрутка страницы">
-            <button type="button" data-scroll-direction="up" title="Прокрутить вверх">↑</button>
-            <div class="launcher-scroll-track" role="scrollbar" aria-controls="launcher-content-scroll" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
-                <span class="launcher-scroll-thumb"></span>
-            </div>
-            <button type="button" data-scroll-direction="down" title="Прокрутить вниз">↓</button>
-        </aside>
         </div>
 
         @if (ShowTransferDock)
@@ -1099,7 +1102,7 @@
     private Mo2ContentOverview? _mo2Content;
     private IReadOnlyList<Mo2VirtualEntry> _mo2DataEntries = [];
     private IReadOnlyList<Mo2ConflictEntry> _mo2ConflictEntries = [];
-    private string _mo2RightTab = "data";
+    private string _mo2RightTab = "files";
     private string _mo2DataPath = string.Empty;
     private string? _selectedMo2ModName;
     private bool _mo2ContentLoading;
@@ -1155,8 +1158,6 @@
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
-    private IReadOnlyList<Mo2VirtualEntry> Mo2VisibleDataEntries =>
-        string.IsNullOrWhiteSpace(_mo2FileSearch) ? _mo2DataEntries : _mo2FileSearchResults;
     private BugReportDetails? SelectedBugReport => _bugReports.FirstOrDefault(report =>
         string.Equals(report.Receipt.Id, _selectedBugReportId, StringComparison.OrdinalIgnoreCase));
 
@@ -1798,10 +1799,7 @@
         {
             _mo2Content = await Mo2.GetContentOverviewAsync(forceRefresh, token);
             _mo2DataEntries = await Mo2.BrowseDataAsync(_mo2DataPath, token);
-            if (_mo2FileSearch.Trim().Length >= 2)
-            {
-                _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch, token);
-            }
+            _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch, token);
             if (_selectedMo2ModName is not null)
             {
                 _mo2ConflictEntries = await Mo2.GetConflictsAsync(_selectedMo2ModName, token);
@@ -1859,7 +1857,12 @@
     private Task SelectMo2RightTabAsync(string tab)
     {
         _mo2RightTab = tab;
-        return tab == "data" ? BrowseMo2DataAsync(_mo2DataPath) : Task.CompletedTask;
+        return tab switch
+        {
+            "data" => BrowseMo2DataAsync(_mo2DataPath),
+            "files" => LoadMo2FileSearchAsync(),
+            _ => Task.CompletedTask,
+        };
     }
 
     private async Task BrowseMo2DataAsync(string path)
@@ -1874,17 +1877,11 @@
         _mo2FileSearchCancellation?.Cancel();
         _mo2FileSearchCancellation?.Dispose();
         _mo2FileSearchCancellation = null;
-        if (_mo2FileSearch.Trim().Length < 2)
-        {
-            _mo2FileSearchResults = [];
-            return;
-        }
-
         var cancellation = new CancellationTokenSource();
         _mo2FileSearchCancellation = cancellation;
         try
         {
-            await Task.Delay(180, cancellation.Token);
+            await Task.Delay(120, cancellation.Token);
             _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch.Trim(), cancellation.Token);
         }
         catch (OperationCanceledException)
@@ -1893,14 +1890,24 @@
         }
     }
 
-    private Task ClearMo2FileSearchAsync()
+    private async Task ClearMo2FileSearchAsync()
     {
         _mo2FileSearchCancellation?.Cancel();
         _mo2FileSearchCancellation?.Dispose();
         _mo2FileSearchCancellation = null;
         _mo2FileSearch = string.Empty;
-        _mo2FileSearchResults = [];
-        return Task.CompletedTask;
+        await LoadMo2FileSearchAsync();
+    }
+
+    private async Task LoadMo2FileSearchAsync()
+    {
+        if (!_mo2Workspace.Instance.Available)
+        {
+            _mo2FileSearchResults = [];
+            return;
+        }
+
+        _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch.Trim());
     }
 
     private Task BrowseMo2DataUpAsync()
@@ -2284,6 +2291,44 @@
     private string UpdateProgressDetails => _updateProgress is { TotalBytes: > 0 }
         ? $"{FormatBytes(_updateProgress.DownloadedBytes)} / {FormatBytes(_updateProgress.TotalBytes)} · {_updateProgress.Provider ?? "проверка"}"
         : _updateProgress?.Stage.ToString().ToUpperInvariant() ?? string.Empty;
+
+    private int UpdateDockPercentage => _updateProgress is not null ? UpdateProgressPercentage : 0;
+
+    private string UpdateDockTitle => _updateProgress?.Message
+        ?? (_updateCheck?.HasUpdates == true
+            ? $"Готово к загрузке: {_updateCheck.Packages.Count(item => item.UpdateAvailable)} пакетов"
+            : _updateCheck is not null
+                ? "Загрузка не требуется — установлена актуальная версия"
+                : UpdateConfigurationReady
+                    ? "Загрузка не запущена — сначала нажмите «Проверить»"
+                    : "Канал обновлений ещё не назначен");
+
+    private string UpdateDockDetails
+    {
+        get
+        {
+            var provider = _updateProgress?.Provider;
+            if (string.IsNullOrWhiteSpace(provider))
+            {
+                provider = _settings.PreferredMirrorProvider;
+            }
+
+            var source = string.Equals(provider, "auto", StringComparison.OrdinalIgnoreCase)
+                ? "автоматический выбор из manifest"
+                : FriendlyProvider(provider);
+            if (_updateProgress is { TotalBytes: > 0 })
+            {
+                return $"Источник: {source} · {FormatBytes(_updateProgress.DownloadedBytes)} / {FormatBytes(_updateProgress.TotalBytes)} · {UpdateDockPercentage}%";
+            }
+
+            var pendingBytes = _updateCheck?.Packages
+                .Where(item => item.UpdateAvailable)
+                .Sum(item => item.Package.Size) ?? 0;
+            return pendingBytes > 0
+                ? $"Источник: {source} · ожидает загрузки {FormatBytes(pendingBytes)}"
+                : $"Источник: {source} · при загрузке здесь появятся файл, объём и процент";
+        }
+    }
 
     private int ContentDownloadPercentage => _contentDownloadProgress is { TotalBytes: > 0 }
         ? Math.Clamp((int)Math.Round(_contentDownloadProgress.DownloadedBytes * 100d / _contentDownloadProgress.TotalBytes), 0, 100)

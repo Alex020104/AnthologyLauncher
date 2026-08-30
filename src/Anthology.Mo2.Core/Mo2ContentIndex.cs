@@ -23,7 +23,10 @@ public sealed record Mo2VirtualEntry(
     int ProviderCount,
     long Size,
     DateTime LastWriteTimeUtc,
-    string? FullPath);
+    string? FullPath)
+{
+    public IReadOnlyList<string> Providers { get; init; } = [];
+}
 
 public sealed record Mo2DownloadEntry(
     string Name,
@@ -211,7 +214,10 @@ public sealed class Mo2ContentIndex
                 item.Providers.Count,
                 item.Size,
                 item.LastWriteTimeUtc,
-                item.FullPath))
+                item.FullPath)
+            {
+                Providers = item.Providers.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
+            })
             .ToArray();
     }
 
@@ -235,32 +241,31 @@ public sealed class Mo2ContentIndex
 
     public IReadOnlyList<Mo2VirtualEntry> Search(
         string query,
-        int limit = 400,
+        int limit = 1500,
         CancellationToken cancellationToken = default)
     {
         var normalizedQuery = NormalizeRelativePath(query);
-        if (normalizedQuery.Length < 2)
-        {
-            return [];
-        }
-
         limit = Math.Clamp(limit, 1, 2000);
-        var results = new List<Mo2VirtualEntry>(Math.Min(limit, 400));
+        var results = new List<Mo2VirtualEntry>(Math.Min(limit, 1500));
         foreach (var pair in _files
-                     .Where(item => item.Key.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+                     .Where(item => normalizedQuery.Length == 0
+                                    || item.Key.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
                      .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var winner = pair.Value.OrderBy(provider => provider.Priority).Last();
+            var orderedProviders = pair.Value
+                .OrderBy(provider => provider.Priority)
+                .ToArray();
+            var winner = orderedProviders[^1];
             var info = new FileInfo(winner.FullPath);
-            var providerCount = pair.Value
+            var providers = orderedProviders
                 .Select(provider => provider.ModName)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Count();
+                .ToList();
             if (!string.IsNullOrWhiteSpace(_gameRoot)
                 && File.Exists(Path.Combine(_gameRoot, pair.Key.Replace('/', Path.DirectorySeparatorChar))))
             {
-                providerCount++;
+                providers.Insert(0, BaseGameSource);
             }
 
             results.Add(new Mo2VirtualEntry(
@@ -268,51 +273,16 @@ public sealed class Mo2ContentIndex
                 pair.Key,
                 false,
                 winner.ModName,
-                providerCount,
+                providers.Count,
                 info.Exists ? info.Length : 0,
                 info.Exists ? info.LastWriteTimeUtc : DateTime.MinValue,
-                winner.FullPath));
+                winner.FullPath)
+            {
+                Providers = providers,
+            });
             if (results.Count >= limit)
             {
                 return results;
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(_gameRoot) || !Directory.Exists(_gameRoot))
-        {
-            return results;
-        }
-
-        var gameRoot = Path.GetFullPath(_gameRoot);
-        var options = new EnumerationOptions
-        {
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = true,
-            ReturnSpecialDirectories = false,
-        };
-        foreach (var file in Directory.EnumerateFiles(gameRoot, "*", options))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var relative = NormalizeRelativePath(Path.GetRelativePath(gameRoot, file));
-            if (_files.ContainsKey(relative)
-                || !relative.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var info = new FileInfo(file);
-            results.Add(new Mo2VirtualEntry(
-                info.Name,
-                relative,
-                false,
-                BaseGameSource,
-                1,
-                info.Exists ? info.Length : 0,
-                info.Exists ? info.LastWriteTimeUtc : DateTime.MinValue,
-                info.FullName));
-            if (results.Count >= limit)
-            {
-                break;
             }
         }
 

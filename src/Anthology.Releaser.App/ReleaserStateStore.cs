@@ -6,6 +6,8 @@ namespace Anthology.Releaser.App;
 
 public sealed class ReleaserStateStore : IDisposable
 {
+    private const string GitHubRawRoot = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library";
+    private const string YandexPublicRoot = "https://disk.yandex.ru/d/ЗАМЕНИТЕ_НА_PUBLIC_KEY";
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public ReleaserStateStore()
@@ -31,10 +33,14 @@ public sealed class ReleaserStateStore : IDisposable
             var workspaceExists = File.Exists(WorkspacePath);
             var workspace = await WorkspaceStorage.LoadAsync(WorkspacePath, () => new ReleaserWorkspace(), cancellationToken);
             var machine = await WorkspaceStorage.LoadAsync(MachinePath, () => new ReleaserMachineSettings(), cancellationToken);
-            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 3;
-            Normalize(workspace, machine, seedEditorialContent: requiresMigrationSave);
-            var machineDefaultsChanged = EnsureMachineDefaults(machine);
-            if (requiresMigrationSave || machineDefaultsChanged)
+            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 4;
+            var workspaceDefaultsChanged = Normalize(
+                workspace,
+                machine,
+                seedEditorialContent: requiresMigrationSave,
+                applyMirrorDefaults: requiresMigrationSave);
+            var machineDefaultsChanged = EnsureMachineDefaults(workspace, machine);
+            if (requiresMigrationSave || workspaceDefaultsChanged || machineDefaultsChanged)
             {
                 await WorkspaceStorage.SaveAsync(WorkspacePath, workspace, cancellationToken);
                 await WorkspaceStorage.SaveAsync(MachinePath, machine, cancellationToken);
@@ -56,7 +62,7 @@ public sealed class ReleaserStateStore : IDisposable
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            Normalize(workspace, machine);
+            _ = Normalize(workspace, machine);
             if (incrementRevision)
             {
                 workspace.Revision++;
@@ -79,15 +85,17 @@ public sealed class ReleaserStateStore : IDisposable
         CancellationToken cancellationToken = default) =>
         SaveWorkspaceAsync(workspace, machine, false, cancellationToken);
 
-    private static void Normalize(
+    private static bool Normalize(
         ReleaserWorkspace workspace,
         ReleaserMachineSettings machine,
-        bool seedEditorialContent = false)
+        bool seedEditorialContent = false,
+        bool applyMirrorDefaults = false)
     {
+        var changed = false;
         var previousSchemaVersion = workspace.SchemaVersion;
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 3);
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 4);
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;
@@ -140,18 +148,96 @@ public sealed class ReleaserStateStore : IDisposable
                 new ReleaseMirrorSet { Provider = "google-drive", Priority = 30 },
                 new ReleaseMirrorSet { Provider = "http", Priority = 40 },
             ]);
+            changed = true;
         }
 
         foreach (var mirror in workspace.Mirrors)
         {
-            mirror.Id = string.IsNullOrWhiteSpace(mirror.Id) ? $"source-{Guid.NewGuid():N}" : mirror.Id.Trim();
-            mirror.ManifestUrl = mirror.ManifestUrl?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(mirror.Id))
+            {
+                mirror.Id = $"source-{Guid.NewGuid():N}";
+                changed = true;
+            }
+            else
+            {
+                mirror.Id = mirror.Id.Trim();
+            }
+
+            if (applyMirrorDefaults)
+            {
+                changed |= ApplyMirrorDefaults(mirror);
+            }
+            else
+            {
+                mirror.Provider = mirror.Provider?.Trim().ToLowerInvariant() ?? "http";
+                mirror.GameUrl = mirror.GameUrl?.Trim() ?? string.Empty;
+                mirror.Mo2Url = mirror.Mo2Url?.Trim() ?? string.Empty;
+                mirror.ContentUrl = mirror.ContentUrl?.Trim() ?? string.Empty;
+                mirror.ManifestUrl = mirror.ManifestUrl?.Trim() ?? string.Empty;
+            }
         }
 
         if (previousSchemaVersion < 3 || seedEditorialContent)
         {
             EditorialContentSeed.AddMissing(workspace.Content);
         }
+
+        return changed;
+    }
+
+    private static bool ApplyMirrorDefaults(ReleaseMirrorSet mirror)
+    {
+        var changed = false;
+        mirror.Provider = mirror.Provider?.Trim().ToLowerInvariant() ?? "http";
+        mirror.GameUrl = mirror.GameUrl?.Trim() ?? string.Empty;
+        mirror.Mo2Url = mirror.Mo2Url?.Trim() ?? string.Empty;
+        mirror.ContentUrl = mirror.ContentUrl?.Trim() ?? string.Empty;
+        mirror.ManifestUrl = mirror.ManifestUrl?.Trim() ?? string.Empty;
+
+        var defaults = mirror.Provider switch
+        {
+            "github" => new[]
+            {
+                $"{GitHubRawRoot}/{{version}}/{{file}}",
+                $"{GitHubRawRoot}/{{version}}/{{file}}",
+                $"{GitHubRawRoot}/{{version}}/addons/{{id}}/{{file}}",
+                $"{GitHubRawRoot}/manifest.json",
+            },
+            "yandex-disk" => new[]
+            {
+                $"{YandexPublicRoot}?path=/{{version}}/{{file}}",
+                $"{YandexPublicRoot}?path=/{{version}}/{{file}}",
+                $"{YandexPublicRoot}?path=/{{version}}/addons/{{id}}/{{file}}",
+                $"{YandexPublicRoot}?path=/manifest.json",
+            },
+            _ => null,
+        };
+        if (defaults is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(mirror.GameUrl))
+        {
+            mirror.GameUrl = defaults[0];
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(mirror.Mo2Url))
+        {
+            mirror.Mo2Url = defaults[1];
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(mirror.ContentUrl))
+        {
+            mirror.ContentUrl = defaults[2];
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(mirror.ManifestUrl))
+        {
+            mirror.ManifestUrl = defaults[3];
+            changed = true;
+        }
+        return changed;
     }
 
     private static void MigrateLegacyTranslation(
@@ -182,7 +268,7 @@ public sealed class ReleaserStateStore : IDisposable
         translations[language] = new ContentBlockTranslationDraft { Title = title, Body = body };
     }
 
-    private bool EnsureMachineDefaults(ReleaserMachineSettings machine)
+    private bool EnsureMachineDefaults(ReleaserWorkspace workspace, ReleaserMachineSettings machine)
     {
         var changed = false;
         if (string.IsNullOrWhiteSpace(machine.OutputRoot))
@@ -217,6 +303,44 @@ public sealed class ReleaserStateStore : IDisposable
             key.ImportFromPem(File.ReadAllText(machine.PrivateKeyPath));
             File.WriteAllText(machine.PublicKeyPath, key.ExportSubjectPublicKeyInfoPem());
             changed = true;
+        }
+
+        var githubMirror = workspace.Mirrors.FirstOrDefault(mirror =>
+            string.Equals(mirror.Provider, "github", StringComparison.OrdinalIgnoreCase));
+        const string githubWorkingTree = @"A:\AnthologyUnifiedAddons";
+        if (githubMirror is not null
+            && Directory.Exists(githubWorkingTree)
+            && (!machine.PublicationRoots.TryGetValue(githubMirror.Id, out var githubRoot)
+                || string.IsNullOrWhiteSpace(githubRoot)))
+        {
+            machine.PublicationRoots[githubMirror.Id] = githubWorkingTree;
+            changed = true;
+        }
+
+        var yandexMirror = workspace.Mirrors.FirstOrDefault(mirror =>
+            string.Equals(mirror.Provider, "yandex-disk", StringComparison.OrdinalIgnoreCase));
+        if (yandexMirror is not null && Directory.Exists(machine.SharedWorkspaceRoot))
+        {
+            var yandexPublicationRoot = Path.Combine(machine.SharedWorkspaceRoot, "AnthologyUpdateChannel");
+            try
+            {
+                Directory.CreateDirectory(yandexPublicationRoot);
+                machine.PublicationRoots.TryGetValue(yandexMirror.Id, out var currentYandexRoot);
+                var pointsAtGame = !string.IsNullOrWhiteSpace(currentYandexRoot)
+                    && !string.IsNullOrWhiteSpace(machine.GameSourceRoot)
+                    && Path.GetFullPath(currentYandexRoot).Equals(
+                        Path.GetFullPath(machine.GameSourceRoot),
+                        StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrWhiteSpace(currentYandexRoot) || pointsAtGame)
+                {
+                    machine.PublicationRoots[yandexMirror.Id] = yandexPublicationRoot;
+                    changed = true;
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // A disconnected sync folder must not prevent the releaser from starting.
+            }
         }
 
         return changed;

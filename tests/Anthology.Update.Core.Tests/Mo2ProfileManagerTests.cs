@@ -109,6 +109,8 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         Assert.Equal("gamedata/configs/shared.ltx", search.RelativePath);
         Assert.Equal("High", search.Source);
         Assert.Equal(2, search.ProviderCount);
+        Assert.Equal(["Low", "High"], search.Providers);
+        Assert.Equal(2, index.Search(string.Empty).Count);
     }
 
     [Fact]
