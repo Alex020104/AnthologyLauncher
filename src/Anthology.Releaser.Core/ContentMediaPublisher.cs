@@ -46,7 +46,12 @@ public static class ContentMediaPublisher
 
         var publicTemplate = workspace.Mirrors
             .Where(mirror => !string.IsNullOrWhiteSpace(mirror.ContentUrl))
-            .OrderBy(mirror => mirror.Priority)
+            // Public Yandex/Google sharing links open an HTML landing page and
+            // therefore cannot be used directly by <img>. Prefer a raw/CDN
+            // source for inline launcher media even when a disk mirror has a
+            // higher download priority.
+            .OrderBy(mirror => InlineMediaProviderPriority(mirror.Provider))
+            .ThenBy(mirror => mirror.Priority)
             .Select(mirror => mirror.ContentUrl.Trim())
             .FirstOrDefault();
         if (string.IsNullOrWhiteSpace(publicTemplate))
@@ -112,6 +117,16 @@ public static class ContentMediaPublisher
 
     private static List<string> GetPaths(ReleaserMachineSettings machine, string key) =>
         machine.ContentImagePaths.TryGetValue(key, out var paths) ? paths : [];
+
+    private static int InlineMediaProviderPriority(string provider) =>
+        UnifiedReleaseBuilder.NormalizeProvider(provider) switch
+        {
+            "github" => 0,
+            "http" => 1,
+            "google-drive" => 2,
+            "yandex-disk" => 3,
+            _ => 4,
+        };
 
     private static async Task<(string RelativePath, string Url)> PrepareImageAsync(
         string sourcePath,

@@ -37,6 +37,12 @@ public static class ReleaserApplication
                 return 0;
             }
 
+            if (args is ["content", "publish", .. var contentArgs])
+            {
+                await PublishContentAsync(Arguments.Parse(contentArgs));
+                return 0;
+            }
+
             PrintHelp();
             return args.Length == 0 ? 0 : 2;
         }
@@ -79,6 +85,24 @@ public static class ReleaserApplication
         Console.WriteLine($"Release: {release.Version}");
         Console.WriteLine($"Manifest: {release.ManifestPath}");
         Console.WriteLine($"Files: {release.Files}; bytes: {release.Bytes}; targets: {publication.Targets}");
+    }
+
+    private static async Task PublishContentAsync(Arguments arguments)
+    {
+        var (workspace, machine) = await LoadReleaseSettingsAsync(arguments);
+        var id = arguments.Required("id").Trim();
+        var content = workspace.Content.FirstOrDefault(item =>
+                          string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase))
+                      ?? throw new InvalidDataException($"Материал с ID «{id}» не найден.");
+        var progress = new Progress<string>(Console.WriteLine);
+        var publication = await ReleasePublicationService.PublishContentAsync(
+            content,
+            workspace,
+            machine,
+            progress);
+        Console.WriteLine($"Content: {content.Id}");
+        Console.WriteLine($"Version: {workspace.Version}");
+        Console.WriteLine($"Files: {publication.Files}; targets: {publication.Targets}");
     }
 
     private static async Task<(ReleaserWorkspace Workspace, ReleaserMachineSettings Machine)> LoadReleaseSettingsAsync(
@@ -268,6 +292,7 @@ public static class ReleaserApplication
         Console.WriteLine();
         Console.WriteLine("  launcher publish --workspace release-workspace.json --machine machine-settings.json");
         Console.WriteLine("  release publish --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("  content publish --id CONTENT_ID --workspace release-workspace.json --machine machine-settings.json");
     }
 
     private sealed class Arguments

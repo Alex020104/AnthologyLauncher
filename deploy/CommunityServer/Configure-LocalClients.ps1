@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$CommunityUrl = "http://127.0.0.1:5249"
+    [string]$CommunityUrl = "http://127.0.0.1:5249",
+    [string]$ReleaserUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,13 +10,16 @@ $tokenPath = Join-Path $serverRoot "Data\Config\developer-token.txt"
 if (-not (Test-Path -LiteralPath $tokenPath -PathType Leaf)) {
     throw "Developer token is missing. Start the server first."
 }
-$developerToken = (Get-Content -LiteralPath $tokenPath -Raw).Trim()
 $utf8 = New-Object System.Text.UTF8Encoding($false)
+$developerToken = [System.IO.File]::ReadAllText($tokenPath, $utf8).Trim()
+if ([string]::IsNullOrWhiteSpace($ReleaserUrl)) {
+    $ReleaserUrl = $CommunityUrl
+}
 
 $releaserSettings = "A:\AnthologyReleaserNext\App\Data\machine-settings.json"
 if (Test-Path -LiteralPath $releaserSettings -PathType Leaf) {
-    $settings = Get-Content -LiteralPath $releaserSettings -Raw | ConvertFrom-Json
-    $settings | Add-Member -NotePropertyName communityApiUrl -NotePropertyValue $CommunityUrl -Force
+    $settings = [System.IO.File]::ReadAllText($releaserSettings, $utf8) | ConvertFrom-Json
+    $settings | Add-Member -NotePropertyName communityApiUrl -NotePropertyValue $ReleaserUrl -Force
     $settings | Add-Member -NotePropertyName communityDeveloperToken -NotePropertyValue $developerToken -Force
     $json = $settings | ConvertTo-Json -Depth 20
     [System.IO.File]::WriteAllText($releaserSettings, $json, $utf8)
@@ -30,9 +34,9 @@ foreach ($path in $launcherSettings) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         continue
     }
-    $settings = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $settings = [System.IO.File]::ReadAllText($path, $utf8) | ConvertFrom-Json
     $settings | Add-Member -NotePropertyName communityApiUrl -NotePropertyValue $CommunityUrl -Force
     $json = $settings | ConvertTo-Json -Depth 20
     [System.IO.File]::WriteAllText($path, $json, $utf8)
 }
-Write-Host "Launcher and releaser now use $CommunityUrl"
+Write-Host "Launcher uses $CommunityUrl; releaser uses $ReleaserUrl"

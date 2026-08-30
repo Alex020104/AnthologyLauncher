@@ -207,17 +207,25 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
+            var reconnectDelay = TimeSpan.FromSeconds(5);
             var server = Servers[Math.Abs(Interlocked.Increment(ref _nextServerIndex) - 1) % Servers.Length];
             SetStatus(false, $"Подключение к Реальному чату через {server}…");
             try { await RunConnectionAsync(server, cancellationToken); }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { break; }
+            catch (RelayChatBackoffException exception)
+            {
+                reconnectDelay = exception.RetryAfter;
+                var status = $"GameSurge временно ограничил подключения. Повтор через {Math.Ceiling(reconnectDelay.TotalMinutes):0} мин.";
+                AddSystemMessage(status);
+                SetStatus(false, status);
+            }
             catch (Exception exception) when (exception is IOException or SocketException or InvalidOperationException)
             {
                 var status = $"Связь потеряна: {exception.Message}. Переподключение…";
                 AddSystemMessage(status);
                 SetStatus(false, status);
             }
-            if (!cancellationToken.IsCancellationRequested) await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            if (!cancellationToken.IsCancellationRequested) await Task.Delay(reconnectDelay, cancellationToken);
         }
     }
 
@@ -311,6 +319,17 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
                 await RequestParticipantMetadataAsync(cancellationToken);
                 await WriteRuntimeSettingsAsync(cancellationToken);
                 break;
+            case "465":
+                throw new RelayChatBackoffException(
+                    string.IsNullOrWhiteSpace(message.Trailing) ? "GameSurge ограничил подключения" : message.Trailing,
+                    TimeSpan.FromMinutes(10));
+            case "ERROR" when message.Trailing.Contains("Excessive connections", StringComparison.OrdinalIgnoreCase)
+                                  || message.Trailing.Contains("G-lined", StringComparison.OrdinalIgnoreCase):
+                throw new RelayChatBackoffException(message.Trailing, TimeSpan.FromMinutes(10));
+            case "ERROR":
+                throw new IOException(string.IsNullOrWhiteSpace(message.Trailing)
+                    ? "IRC-сервер закрыл соединение"
+                    : message.Trailing);
             case "433":
                 RemoveParticipant(_nick);
                 _nick = CreateIrcNick(_displayName);
@@ -748,6 +767,11 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
     public async ValueTask DisposeAsync() { if (_disposed) return; await StopAsync(); _disposed = true; _aiHelper.Dispose(); _sendGate.Dispose(); }
 
     private sealed record ParticipantState(string DisplayName, string Faction, string Role);
+
+    private sealed class RelayChatBackoffException(string message, TimeSpan retryAfter) : InvalidOperationException(message)
+    {
+        public TimeSpan RetryAfter { get; } = retryAfter;
+    }
 
     private sealed record IrcMessage(string Prefix, string Command, IReadOnlyList<string> Parameters, string Trailing)
     {

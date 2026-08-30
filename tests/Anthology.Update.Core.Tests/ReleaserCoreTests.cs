@@ -456,6 +456,66 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public async Task InlineImagePrefersRawGithubUrlOverYandexSharingPage()
+    {
+        var versionRoot = Path.Combine(_root, "inline-media", "2.1.151");
+        var sourcePhoto = Path.Combine(_root, "story-background.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(sourcePhoto)!);
+        await File.WriteAllBytesAsync(sourcePhoto, [0x89, 0x50, 0x4e, 0x47]);
+        var story = new ContentDraft
+        {
+            Id = "stories",
+            Kind = ContentKind.Information,
+            Title = "Stories",
+            IsPublished = true,
+            Blocks =
+            [
+                new ContentBlockDraft
+                {
+                    Id = "story-soc",
+                    Kind = ContentBlockKind.Article,
+                    Title = "Shadow of Chernobyl",
+                },
+            ],
+        };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.151",
+            Content = [story],
+            Mirrors =
+            [
+                new ReleaseMirrorSet
+                {
+                    Id = "yandex",
+                    Provider = "yandex-disk",
+                    ContentUrl = "https://disk.yandex.ru/d/example?path=/{version}/addons/{id}/{file}",
+                    Priority = 10,
+                },
+                new ReleaseMirrorSet
+                {
+                    Id = "github",
+                    Provider = "github",
+                    ContentUrl = "https://raw.githubusercontent.com/example/anthology/media/{version}/addons/{id}/{file}",
+                    Priority = 20,
+                },
+            ],
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            ContentImagePaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ContentMediaPublisher.BlockKey(story.Id, story.Blocks[0].Id)] = [sourcePhoto],
+            },
+        };
+
+        var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot);
+
+        var url = Assert.Single(media.BlockImages).Value;
+        Assert.StartsWith("https://raw.githubusercontent.com/", url, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(versionRoot, Assert.Single(media.RelativeFiles))));
+    }
+
+    [Fact]
     public async Task QuickReleasePublishesAnyFilesAndExplicitDeletionToEverySource()
     {
         var output = Path.Combine(_root, "quick-output");

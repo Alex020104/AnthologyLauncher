@@ -458,8 +458,9 @@
                                         {
                                             var selectedArticleBlock = CurrentInformationArticle!;
                                             var selectedArticleCopy = Localized(selectedArticleBlock);
-                                            <article class="managed-article-copy">
-                                                @if (GetSafeExternalUrl(selectedArticleBlock.Url) is string articleBackground) { <img src="@articleBackground" alt="" /> }
+                                            var articleBackground = GetSafeExternalUrl(selectedArticleBlock.Url);
+                                            <article class="managed-article-copy @(articleBackground is null ? null : "has-background")">
+                                                @if (articleBackground is not null) { <img src="@articleBackground" alt="" /> }
                                                 <div><span class="eyebrow">@ArticleStatus(selectedArticleCopy.Body)</span><h3>@selectedArticleCopy.Title</h3><div class="information-body">@ArticleText(selectedArticleCopy.Body)</div></div>
                                             </article>
                                         }
