@@ -3,17 +3,17 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.132",
-    "publishedAt": "2026-08-30T11:02:16.2074374+00:00",
+    "publishedAt": "2026-08-30T11:08:46.6780267+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.3",
-        "version": "0.7.0-alpha.3",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.4",
+        "version": "0.7.0-alpha.4",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 1601456,
-        "sha256": "5f0ac21c7d4118fb2eff7136d839c76bae0e51a7dfd949e2f4f5ecae993bcf69",
+        "size": 1601766,
+        "sha256": "b3684ed899158028725da49b909da7b5dfa7b2c64f46b0dd4d45bc3755949929",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -28,8 +28,9 @@
         ],
         "files": [
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.3.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json"
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.4.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
         ],
         "updateMode": "merge",
         "pruneInstallRoot": false
@@ -38,7 +39,7 @@
     "content": {
       "schemaVersion": 4,
       "version": "2.1.132",
-      "publishedAt": "2026-08-30T11:02:16.207361+00:00",
+      "publishedAt": "2026-08-30T11:08:46.6779744+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -179,6 +180,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "8hUTG2I1w1suuJ/S5zbXPAvBuimPRE\u002BSfCUxfh5RKeuLwXnJcOaGiA5WEOz3a\u002BY\u002B\u002BQ8ORzqceTxHJ9mrXb4RQQ=="
+    "value": "Ye3\u002BuDO7W19L0IYqI7ZxhekcKDS1Z5lMq8nj2t8F\u002BcrcIWeaLcTAs52MWKWNzKpeqJGWxUwMUwEj57biJTNo1Q=="
   }
 }
