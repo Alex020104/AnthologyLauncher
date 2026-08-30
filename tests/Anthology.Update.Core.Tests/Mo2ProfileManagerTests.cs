@@ -133,6 +133,25 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void ReadSavesReturnsOnlyAnomalySavesWithNewestFirst()
+    {
+        var saves = Path.Combine(_root, "game", "appdata", "savedgames");
+        Directory.CreateDirectory(saves);
+        var older = Path.Combine(saves, "older.scop");
+        var newest = Path.Combine(saves, "newest.scoc");
+        File.WriteAllText(older, "older");
+        File.WriteAllText(newest, "newest");
+        File.WriteAllText(Path.Combine(saves, "newest.dds"), "preview");
+        File.WriteAllText(Path.Combine(saves, "notes.txt"), "not a save");
+        File.SetLastWriteTimeUtc(older, DateTime.UtcNow.AddMinutes(-10));
+        File.SetLastWriteTimeUtc(newest, DateTime.UtcNow.AddMinutes(-1));
+
+        var result = Mo2WorkspaceReader.ReadSaves(Path.Combine(_root, "game"));
+
+        Assert.Equal(["newest.scoc", "older.scop"], result.Select(save => save.Name));
+    }
+
+    [Fact]
     public void ZipArchiveInstallsAtomicallyAndEnablesMod()
     {
         CreateInstance();

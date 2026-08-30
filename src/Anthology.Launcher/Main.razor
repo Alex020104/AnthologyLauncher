@@ -124,6 +124,28 @@
                                 <span class="launch-button-icon"><i></i>◎</span>
                                 <span class="launch-button-copy"><strong>ИГРАТЬ ОНЛАЙН</strong><small>Сетевой режим Anthology</small></span>
                             </button>
+                            <button class="launch-button launch-latest-save"
+                                    @onclick="LaunchLatestSaveAsync"
+                                    disabled="@(!CanLaunchLatestMo2Save)"
+                                    title="Запустить самое новое сохранение через выбранный профиль MO2">
+                                <span class="launch-button-icon">↻</span>
+                                <span class="launch-button-copy">
+                                    <strong>ЗАГРУЗИТЬ ПОСЛЕДНЕЕ СОХРАНЕНИЕ</strong>
+                                    <small>
+                                        @if (_latestMo2Save is not null)
+                                        {
+                                            <span>Последний сейв:</span>
+                                            <b>@Path.GetFileNameWithoutExtension(_latestMo2Save.Name)</b>
+                                            <time>@_latestMo2Save.LastWriteTimeUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                                        }
+                                        else
+                                        {
+                                            <span>Сохранения не найдены</span>
+                                        }
+                                    </small>
+                                </span>
+                                <span class="latest-save-mode">БЕЗ ГЛАВНОГО МЕНЮ</span>
+                            </button>
                             <button class="text-button hero-update-link" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ →</button>
                         </div>
                     </div>
@@ -1206,6 +1228,7 @@
     private string _mo2DataPath = string.Empty;
     private string? _selectedMo2ModName;
     private string? _selectedMo2SavePath;
+    private Mo2SaveEntry? _latestMo2Save;
     private bool _mo2ContentLoading;
     private string? _mo2ContentError;
     private CancellationTokenSource? _mo2ContentCancellation;
@@ -1263,6 +1286,12 @@
         _mo2Search);
     private BugReportDetails? SelectedBugReport => _bugReports.FirstOrDefault(report =>
         string.Equals(report.Receipt.Id, _selectedBugReportId, StringComparison.OrdinalIgnoreCase));
+    private bool CanLaunchLatestMo2Save =>
+        _latestMo2Save is not null
+        && _mo2Workspace.Instance.Available
+        && _mo2Workspace.SelectedProfile is not null
+        && _mo2Workspace.SelectedExecutable is not null
+        && !_mo2Workspace.RuntimeBusy;
 
     private ContentTranslation Localized(ContentDocument content) =>
         ContentLocalization.Resolve(content, _settings.InterfaceLanguage);
@@ -2189,6 +2218,18 @@
         ShowToast(result.Message, !result.Success);
     }
 
+    private async Task LaunchLatestSaveAsync()
+    {
+        RefreshLatestMo2Save();
+        if (_latestMo2Save is null)
+        {
+            ShowToast("Сохранения Anomaly не найдены", true);
+            return;
+        }
+
+        await LaunchMo2SaveAsync(_latestMo2Save);
+    }
+
     private void RefreshMo2Workspace()
     {
         try
@@ -2206,6 +2247,23 @@
                 null,
                 null,
                 false);
+        }
+
+        RefreshLatestMo2Save();
+    }
+
+    private void RefreshLatestMo2Save()
+    {
+        _latestMo2Save = null;
+        try
+        {
+            _latestMo2Save = Mo2WorkspaceReader.ReadSaves(_mo2Workspace.Instance.GamePath).FirstOrDefault();
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException)
+        {
+            // A missing or temporarily locked save folder must not block the launcher startup.
         }
     }
 

@@ -413,7 +413,8 @@ public static class Mo2WorkspaceReader
         }
 
         return Directory.EnumerateFiles(saves, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => !Path.GetExtension(path).Equals(".dds", StringComparison.OrdinalIgnoreCase))
+            .Where(path => Path.GetExtension(path).Equals(".scop", StringComparison.OrdinalIgnoreCase)
+                           || Path.GetExtension(path).Equals(".scoc", StringComparison.OrdinalIgnoreCase))
             .Select(path => new FileInfo(path))
             .OrderByDescending(info => info.LastWriteTimeUtc)
             .Select(info => new Mo2SaveEntry(info.Name, info.FullName, info.Length, info.LastWriteTimeUtc))

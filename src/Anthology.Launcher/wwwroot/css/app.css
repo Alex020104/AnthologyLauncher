@@ -122,6 +122,11 @@ button { color: inherit; }
 .launch-original { --launch-color: #8ba9b6; --launch-border: #607b87; --launch-background: linear-gradient(135deg, #34464f, #202e35); --launch-text: #f1f5f7; --launch-muted: #aabdc5; --launch-icon-background: #10191e; --launch-icon-border: #7895a1; --launch-icon-color: #cfe1e8; --launch-arrow: #a9c3ce; }
 .launch-online { --launch-color: #72b184; --launch-border: #598468; --launch-background: linear-gradient(135deg, #355e44, #203d2d); --launch-text: #eef8f1; --launch-muted: #a8cbb1; --launch-icon-background: #102419; --launch-icon-border: #6b9e79; --launch-icon-color: #a6e2b6; --launch-arrow: #98d6a8; }
 .launch-online .launch-button-icon > i { position: absolute; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: #8ce3a3; box-shadow: 0 0 9px #8ce3a3; animation: launch-online-pulse 1.8s ease-in-out infinite; }
+.launch-latest-save { --launch-color: #d4b35b; --launch-border: #6d5b31; --launch-background: linear-gradient(90deg, #252117, #171b1d 58%, #111619); --launch-text: #f0ddb0; --launch-muted: #a3acb0; --launch-icon-background: #2a2416; --launch-icon-border: #9b7e3e; --launch-icon-color: #e2c36e; --launch-arrow: #d1b45e; grid-column: 1 / -1; grid-template-columns: 42px minmax(0, 1fr) auto; min-height: 66px; }
+.launch-latest-save .launch-button-copy small { display: flex; align-items: center; gap: 6px; }
+.launch-latest-save .launch-button-copy small b { max-width: 230px; overflow: hidden; color: #dce1e3; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.launch-latest-save .launch-button-copy time { color: #718087; font: 500 8px var(--mono); letter-spacing: .04em; }
+.latest-save-mode { margin-right: 17px; padding: 7px 9px; border: 1px solid #8d733a70; background: #cda84d0c; color: #cdb36d; font: 700 8px var(--mono); letter-spacing: .13em; white-space: nowrap; }
 @keyframes launch-online-pulse { 50% { opacity: .35; transform: scale(.72); } }
 .primary-button, .secondary-button { min-height: 43px; padding: 0 19px; border: 1px solid; font-size: 12px; font-weight: 700; letter-spacing: .12em; cursor: pointer; transition: .16s ease; }
 .primary-button { border-color: var(--accent); background: var(--accent); color: #11100c; }
@@ -492,6 +497,7 @@ button { color: inherit; }
     .hero-social-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .hero-actions { grid-template-columns: 1fr; }
     .launch-online { grid-column: auto; }
+    .latest-save-mode { display: none; }
     .hero h2 { font-size: 31px; }.settings-profile-copy h2 { font-size: 30px; }
     .library-toolbar { align-items: stretch; flex-direction: column; }.search-box { width: 100%; }.filter-pills { flex-wrap: wrap; }
     .community-layout { grid-template-columns: 1fr; }.channel-list { max-height: 190px; overflow-y: auto; }.chat-panel { height: 560px; min-height: 500px; }
