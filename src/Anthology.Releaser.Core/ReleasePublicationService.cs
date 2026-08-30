@@ -135,7 +135,7 @@ public static partial class ReleasePublicationService
         packages.Add(new PackageManifest(
             "anthology-launcher",
             $"A.N.T.H.O.L.O.G.Y Launcher {launcherVersion}",
-            workspace.Version.Trim(),
+            launcherVersion,
             PackageKind.Launcher,
             "game",
             "zip",
@@ -541,6 +541,7 @@ public static partial class ReleasePublicationService
             progress?.Report($"Упаковка выбранных файлов: {installRoot}…");
             await CreateMappedArchiveAsync(artifactPath, rootAdditions, cancellationToken);
             var hash = await ArtifactHash.ComputeSha256Async(artifactPath, cancellationToken);
+            var artifactSize = new FileInfo(artifactPath).Length;
             var mirrors = workspace.Mirrors
                 .Select(mirror => new
                 {
@@ -548,6 +549,7 @@ public static partial class ReleasePublicationService
                     Url = (installRoot == "game" ? mirror.GameUrl : mirror.Mo2Url).Trim(),
                 })
                 .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+                .Where(item => UnifiedReleaseBuilder.SupportsArtifact(item.Mirror.Provider, artifactSize))
                 .Select(item => new MirrorManifest(
                     UnifiedReleaseBuilder.NormalizeProvider(item.Mirror.Provider),
                     UnifiedReleaseBuilder.ExpandUrl(item.Url, workspace.Version, packageId, artifactName),
@@ -566,7 +568,7 @@ public static partial class ReleasePublicationService
                 installRoot == "game" ? PackageKind.Game : PackageKind.Modpack,
                 installRoot,
                 "zip",
-                new FileInfo(artifactPath).Length,
+                artifactSize,
                 hash,
                 mirrors,
                 rootAdditions.Select(item => item.RelativePath).Order(StringComparer.Ordinal).ToArray(),
@@ -742,10 +744,17 @@ public static partial class ReleasePublicationService
                     continue;
                 }
 
+                var sourceSize = new FileInfo(source).Length;
+                if (!UnifiedReleaseBuilder.SupportsArtifact(target.Provider, sourceSize))
+                {
+                    progress?.Report($"Skipping {Path.GetFileName(source)} for {target.Provider}: the file exceeds the GitHub repository limit.");
+                    continue;
+                }
+
                 var destination = Path.Combine(target.Root, workspace.Version.Trim(), relative);
                 await CopyFileAtomicallyAsync(source, destination, cancellationToken);
                 files++;
-                bytes += new FileInfo(source).Length;
+                bytes += sourceSize;
             }
 
             // Every publication root also exposes the latest manifest at a stable,

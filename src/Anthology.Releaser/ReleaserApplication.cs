@@ -31,6 +31,12 @@ public static class ReleaserApplication
                 return 0;
             }
 
+            if (args is ["release", "publish", .. var releaseArgs])
+            {
+                await PublishReleaseAsync(Arguments.Parse(releaseArgs));
+                return 0;
+            }
+
             PrintHelp();
             return args.Length == 0 ? 0 : 2;
         }
@@ -48,6 +54,36 @@ public static class ReleaserApplication
 
     private static async Task PublishLauncherAsync(Arguments arguments)
     {
+        var (workspace, machine) = await LoadReleaseSettingsAsync(arguments);
+        var progress = new Progress<string>(Console.WriteLine);
+        var result = await ReleasePublicationService.PublishLauncherAsync(workspace, machine, progress);
+        Console.WriteLine($"Launcher: {result.LauncherVersion}");
+        Console.WriteLine($"Пакет: {result.ArtifactPath}");
+        Console.WriteLine($"Manifest: {result.ManifestPath}");
+        Console.WriteLine($"Файлов лаунчера: {result.Files}; источников: {result.Publication.Targets}");
+    }
+
+    private static async Task PublishReleaseAsync(Arguments arguments)
+    {
+        var (workspace, machine) = await LoadReleaseSettingsAsync(arguments);
+        var progress = new Progress<string>(Console.WriteLine);
+        await LauncherUpdateConfigurationPublisher.PrepareAsync(workspace, machine, progress);
+        var release = await UnifiedReleaseBuilder.BuildAsync(
+            new UnifiedReleaseRequest(workspace, machine),
+            progress);
+        var publication = await ReleasePublicationService.PublishReleaseAsync(
+            release,
+            workspace,
+            machine,
+            progress);
+        Console.WriteLine($"Release: {release.Version}");
+        Console.WriteLine($"Manifest: {release.ManifestPath}");
+        Console.WriteLine($"Files: {release.Files}; bytes: {release.Bytes}; targets: {publication.Targets}");
+    }
+
+    private static async Task<(ReleaserWorkspace Workspace, ReleaserMachineSettings Machine)> LoadReleaseSettingsAsync(
+        Arguments arguments)
+    {
         var workspacePath = Path.GetFullPath(arguments.Required("workspace"));
         var machinePath = Path.GetFullPath(arguments.Required("machine"));
         await using var workspaceStream = File.OpenRead(workspacePath);
@@ -56,12 +92,7 @@ public static class ReleaserApplication
         await using var machineStream = File.OpenRead(machinePath);
         var machine = await JsonSerializer.DeserializeAsync<ReleaserMachineSettings>(machineStream, ManifestJson.Options)
                       ?? throw new InvalidDataException("Локальные настройки релизера пусты или повреждены.");
-        var progress = new Progress<string>(Console.WriteLine);
-        var result = await ReleasePublicationService.PublishLauncherAsync(workspace, machine, progress);
-        Console.WriteLine($"Launcher: {result.LauncherVersion}");
-        Console.WriteLine($"Пакет: {result.ArtifactPath}");
-        Console.WriteLine($"Manifest: {result.ManifestPath}");
-        Console.WriteLine($"Файлов лаунчера: {result.Files}; источников: {result.Publication.Targets}");
+        return (workspace, machine);
     }
 
     private static void GenerateKeys(Arguments arguments)
@@ -236,6 +267,7 @@ public static class ReleaserApplication
         Console.WriteLine("    [--channel next] [--force]");
         Console.WriteLine();
         Console.WriteLine("  launcher publish --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("  release publish --workspace release-workspace.json --machine machine-settings.json");
     }
 
     private sealed class Arguments

@@ -114,6 +114,26 @@ public sealed class LauncherUpdateService(
             cancellationToken);
     }
 
+    public Task<UpdateApplyResult> ApplyLauncherOnlyAsync(
+        UpdateCheckResult check,
+        IProgress<UpdateProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        var launcherPackages = check.Packages
+            .Where(update => update.UpdateAvailable && update.Package.Kind == PackageKind.Launcher)
+            .ToArray();
+        if (launcherPackages.Length == 0)
+        {
+            return Task.FromResult(new UpdateApplyResult(0, 0, 0));
+        }
+
+        return ApplyAsync(
+            new UpdateCheckResult(check.SignedManifest, launcherPackages, check.TrustedKeyId),
+            progress,
+            cancellationToken);
+    }
+
     public Task<UpdateRollbackCandidate?> GetLatestRollbackAsync(CancellationToken cancellationToken = default) =>
         UpdateCoordinator.GetLatestRollbackAsync(settingsStore.UpdaterStateRoot, cancellationToken);
 

@@ -1246,6 +1246,7 @@
             await ConnectChatAsync(_selectedChannelId);
         }
         _loading = false;
+        _ = InvokeAsync(CheckLauncherUpdateOnStartupAsync);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -2381,6 +2382,54 @@
             return pendingBytes > 0
                 ? $"Источник: {source} · ожидает загрузки {FormatBytes(pendingBytes)}"
                 : $"Источник: {source} · при загрузке здесь появятся файл, объём и процент";
+        }
+    }
+
+    private async Task CheckLauncherUpdateOnStartupAsync()
+    {
+        if (!UpdateConfigurationReady || _updateBusy)
+        {
+            return;
+        }
+
+        _updateBusy = true;
+        try
+        {
+            _updateProgress = new UpdateProgress(UpdateStage.Checking, "Автоматическая проверка Launcher Next");
+            await InvokeAsync(StateHasChanged);
+            _updateCheck = await Updater.CheckAsync();
+            _publishedContent = _updateCheck.SignedManifest.Payload.Content;
+            EnsurePublishedContentSelection();
+            if (_updateCheck.Packages.Any(update =>
+                    update.UpdateAvailable && update.Package.Kind == PackageKind.Launcher))
+            {
+                var progress = new Progress<UpdateProgress>(value =>
+                {
+                    _updateProgress = value;
+                    _ = InvokeAsync(StateHasChanged);
+                });
+                var result = await Updater.ApplyLauncherOnlyAsync(_updateCheck, progress);
+                _updateCheck = await Updater.CheckAsync();
+                if (result.InstalledPackages > 0)
+                {
+                    ShowToast("Новая версия лаунчера загружена и применится при следующем запуске");
+                }
+            }
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or System.Security.Cryptography.CryptographicException
+                                           or AggregateException)
+        {
+            // An unavailable update channel must never prevent offline launch.
+        }
+        finally
+        {
+            _updateBusy = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

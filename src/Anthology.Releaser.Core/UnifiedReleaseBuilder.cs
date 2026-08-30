@@ -8,6 +8,10 @@ namespace Anthology.Releaser.Core;
 
 public static class UnifiedReleaseBuilder
 {
+    // GitHub blocks files larger than 100 MiB in ordinary repositories. Keep a
+    // safety margin so a publication checkout never receives an unpushable file.
+    public const long GitHubRepositoryArtifactLimitBytes = 95L * 1024 * 1024;
+
     private static readonly string[] CommonExcludedRoots =
     [
         ".git",
@@ -22,6 +26,8 @@ public static class UnifiedReleaseBuilder
         "logs",
         "screenshots",
         "crashdumps",
+        "webcache",
+        "AnthologyLauncher",
         "AnomalyLauncher.cfg",
         "commandline.txt",
     ];
@@ -54,7 +60,11 @@ public static class UnifiedReleaseBuilder
         ValidatePathSeparation(machine.GameSourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
         ValidatePathSeparation(machine.Mo2SourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
         Directory.CreateDirectory(outputRoot);
-        var packages = new List<PackageManifest>();
+        var packages = (await LoadPreservedPackagesAsync(
+                Path.Combine(outputRoot, "manifest.json"),
+                cancellationToken))
+            .Where(package => package.Kind == PackageKind.Launcher)
+            .ToList();
         var artifactPaths = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(machine.GameSourceRoot))
@@ -200,6 +210,7 @@ public static class UnifiedReleaseBuilder
         var mirrors = workspace.Mirrors
             .Select(mirror => new { Mirror = mirror, Url = selectUrl(mirror).Trim() })
             .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+            .Where(item => SupportsArtifact(item.Mirror.Provider, size))
             .Select(item => new MirrorManifest(
                 NormalizeProvider(item.Mirror.Provider),
                 ExpandUrl(item.Url, workspace.Version, id, artifactName),
@@ -225,6 +236,34 @@ public static class UnifiedReleaseBuilder
             PackageUpdateMode.ManagedExact,
             true,
             CommonExcludedRoots.Concat(specificExcludedRoots).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()), artifactPath);
+    }
+
+    public static bool SupportsArtifact(string provider, long size) =>
+        !NormalizeProvider(provider).Equals("github", StringComparison.OrdinalIgnoreCase)
+        || size <= GitHubRepositoryArtifactLimitBytes;
+
+    private static async Task<IReadOnlyList<PackageManifest>> LoadPreservedPackagesAsync(
+        string manifestPath,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(manifestPath))
+        {
+            return [];
+        }
+
+        await using var stream = new FileStream(
+            manifestPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            64 * 1024,
+            FileOptions.Asynchronous);
+        var signed = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(
+                         stream,
+                         ManifestJson.Options,
+                         cancellationToken)
+                     ?? throw new InvalidDataException("Existing manifest.json is empty or damaged.");
+        return signed.Payload.Packages;
     }
 
     public static ContentCatalog CreateContentCatalog(
