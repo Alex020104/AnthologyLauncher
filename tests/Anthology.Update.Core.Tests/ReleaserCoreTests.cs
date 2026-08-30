@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Security.Cryptography;
 using System.IO.Compression;
+using System.Diagnostics;
 using Anthology.Contracts;
 using Anthology.Releaser.Core;
 
@@ -331,6 +332,77 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public async Task GithubContentPublicationCommitsAndPushesOnlyCurrentVersion()
+    {
+        Directory.CreateDirectory(_root);
+        var repository = Path.Combine(_root, "github-publication");
+        var remote = Path.Combine(_root, "github-publication.git");
+        var output = Path.Combine(_root, "github-output");
+        var keys = Path.Combine(_root, "github-keys");
+        Directory.CreateDirectory(repository);
+        Directory.CreateDirectory(keys);
+        RunGit(repository, "init", "-b", "addons-unified-library");
+        RunGit(repository, "config", "user.name", "Anthology test");
+        RunGit(repository, "config", "user.email", "anthology-test@example.invalid");
+        RunGit(_root, "init", "--bare", remote);
+        await File.WriteAllTextAsync(Path.Combine(repository, "README.md"), "publication test");
+        RunGit(repository, "add", "README.md");
+        RunGit(repository, "commit", "-m", "Initial publication repository");
+        RunGit(repository, "remote", "add", "origin", remote);
+        RunGit(repository, "push", "-u", "origin", "addons-unified-library");
+
+        var unrelatedDraft = Path.Combine(repository, "2.1.132", "draft.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(unrelatedDraft)!);
+        await File.WriteAllTextAsync(unrelatedDraft, "must stay local");
+
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var mirror = new ReleaseMirrorSet
+        {
+            Id = "github",
+            Provider = "github",
+            ContentUrl = "https://raw.example/{version}/content.json",
+            Priority = 10,
+        };
+        var information = new ContentDraft
+        {
+            Id = "stories",
+            Kind = ContentKind.Information,
+            Title = "Stories",
+        };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.150",
+            Mirrors = [mirror],
+            Content = [information],
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "github-test-key",
+            PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [mirror.Id] = repository,
+            },
+        };
+
+        await ReleasePublicationService.PublishContentAsync(information, workspace, machine);
+
+        Assert.True(File.Exists(Path.Combine(repository, workspace.Version, "content.json")));
+        Assert.Contains("?? 2.1.132/", RunGit(repository, "status", "--short"), StringComparison.Ordinal);
+        Assert.Contains(
+            "Stories",
+            RunGit(repository, "show", $"origin/addons-unified-library:{workspace.Version}/content.json"),
+            StringComparison.Ordinal);
+        Assert.Equal(
+            $"Publish Anthology {workspace.Version}",
+            RunGit(repository, "log", "-1", "--pretty=%s").Trim());
+    }
+
+    [Fact]
     public async Task UploadedPhotoIsPublishedWithContentAndRemovedWithIt()
     {
         var output = Path.Combine(_root, "photo-output");
@@ -601,7 +673,39 @@ public sealed class ReleaserCoreTests : IDisposable
     {
         if (Directory.Exists(_root))
         {
+            foreach (var path in Directory.EnumerateFileSystemEntries(_root, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+            }
             Directory.Delete(_root, true);
         }
+    }
+
+    private static string RunGit(string workingDirectory, params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Git did not start.");
+        var output = process.StandardOutput.ReadToEnd();
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"git {string.Join(' ', arguments)} failed: {error}");
+        }
+
+        return output;
     }
 }

@@ -373,6 +373,8 @@ public static partial class ReleasePublicationService
             }
         }
 
+        await SynchronizeGitTargetsAsync(workspace, machine, progress, cancellationToken);
+
         return new PublicationResult(GetPublicationTargets(workspace, machine).Length, removed.Count, 0, removed);
     }
 
@@ -429,6 +431,7 @@ public static partial class ReleasePublicationService
                 await MoveFileToTrashAsync(Path.Combine(target.Root, "manifest.json"), Path.Combine(trash, "published", target.Id, "manifest.json"), cancellationToken);
             }
             await LauncherUpdateConfigurationPublisher.RemoveLocalManifestAsync(machine, trash, cancellationToken);
+            await SynchronizeGitTargetsAsync(workspace, machine, progress, cancellationToken);
         }
         else
         {
@@ -665,6 +668,8 @@ public static partial class ReleasePublicationService
             }
         }
 
+        await SynchronizeGitTargetsAsync(workspace, machine, progress, cancellationToken);
+
         var localVersion = Path.Combine(outputRoot, version);
         if (Directory.Exists(localVersion))
         {
@@ -787,6 +792,8 @@ public static partial class ReleasePublicationService
             destinations.Add(Path.Combine(target.Root, workspace.Version.Trim()));
         }
 
+        await SynchronizeGitTargetsAsync(workspace, machine, progress, cancellationToken);
+
         if (manifestPath is not null && File.Exists(manifestPath))
         {
             await LauncherUpdateConfigurationPublisher.UpdateLocalManifestAsync(
@@ -796,6 +803,126 @@ public static partial class ReleasePublicationService
         }
 
         return new PublicationResult(targets.Length, files, bytes, destinations);
+    }
+
+    private static async Task SynchronizeGitTargetsAsync(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        foreach (var target in GetPublicationTargets(workspace, machine)
+                     .Where(target => target.Provider.Equals("github", StringComparison.OrdinalIgnoreCase)))
+        {
+            await SynchronizeGitTargetAsync(
+                target,
+                workspace.Version.Trim(),
+                progress,
+                cancellationToken);
+        }
+    }
+
+    private static async Task SynchronizeGitTargetAsync(
+        PublicationTarget target,
+        string version,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(target.Root);
+        var repositoryCheck = await RunGitAsync(target.Root, ["rev-parse", "--is-inside-work-tree"], cancellationToken);
+        if (repositoryCheck.ExitCode != 0 ||
+            !repositoryCheck.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Папка GitHub-источника не является Git-репозиторием: {target.Root}. " +
+                "Выберите локальную папку клонированного репозитория.");
+        }
+
+        var branch = await RunGitAsync(target.Root, ["branch", "--show-current"], cancellationToken);
+        EnsureGitSucceeded(branch, "Не удалось определить ветку GitHub-источника.");
+        var branchName = branch.StandardOutput.Trim();
+        if (string.IsNullOrWhiteSpace(branchName))
+        {
+            throw new InvalidOperationException("GitHub-источник находится в detached HEAD. Переключитесь на рабочую ветку.");
+        }
+
+        progress?.Report($"GitHub: подготовка версии {version} в ветке {branchName}…");
+        var add = await RunGitAsync(
+            target.Root,
+            ["add", "-A", "--", version, "manifest.json"],
+            cancellationToken);
+        EnsureGitSucceeded(add, "Не удалось подготовить файлы публикации для GitHub.");
+
+        var diff = await RunGitAsync(
+            target.Root,
+            ["diff", "--cached", "--quiet", "--", version, "manifest.json"],
+            cancellationToken);
+        if (diff.ExitCode is not (0 or 1))
+        {
+            EnsureGitSucceeded(diff, "Не удалось проверить изменения перед публикацией в GitHub.");
+        }
+
+        if (diff.ExitCode == 1)
+        {
+            var commit = await RunGitAsync(
+                target.Root,
+                ["commit", "-m", $"Publish Anthology {version}", "--", version, "manifest.json"],
+                cancellationToken);
+            EnsureGitSucceeded(commit, "Не удалось создать коммит публикации для GitHub.");
+        }
+
+        progress?.Report($"GitHub: отправка версии {version} в origin/{branchName}…");
+        var push = await RunGitAsync(
+            target.Root,
+            ["push", "origin", $"HEAD:{branchName}"],
+            cancellationToken);
+        EnsureGitSucceeded(push, "Не удалось отправить публикацию в GitHub.");
+        progress?.Report($"GitHub: версия {version} опубликована в ветке {branchName}.");
+    }
+
+    private static async Task<GitCommandResult> RunGitAsync(
+        string repositoryRoot,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = repositoryRoot,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add("-C");
+        startInfo.ArgumentList.Add(repositoryRoot);
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo)
+                            ?? throw new InvalidOperationException("Не удалось запустить Git.");
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+        return new GitCommandResult(
+            process.ExitCode,
+            await outputTask,
+            await errorTask);
+    }
+
+    private static void EnsureGitSucceeded(GitCommandResult result, string message)
+    {
+        if (result.ExitCode == 0)
+        {
+            return;
+        }
+
+        var details = string.IsNullOrWhiteSpace(result.StandardError)
+            ? result.StandardOutput.Trim()
+            : result.StandardError.Trim();
+        throw new InvalidOperationException(string.IsNullOrWhiteSpace(details) ? message : $"{message} {details}");
     }
 
     private static PublicationTarget[] GetPublicationTargets(
@@ -1074,4 +1201,6 @@ public static partial class ReleasePublicationService
         string Sha256);
 
     private sealed record PublicationTarget(string Id, string Provider, string Root);
+
+    private sealed record GitCommandResult(int ExitCode, string StandardOutput, string StandardError);
 }
