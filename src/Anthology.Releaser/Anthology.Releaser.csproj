@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Anthology.Contracts\Anthology.Contracts.csproj" />
     <ProjectReference Include="..\Anthology.Update.Core\Anthology.Update.Core.csproj" />
+    <ProjectReference Include="..\Anthology.Releaser.Core\Anthology.Releaser.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Anthology.Contracts;
 using Anthology.Update.Core;
+using Anthology.Releaser.Core;
 
 namespace Anthology.Releaser;
 
@@ -24,6 +25,12 @@ public static class ReleaserApplication
                 return 0;
             }
 
+            if (args is ["launcher", "publish", .. var launcherArgs])
+            {
+                await PublishLauncherAsync(Arguments.Parse(launcherArgs));
+                return 0;
+            }
+
             PrintHelp();
             return args.Length == 0 ? 0 : 2;
         }
@@ -31,11 +38,30 @@ public static class ReleaserApplication
                                            or InvalidDataException
                                            or IOException
                                            or UnauthorizedAccessException
-                                           or CryptographicException)
+                                           or CryptographicException
+                                           or InvalidOperationException)
         {
             Console.Error.WriteLine($"Ошибка: {exception.Message}");
             return 1;
         }
+    }
+
+    private static async Task PublishLauncherAsync(Arguments arguments)
+    {
+        var workspacePath = Path.GetFullPath(arguments.Required("workspace"));
+        var machinePath = Path.GetFullPath(arguments.Required("machine"));
+        await using var workspaceStream = File.OpenRead(workspacePath);
+        var workspace = await JsonSerializer.DeserializeAsync<ReleaserWorkspace>(workspaceStream, ManifestJson.Options)
+                        ?? throw new InvalidDataException("Workspace релизера пуст или повреждён.");
+        await using var machineStream = File.OpenRead(machinePath);
+        var machine = await JsonSerializer.DeserializeAsync<ReleaserMachineSettings>(machineStream, ManifestJson.Options)
+                      ?? throw new InvalidDataException("Локальные настройки релизера пусты или повреждены.");
+        var progress = new Progress<string>(Console.WriteLine);
+        var result = await ReleasePublicationService.PublishLauncherAsync(workspace, machine, progress);
+        Console.WriteLine($"Launcher: {result.LauncherVersion}");
+        Console.WriteLine($"Пакет: {result.ArtifactPath}");
+        Console.WriteLine($"Manifest: {result.ManifestPath}");
+        Console.WriteLine($"Файлов лаунчера: {result.Files}; источников: {result.Publication.Targets}");
     }
 
     private static void GenerateKeys(Arguments arguments)
@@ -208,6 +234,8 @@ public static class ReleaserApplication
         Console.WriteLine("    [--mirror google-drive=https://...] [--mirror local-file=file:///E:/...]");
         Console.WriteLine("    [--mirror bundle-file=bundle:///packages/base.zip --channel install]");
         Console.WriteLine("    [--channel next] [--force]");
+        Console.WriteLine();
+        Console.WriteLine("  launcher publish --workspace release-workspace.json --machine machine-settings.json");
     }
 
     private sealed class Arguments

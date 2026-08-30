@@ -284,6 +284,13 @@ public sealed record QuickReleaseResult(
     IReadOnlyList<string> Artifacts,
     PublicationResult Publication);
 
+public sealed record LauncherPublicationResult(
+    string LauncherVersion,
+    string ArtifactPath,
+    string ManifestPath,
+    int Files,
+    PublicationResult Publication);
+
 public enum WorkspaceSyncDirection
 {
     None,

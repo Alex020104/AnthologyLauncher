@@ -68,7 +68,7 @@
                 </section>
                 <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
                 <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ</span><h3>Закрытый ключ хранится только у разработчика</h3><p>В общий рабочий файл попадают настройки релиза и материалы. Закрытый ключ и пути этой машины никогда не синхронизируются.</p></div><label>ID ключа<input @bind="_machine.KeyId" /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="GenerateKeys">СОЗДАТЬ КЛЮЧИ</button></section>
-                <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ ВСЕЙ СБОРКИ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Полный слепок добавит новые файлы и пометит отсутствующие для безопасного удаления у игрока." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">СНЯТЬ ВЕРСИЮ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ ВСЮ СБОРКУ")</button></section>
+                <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ ВСЕЙ СБОРКИ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Полный слепок добавит новые файлы и пометит отсутствующие для безопасного удаления у игрока." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="secondary" @onclick="PublishLauncherAsync" disabled="@_busy">ВЫПУСТИТЬ ЛАУНЧЕР</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">СНЯТЬ ВЕРСИЮ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ ВСЮ СБОРКУ")</button></section>
             }
             else if (_section == "sources")
             {
@@ -1282,6 +1282,34 @@
         {
             item.IsPublished = previousState;
             _status = "Снятие материала остановлено";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task PublishLauncherAsync()
+    {
+        _busy = true;
+        try
+        {
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.PublishLauncherAsync(_workspace, _machine, progress);
+            _lastPublication = result.Publication;
+            _status = result.Publication.Targets == 0
+                ? $"Launcher {result.LauncherVersion} готов локально"
+                : $"Launcher {result.LauncherVersion} опубликован в {result.Publication.Targets} источник(а)";
+            Toast(result.Publication.Targets == 0
+                ? $"Пакет готов: {result.ArtifactPath}. Настройте папку выгрузки источника."
+                : $"Launcher {result.LauncherVersion}: {result.Files} файлов. Обновление применится при следующем запуске лаунчера.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Публикация лаунчера остановлена";
             Toast(exception.Message, true);
         }
         finally

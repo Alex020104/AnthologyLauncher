@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.IO.Compression;
+using System.Diagnostics;
 using Anthology.Contracts;
 using Anthology.Update.Core;
 
@@ -32,6 +33,140 @@ public static partial class ReleasePublicationService
             .ToArray();
 
         return await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
+    }
+
+    public static async Task<LauncherPublicationResult> PublishLauncherAsync(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(machine);
+        ReleaseVersionRules.Validate(workspace.Version);
+        UnifiedReleaseBuilder.ValidateMachine(machine);
+        if (string.IsNullOrWhiteSpace(machine.GameSourceRoot))
+        {
+            throw new InvalidOperationException("Выберите корень игры с установленным Launcher Next.");
+        }
+
+        var gameRoot = Path.GetFullPath(machine.GameSourceRoot);
+        var launcherRoot = Path.Combine(gameRoot, "AnthologyLauncher");
+        var launcherAssembly = Path.Combine(launcherRoot, "App", "AnthologyLauncher.Next.dll");
+        var startScript = Path.Combine(launcherRoot, "Start-AnthologyLauncherNext.ps1");
+        if (!File.Exists(launcherAssembly) || !File.Exists(startScript))
+        {
+            throw new FileNotFoundException("В выбранном корне не найден полный Launcher Next или его стартовый скрипт.", launcherRoot);
+        }
+
+        var launcherFiles = EnumerateLauncherUpdateFiles(launcherRoot)
+            .Select(path => new QuickReleaseFileDraft
+            {
+                SourcePath = path,
+                InstallRoot = "game",
+                RelativePath = PathSafety.NormalizeRelativePath(Path.GetRelativePath(launcherRoot, path)),
+            })
+            .ToArray();
+        if (launcherFiles.Length == 0)
+        {
+            throw new InvalidDataException("В Launcher Next не найдено файлов приложения для публикации.");
+        }
+
+        var launcherVersion = ResolveLauncherVersion(launcherAssembly);
+        var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
+        Directory.CreateDirectory(versionRoot);
+        var safeLauncherVersion = Regex.Replace(launcherVersion, "[^a-zA-Z0-9._-]", "-");
+        var payloadName = $"anthology-launcher-payload-{safeLauncherVersion}.zip";
+        var payloadPath = Path.Combine(versionRoot, payloadName);
+        progress?.Report($"Упаковка Launcher Next {launcherVersion}: {launcherFiles.Length:N0} файлов…");
+        await CreateMappedArchiveAsync(payloadPath, launcherFiles, cancellationToken);
+        var payloadHash = await ArtifactHash.ComputeSha256Async(payloadPath, cancellationToken);
+
+        var descriptorName = "launcher-update.json";
+        var descriptorPath = Path.Combine(versionRoot, descriptorName);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(
+            descriptorPath,
+            new LauncherPendingUpdate(1, launcherVersion, workspace.Version.Trim(), payloadName, payloadHash),
+            cancellationToken);
+
+        var deliveryName = $"anthology-launcher-{workspace.Version.Trim()}.zip";
+        var deliveryPath = Path.Combine(versionRoot, deliveryName);
+        var pendingBase = "AnthologyLauncher/Update/LauncherPending";
+        var deliveredFiles = new[]
+        {
+            new QuickReleaseFileDraft
+            {
+                SourcePath = payloadPath,
+                InstallRoot = "game",
+                RelativePath = $"{pendingBase}/{payloadName}",
+            },
+            new QuickReleaseFileDraft
+            {
+                SourcePath = descriptorPath,
+                InstallRoot = "game",
+                RelativePath = $"{pendingBase}/{descriptorName}",
+            },
+            new QuickReleaseFileDraft
+            {
+                SourcePath = startScript,
+                InstallRoot = "game",
+                RelativePath = "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+            },
+        };
+        await CreateMappedArchiveAsync(deliveryPath, deliveredFiles, cancellationToken);
+
+        var mirrors = workspace.Mirrors
+            .Where(mirror => !string.IsNullOrWhiteSpace(mirror.GameUrl))
+            .Select(mirror => new MirrorManifest(
+                UnifiedReleaseBuilder.NormalizeProvider(mirror.Provider),
+                UnifiedReleaseBuilder.ExpandUrl(mirror.GameUrl.Trim(), workspace.Version, "anthology-launcher", deliveryName),
+                mirror.Priority))
+            .OrderBy(mirror => mirror.Priority)
+            .ToArray();
+        if (mirrors.Length == 0)
+        {
+            mirrors = [new MirrorManifest("local-file", new Uri(deliveryPath).AbsoluteUri, 1000)];
+        }
+
+        var manifestPath = Path.Combine(versionRoot, "manifest.json");
+        var packages = (await LoadExistingPackagesAsync(manifestPath, cancellationToken))
+            .Where(package => !string.Equals(package.Id, "anthology-launcher", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        packages.Add(new PackageManifest(
+            "anthology-launcher",
+            $"A.N.T.H.O.L.O.G.Y Launcher {launcherVersion}",
+            workspace.Version.Trim(),
+            PackageKind.Launcher,
+            "game",
+            "zip",
+            new FileInfo(deliveryPath).Length,
+            await ArtifactHash.ComputeSha256Async(deliveryPath, cancellationToken),
+            mirrors,
+            deliveredFiles.Select(file => file.RelativePath).Order(StringComparer.Ordinal).ToArray(),
+            PackageUpdateMode.Merge));
+
+        var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
+        var updateManifest = new UpdateManifest(
+            4,
+            string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
+            workspace.Version.Trim(),
+            DateTimeOffset.UtcNow,
+            null,
+            packages,
+            catalog);
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
+        var signed = ManifestSecurity.Sign(updateManifest, privateKey, machine.KeyId.Trim());
+        ManifestValidator.ValidateAndThrow(signed);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(Path.Combine(versionRoot, "content.json"), catalog, cancellationToken);
+
+        var relativeFiles = new List<string> { deliveryName, "manifest.json", "content.json" };
+        relativeFiles.AddRange(media.RelativeFiles);
+        var publication = await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
+        progress?.Report($"Launcher Next {launcherVersion} опубликован. Он применится до следующего запуска приложения.");
+        return new LauncherPublicationResult(launcherVersion, deliveryPath, manifestPath, launcherFiles.Length, publication);
     }
 
     public static async Task<AddonPublicationResult> PublishAddonAsync(
@@ -822,6 +957,51 @@ public static partial class ReleasePublicationService
         }
     }
 
+    private static IEnumerable<string> EnumerateLauncherUpdateFiles(string launcherRoot)
+    {
+        var root = Path.GetFullPath(launcherRoot);
+        return Directory.EnumerateFiles(root, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = false,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            })
+            .Where(path =>
+            {
+                var relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+                var fileName = Path.GetFileName(path);
+                if (relative.StartsWith("App/wwwroot/", StringComparison.OrdinalIgnoreCase)
+                    || relative.Equals("App/TrustedKeys/anthology.public.pem", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (relative.StartsWith("App/", StringComparison.OrdinalIgnoreCase))
+                {
+                    return fileName.StartsWith("Anthology.", StringComparison.OrdinalIgnoreCase)
+                           || fileName.StartsWith("AnthologyLauncher.", StringComparison.OrdinalIgnoreCase)
+                           || fileName.Equals("System.Management.dll", StringComparison.OrdinalIgnoreCase);
+                }
+
+                return relative.StartsWith("Services/CommunityApi/", StringComparison.OrdinalIgnoreCase)
+                       && (fileName.StartsWith("Anthology.", StringComparison.OrdinalIgnoreCase)
+                           || fileName.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase));
+            })
+            .Order(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveLauncherVersion(string launcherAssembly)
+    {
+        var productVersion = FileVersionInfo.GetVersionInfo(launcherAssembly).ProductVersion;
+        if (string.IsNullOrWhiteSpace(productVersion))
+        {
+            return "unknown";
+        }
+
+        var metadata = productVersion.IndexOf('+');
+        return (metadata > 0 ? productVersion[..metadata] : productVersion).Trim();
+    }
+
     private static string NormalizeFolderBase(string relativePath) =>
         string.IsNullOrWhiteSpace(relativePath)
             ? string.Empty
@@ -861,6 +1041,13 @@ public static partial class ReleasePublicationService
     private static partial Regex SafeIdRegex();
 
     private sealed record ManifestRefreshResult(string ManifestPath, IReadOnlyList<string> MediaFiles);
+
+    private sealed record LauncherPendingUpdate(
+        int SchemaVersion,
+        string LauncherVersion,
+        string ReleaseVersion,
+        string PayloadFile,
+        string Sha256);
 
     private sealed record PublicationTarget(string Id, string Provider, string Root);
 }

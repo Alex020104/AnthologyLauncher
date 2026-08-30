@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Security.Cryptography;
+using System.IO.Compression;
 using Anthology.Contracts;
 using Anthology.Releaser.Core;
 
@@ -473,6 +474,81 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, "manifest.json")));
         Assert.True(File.Exists(Path.Combine(firstTarget, "manifest.json")));
         Assert.True(File.Exists(Path.Combine(secondTarget, "manifest.json")));
+    }
+
+    [Fact]
+    public async Task LauncherPublicationStagesSignedUpdateForNextStart()
+    {
+        var game = Path.Combine(_root, "launcher-publication-game");
+        var launcher = Path.Combine(game, "AnthologyLauncher");
+        var app = Path.Combine(launcher, "App");
+        var web = Path.Combine(app, "wwwroot", "css");
+        var output = Path.Combine(_root, "launcher-publication-output");
+        var publication = Path.Combine(_root, "launcher-publication-target");
+        var keys = Path.Combine(_root, "launcher-publication-keys");
+        Directory.CreateDirectory(web);
+        Directory.CreateDirectory(keys);
+        await File.WriteAllTextAsync(Path.Combine(app, "AnthologyLauncher.Next.exe"), "host");
+        await File.WriteAllTextAsync(Path.Combine(app, "AnthologyLauncher.Next.dll"), "launcher");
+        await File.WriteAllTextAsync(Path.Combine(web, "app.css"), "body{}");
+        await File.WriteAllTextAsync(Path.Combine(launcher, "Start-AnthologyLauncherNext.ps1"), "# updater");
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var mirror = new ReleaseMirrorSet
+        {
+            Provider = "local-file",
+            GameUrl = new Uri(publication + Path.DirectorySeparatorChar).AbsoluteUri + "{version}/{file}",
+            ManifestUrl = "https://cdn.example/manifest.json",
+            Priority = 10,
+        };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.132",
+            Channel = "next",
+            Mirrors = [mirror],
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            GameSourceRoot = game,
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "launcher-test",
+            PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [mirror.Id] = publication,
+            },
+        };
+
+        var result = await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
+
+        Assert.Equal(3, result.Files);
+        Assert.True(File.Exists(result.ArtifactPath));
+        await using var stream = File.OpenRead(result.ManifestPath);
+        var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
+        var package = Assert.Single(manifest!.Payload.Packages);
+        Assert.Equal("anthology-launcher", package.Id);
+        Assert.Equal(PackageKind.Launcher, package.Kind);
+        Assert.Equal("game", package.InstallRoot);
+        Assert.Contains(package.Files, path => path.EndsWith("launcher-update.json", StringComparison.Ordinal));
+        Assert.True(File.Exists(Path.Combine(publication, workspace.Version, Path.GetFileName(result.ArtifactPath))));
+        Assert.True(File.Exists(Path.Combine(publication, "manifest.json")));
+        using var delivery = ZipFile.OpenRead(result.ArtifactPath);
+        Assert.Contains(delivery.Entries, entry => entry.FullName.EndsWith("launcher-update.json", StringComparison.Ordinal));
+        Assert.Contains(delivery.Entries, entry => entry.FullName.EndsWith("Start-AnthologyLauncherNext.ps1", StringComparison.Ordinal));
+        Assert.Contains(delivery.Entries, entry => entry.FullName.Contains("launcher-payload", StringComparison.Ordinal));
+        var updaterState = Path.Combine(_root, "launcher-publication-state");
+        var coordinator = new UpdateCoordinator(new HttpClient());
+        var check = await coordinator.CheckAsync(result.ManifestPath, publicKey, "next", updaterState);
+        var applied = await coordinator.ApplyAsync(
+            check,
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["game"] = game },
+            updaterState);
+        Assert.Equal(1, applied.InstalledPackages);
+        Assert.Equal(3, applied.InstalledFiles);
+        Assert.True(File.Exists(Path.Combine(launcher, "Update", "LauncherPending", "launcher-update.json")));
+        Assert.True(Directory.EnumerateFiles(Path.Combine(launcher, "Update", "LauncherPending"), "*payload*.zip").Any());
     }
 
     [Fact]

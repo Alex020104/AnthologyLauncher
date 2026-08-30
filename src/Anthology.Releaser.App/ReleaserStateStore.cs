@@ -144,8 +144,8 @@ public sealed class ReleaserStateStore : IDisposable
         {
             workspace.Mirrors.AddRange(
             [
-                new ReleaseMirrorSet { Provider = "github", Priority = 10 },
-                new ReleaseMirrorSet { Provider = "yandex-disk", Priority = 20 },
+                new ReleaseMirrorSet { Provider = "yandex-disk", Priority = 10 },
+                new ReleaseMirrorSet { Provider = "github", Priority = 20 },
                 new ReleaseMirrorSet { Provider = "google-drive", Priority = 30 },
                 new ReleaseMirrorSet { Provider = "http", Priority = 40 },
             ]);
