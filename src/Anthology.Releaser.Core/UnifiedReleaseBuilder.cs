@@ -360,7 +360,18 @@ public static class UnifiedReleaseBuilder
                 item.PublishedAt);
         }).ToArray();
 
-        return new ContentCatalog(4, workspace.Version, DateTimeOffset.UtcNow, items);
+        var socialLinks = (workspace.SocialLinks ?? [])
+            .Where(link => link.IsVisible && !string.IsNullOrWhiteSpace(link.Url))
+            .OrderBy(link => link.Order)
+            .ThenBy(link => link.Id, StringComparer.OrdinalIgnoreCase)
+            .Select(link => new SocialLink(
+                link.Id.Trim().ToLowerInvariant(),
+                link.Title.Trim(),
+                link.Subtitle.Trim(),
+                link.Url.Trim()))
+            .ToArray();
+
+        return new ContentCatalog(4, workspace.Version, DateTimeOffset.UtcNow, items, socialLinks);
     }
 
     private static void AddTranslation(

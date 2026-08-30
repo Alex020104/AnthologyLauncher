@@ -263,6 +263,27 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public void SocialLinksAreEditableOrderedAndPublishedWithContentCatalog()
+    {
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.140",
+            SocialLinks =
+            [
+                new SocialLinkDraft { Id = "discord", Title = "Наш Discord", Subtitle = "Общение", Url = "https://discord.gg/uYS8JUz7J", Order = 20 },
+                new SocialLinkDraft { Id = "youtube", Title = "Видео", Subtitle = "Самаэль Морнингстар", Url = "https://www.youtube.com/@Samael-w3p", Order = 10 },
+                new SocialLinkDraft { Id = "moddb", Title = "Скрыто", Url = "https://www.moddb.com/mods/stalker-anomaly", Order = 30, IsVisible = false },
+            ],
+        };
+
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+
+        Assert.Equal(["youtube", "discord"], catalog.SocialLinks!.Select(link => link.Id));
+        Assert.Equal("Видео", catalog.SocialLinks![0].Title);
+        Assert.Equal("https://discord.gg/uYS8JUz7J", catalog.SocialLinks![1].Url);
+    }
+
+    [Fact]
     public void EditorialSeedImportsOldLauncherCopyAsEditableDrafts()
     {
         var content = new List<ContentDraft>();

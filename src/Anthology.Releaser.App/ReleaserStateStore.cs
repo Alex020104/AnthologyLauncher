@@ -34,7 +34,7 @@ public sealed class ReleaserStateStore : IDisposable
             var workspaceExists = File.Exists(WorkspacePath);
             var workspace = await WorkspaceStorage.LoadAsync(WorkspacePath, () => new ReleaserWorkspace(), cancellationToken);
             var machine = await WorkspaceStorage.LoadAsync(MachinePath, () => new ReleaserMachineSettings(), cancellationToken);
-            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 5;
+            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 6;
             var workspaceDefaultsChanged = Normalize(
                 workspace,
                 machine,
@@ -96,7 +96,30 @@ public sealed class ReleaserStateStore : IDisposable
         var previousSchemaVersion = workspace.SchemaVersion;
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 5);
+        workspace.SocialLinks ??= [];
+        foreach (var defaultLink in SocialLinkDraft.CreateDefaults())
+        {
+            if (workspace.SocialLinks.Any(link => string.Equals(link.Id, defaultLink.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+            workspace.SocialLinks.Add(defaultLink);
+            changed = true;
+        }
+        foreach (var link in workspace.SocialLinks)
+        {
+            link.Id = link.Id?.Trim().ToLowerInvariant() ?? string.Empty;
+            link.Title = link.Title?.Trim() ?? string.Empty;
+            link.Subtitle = link.Subtitle?.Trim() ?? string.Empty;
+            link.Url = link.Url?.Trim() ?? string.Empty;
+            if (link.Id == "moddb"
+                && string.Equals(link.Url, "https://www.moddb.com/mods/stalker-anomaly", StringComparison.OrdinalIgnoreCase))
+            {
+                link.Url = "https://www.moddb.com/mods/anthology";
+                changed = true;
+            }
+        }
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 6);
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;

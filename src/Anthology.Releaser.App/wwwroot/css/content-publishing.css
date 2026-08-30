@@ -158,3 +158,62 @@
     .translation-service-grid { grid-template-columns: 1fr; }
     .translation-tabs { grid-template-columns: repeat(3, 1fr); }
 }
+
+.social-links-hero {
+    position: relative;
+    min-height: 238px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 82% 50%, #bd943526, transparent 25%),
+        linear-gradient(125deg, #141b1f, #0a0f12 66%);
+}
+.social-links-hero h2 { margin: 10px 0; font-size: 34px; font-weight: 350; }
+.social-links-hero h2 em { color: var(--gold); font-style: normal; }
+.social-links-hero p { max-width: 780px; color: var(--muted); font-size: 11px; line-height: 1.65; }
+.social-links-orbit {
+    width: 154px;
+    height: 154px;
+    position: relative;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    flex: 0 0 auto;
+    border: 1px solid #7b642f;
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0 18px, #8c713429 19px 20px), #0d1316;
+    box-shadow: 0 0 48px #b88d2720, inset 0 0 35px #000;
+}
+.social-links-orbit::after { content: ""; position: absolute; inset: 5px 75px 75px; transform-origin: 50% 72px; background: linear-gradient(#d0a642, transparent); animation: socialSweep 4s linear infinite; }
+.social-links-orbit strong { color: var(--gold); font: 34px Georgia, serif; }
+.social-links-orbit span { color: #8f7a4e; font: 8px Consolas, monospace; letter-spacing: .17em; }
+@keyframes socialSweep { to { transform: rotate(360deg); } }
+
+.social-link-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.social-link-editor-card { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 100px; align-content: start; gap: 12px; position: relative; overflow: hidden; }
+.social-link-editor-card::after { content: ""; position: absolute; inset: auto 0 0; height: 2px; background: var(--social-color, var(--gold)); opacity: .7; }
+.social-link-editor-card.youtube { --social-color: #ff5149; }.social-link-editor-card.vk { --social-color: #2b9ae4; }.social-link-editor-card.discord { --social-color: #8a91ff; }.social-link-editor-card.moddb { --social-color: #ef8a38; }.social-link-editor-card.telegram { --social-color: #31a8df; }
+.social-link-editor-card.disabled { opacity: .56; filter: saturate(.45); }
+.social-link-editor-card > header { grid-column: 1 / -1; min-height: 58px; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 0 0 14px; border: 0; border-bottom: 1px solid #303a3f; background: transparent; }
+.social-link-editor-logo { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid #3a454a; background: #090d0f; }
+.social-link-editor-logo img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--social-color) 48%, transparent)); }
+.social-link-editor-card > header h3 { margin: 5px 0 0; color: #e0e5e7; font-size: 16px; }
+.social-link-editor-card > label { grid-column: 1 / -1; }
+.social-link-editor-card > label.social-order { grid-column: 2; }
+.social-link-editor-card > small { grid-column: 1 / -1; color: #728087; font-size: 9px; line-height: 1.5; }
+.social-link-visibility { min-width: 124px; min-height: 35px; display: grid; grid-template-columns: 23px 1fr; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid #4d3c37; background: #1e1513; color: #aa776d; font-size: 8px; letter-spacing: .08em; cursor: pointer; }
+.social-link-visibility > span { width: 23px; height: 13px; position: relative; border: 1px solid #65514c; background: #281a18; }
+.social-link-visibility > span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 7px; height: 7px; background: #9c665c; transition: left .16s ease; }
+.social-link-visibility.on { border-color: #486852; background: #142019; color: #9dc5a8; }
+.social-link-visibility.on > span { border-color: #587861; background: #183024; }.social-link-visibility.on > span::after { left: 12px; background: #78bd89; }
+.social-link-publish { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; margin-top: 14px; border-left: 3px solid var(--gold2); }
+.social-link-publish h3 { margin: 6px 0; font-size: 16px; }.social-link-publish p { max-width: 760px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+
+@media (max-width: 1250px) {
+    .social-link-editor-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 850px) {
+    .social-links-orbit { display: none; }
+    .social-link-publish { grid-template-columns: 1fr; }
+    .social-link-publish button { width: 100%; }
+}

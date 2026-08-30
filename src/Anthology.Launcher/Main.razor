@@ -96,6 +96,21 @@
                         <div class="hero-kicker"><span></span> НОВАЯ ПЛАТФОРМА ANTHOLOGY</div>
                         <h2>Зона становится<br /><em>больше лаунчера.</em></h2>
                         <p>Обновления из нескольких источников, библиотека модов, видео, голосования и прямая связь с командой — в одном приложении.</p>
+                        <div class="hero-social-links" aria-label="Официальные площадки Anthology">
+                            @foreach (var socialLink in HomeSocialLinks)
+                            {
+                                var currentSocialLink = socialLink;
+                                var socialUrl = GetSafeExternalUrl(currentSocialLink.Url);
+                                @if (socialUrl is not null)
+                                {
+                                    <a class="hero-social-link @currentSocialLink.Id" href="@socialUrl" target="_blank" rel="noopener noreferrer" title="Открыть @currentSocialLink.Title">
+                                        <span class="hero-social-logo"><img src="assets/social/@(currentSocialLink.Id).svg" alt="" /></span>
+                                        <span class="hero-social-copy"><strong>@currentSocialLink.Title</strong><small>@currentSocialLink.Subtitle</small></span>
+                                        <i>↗</i>
+                                    </a>
+                                }
+                            }
+                        </div>
                         <div class="hero-actions">
                             <button class="primary-button" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)">
                                 <span class="play-triangle">▶</span> ИГРАТЬ С МОДПАКОМ
@@ -1054,6 +1069,15 @@
         new("project-support", "♡", "Поддержка проекта", "ПОДДЕРЖКА ПРОЕКТА", "Помочь Anthology", Bottom: true),
     ];
 
+    private static readonly SocialLink[] DefaultSocialLinks =
+    [
+        new("youtube", "YouTube", "Самаэль Морнингстар", "https://www.youtube.com/@Samael-w3p"),
+        new("vk", "VK Видео", "Трансляции и записи сообщества", "https://live.vkvideo.ru/sys_live_prime"),
+        new("discord", "Discord", "Сервер Anthology и поддержка", "https://discord.gg/uYS8JUz7J"),
+        new("moddb", "ModDB", "Страница проекта и публикации", "https://www.moddb.com/mods/anthology"),
+        new("telegram", "Telegram", "Канал Anomaly Anthology", "https://t.me/anomalyanthology"),
+    ];
+
     private static readonly LibrarySection[] LibrarySections =
     [
         new("dev", "01", "Личные проекты разработчиков", "Активное тестирование и сложные технические решения"),
@@ -1224,6 +1248,7 @@
     private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.News);
     private IEnumerable<ContentVideo> PublishedVideos => PublishedNews.SelectMany(item => item.Videos);
+    private IReadOnlyList<SocialLink> HomeSocialLinks => _publishedContent?.SocialLinks ?? DefaultSocialLinks;
     private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
         .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(

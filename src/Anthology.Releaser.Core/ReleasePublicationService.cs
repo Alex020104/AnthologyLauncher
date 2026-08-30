@@ -295,6 +295,32 @@ public static partial class ReleasePublicationService
         return publication;
     }
 
+    public static async Task<PublicationResult> PublishSocialLinksAsync(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(machine);
+        ReleaseVersionRules.Validate(workspace.Version);
+        UnifiedReleaseBuilder.ValidateMachine(machine);
+        progress?.Report("Публикация ссылок главного экрана…");
+        var versionRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version.Trim());
+        var refresh = await RefreshManifestAsync(workspace, machine, progress, cancellationToken);
+        var relativeFiles = new List<string> { "manifest.json", "content.json" };
+        relativeFiles.AddRange(refresh.MediaFiles);
+        var publication = await PublishFilesAsync(
+            versionRoot,
+            relativeFiles,
+            workspace,
+            machine,
+            progress,
+            cancellationToken);
+        progress?.Report("Ссылки главного экрана опубликованы.");
+        return publication;
+    }
+
     public static async Task<PublicationResult> UnpublishContentAsync(
         ContentDraft content,
         ReleaserWorkspace workspace,

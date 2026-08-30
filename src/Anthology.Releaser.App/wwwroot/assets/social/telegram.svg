@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Telegram">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#45c4f2"/><stop offset="1" stop-color="#2086c5"/></linearGradient></defs><circle cx="32" cy="32" r="28" fill="url(#g)"/><path d="M16 30.8 46.4 19c1.4-.5 2.7.4 2.2 2.7L43.5 46c-.4 1.7-1.4 2.1-2.9 1.3L32.8 41l-3.8 3.7c-.4.4-.8.8-1.6.8l.6-8 14.5-13.1c.6-.6-.1-.9-1-.3L23.6 35.4l-7.7-2.4c-1.7-.5-1.7-1.7.1-2.2z" fill="#fff"/>
+</svg>

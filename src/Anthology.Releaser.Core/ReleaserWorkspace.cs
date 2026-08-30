@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 5;
+    public int SchemaVersion { get; set; } = 6;
 
     public int Revision { get; set; }
 
@@ -25,6 +25,67 @@ public sealed class ReleaserWorkspace
     ];
 
     public List<ContentDraft> Content { get; set; } = [];
+
+    public List<SocialLinkDraft> SocialLinks { get; set; } = SocialLinkDraft.CreateDefaults();
+}
+
+public sealed class SocialLinkDraft
+{
+    public string Id { get; set; } = "youtube";
+
+    public string Title { get; set; } = "YouTube";
+
+    public string Subtitle { get; set; } = string.Empty;
+
+    public string Url { get; set; } = string.Empty;
+
+    public int Order { get; set; }
+
+    public bool IsVisible { get; set; } = true;
+
+    public static List<SocialLinkDraft> CreateDefaults() =>
+    [
+        new()
+        {
+            Id = "youtube",
+            Title = "YouTube",
+            Subtitle = "Самаэль Морнингстар",
+            Url = "https://www.youtube.com/@Samael-w3p",
+            Order = 10,
+        },
+        new()
+        {
+            Id = "vk",
+            Title = "VK Видео",
+            Subtitle = "Трансляции и записи сообщества",
+            Url = "https://live.vkvideo.ru/sys_live_prime",
+            Order = 20,
+        },
+        new()
+        {
+            Id = "discord",
+            Title = "Discord",
+            Subtitle = "Сервер Anthology и поддержка",
+            Url = "https://discord.gg/uYS8JUz7J",
+            Order = 30,
+        },
+        new()
+        {
+            Id = "moddb",
+            Title = "ModDB",
+            Subtitle = "Страница проекта и публикации",
+            Url = "https://www.moddb.com/mods/anthology",
+            Order = 40,
+        },
+        new()
+        {
+            Id = "telegram",
+            Title = "Telegram",
+            Subtitle = "Канал Anomaly Anthology",
+            Url = "https://t.me/anomalyanthology",
+            Order = 50,
+        },
+    ];
 }
 
 public sealed class ReleaseMirrorSet

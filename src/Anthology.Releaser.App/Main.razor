@@ -197,6 +197,25 @@
                     }
                 </section>
             }
+            else if (_section == "social-links")
+            {
+                <section class="hero panel compact social-links-hero"><div><span class="eyebrow">ГЛАВНЫЙ ЭКРАН ЛАУНЧЕРА</span><h2>Официальные площадки<br /><em>в один щелчок.</em></h2><p>Карточки находятся прямо под заголовком «Зона становится больше лаунчера». Меняйте название, пояснение, адрес, порядок и видимость — новый набор попадёт в подписанный каталог без пересборки игры.</p></div><div class="social-links-orbit"><strong>@_workspace.SocialLinks.Count(link => link.IsVisible)</strong><span>ПЛОЩАДОК</span></div></section>
+                <section class="social-link-editor-grid">
+                    @foreach (var socialLink in _workspace.SocialLinks.OrderBy(link => link.Order))
+                    {
+                        var currentSocialLink = socialLink;
+                        <article class="panel social-link-editor-card @currentSocialLink.Id @(!currentSocialLink.IsVisible ? "disabled" : null)">
+                            <header><span class="social-link-editor-logo"><img src="assets/social/@(currentSocialLink.Id).svg" alt="" /></span><div><span class="eyebrow">@currentSocialLink.Id.ToUpperInvariant()</span><h3>@currentSocialLink.Title</h3></div><button class="social-link-visibility @(currentSocialLink.IsVisible ? "on" : null)" @onclick="() => currentSocialLink.IsVisible = !currentSocialLink.IsVisible"><span></span>@(currentSocialLink.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button></header>
+                            <label>Название карточки<input @bind="currentSocialLink.Title" maxlength="40" /></label>
+                            <label>Короткое описание<input @bind="currentSocialLink.Subtitle" maxlength="90" /></label>
+                            <label>HTTPS-ссылка<input @bind="currentSocialLink.Url" placeholder="https://..." /></label>
+                            <label class="social-order">Порядок<input type="number" min="0" max="999" @bind="currentSocialLink.Order" /></label>
+                            <small>Если карточка скрыта, она не попадёт в следующий опубликованный каталог.</small>
+                        </article>
+                    }
+                </section>
+                <section class="panel social-link-publish"><div><span class="eyebrow">ПУБЛИКАЦИЯ</span><h3>Ссылки обновляются отдельно от файлов игры</h3><p>Кнопка переподпишет <code>manifest.json</code> и <code>content.json</code>, затем отправит их во все назначенные источники. Игрок увидит новые адреса после обычной проверки обновлений.</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ЧЕРНОВИК</button><button class="primary" @onclick="PublishSocialLinksAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ССЫЛКИ")</button></section>
+            }
             else if (_section == "reports")
             {
                 <section class="hero panel compact bug-report-hero"><div><span class="eyebrow">ОБРАЩЕНИЯ ИГРОКОВ</span><h2>Очередь поддержки<br /><em>внутри релизера.</em></h2><p>Новые отчёты из лаунчера появляются здесь. Разработчик видит исходные данные и вложения, ведёт переписку с игроком, переводит запрос в работу и закрывает его после решения.</p></div><div class="bug-report-counters"><span><strong>@_developerReports.Count(item => item.Receipt.Status == BugReportStatuses.New)</strong>НОВЫХ</span><span><strong>@_developerReports.Count(item => item.Receipt.Status == BugReportStatuses.WaitingForPlayer)</strong>ЖДУТ ИГРОКА</span><span><strong>@_developerReports.Count(item => item.Receipt.Status == BugReportStatuses.Closed)</strong>ЗАКРЫТО</span></div></section>
@@ -279,6 +298,7 @@
         new("news", "▤", "Новости", "НОВОСТИ", "Лента новостей Anthology"),
         new("information", "i", "Информация", "СПРАВОЧНИК", "Вкладки и материалы"),
         new("project-support", "♡", "Поддержка проекта", "ПОДДЕРЖКА ПРОЕКТА", "Редактор страницы поддержки"),
+        new("social-links", "◎", "Ссылки проекта", "ГЛАВНЫЙ ЭКРАН", "YouTube, VK, Discord, ModDB и Telegram"),
         new("reports", "◇", "Баг-репорты", "ПОДДЕРЖКА", "Обращения игроков"),
         new("sync", "↻", "Синхронизация", "КОМАНДА", "Работа двух разработчиков"),
         new("safety", "⌾", "Безопасность", "ПРОТОКОЛ", "Удаление и откат"),
@@ -1356,6 +1376,31 @@
         {
             item.IsPublished = previousState;
             _status = "Снятие материала остановлено";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task PublishSocialLinksAsync()
+    {
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.PublishSocialLinksAsync(_workspace, _machine, progress);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = "Ссылки главного экрана опубликованы";
+            Toast(result.Targets == 0
+                ? "Подписанный каталог готов локально. Для выгрузки назначьте папки источников."
+                : $"Ссылки отправлены в {result.Targets} источник(а). Лаунчер получит их при проверке обновлений.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Публикация ссылок остановлена";
             Toast(exception.Message, true);
         }
         finally

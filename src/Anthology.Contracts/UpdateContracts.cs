@@ -62,7 +62,14 @@ public sealed record ContentCatalog(
     int SchemaVersion,
     string Version,
     DateTimeOffset PublishedAt,
-    IReadOnlyList<ContentDocument> Items);
+    IReadOnlyList<ContentDocument> Items,
+    IReadOnlyList<SocialLink>? SocialLinks = null);
+
+public sealed record SocialLink(
+    string Id,
+    string Title,
+    string Subtitle,
+    string Url);
 
 public sealed record ContentDocument(
     string Id,

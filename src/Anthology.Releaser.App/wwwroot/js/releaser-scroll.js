@@ -110,7 +110,19 @@
     new MutationObserver(bindScrollControl).observe(document.documentElement, { childList: true, subtree: true });
     window.addEventListener("resize", bindScrollControl);
     window.anthologyReleaserScroll = {
-        toTop: () => document.querySelector(contentSelector)?.scrollTo({ top: 0, behavior: "auto" })
+        toTop: () => {
+            const reset = () => {
+                const content = document.querySelector(contentSelector);
+                if (content) {
+                    content.scrollTop = 0;
+                }
+            };
+            reset();
+            requestAnimationFrame(() => {
+                reset();
+                requestAnimationFrame(reset);
+            });
+        }
     };
     bindScrollControl();
 })();

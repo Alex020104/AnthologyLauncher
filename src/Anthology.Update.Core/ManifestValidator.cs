@@ -360,6 +360,48 @@ public static partial class ManifestValidator
                 }
             }
         }
+
+        var socialIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var social in content.SocialLinks ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(social.Id) || !PackageIdRegex().IsMatch(social.Id))
+            {
+                errors.Add($"Invalid social link id: '{social.Id}'.");
+                continue;
+            }
+            if (!socialIds.Add(social.Id))
+            {
+                errors.Add($"Duplicate social link id: '{social.Id}'.");
+            }
+            if (string.IsNullOrWhiteSpace(social.Title))
+            {
+                errors.Add($"Social link '{social.Id}' has no title.");
+            }
+            ValidatePublicHttpsUrl(social.Url, $"Social link '{social.Id}' has unsafe URL", errors);
+            ValidateSocialHost(social, errors);
+        }
+    }
+
+    private static void ValidateSocialHost(SocialLink social, List<string> errors)
+    {
+        if (!Uri.TryCreate(social.Url, UriKind.Absolute, out var uri))
+        {
+            return;
+        }
+
+        var allowedHosts = social.Id.ToLowerInvariant() switch
+        {
+            "youtube" => new[] { "youtube.com", "www.youtube.com", "youtu.be" },
+            "vk" => new[] { "vk.com", "www.vk.com", "vkvideo.ru", "www.vkvideo.ru", "live.vkvideo.ru" },
+            "discord" => new[] { "discord.gg", "discord.com", "www.discord.com" },
+            "moddb" => new[] { "moddb.com", "www.moddb.com" },
+            "telegram" => new[] { "t.me", "telegram.me", "www.telegram.me" },
+            _ => [],
+        };
+        if (allowedHosts.Length == 0 || !allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase))
+        {
+            errors.Add($"Social link '{social.Id}' does not point to its expected service.");
+        }
     }
 
     private static void ValidatePublicHttpsUrl(string value, string prefix, List<string> errors)
