@@ -445,9 +445,11 @@ public sealed class ReleaserCoreTests : IDisposable
             await File.ReadAllTextAsync(Path.Combine(output, workspace.Version, "content.json")),
             ManifestJson.Options);
         var imageUrl = Assert.Single(Assert.Single(catalog!.Items).Images);
-        Assert.Equal("https://cdn.example/2.1.141/addons/photo-news/media/01-cover.png", imageUrl);
-        Assert.True(File.Exists(Path.Combine(output, workspace.Version, "addons", news.Id, "media", "01-cover.png")));
-        Assert.True(File.Exists(Path.Combine(published, workspace.Version, "addons", news.Id, "media", "01-cover.png")));
+        Assert.StartsWith("https://cdn.example/2.1.141/addons/photo-news/media/01-cover-", imageUrl, StringComparison.Ordinal);
+        Assert.EndsWith(".png", imageUrl, StringComparison.Ordinal);
+        var imageFileName = Path.GetFileName(new Uri(imageUrl).AbsolutePath);
+        Assert.True(File.Exists(Path.Combine(output, workspace.Version, "addons", news.Id, "media", imageFileName)));
+        Assert.True(File.Exists(Path.Combine(published, workspace.Version, "addons", news.Id, "media", imageFileName)));
 
         await ReleasePublicationService.UnpublishContentAsync(news, workspace, machine);
 
@@ -513,6 +515,35 @@ public sealed class ReleaserCoreTests : IDisposable
         var url = Assert.Single(media.BlockImages).Value;
         Assert.StartsWith("https://raw.githubusercontent.com/", url, StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(versionRoot, Assert.Single(media.RelativeFiles))));
+    }
+
+    [Fact]
+    public async Task ReplacingPhotoBytesChangesPublicUrlEvenWhenFileNameStaysTheSame()
+    {
+        var versionRoot = Path.Combine(_root, "cache-busted-media", "2.1.152");
+        var sourcePhoto = Path.Combine(_root, "same-name.png");
+        Directory.CreateDirectory(_root);
+        await File.WriteAllBytesAsync(sourcePhoto, [0x89, 0x50, 0x4e, 0x47, 0x01]);
+        var news = new ContentDraft { Id = "news", Kind = ContentKind.News, IsPublished = true };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.152",
+            Content = [news],
+            Mirrors = [new ReleaseMirrorSet { Provider = "http", ContentUrl = "https://cdn.example/{version}/addons/{id}/{file}" }],
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            ContentImagePaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ContentMediaPublisher.ContentKey(news.Id)] = [sourcePhoto],
+            },
+        };
+
+        var first = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot);
+        await File.WriteAllBytesAsync(sourcePhoto, [0x89, 0x50, 0x4e, 0x47, 0x02]);
+        var second = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot);
+
+        Assert.NotEqual(Assert.Single(first.ContentImages[news.Id]), Assert.Single(second.ContentImages[news.Id]));
     }
 
     [Fact]

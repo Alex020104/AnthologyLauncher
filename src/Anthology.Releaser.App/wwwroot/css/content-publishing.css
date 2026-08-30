@@ -98,6 +98,13 @@
 .information-block > header button:hover { border-color: var(--gold2); color: var(--gold); }
 .information-block > header .remove-block { border-color: #5d3f39; color: #c87566; }
 
+.article-card-control { display: grid; gap: 11px; padding: 14px; border: 1px solid #65532d; background: linear-gradient(115deg, #211d12, #0b1114 72%); }
+.article-card-control > div:first-child { display: grid; gap: 5px; }
+.article-card-control > div:first-child span { color: var(--gold); font-size: 8px; font-weight: 700; letter-spacing: .15em; }
+.article-card-control > div:first-child strong { color: #e0e4e5; font-size: 13px; }
+.article-card-fields { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(250px, 1.35fr) minmax(150px, .7fr); gap: 10px; }
+.article-card-control > small { color: #829097; font-size: 9px; line-height: 1.5; }
+
 .block-locale-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -139,6 +146,7 @@
 
 @media (max-width: 1250px) {
     .block-locale-grid { grid-template-columns: 1fr; }
+    .article-card-fields { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 850px) {

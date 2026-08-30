@@ -1,4 +1,5 @@
 using Anthology.Contracts;
+using Anthology.Update.Core;
 
 namespace Anthology.Releaser.Core;
 
@@ -153,7 +154,11 @@ public static class ContentMediaPublisher
             throw new InvalidDataException($"Фотография превышает ограничение 25 МБ: {source}");
         }
 
-        var fileName = $"{NormalizeFilePart(prefix)}-{NormalizeFilePart(Path.GetFileNameWithoutExtension(source))}{extension}";
+        // The public URL must change when an editor replaces an image while
+        // keeping the same local file name. WebView2 and raw/CDN mirrors may
+        // otherwise retain a previously cached 404 or the old bitmap.
+        var contentHash = await ArtifactHash.ComputeSha256Async(source, cancellationToken);
+        var fileName = $"{NormalizeFilePart(prefix)}-{NormalizeFilePart(Path.GetFileNameWithoutExtension(source))}-{contentHash[..12]}{extension}";
         var relativePath = Path.Combine("addons", contentId, "media", fileName);
         var destination = Path.Combine(Path.GetFullPath(versionRoot), relativePath);
         progress?.Report($"Подготовка фотографии {Path.GetFileName(source)}…");

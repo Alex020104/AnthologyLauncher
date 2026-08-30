@@ -146,6 +146,18 @@
                                         var currentBlock = block;
                                         <article class="information-block @BlockCssClass(currentBlock.Kind)">
                                             <header><div><span>@BlockKindName(currentBlock.Kind)</span><strong>@(string.IsNullOrWhiteSpace(currentBlock.Title) ? "Без названия" : currentBlock.Title)</strong></div><div><button title="Выше" @onclick="() => MoveInformationBlock(currentBlock, -1)">↑</button><button title="Ниже" @onclick="() => MoveInformationBlock(currentBlock, 1)">↓</button><button class="remove-block" title="Удалить блок" @onclick="() => RemoveInformationBlock(currentBlock)">×</button></div></header>
+                                            @if (currentBlock.Kind == ContentBlockKind.Article)
+                                            {
+                                                <section class="article-card-control">
+                                                    <div><span>УПРАВЛЕНИЕ ПОДКАРТОЧКОЙ</span><strong>Название, подпись, текст, фон и ID редактируются независимо</strong></div>
+                                                    <div class="article-card-fields">
+                                                        <label>Название подкарточки<input @bind="currentBlock.Title" /></label>
+                                                        <label>Подпись под названием<input value="@ArticleDraftStatus(currentBlock.Body)" @oninput="eventArgs => SetArticleDraftStatus(currentBlock, eventArgs.Value?.ToString())" placeholder="Например: ОРИГИНАЛЬНЫЙ СЮЖЕТ · ДОСТУПЕН" /></label>
+                                                        <label>Служебный ID<input value="@currentBlock.Id" @onchange="eventArgs => RenameContentBlock(currentBlock, eventArgs.Value?.ToString())" /></label>
+                                                    </div>
+                                                    <small>Название сразу отображается в списке подкарточек лаунчера. ID должен быть уникальным внутри этой информационной вкладки.</small>
+                                                </section>
+                                            }
                                             @if (currentBlock.Kind == ContentBlockKind.Link)
                                             {
                                                 <label>@BlockUrlLabel(currentBlock.Kind)<input @bind="currentBlock.Url" placeholder="https://..." /></label>
@@ -157,13 +169,13 @@
                                             <div class="block-locale-grid">
                                                 @if (_selectedContentLanguage == "source")
                                                 {
-                                                    <section><span>AUTO</span><label>@BlockTitleLabel(currentBlock.Kind)<input @bind="currentBlock.Title" /></label><label>@BlockBodyLabel(currentBlock.Kind)<textarea rows="5" @bind="currentBlock.Body"></textarea></label></section>
+                                                    <section><span>AUTO</span>@if (currentBlock.Kind == ContentBlockKind.Article) { <label>Полный текст подкарточки<textarea rows="8" value="@ArticleDraftText(currentBlock.Body)" @oninput="eventArgs => SetArticleDraftText(currentBlock, eventArgs.Value?.ToString())"></textarea></label> } else { <label>@BlockTitleLabel(currentBlock.Kind)<input @bind="currentBlock.Title" /></label><label>@BlockBodyLabel(currentBlock.Kind)<textarea rows="5" @bind="currentBlock.Body"></textarea></label> }</section>
                                                 }
                                                 else
                                                 {
                                                     var blockLanguage = AnthologyLanguages.Get(_selectedContentLanguage);
                                                     var blockTranslation = currentBlock.Translation(blockLanguage.Code);
-                                                    <section><span>@blockLanguage.ShortLabel</span><label>@BlockTitleLabel(currentBlock.Kind)<input @bind="blockTranslation.Title" /></label><label>@BlockBodyLabel(currentBlock.Kind)<textarea rows="5" @bind="blockTranslation.Body"></textarea></label></section>
+                                                    <section><span>@blockLanguage.ShortLabel</span><label>@BlockTitleLabel(currentBlock.Kind)<input @bind="blockTranslation.Title" /></label>@if (currentBlock.Kind == ContentBlockKind.Article) { <label>Подпись под названием<input value="@ArticleDraftStatus(blockTranslation.Body)" @oninput="eventArgs => SetArticleDraftStatus(blockTranslation, eventArgs.Value?.ToString())" /></label><label>Полный текст подкарточки<textarea rows="8" value="@ArticleDraftText(blockTranslation.Body)" @oninput="eventArgs => SetArticleDraftText(blockTranslation, eventArgs.Value?.ToString())"></textarea></label> } else { <label>@BlockBodyLabel(currentBlock.Kind)<textarea rows="5" @bind="blockTranslation.Body"></textarea></label> }</section>
                                                 }
                                             </div>
                                         </article>
@@ -1110,6 +1122,65 @@
         if (index < 0 || target < 0 || target >= blocks.Count) { return; }
         (blocks[index], blocks[target]) = (blocks[target], blocks[index]);
     }
+
+    private void RenameContentBlock(ContentBlockDraft block, string? requestedId)
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        var nextId = (requestedId ?? string.Empty).Trim();
+        if (nextId.Length == 0
+            || content.Blocks.Any(candidate => !ReferenceEquals(candidate, block)
+                                               && candidate.Id.Equals(nextId, StringComparison.OrdinalIgnoreCase)))
+        {
+            Toast("ID подкарточки не изменён: он должен быть непустым и уникальным.");
+            return;
+        }
+
+        var previousId = block.Id;
+        if (previousId.Equals(nextId, StringComparison.Ordinal)) { return; }
+        var previousKey = ContentMediaPublisher.BlockKey(content.Id, previousId);
+        var nextKey = ContentMediaPublisher.BlockKey(content.Id, nextId);
+        if (_machine.ContentImagePaths.Remove(previousKey, out var imagePaths))
+        {
+            _machine.ContentImagePaths[nextKey] = imagePaths;
+        }
+        block.Id = nextId;
+    }
+
+    private static string ArticleDraftStatus(string? body)
+    {
+        var normalized = (body ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal);
+        var separator = normalized.IndexOf('\n');
+        return (separator < 0 ? normalized : normalized[..separator]).Trim();
+    }
+
+    private static string ArticleDraftText(string? body)
+    {
+        var normalized = (body ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal);
+        var separator = normalized.IndexOf('\n');
+        return separator < 0 ? string.Empty : normalized[(separator + 1)..].TrimStart('\n', '\r', ' ');
+    }
+
+    private static string JoinArticleDraft(string? status, string? text)
+    {
+        var normalizedStatus = (status ?? string.Empty).Trim();
+        var normalizedText = (text ?? string.Empty).Trim();
+        return normalizedStatus.Length == 0 ? normalizedText
+            : normalizedText.Length == 0 ? normalizedStatus
+            : $"{normalizedStatus}{Environment.NewLine}{Environment.NewLine}{normalizedText}";
+    }
+
+    private static void SetArticleDraftStatus(ContentBlockDraft block, string? value) =>
+        block.Body = JoinArticleDraft(value, ArticleDraftText(block.Body));
+
+    private static void SetArticleDraftText(ContentBlockDraft block, string? value) =>
+        block.Body = JoinArticleDraft(ArticleDraftStatus(block.Body), value);
+
+    private static void SetArticleDraftStatus(ContentBlockTranslationDraft block, string? value) =>
+        block.Body = JoinArticleDraft(value, ArticleDraftText(block.Body));
+
+    private static void SetArticleDraftText(ContentBlockTranslationDraft block, string? value) =>
+        block.Body = JoinArticleDraft(ArticleDraftStatus(block.Body), value);
 
     private void RemoveInformationBlock(ContentBlockDraft block)
     {
