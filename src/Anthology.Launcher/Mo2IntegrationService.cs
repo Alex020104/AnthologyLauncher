@@ -132,6 +132,29 @@ public sealed class Mo2IntegrationService(
         }
     }
 
+    public LauncherActionResult MoveTo(string profile, string modName, string targetModName)
+    {
+        if (IsRuntimeBusy())
+        {
+            return new LauncherActionResult(false, "Профиль заблокирован, пока MO2 или Anomaly запущены");
+        }
+
+        try
+        {
+            Mo2ProfileManager.MoveTo(RequireRoot(), profile, modName, targetModName);
+            InvalidateContent();
+            return new LauncherActionResult(true, "Порядок модов сохранён; резервная копия modlist.txt создана");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or ArgumentOutOfRangeException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
     public LauncherActionResult OpenWorkspaceFolder(string folder)
     {
         try
@@ -339,6 +362,14 @@ public sealed class Mo2IntegrationService(
     {
         var index = await GetContentIndexAsync(false, cancellationToken);
         return index.Browse(relativePath);
+    }
+
+    public async Task<IReadOnlyList<Mo2VirtualEntry>> SearchDataAsync(
+        string query,
+        CancellationToken cancellationToken = default)
+    {
+        var index = await GetContentIndexAsync(false, cancellationToken);
+        return await Task.Run(() => index.Search(query, cancellationToken: cancellationToken), cancellationToken);
     }
 
     public async Task<IReadOnlyList<Mo2ConflictEntry>> GetConflictsAsync(

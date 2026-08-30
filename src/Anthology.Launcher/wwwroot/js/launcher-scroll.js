@@ -45,6 +45,7 @@
         track.dataset.bound = "true";
         let dragging = false;
         let dragOffset = 0;
+        let updateFrame = 0;
 
         const metrics = () => {
             const trackHeight = track.clientHeight;
@@ -56,12 +57,19 @@
         };
 
         const update = () => {
+            updateFrame = 0;
             const { scrollRange, thumbHeight, travel } = metrics();
-            const progress = scrollRange > 0 ? content.scrollTop / scrollRange : 0;
+            const progress = scrollRange > 0
+                ? Math.max(0, Math.min(1, content.scrollTop / scrollRange))
+                : 0;
             thumb.style.height = `${thumbHeight}px`;
             thumb.style.transform = `translateY(${Math.round(progress * travel)}px)`;
             track.setAttribute("aria-valuenow", `${Math.round(progress * 100)}`);
             control.classList.toggle("disabled", scrollRange === 0);
+        };
+
+        const scheduleUpdate = () => {
+            if (!updateFrame) updateFrame = requestAnimationFrame(update);
         };
 
         const scrollToPointer = (clientY, offset = 0) => {
@@ -108,11 +116,16 @@
         });
 
         control.querySelector('[data-scroll-direction="up"]')?.addEventListener("click", () => {
-            content.scrollBy({ top: -Math.max(140, content.clientHeight * 0.7), behavior: "smooth" });
+            content.scrollTo({ top: 0, behavior: "smooth" });
         });
         control.querySelector('[data-scroll-direction="down"]')?.addEventListener("click", () => {
-            content.scrollBy({ top: Math.max(140, content.clientHeight * 0.7), behavior: "smooth" });
+            content.scrollTo({ top: content.scrollHeight - content.clientHeight, behavior: "smooth" });
         });
+
+        track.addEventListener("wheel", event => {
+            content.scrollBy({ top: event.deltaY, behavior: "auto" });
+            event.preventDefault();
+        }, { passive: false });
 
         track.addEventListener("keydown", event => {
             if (event.key === "ArrowUp" || event.key === "PageUp") {
@@ -130,10 +143,36 @@
             }
         });
 
-        content.addEventListener("scroll", update, { passive: true });
-        new ResizeObserver(update).observe(content);
-        new MutationObserver(update).observe(content, { childList: true, subtree: true });
-        update();
+        content.addEventListener("scroll", scheduleUpdate, { passive: true });
+        content.addEventListener("load", scheduleUpdate, true);
+
+        const observedContent = new WeakSet();
+        const resizeObserver = new ResizeObserver(scheduleUpdate);
+        const observeSizes = root => {
+            if (root instanceof Element && !observedContent.has(root)) {
+                observedContent.add(root);
+                resizeObserver.observe(root);
+            }
+            if (root.querySelectorAll) {
+                for (const element of root.querySelectorAll("section, article, div, img, iframe, video")) {
+                    if (!observedContent.has(element)) {
+                        observedContent.add(element);
+                        resizeObserver.observe(element);
+                    }
+                }
+            }
+        };
+
+        observeSizes(content);
+        new MutationObserver(records => {
+            for (const record of records) {
+                for (const added of record.addedNodes) observeSizes(added);
+            }
+            scheduleUpdate();
+        }).observe(content, { childList: true, subtree: true, characterData: true });
+
+        if (document.fonts?.ready) document.fonts.ready.then(scheduleUpdate);
+        scheduleUpdate();
     }
 
     new MutationObserver(records => {

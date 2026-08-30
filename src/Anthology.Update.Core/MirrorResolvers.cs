@@ -83,11 +83,37 @@ public sealed class YandexDiskMirrorResolver(HttpClient httpClient) : IMirrorRes
         string.Equals(mirror.Provider, "yandex-disk", StringComparison.OrdinalIgnoreCase);
 
     public async ValueTask<Uri> ResolveAsync(MirrorManifest mirror, CancellationToken cancellationToken)
+        => await ResolvePublicDownloadAsync(httpClient, mirror.Url, cancellationToken);
+
+    public static async Task<Uri> ResolvePublicDownloadAsync(
+        HttpClient client,
+        string publicUrl,
+        CancellationToken cancellationToken)
     {
+        var publicKey = publicUrl;
+        string? publicPath = null;
+        if (Uri.TryCreate(publicUrl, UriKind.Absolute, out var sourceUri))
+        {
+            publicKey = sourceUri.GetLeftPart(UriPartial.Path);
+            foreach (var part in sourceUri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var pair = part.Split('=', 2);
+                if (pair.Length == 2 && string.Equals(pair[0], "path", StringComparison.OrdinalIgnoreCase))
+                {
+                    publicPath = Uri.UnescapeDataString(pair[1]);
+                    break;
+                }
+            }
+        }
+
+        var pathParameter = string.IsNullOrWhiteSpace(publicPath)
+            ? string.Empty
+            : "&path=" + Uri.EscapeDataString(publicPath);
         var endpoint = new Uri(
             "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
-            + Uri.EscapeDataString(mirror.Url));
-        var response = await httpClient.GetFromJsonAsync<YandexDownloadResponse>(endpoint, cancellationToken)
+            + Uri.EscapeDataString(publicKey)
+            + pathParameter);
+        var response = await client.GetFromJsonAsync<YandexDownloadResponse>(endpoint, cancellationToken)
             ?? throw new InvalidDataException("Yandex Disk returned an empty download response.");
         return new Uri(response.Href, UriKind.Absolute);
     }

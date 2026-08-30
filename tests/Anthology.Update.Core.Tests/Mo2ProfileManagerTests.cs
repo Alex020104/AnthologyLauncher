@@ -34,6 +34,20 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void DragMovePlacesModAtDroppedPriorityAndPreservesComments()
+    {
+        CreateInstance();
+        var path = Path.Combine(_root, "profiles", "Anthology Стандарт", "modlist.txt");
+        File.WriteAllText(path, "# generated\n+Fourth\n+Third\n# keep me\n+Second\n+First\n");
+
+        var updated = Mo2ProfileManager.MoveTo(_root, "Anthology Стандарт", "First", "Third");
+
+        Assert.Equal(["Second", "Third", "First", "Fourth"], updated.Mods.Select(mod => mod.Name));
+        Assert.Contains("# keep me", File.ReadAllLines(path));
+        Assert.True(File.Exists(path + ".anthology-backup"));
+    }
+
+    [Fact]
     public void ReadProfileUsesMo2PriorityOrderAndNamesSeparators()
     {
         CreateInstance();
@@ -91,6 +105,10 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         var conflict = Assert.Single(index.GetConflicts("Low"));
         Assert.Equal("High", conflict.Winner);
         Assert.Contains(index.Browse("gamedata"), item => item.IsDirectory && item.Name == "configs");
+        var search = Assert.Single(index.Search("shared.ltx"));
+        Assert.Equal("gamedata/configs/shared.ltx", search.RelativePath);
+        Assert.Equal("High", search.Source);
+        Assert.Equal(2, search.ProviderCount);
     }
 
     [Fact]

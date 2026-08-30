@@ -168,6 +168,52 @@ public static class Mo2ProfileManager
         });
     }
 
+    public static Mo2ProfileSnapshot MoveTo(
+        string root,
+        string profileName,
+        string modName,
+        string targetModName)
+    {
+        if (string.Equals(modName, targetModName, StringComparison.Ordinal))
+        {
+            return ReadProfile(root, profileName);
+        }
+
+        return Mutate(root, profileName, lines =>
+        {
+            var parsedSlots = lines
+                .Select((line, index) => new { Line = line, Index = index })
+                .Where(item => TryParseModLine(item.Line, out _, out _, out _))
+                .Select(item => item.Index)
+                .ToArray();
+            var displayLines = parsedSlots
+                .Select(index => lines[index])
+                .Reverse()
+                .ToList();
+
+            var sourceIndex = displayLines.FindIndex(line =>
+                TryParseModLine(line, out var name, out _, out _)
+                && string.Equals(name, modName, StringComparison.Ordinal));
+            var targetIndex = displayLines.FindIndex(line =>
+                TryParseModLine(line, out var name, out _, out _)
+                && string.Equals(name, targetModName, StringComparison.Ordinal));
+            if (sourceIndex < 0 || targetIndex < 0)
+            {
+                throw new InvalidOperationException("Перетаскиваемый мод или место назначения не найдено в профиле.");
+            }
+
+            var sourceLine = displayLines[sourceIndex];
+            displayLines.RemoveAt(sourceIndex);
+            displayLines.Insert(Math.Clamp(targetIndex, 0, displayLines.Count), sourceLine);
+
+            var fileOrder = displayLines.AsEnumerable().Reverse().ToArray();
+            for (var index = 0; index < parsedSlots.Length; index++)
+            {
+                lines[parsedSlots[index]] = fileOrder[index];
+            }
+        });
+    }
+
     public static void SetSelectedProfile(string root, string profileName)
     {
         ResolveProfileRoot(root, profileName);

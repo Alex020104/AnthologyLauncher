@@ -233,6 +233,92 @@ public sealed class Mo2ContentIndex
             .ToArray();
     }
 
+    public IReadOnlyList<Mo2VirtualEntry> Search(
+        string query,
+        int limit = 400,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedQuery = NormalizeRelativePath(query);
+        if (normalizedQuery.Length < 2)
+        {
+            return [];
+        }
+
+        limit = Math.Clamp(limit, 1, 2000);
+        var results = new List<Mo2VirtualEntry>(Math.Min(limit, 400));
+        foreach (var pair in _files
+                     .Where(item => item.Key.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var winner = pair.Value.OrderBy(provider => provider.Priority).Last();
+            var info = new FileInfo(winner.FullPath);
+            var providerCount = pair.Value
+                .Select(provider => provider.ModName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            if (!string.IsNullOrWhiteSpace(_gameRoot)
+                && File.Exists(Path.Combine(_gameRoot, pair.Key.Replace('/', Path.DirectorySeparatorChar))))
+            {
+                providerCount++;
+            }
+
+            results.Add(new Mo2VirtualEntry(
+                Path.GetFileName(pair.Key),
+                pair.Key,
+                false,
+                winner.ModName,
+                providerCount,
+                info.Exists ? info.Length : 0,
+                info.Exists ? info.LastWriteTimeUtc : DateTime.MinValue,
+                winner.FullPath));
+            if (results.Count >= limit)
+            {
+                return results;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(_gameRoot) || !Directory.Exists(_gameRoot))
+        {
+            return results;
+        }
+
+        var gameRoot = Path.GetFullPath(_gameRoot);
+        var options = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            RecurseSubdirectories = true,
+            ReturnSpecialDirectories = false,
+        };
+        foreach (var file in Directory.EnumerateFiles(gameRoot, "*", options))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var relative = NormalizeRelativePath(Path.GetRelativePath(gameRoot, file));
+            if (_files.ContainsKey(relative)
+                || !relative.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var info = new FileInfo(file);
+            results.Add(new Mo2VirtualEntry(
+                info.Name,
+                relative,
+                false,
+                BaseGameSource,
+                1,
+                info.Exists ? info.Length : 0,
+                info.Exists ? info.LastWriteTimeUtc : DateTime.MinValue,
+                info.FullName));
+            if (results.Count >= limit)
+            {
+                break;
+            }
+        }
+
+        return results;
+    }
+
     private void AddPhysicalEntries(string current, Dictionary<string, MutableVirtualEntry> entries)
     {
         if (string.IsNullOrWhiteSpace(_gameRoot) || !Directory.Exists(_gameRoot))

@@ -1,7 +1,7 @@
 @using System.ComponentModel.DataAnnotations
 @implements IDisposable
 
-<div class="app-shell">
+<div class="app-shell @(ShowTransferDock ? "transfer-active" : null)">
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-mark"><span>A</span></div>
@@ -766,7 +766,14 @@
                                     {
                                         var currentMod = mod;
                                         var conflict = GetMo2Conflict(currentMod.Name);
-                                        <div class="mo2-mod-row @(group.Separator is not null ? "grouped" : null) @(_selectedMo2ModName == currentMod.Name ? "selected" : null)" @onclick="() => SelectMo2ModAsync(currentMod)">
+                                        <div class="mo2-mod-row @(group.Separator is not null ? "grouped" : null) @(_selectedMo2ModName == currentMod.Name ? "selected" : null) @(_draggedMo2ModName == currentMod.Name ? "dragging" : null)"
+                                             draggable="@(!currentMod.IsUnmanaged && !_mo2Workspace.RuntimeBusy)"
+                                             title="Удерживайте левую кнопку мыши и перетащите мод на новую позицию"
+                                             @ondragstart="() => BeginMo2Drag(currentMod)"
+                                             @ondragover:preventDefault="true"
+                                             @ondrop="() => DropMo2ModAsync(currentMod)"
+                                             @ondragend="EndMo2Drag"
+                                             @onclick="() => SelectMo2ModAsync(currentMod)">
                                             <button class="mo2-switch @(currentMod.Enabled ? "active" : null)" disabled="@(currentMod.IsUnmanaged || _mo2Workspace.RuntimeBusy)" @onclick="() => ToggleMo2Mod(currentMod)" @onclick:stopPropagation="true"><span></span></button>
                                             <div><strong>@currentMod.DisplayName</strong><small>@(currentMod.IsUnmanaged ? "НЕУПРАВЛЯЕМЫЙ" : conflict is null ? "ОЖИДАНИЕ АНАЛИЗА" : $"{conflict.FileCount:N0} ФАЙЛОВ")</small></div>
                                             <span class="mo2-conflict @ConflictClass(conflict)">@ConflictGlyph(conflict)</span>
@@ -807,9 +814,13 @@
                             </div>
                             @if (_mo2RightTab == "data")
                             {
-                                <div class="mo2-pathbar"><button @onclick="BrowseMo2DataUpAsync" disabled="@string.IsNullOrEmpty(_mo2DataPath)">←</button><span>/@_mo2DataPath</span></div>
+                                <div class="mo2-file-search">
+                                    <div class="search-box"><span>⌕</span><input value="@_mo2FileSearch" @oninput="SearchMo2FilesChangedAsync" placeholder="Поиск по всем подключённым файлам" /></div>
+                                    @if (!string.IsNullOrWhiteSpace(_mo2FileSearch)) { <button @onclick="ClearMo2FileSearchAsync" title="Очистить поиск">×</button> }
+                                </div>
+                                <div class="mo2-pathbar"><button @onclick="BrowseMo2DataUpAsync" disabled="@(string.IsNullOrEmpty(_mo2DataPath) || !string.IsNullOrWhiteSpace(_mo2FileSearch))">←</button><span>@(string.IsNullOrWhiteSpace(_mo2FileSearch) ? $"/{_mo2DataPath}" : $"НАЙДЕНО: {_mo2FileSearchResults.Count} · запрос «{_mo2FileSearch}»")</span></div>
                                 <div class="mo2-file-list">
-                                    @foreach (var item in _mo2DataEntries)
+                                    @foreach (var item in Mo2VisibleDataEntries)
                                     {
                                         var currentItem = item;
                                         <button class="@(currentItem.IsDirectory ? "folder" : "file")" @onclick="() => OpenMo2DataEntryAsync(currentItem)"><span>@(currentItem.IsDirectory ? "▰" : "·")</span><div><strong>@currentItem.Name</strong><small>@currentItem.Source · @(currentItem.ProviderCount > 1 ? $"{currentItem.ProviderCount} ИСТОЧНИКА" : FormatBytes(currentItem.Size))</small></div></button>
@@ -919,6 +930,7 @@
                     <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
                     <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
                     <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Автоматический подписанный канал</h3><div class="automatic-update-state @(UpdateConfigurationReady ? "ready" : null)"><i></i><div><strong>@ManifestConfigurationStatus</strong><small>@PublicKeyConfigurationStatus</small></div></div><p>Публичный ключ Anthology уже встроен в лаунчер. Manifest подхватывается автоматически из папки <b>Update</b> рядом с лаунчером или из настроенного командой онлайн-канала.</p><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><details class="advanced-update-settings"><summary>РАСШИРЕННАЯ НАСТРОЙКА ДЛЯ РАЗРАБОТЧИКА</summary><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Переопределить публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="Встроенный ключ используется автоматически" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ ДРУГОЙ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label></details><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
+                    <article class="setting-card source-path-card section-block"><span>ОБРАЗЦЫ ПУТЕЙ</span><h3>GitHub и Яндекс.Диск</h3><p>Эти шаблоны копируются в поля «Источники» релизера. В лаунчере вручную нужен только постоянный адрес <b>manifest.json</b>; пути архивов он получит из подписанного manifest.</p><strong>GITHUB · ВЕТКА addons-unified-library</strong><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/addons/{id}/{file}</code><strong>ЯНДЕКС.ДИСК · ЗАМЕНИТЕ ВАШ_PUBLIC_KEY</strong><code>https://disk.yandex.ru/d/ВАШ_PUBLIC_KEY?path=/manifest.json</code><code>https://disk.yandex.ru/d/ВАШ_PUBLIC_KEY?path=/{version}/{file}</code><code>https://disk.yandex.ru/d/ВАШ_PUBLIC_KEY?path=/{version}/addons/{id}/{file}</code></article>
                     <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
                     <article class="setting-card section-block"><span>ОБЩИЙ СЕРВЕР</span><h3>Community API</h3><label>Адрес сервера<input @bind="_settings.CommunityApiUrl" placeholder="https://community.anthology.example/" /></label><p>Один адрес используется для чата, голосований и баг-репортов. Для локальной проверки оставьте http://127.0.0.1:5249; для работы с другими игроками укажите опубликованный HTTPS-адрес команды.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ СЕРВЕР</button><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
@@ -932,6 +944,21 @@
             <button type="button" data-scroll-direction="down" title="Прокрутить вниз">↓</button>
         </aside>
         </div>
+
+        @if (ShowTransferDock)
+        {
+            <section class="global-transfer-dock" aria-live="polite" aria-label="Ход загрузки">
+                <div class="global-transfer-copy">
+                    <span>ЗАГРУЗКА И УСТАНОВКА</span>
+                    <strong>@TransferTitle</strong>
+                    <small>@TransferSource</small>
+                </div>
+                <div class="global-transfer-progress">
+                    <div><span style="width:@TransferPercentage%"></span></div>
+                    <small>@TransferDetails</small>
+                </div>
+            </section>
+        }
 
         @if (!string.IsNullOrWhiteSpace(_toast))
         {
@@ -1065,6 +1092,10 @@
         null,
         false);
     private string _mo2Search = string.Empty;
+    private string _mo2FileSearch = string.Empty;
+    private IReadOnlyList<Mo2VirtualEntry> _mo2FileSearchResults = [];
+    private CancellationTokenSource? _mo2FileSearchCancellation;
+    private string? _draggedMo2ModName;
     private Mo2ContentOverview? _mo2Content;
     private IReadOnlyList<Mo2VirtualEntry> _mo2DataEntries = [];
     private IReadOnlyList<Mo2ConflictEntry> _mo2ConflictEntries = [];
@@ -1124,6 +1155,8 @@
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
+    private IReadOnlyList<Mo2VirtualEntry> Mo2VisibleDataEntries =>
+        string.IsNullOrWhiteSpace(_mo2FileSearch) ? _mo2DataEntries : _mo2FileSearchResults;
     private BugReportDetails? SelectedBugReport => _bugReports.FirstOrDefault(report =>
         string.Equals(report.Receipt.Id, _selectedBugReportId, StringComparison.OrdinalIgnoreCase));
 
@@ -1765,6 +1798,10 @@
         {
             _mo2Content = await Mo2.GetContentOverviewAsync(forceRefresh, token);
             _mo2DataEntries = await Mo2.BrowseDataAsync(_mo2DataPath, token);
+            if (_mo2FileSearch.Trim().Length >= 2)
+            {
+                _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch, token);
+            }
             if (_selectedMo2ModName is not null)
             {
                 _mo2ConflictEntries = await Mo2.GetConflictsAsync(_selectedMo2ModName, token);
@@ -1829,6 +1866,41 @@
     {
         _mo2DataPath = path;
         _mo2DataEntries = await Mo2.BrowseDataAsync(path);
+    }
+
+    private async Task SearchMo2FilesChangedAsync(ChangeEventArgs args)
+    {
+        _mo2FileSearch = args.Value?.ToString() ?? string.Empty;
+        _mo2FileSearchCancellation?.Cancel();
+        _mo2FileSearchCancellation?.Dispose();
+        _mo2FileSearchCancellation = null;
+        if (_mo2FileSearch.Trim().Length < 2)
+        {
+            _mo2FileSearchResults = [];
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _mo2FileSearchCancellation = cancellation;
+        try
+        {
+            await Task.Delay(180, cancellation.Token);
+            _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch.Trim(), cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Новый символ отменил предыдущий поиск.
+        }
+    }
+
+    private Task ClearMo2FileSearchAsync()
+    {
+        _mo2FileSearchCancellation?.Cancel();
+        _mo2FileSearchCancellation?.Dispose();
+        _mo2FileSearchCancellation = null;
+        _mo2FileSearch = string.Empty;
+        _mo2FileSearchResults = [];
+        return Task.CompletedTask;
     }
 
     private Task BrowseMo2DataUpAsync()
@@ -1959,6 +2031,37 @@
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
+            await LoadMo2ContentAsync(forceRefresh: true);
+        }
+    }
+
+    private void BeginMo2Drag(Mo2ModEntry mod)
+    {
+        if (!mod.IsUnmanaged && !_mo2Workspace.RuntimeBusy)
+        {
+            _draggedMo2ModName = mod.Name;
+        }
+    }
+
+    private void EndMo2Drag() => _draggedMo2ModName = null;
+
+    private async Task DropMo2ModAsync(Mo2ModEntry target)
+    {
+        var source = _draggedMo2ModName;
+        _draggedMo2ModName = null;
+        if (_mo2Workspace.SelectedProfile is null
+            || string.IsNullOrWhiteSpace(source)
+            || string.Equals(source, target.Name, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var result = Mo2.MoveTo(_mo2Workspace.SelectedProfile, source, target.Name);
+        RefreshMo2Workspace();
+        ShowToast(result.Message, !result.Success);
+        if (result.Success)
+        {
+            _selectedMo2ModName = source;
             await LoadMo2ContentAsync(forceRefresh: true);
         }
     }
@@ -2185,6 +2288,87 @@
     private int ContentDownloadPercentage => _contentDownloadProgress is { TotalBytes: > 0 }
         ? Math.Clamp((int)Math.Round(_contentDownloadProgress.DownloadedBytes * 100d / _contentDownloadProgress.TotalBytes), 0, 100)
         : 0;
+
+    private bool ShowTransferDock =>
+        (_updateBusy && _updateProgress is not null)
+        || (_installBusy && _installProgress is not null)
+        || (_contentDownloadId is not null && _contentDownloadProgress is not null);
+
+    private int TransferPercentage => _updateBusy && _updateProgress is not null
+        ? UpdateProgressPercentage
+        : _installBusy && _installProgress is not null
+            ? InstallProgressPercentage
+            : ContentDownloadPercentage;
+
+    private string TransferTitle
+    {
+        get
+        {
+            if (_updateBusy && _updateProgress is not null)
+            {
+                var package = _updateCheck?.Packages.FirstOrDefault(item =>
+                    string.Equals(item.Package.Id, _updateProgress.PackageId, StringComparison.OrdinalIgnoreCase));
+                return package is null ? _updateProgress.Message : $"{_updateProgress.Message} · {package.Package.Version}";
+            }
+
+            if (_installBusy && _installProgress is not null)
+            {
+                return _installProgress.Message;
+            }
+
+            var content = (_publishedContent?.Items ?? []).FirstOrDefault(item =>
+                string.Equals(item.Id, _contentDownloadId, StringComparison.OrdinalIgnoreCase));
+            return content is null ? "Загрузка мода в MO2" : $"Мод: {Localized(content).Title}";
+        }
+    }
+
+    private string TransferSource
+    {
+        get
+        {
+            var provider = _updateBusy
+                ? _updateProgress?.Provider
+                : _installBusy
+                    ? _installProgress?.Provider ?? "InstallMedia"
+                    : _contentDownloadProgress?.Provider;
+            return $"Источник: {FriendlyProvider(provider)}";
+        }
+    }
+
+    private string TransferDetails
+    {
+        get
+        {
+            if (_updateBusy && _updateProgress is { TotalBytes: > 0 } update)
+            {
+                return $"{FormatBytes(update.DownloadedBytes)} / {FormatBytes(update.TotalBytes)} · {TransferPercentage}%";
+            }
+
+            if (_installBusy && _installProgress is { TotalBytes: > 0 } install)
+            {
+                return $"{FormatBytes(install.DownloadedBytes)} / {FormatBytes(install.TotalBytes)} · {TransferPercentage}%";
+            }
+
+            if (_contentDownloadProgress is { TotalBytes: > 0 } content)
+            {
+                return $"{FormatBytes(content.DownloadedBytes)} / {FormatBytes(content.TotalBytes)} · {TransferPercentage}%";
+            }
+
+            return $"{TransferPercentage}% · подготовка файлов";
+        }
+    }
+
+    private static string FriendlyProvider(string? provider) => provider?.Trim().ToLowerInvariant() switch
+    {
+        "github" => "GitHub",
+        "yandex-disk" => "Яндекс.Диск",
+        "google-drive" => "Google Drive",
+        "http" => "HTTPS / CDN",
+        "local-file" => "локальный репозиторий",
+        "installmedia" => "комплект InstallMedia",
+        null or "" => "определяется…",
+        _ => provider!,
+    };
 
     private void ToggleContent(string id) =>
         _openContentId = string.Equals(_openContentId, id, StringComparison.Ordinal) ? null : id;
@@ -2562,6 +2746,8 @@
         _updateCancellation?.Dispose();
         _mo2ContentCancellation?.Cancel();
         _mo2ContentCancellation?.Dispose();
+        _mo2FileSearchCancellation?.Cancel();
+        _mo2FileSearchCancellation?.Dispose();
     }
 
     private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null, bool Bottom = false);

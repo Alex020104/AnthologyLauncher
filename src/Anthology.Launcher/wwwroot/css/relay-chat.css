@@ -26,14 +26,14 @@
 
 .sidebar-language-label strong {
     color: #7e8a90;
-    font-size: 7px;
+    font-size: 10px;
     letter-spacing: .19em;
 }
 
 .sidebar-language-label small {
     margin-top: 2px;
     color: #c8ced1;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .sidebar-language-switch {
@@ -88,7 +88,7 @@
     border-right: 1px solid var(--line-soft);
     background: #0c1114;
     color: #69757b;
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: .1em;
     cursor: pointer;
 }
@@ -96,7 +96,7 @@
 .relay-side-tabs button:last-child { border-right: 0; }
 .relay-side-tabs button:hover { color: #b7c0c4; }
 .relay-side-tabs button.active { color: var(--accent-bright); background: #171c1d; box-shadow: inset 0 -2px var(--accent); }
-.relay-side-tabs em { margin-left: 4px; color: var(--accent); font: 8px Consolas, monospace; font-style: normal; }
+.relay-side-tabs em { margin-left: 4px; color: var(--accent); font: 11px Consolas, monospace; font-style: normal; }
 
 .relay-participant-list {
     min-height: 0;
@@ -138,9 +138,9 @@
 .relay-participant > span { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #354047; background: #172025; color: #9ba7ac; font-weight: 650; }
 .relay-participant.own > span { border-color: #77643a; color: var(--accent-bright); background: #252116; }
 .relay-participant strong,.relay-participant small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.relay-participant strong { font-size: 9px; }
-.relay-participant small { margin-top: 4px; color: #657178; font-size: 7px; }
-.relay-participant em { padding: 3px 5px; border: 1px solid #3b464b; color: #657178; font: 7px Consolas, monospace; font-style: normal; }
+.relay-participant strong { font-size: 12px; }
+.relay-participant small { margin-top: 4px; color: #657178; font-size: 10px; }
+.relay-participant em { padding: 3px 5px; border: 1px solid #3b464b; color: #657178; font: 10px Consolas, monospace; font-style: normal; }
 .relay-participant.selected em,.relay-participant.own em { border-color: #6e5a34; color: var(--accent); }
 .relay-participant.developer { background: linear-gradient(90deg, #6f1d2430, transparent); }
 .relay-participant.developer > span { border-color: #87343b; background: #281417; color: #ff6d72; }
@@ -156,10 +156,10 @@
 .relay-messages .chat-message.moderator strong,.relay-messages .chat-message.moderator em { color: #70c7ed; }
 .relay-messages .chat-message.ai-helper > span { border-color: #936122; background: #2b1e0e; color: #ff9126; }
 .relay-messages .chat-message.ai-helper strong,.relay-messages .chat-message.ai-helper em { color: #ff9126; }
-.chat-message .message-translate { width: auto; min-width: 0; height: 24px; margin-top: 7px; padding: 0 8px; border: 1px solid #35434a; background: #0b1216; color: #758a95; font: 7px Consolas, monospace; letter-spacing: .08em; cursor: pointer; }
+.chat-message .message-translate { width: auto; min-width: 0; height: 24px; margin-top: 7px; padding: 0 8px; border: 1px solid #35434a; background: #0b1216; color: #758a95; font: 10px Consolas, monospace; letter-spacing: .08em; cursor: pointer; }
 .chat-message .message-translate:hover { border-color: #7b683d; color: var(--accent-bright); }
 .chat-message .message-translate:disabled { cursor: wait; opacity: .55; }
-.chat-message .translation-original { display: block; margin-top: 7px; padding: 6px 8px; border-left: 2px solid #4c5860; color: #66747b; font-size: 7px; line-height: 1.45; }
+.chat-message .translation-original { display: block; margin-top: 7px; padding: 6px 8px; border-left: 2px solid #4c5860; color: #66747b; font-size: 10px; line-height: 1.45; }
 
 .relay-participant-empty {
     height: 100%;
@@ -173,8 +173,8 @@
     text-align: center;
 }
 .relay-participant-empty > span { color: var(--accent); font-size: 25px; }
-.relay-participant-empty strong { color: #9da7ab; font-size: 10px; }
-.relay-participant-empty small { font-size: 8px; line-height: 1.5; }
+.relay-participant-empty strong { color: #9da7ab; font-size: 13px; }
+.relay-participant-empty small { font-size: 11px; line-height: 1.5; }
 
 .relay-side-footer {
     min-height: 65px;
@@ -187,7 +187,7 @@
     background: #0c1114;
 }
 .relay-side-footer strong,.relay-side-footer small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.relay-side-footer strong { font-size: 8px; }.relay-side-footer small { margin-top: 3px; color: var(--dim); font-size: 7px; }
+.relay-side-footer strong { font-size: 11px; }.relay-side-footer small { margin-top: 3px; color: var(--dim); font-size: 10px; }
 .relay-side-footer button { width: 32px; height: 32px; border: 1px solid #3a4449; background: #11181c; color: var(--accent); cursor: pointer; }
 
 .relay-options {
@@ -202,10 +202,10 @@
 
 .relay-option-section { margin: 7px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
 .relay-option-section:first-child { margin-top: 0; }
-.relay-option-section span { color: var(--accent); font-size: 7px; letter-spacing: .17em; }
-.relay-option-section h3 { margin: 4px 0 0; font-size: 11px; font-weight: 500; }
-.relay-options label { display: grid; gap: 6px; margin: 10px 0; color: #778389; font-size: 8px; }
-.relay-options input,.relay-options select { width: 100%; min-width: 0; height: 34px; padding: 0 8px; border: 1px solid #303b40; background: #0b1013; color: #b9c1c4; outline: 0; font-size: 9px; }
+.relay-option-section span { color: var(--accent); font-size: 10px; letter-spacing: .17em; }
+.relay-option-section h3 { margin: 4px 0 0; font-size: 13px; font-weight: 500; }
+.relay-options label { display: grid; gap: 6px; margin: 10px 0; color: #778389; font-size: 11px; }
+.relay-options input,.relay-options select { width: 100%; min-width: 0; height: 34px; padding: 0 8px; border: 1px solid #303b40; background: #0b1013; color: #b9c1c4; outline: 0; font-size: 12px; }
 .relay-options input:focus,.relay-options select:focus { border-color: #7a663a; }
 .relay-options select:disabled { opacity: .45; }
 
@@ -230,7 +230,7 @@
 .relay-toggle.active > span { border-color: #8d7743; background: #302817; }
 .relay-toggle.active > span::after { left: 15px; background: var(--accent-bright); }
 .relay-toggle strong,.relay-toggle small { display: block; }
-.relay-toggle strong { color: #b8c0c3; font-size: 8px; }.relay-toggle small { margin-top: 3px; color: #59666c; font-size: 7px; line-height: 1.35; }
+.relay-toggle strong { color: #b8c0c3; font-size: 11px; }.relay-toggle small { margin-top: 3px; color: #59666c; font-size: 10px; line-height: 1.35; }
 
 .relay-option-actions {
     min-height: 63px;
@@ -247,8 +247,8 @@
 .relay-ai-status > span { width: 7px; height: 7px; border-radius: 50%; background: #9b4d3c; box-shadow: 0 0 8px #9b4d3c88; }
 .relay-ai-status.ready > span { background: #65b987; box-shadow: 0 0 8px #65b98788; }
 .relay-ai-status strong,.relay-ai-status small { display: block; }
-.relay-ai-status strong { color: #c3c9cb; font-size: 8px; }
-.relay-ai-status small { margin-top: 4px; color: #657178; font-size: 7px; line-height: 1.45; }
+.relay-ai-status strong { color: #c3c9cb; font-size: 11px; }
+.relay-ai-status small { margin-top: 4px; color: #657178; font-size: 10px; line-height: 1.45; }
 .relay-ai-status code { color: #d8b568; font: inherit; }
 
 @media (max-width: 1240px) {
@@ -259,7 +259,7 @@
     .sidebar-language { margin-inline: 0; padding: 6px; box-shadow: inset 0 2px #6e5a34; }
     .sidebar-language-label { display: none; }
     .sidebar-language-switch { gap: 2px; }
-    .sidebar-language-switch button { height: 25px; font-size: 7px; }
+    .sidebar-language-switch button { height: 25px; font-size: 10px; }
 }
 
 @media (max-width: 760px) {

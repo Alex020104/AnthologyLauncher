@@ -410,7 +410,10 @@ public sealed class UpdateCoordinator
                 throw new InvalidDataException("Remote manifest must use HTTPS.");
             }
 
-            using var response = await _httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            var downloadUri = uri.Host.EndsWith("disk.yandex.ru", StringComparison.OrdinalIgnoreCase)
+                ? await YandexDiskMirrorResolver.ResolvePublicDownloadAsync(_httpClient, source, cancellationToken)
+                : uri;
+            using var response = await _httpClient.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
             if (response.Content.Headers.ContentLength > MaximumManifestBytes)
             {
