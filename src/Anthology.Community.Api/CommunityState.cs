@@ -86,18 +86,42 @@ public sealed class CommunityState
 
     public BugReportReceipt CreateReport(BugReportRequest report)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(report.Title);
-        ArgumentException.ThrowIfNullOrWhiteSpace(report.Description);
-        ArgumentException.ThrowIfNullOrWhiteSpace(report.ReproductionSteps);
+        var requiredFields = new (string Name, string? Value, int MinimumLength, int MaximumLength)[]
+        {
+            ("Заголовок", report.Title, 12, 160),
+            ("Описание ситуации", report.Description, 30, 10_000),
+            ("Шаги воспроизведения", report.ReproductionSteps, 20, 10_000),
+            ("Ожидаемый результат", report.ExpectedResult, 5, 5_000),
+            ("Фактический результат", report.ActualResult, 5, 5_000),
+            ("Версия лаунчера", report.LauncherVersion, 3, 128),
+            ("Версия сборки", report.GameVersion, 5, 256),
+            ("Лог или пояснение об отсутствии вылета", report.LogExcerpt, 10, 30_000),
+            ("Контакт для ответа", report.Contact, 3, 512),
+            ("Автоматическая диагностика", report.SystemSpecs, 20, 10_000),
+            ("Ссылка на полный пакет", report.EvidenceUrl, 12, 2048),
+        };
+        foreach (var field in requiredFields)
+        {
+            var length = field.Value?.Trim().Length ?? 0;
+            if (length < field.MinimumLength)
+            {
+                throw new ArgumentException($"Поле «{field.Name}» обязательно и заполнено недостаточно подробно.");
+            }
+            if (length > field.MaximumLength)
+            {
+                throw new ArgumentException($"Поле «{field.Name}» превышает допустимый размер.");
+            }
+        }
+
         if (report.Title.Length > 160 || report.Description.Length > 10_000)
         {
             throw new ArgumentException("Баг-репорт превышает допустимый размер.");
         }
 
-        if (!string.IsNullOrWhiteSpace(report.EvidenceUrl)
-            && (!Uri.TryCreate(report.EvidenceUrl, UriKind.Absolute, out var evidenceUri)
+        if (!Uri.TryCreate(report.EvidenceUrl, UriKind.Absolute, out var evidenceUri)
                 || evidenceUri.Scheme != Uri.UriSchemeHttps
-                || report.EvidenceUrl.Length > 2048))
+                || !string.IsNullOrEmpty(evidenceUri.UserInfo)
+                || report.EvidenceUrl.Length > 2048)
         {
             throw new ArgumentException("Ссылка на полный пакет должна быть корректной HTTPS-ссылкой.");
         }
@@ -115,6 +139,14 @@ public sealed class CommunityState
                 Title = report.Title.Trim(),
                 Description = report.Description.Trim(),
                 ReproductionSteps = report.ReproductionSteps.Trim(),
+                ExpectedResult = report.ExpectedResult.Trim(),
+                ActualResult = report.ActualResult.Trim(),
+                LauncherVersion = report.LauncherVersion.Trim(),
+                GameVersion = report.GameVersion.Trim(),
+                LogExcerpt = report.LogExcerpt!.Trim(),
+                Contact = report.Contact!.Trim(),
+                SystemSpecs = report.SystemSpecs!.Trim(),
+                EvidenceUrl = report.EvidenceUrl!.Trim(),
                 ReporterId = string.IsNullOrWhiteSpace(report.ReporterId) ? "anonymous" : report.ReporterId.Trim(),
                 ReporterName = string.IsNullOrWhiteSpace(report.ReporterName) ? "Игрок" : report.ReporterName.Trim(),
                 InterfaceLanguage = AnthologyLanguages.IsSupported(report.InterfaceLanguage)

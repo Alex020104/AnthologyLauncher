@@ -619,48 +619,97 @@
             {
                 <section class="report-rules section-block">
                     <span class="eyebrow">ПЕРЕД ОТПРАВКОЙ</span>
-                    <h2>Один отчёт — одна конкретная проблема, которую разработчик сможет повторить.</h2>
-                    <p>Не пишите только «у меня вылетело» или «почините». Сначала кратко назовите проблему, затем укажите место и условия, перечислите действия по порядку и приложите подтверждения. Если проблема относится к стороннему моду, установке или настройке, прямо напишите об этом.</p>
-                    <div class="report-example">
-                        <strong>ЗАПОЛНИТЕ ПО ПОРЯДКУ</strong>
-                        <ol><li><b>Заголовок:</b> что сломалось и где.</li><li><b>Ситуация:</b> сюжет, локация, NPC и важные настройки.</li><li><b>Шаги:</b> действия от загрузки сейва до появления ошибки.</li><li><b>Результат:</b> что должно было произойти и что произошло.</li><li><b>Доказательства:</b> полный лог, небольшой конфиг или HTTPS-ссылка на сейв и видео.</li><li><b>Окружение:</b> версия Anthology, вариант сборки, CPU, GPU, RAM и файл подкачки.</li></ol>
+                    <h2>Баг-репорт должен позволить разработчику повторить проблему без догадок.</h2>
+                    <p>Все поля обязательны. Лаунчер сам добавит реальные характеристики компьютера и накопителя игры. От игрока нужны точное описание, последовательность действий и материалы, подтверждающие ошибку.</p>
+                    <div class="report-guide-grid">
+                        <article><b>01</b><strong>ЧТО СЛОМАЛОСЬ</strong><p>Коротко: действие, ошибка и место. Пример: «Вылет при луте тел в депо на Свалке».</p></article>
+                        <article><b>02</b><strong>ГДЕ И ПРИ КАКИХ УСЛОВИЯХ</strong><p>Сюжет, локация, NPC, загруженный сейв, профиль Standard/Hard и важные настройки MCM.</p></article>
+                        <article><b>03</b><strong>КАК ПОВТОРИТЬ</strong><p>Пронумеруйте каждое действие от запуска или загрузки сейва до появления проблемы.</p></article>
+                        <article><b>04</b><strong>ЧТО ПОЛУЧИЛОСЬ</strong><p>Отдельно напишите ожидаемый результат и то, что произошло фактически.</p></article>
+                        <article><b>05</b><strong>ЛОГ И ФАЙЛЫ</strong><p>Вставьте полный стек ошибки. Если вылета нет, так и напишите. Приложите мелкие конфиги.</p></article>
+                        <article><b>06</b><strong>ПОЛНЫЙ ПАКЕТ</strong><p>Добавьте HTTPS-ссылку на сейвы, видео, скриншоты и большой архив на Яндекс.Диске или другом ресурсе.</p></article>
                     </div>
+                    <div class="report-required-note"><strong>*</strong><span>Пустой или частично заполненный отчёт отправить нельзя. Это правило проверяет и лаунчер, и сервер.</span></div>
                 </section>
                 <section class="support-layout">
-                    <div class="report-intro">
-                        <span class="eyebrow">ПРЯМОЕ ОБРАЩЕНИЕ</span><h2>Дайте нам данные,<br />а не догадки.</h2><p>Хороший отчёт отвечает на три вопроса: что произошло, как это повторить и чем это подтверждается.</p>
-                        <div class="report-checklist"><span>✓ Ситуация и локация</span><span>✓ Повторяемые шаги</span><span>✓ Полный стек ошибки</span><span>✓ Сейв/видео по ссылке</span><span>✓ Версия и PC Specs</span></div>
-                    </div>
-                    <EditForm Model="_report" OnValidSubmit="SubmitReportAsync" class="report-form section-block">
+                    <EditForm Model="_report" OnValidSubmit="SubmitReportAsync" OnInvalidSubmit="HandleInvalidReport" class="report-form section-block">
                         <DataAnnotationsValidator />
-                        <div class="form-heading"><span>НОВОЕ ОБРАЩЕНИЕ</span><strong>Оформите воспроизводимый баг</strong></div>
-                        <label>Краткий заголовок<InputText @bind-Value="_report.Title" placeholder="Например: вылет при луте тел в депо на Свалке" /></label>
-                        <ValidationMessage For="@(() => _report.Title)" />
-                        <label>Ситуация, локация и что произошло<InputTextArea @bind-Value="_report.Description" placeholder="Сюжет/локация, действия NPC, повторяемость, важные настройки MCM" /></label>
-                        <ValidationMessage For="@(() => _report.Description)" />
-                        <label>Полный текст ошибки или фрагмент лога<InputTextArea class="log-input" @bind-Value="_report.LogExcerpt" placeholder="Expression / Function / File / Line / Description / Arguments / stack trace" /></label>
-                        <label>Шаги для воспроизведения<InputTextArea @bind-Value="_report.Steps" placeholder="1. Загрузить сейв... 2. Подойти... 3. Выполнить... 4. Получить вылет" /></label>
-                        <ValidationMessage For="@(() => _report.Steps)" />
-                        <div class="form-two"><label>Ожидаемый результат<InputText @bind-Value="_report.Expected" /></label><label>Фактический результат<InputText @bind-Value="_report.Actual" /></label></div>
-                        <label>Версия и дата сборки<InputText @bind-Value="_report.GameVersion" placeholder="Anthology 2.1 · Standard · latest · дата обновления" /></label>
-                        <label>PC Specs и файл подкачки<InputText @bind-Value="_report.SystemSpecs" placeholder="CPU · GPU · RAM · Windows · размер файла подкачки" /></label>
-                        <label>HTTPS-ссылка на полный пакет<InputText @bind-Value="_report.EvidenceUrl" placeholder="Яндекс.Диск / Google Drive: сейвы, видео, скриншоты, VirusTotal" /></label>
-                        <div class="attachment-picker">
-                            <button class="secondary-button" type="button" @onclick="SelectReportAttachments">＋ ПРИЛОЖИТЬ МЕЛКИЕ ФАЙЛЫ</button>
-                            <small>До 5 файлов, каждый до 5 МБ: LTX, XML, SCRIPT, LOG, TXT, JSON, CFG, INI, ZIP, 7Z.</small>
-                        </div>
-                        @if (_reportAttachments.Count > 0)
-                        {
-                            <div class="attachment-list">
-                                @foreach (var attachment in _reportAttachments)
-                                {
-                                    var currentAttachment = attachment;
-                                    <div><span>@Path.GetFileName(currentAttachment)</span><small>@FormatBytes(new FileInfo(currentAttachment).Length)</small><button type="button" @onclick="() => RemoveReportAttachment(currentAttachment)">×</button></div>
-                                }
+                        <div class="form-heading"><span>НОВОЕ ОБРАЩЕНИЕ</span><strong>Оформите воспроизводимый баг</strong><small>Поля со знаком * обязательны</small></div>
+
+                        <section class="report-form-section">
+                            <header><span>01</span><div><strong>ПРОБЛЕМА И УСЛОВИЯ</strong><small>Что произошло, где и при каких обстоятельствах</small></div></header>
+                            <label>Краткий заголовок *<InputText @bind-Value="_report.Title" placeholder="Например: вылет при луте тел в депо на Свалке" /></label>
+                            <ValidationMessage For="@(() => _report.Title)" />
+                            <label>Ситуация, локация и что произошло *<InputTextArea class="description-input" @bind-Value="_report.Description" placeholder="Укажите сюжет, локацию, NPC, профиль Standard/Hard, повторяемость и важные настройки MCM." /></label>
+                            <ValidationMessage For="@(() => _report.Description)" />
+                        </section>
+
+                        <section class="report-form-section">
+                            <header><span>02</span><div><strong>ВОСПРОИЗВЕДЕНИЕ И РЕЗУЛЬТАТ</strong><small>Действия должны идти строго по порядку</small></div></header>
+                            <label>Шаги для воспроизведения *<InputTextArea class="steps-input" @bind-Value="_report.Steps" placeholder="1. Запустить игру или загрузить сейв…&#10;2. Перейти в локацию…&#10;3. Выполнить действие…&#10;4. Получить ошибку…" /></label>
+                            <ValidationMessage For="@(() => _report.Steps)" />
+                            <div class="form-two">
+                                <div><label>Ожидаемый результат *<InputTextArea @bind-Value="_report.Expected" placeholder="Что должно было произойти" /></label><ValidationMessage For="@(() => _report.Expected)" /></div>
+                                <div><label>Фактический результат *<InputTextArea @bind-Value="_report.Actual" placeholder="Что произошло на самом деле" /></label><ValidationMessage For="@(() => _report.Actual)" /></div>
                             </div>
-                        }
-                        <label>Контакт для ответа<InputText @bind-Value="_report.Contact" placeholder="Discord / Telegram / email (необязательно)" /></label>
-                        <button class="primary-button submit-report" type="submit" disabled="@_submittingReport">@(_submittingReport ? "ОТПРАВКА..." : "ОТПРАВИТЬ РАЗРАБОТЧИКУ")</button>
+                        </section>
+
+                        <section class="report-form-section">
+                            <header><span>03</span><div><strong>ДОКАЗАТЕЛЬСТВА</strong><small>Лог, мелкие вложения и ссылка на полный пакет</small></div></header>
+                            <label>Полный текст ошибки или фрагмент лога *<InputTextArea class="log-input" @bind-Value="_report.LogExcerpt" placeholder="Вставьте Expression / Function / File / Line / Description / Arguments / stack trace. Если вылета нет, напишите: «Вылета нет — наблюдается …»" /></label>
+                            <ValidationMessage For="@(() => _report.LogExcerpt)" />
+                            <label>HTTPS-ссылка на полный пакет *<InputText @bind-Value="_report.EvidenceUrl" placeholder="Яндекс.Диск / Google Drive: сейвы, видео, скриншоты, большой архив, VirusTotal" /></label>
+                            <ValidationMessage For="@(() => _report.EvidenceUrl)" />
+                            <div class="attachment-picker">
+                                <button class="secondary-button" type="button" @onclick="SelectReportAttachments">＋ ПРИЛОЖИТЬ МЕЛКИЕ ФАЙЛЫ</button>
+                                <small>Дополнительно: до 5 файлов, каждый до 5 МБ — LTX, XML, SCRIPT, LOG, TXT, JSON, CFG, INI, ZIP, 7Z.</small>
+                            </div>
+                            @if (_reportAttachments.Count > 0)
+                            {
+                                <div class="attachment-list">
+                                    @foreach (var attachment in _reportAttachments)
+                                    {
+                                        var currentAttachment = attachment;
+                                        <div><span>@Path.GetFileName(currentAttachment)</span><small>@FormatBytes(new FileInfo(currentAttachment).Length)</small><button type="button" @onclick="() => RemoveReportAttachment(currentAttachment)">×</button></div>
+                                    }
+                                </div>
+                            }
+                        </section>
+
+                        <section class="report-form-section">
+                            <header><span>04</span><div><strong>СБОРКА И ОБРАТНАЯ СВЯЗЬ</strong><small>Версия игры и контакт для ответа разработчика</small></div></header>
+                            <div class="form-two">
+                                <div><label>Версия и вариант сборки *<InputText @bind-Value="_report.GameVersion" placeholder="Например: 2.1.131 · Standard · обновлено полностью" /></label><ValidationMessage For="@(() => _report.GameVersion)" /></div>
+                                <div><label>Контакт для ответа *<InputText @bind-Value="_report.Contact" placeholder="Discord / Telegram / email" /></label><ValidationMessage For="@(() => _report.Contact)" /></div>
+                            </div>
+                        </section>
+
+                        <section class="report-form-section diagnostics-section">
+                            <header><span>AUTO</span><div><strong>АВТОМАТИЧЕСКАЯ ДИАГНОСТИКА</strong><small>Эти данные определяет лаунчер — игрок не может изменить их вручную</small></div><button type="button" class="secondary-button" @onclick="() => RefreshSystemDiagnosticsAsync()" disabled="@_diagnosticsLoading">@(_diagnosticsLoading ? "СБОР…" : "↻ ОБНОВИТЬ")</button></header>
+                            <div class="diagnostics-grid">
+                                <div><small>CPU</small><strong>@_systemDiagnostics.Cpu</strong></div>
+                                <div><small>GPU</small><strong>@_systemDiagnostics.GpuText</strong></div>
+                                <div><small>RAM</small><strong>@_systemDiagnostics.MemoryText</strong></div>
+                                <div><small>НАКОПИТЕЛЬ ИГРЫ</small><strong>@_systemDiagnostics.StorageText</strong></div>
+                                <div class="wide"><small>КОРЕНЬ ИГРЫ</small><code>@_systemDiagnostics.GameRoot</code></div>
+                                <div class="wide"><small>ОС И ДИАГНОСТИКА</small><code>@_systemDiagnostics.OperatingSystem · @_systemDiagnostics.CollectedAt.LocalDateTime.ToString("dd.MM.yyyy HH:mm:ss")</code></div>
+                            </div>
+                            <input type="hidden" value="@_report.SystemSpecs" />
+                            <ValidationMessage For="@(() => _report.SystemSpecs)" />
+                        </section>
+
+                        <div class="report-submit-state @(!BugReportFieldsComplete ? "incomplete" : "ready")">
+                            @if (BugReportFieldsComplete)
+                            {
+                                <span><b>✓</b> Все обязательные поля заполнены</span>
+                            }
+                            else
+                            {
+                                <span><b>!</b> Заполните каждое обязательное поле перед отправкой</span>
+                            }
+                            <small>Автоматические характеристики будут сохранены вместе с отчётом и видны разработчику в релизере.</small>
+                        </div>
+                        <button class="primary-button submit-report" type="submit" disabled="@(_submittingReport || !BugReportFieldsComplete)">@(_submittingReport ? "ОТПРАВКА..." : "ОТПРАВИТЬ ЗАПОЛНЕННЫЙ ОТЧЁТ РАЗРАБОТЧИКУ")</button>
                     </EditForm>
                 </section>
                 <section class="report-inbox section-block">
@@ -940,7 +989,7 @@
                     <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
                     <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
                     <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Автоматический подписанный канал</h3><div class="automatic-update-state @(UpdateConfigurationReady ? "ready" : null)"><i></i><div><strong>@ManifestConfigurationStatus</strong><small>@PublicKeyConfigurationStatus</small></div></div><p>Публичный ключ Anthology уже встроен в лаунчер. Manifest подхватывается автоматически из папки <b>Update</b> рядом с лаунчером или из настроенного командой онлайн-канала.</p><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><details class="advanced-update-settings"><summary>РАСШИРЕННАЯ НАСТРОЙКА ДЛЯ РАЗРАБОТЧИКА</summary><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Переопределить публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="Встроенный ключ используется автоматически" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ ДРУГОЙ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label></details><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
-                    <article class="setting-card source-path-card section-block"><span>ОБРАЗЦЫ ПУТЕЙ</span><h3>GitHub и Яндекс.Диск</h3><p>Рабочий каталог аддонов уже опубликован в одной ветке. Для обновления всей сборки релизер создаст отдельный подписанный <b>manifest.json</b>; в лаунчере вручную указывается только его постоянный адрес.</p><strong>GITHUB · РАБОЧАЯ ВЕТКА АДДОНОВ</strong><code>https://github.com/Alex020104/AnthologyLauncher/tree/addons-unified-library</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/addon-catalog.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/library/{category}/addon-NNN.7z</code><strong>GITHUB · ШАБЛОН КАНАЛА ОБНОВЛЕНИЙ</strong><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code><strong>ЯНДЕКС.ДИСК · ЗАМЕНИТЕ ВАШ_PUBLIC_KEY</strong><code>https://disk.yandex.ru/d/ВАШ_PUBLIC_KEY?path=/manifest.json</code><code>https://disk.yandex.ru/d/ВАШ_PUBLIC_KEY?path=/{version}/{file}</code><code>https://disk.yandex.ru/d/ВАШ_PUBLIC_KEY?path=/{version}/addons/{id}/{file}</code></article>
+                    <article class="setting-card source-path-card section-block"><span>ОБРАЗЦЫ ПУТЕЙ</span><h3>GitHub и Яндекс.Диск</h3><p>Рабочий каталог аддонов уже опубликован в одной ветке. Для обновления всей сборки релизер создаст отдельный подписанный <b>manifest.json</b>; в лаунчере вручную указывается только его постоянный адрес.</p><strong>GITHUB · РАБОЧАЯ ВЕТКА АДДОНОВ</strong><code>https://github.com/Alex020104/AnthologyLauncher/tree/addons-unified-library</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/addon-catalog.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/library/{category}/addon-NNN.7z</code><strong>GITHUB · КАНАЛ ОБНОВЛЕНИЙ</strong><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code><strong>ЯНДЕКС.ДИСК · РАБОЧИЙ КАНАЛ</strong><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/manifest.json</code><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/{file}</code><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/addons/{id}/{file}</code></article>
                     <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
                     <article class="setting-card section-block"><span>ОБЩИЙ СЕРВЕР</span><h3>Community API</h3><label>Адрес сервера<input @bind="_settings.CommunityApiUrl" placeholder="https://community.anthology.example/" /></label><p>Один адрес используется для чата, голосований и баг-репортов. Для локальной проверки оставьте http://127.0.0.1:5249; для работы с другими игроками укажите опубликованный HTTPS-адрес команды.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ СЕРВЕР</button><div class="safe-banner">@Settings.DataRoot</div></article>
                 </section>
@@ -1053,6 +1102,8 @@
     private bool _toastError;
     private bool _submittingReport;
     private BugReportForm _report = new();
+    private SystemDiagnosticsSnapshot _systemDiagnostics = SystemDiagnosticsSnapshot.Pending();
+    private bool _diagnosticsLoading;
     private LauncherSettings _settings = new();
     private UpdateCheckResult? _updateCheck;
     private UpdateProgress? _updateProgress;
@@ -1171,6 +1222,7 @@
     {
         _settings = await Settings.LoadAsync();
         _installation = Launcher.DetectInstallation();
+        await RefreshSystemDiagnosticsAsync(showToast: false);
         _bundledMedia = Installer.DetectMedia();
         _setupStatus = Setup.Detect();
         RefreshMo2Workspace();
@@ -1280,6 +1332,7 @@
         var result = await Launcher.SelectGameRootAsync();
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
+        await RefreshSystemDiagnosticsAsync(showToast: false);
         if (_settings.RelayChatAlways)
         {
             await Launcher.EnsureRelayChatStartedAsync();
@@ -1293,6 +1346,7 @@
         var result = await Launcher.SelectModpackRootAsync();
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
+        await RefreshSystemDiagnosticsAsync(showToast: false);
         RefreshMo2Workspace();
         ShowToast(result.Message, !result.Success);
     }
@@ -2522,6 +2576,13 @@
 
     private async Task SubmitReportAsync()
     {
+        if (!BugReportFieldsComplete)
+        {
+            HandleInvalidReport();
+            return;
+        }
+
+        _report.SystemSpecs = _systemDiagnostics.ToReportText();
         _submittingReport = true;
         try
         {
@@ -2532,7 +2593,7 @@
                 _report.Steps,
                 _report.Expected,
                 _report.Actual,
-                "0.5.0-alpha.1",
+                typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.7.0",
                 _report.GameVersion,
                 _report.LogExcerpt,
                 _report.Contact,
@@ -2551,7 +2612,7 @@
             });
             await Settings.SaveAsync(_settings);
             _settings = Settings.Current.Copy();
-            _report = new BugReportForm();
+            _report = new BugReportForm { SystemSpecs = _systemDiagnostics.ToReportText() };
             _reportAttachments = [];
             _selectedBugReportId = receipt.Id;
             await RefreshBugReportsAsync();
@@ -2564,6 +2625,44 @@
         finally
         {
             _submittingReport = false;
+        }
+    }
+
+    private bool BugReportFieldsComplete => !_diagnosticsLoading && _report.IsComplete;
+
+    private void HandleInvalidReport(EditContext? _ = null) =>
+        ShowToast("Заполните все обязательные поля. Пустой или частичный баг-репорт отправить нельзя.", true);
+
+    private async Task RefreshSystemDiagnosticsAsync(bool showToast = true)
+    {
+        if (_diagnosticsLoading)
+        {
+            return;
+        }
+
+        _diagnosticsLoading = true;
+        try
+        {
+            var gameRoot = _installation.GameRoot ?? _settings.GameRoot;
+            _systemDiagnostics = await Task.Run(() => SystemDiagnosticsService.Collect(gameRoot));
+            _report.SystemSpecs = _systemDiagnostics.ToReportText();
+            if (showToast)
+            {
+                ShowToast("CPU, GPU, RAM и накопитель игры определены автоматически");
+            }
+        }
+        catch (Exception exception) when (exception is ManagementException or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            _systemDiagnostics = SystemDiagnosticsSnapshot.Pending(_installation.GameRoot ?? _settings.GameRoot);
+            _report.SystemSpecs = string.Empty;
+            if (showToast)
+            {
+                ShowToast("Не удалось собрать характеристики компьютера. Повторите диагностику.", true);
+            }
+        }
+        finally
+        {
+            _diagnosticsLoading = false;
         }
     }
 
@@ -2808,29 +2907,71 @@
     private sealed class BugReportForm
     {
         [Required(ErrorMessage = "Укажите заголовок")]
-        [StringLength(160)]
+        [StringLength(160, MinimumLength = 12, ErrorMessage = "Заголовок должен содержать от 12 до 160 символов")]
         public string Title { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Подробно опишите ситуацию и место проблемы")]
+        [MinLength(30, ErrorMessage = "Описание должно содержать не менее 30 символов")]
         public string Description { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Перечислите шаги для воспроизведения")]
+        [MinLength(20, ErrorMessage = "Опишите действия подробнее — не менее 20 символов")]
         public string Steps { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Укажите ожидаемый результат")]
+        [MinLength(5, ErrorMessage = "Опишите ожидаемый результат подробнее")]
         public string Expected { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Укажите фактический результат")]
+        [MinLength(5, ErrorMessage = "Опишите фактический результат подробнее")]
         public string Actual { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Вставьте лог или прямо напишите, что вылета нет")]
+        [MinLength(10, ErrorMessage = "Поле лога должно содержать не менее 10 символов")]
         public string LogExcerpt { get; set; } = string.Empty;
 
-        [Required]
-        public string GameVersion { get; set; } = "Anthology 2.1 · Standard · latest";
+        [Required(ErrorMessage = "Укажите версию и вариант сборки")]
+        [MinLength(5, ErrorMessage = "Укажите точную версию сборки")]
+        public string GameVersion { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Автоматическая диагностика ещё не завершена")]
         public string SystemSpecs { get; set; } = string.Empty;
 
-        [Url(ErrorMessage = "Укажите корректную HTTPS-ссылку")]
-        public string? EvidenceUrl { get; set; }
+        [Required(ErrorMessage = "Добавьте HTTPS-ссылку на полный пакет материалов")]
+        [HttpsUrl]
+        public string EvidenceUrl { get; set; } = string.Empty;
 
-        public string? Contact { get; set; }
+        [Required(ErrorMessage = "Укажите контакт для ответа разработчика")]
+        [MinLength(3, ErrorMessage = "Контакт должен содержать не менее 3 символов")]
+        public string Contact { get; set; } = string.Empty;
+
+        public bool IsComplete =>
+            Title.Trim().Length >= 12
+            && Description.Trim().Length >= 30
+            && Steps.Trim().Length >= 20
+            && Expected.Trim().Length >= 5
+            && Actual.Trim().Length >= 5
+            && LogExcerpt.Trim().Length >= 10
+            && GameVersion.Trim().Length >= 5
+            && SystemSpecs.Trim().Length > 0
+            && Contact.Trim().Length >= 3
+            && Uri.TryCreate(EvidenceUrl.Trim(), UriKind.Absolute, out var evidenceUri)
+            && evidenceUri.Scheme == Uri.UriSchemeHttps
+            && string.IsNullOrEmpty(evidenceUri.UserInfo);
+    }
+
+    private sealed class HttpsUrlAttribute : ValidationAttribute
+    {
+        public HttpsUrlAttribute()
+        {
+            ErrorMessage = "Укажите корректную HTTPS-ссылку на полный пакет";
+        }
+
+        public override bool IsValid(object? value) =>
+            value is string text
+            && Uri.TryCreate(text.Trim(), UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps
+            && string.IsNullOrEmpty(uri.UserInfo)
+            && text.Length <= 2048;
     }
 }

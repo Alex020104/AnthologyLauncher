@@ -7,7 +7,8 @@ namespace Anthology.Releaser.App;
 public sealed class ReleaserStateStore : IDisposable
 {
     private const string GitHubRawRoot = "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library";
-    private const string YandexPublicRoot = "https://disk.yandex.ru/d/ЗАМЕНИТЕ_НА_PUBLIC_KEY";
+    private const string YandexPublicRoot = "https://disk.yandex.ru/d/V7pISmMO9ApI5w";
+    private const string YandexChannelPath = "/AnthologyUpdateChannel";
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public ReleaserStateStore()
@@ -33,7 +34,7 @@ public sealed class ReleaserStateStore : IDisposable
             var workspaceExists = File.Exists(WorkspacePath);
             var workspace = await WorkspaceStorage.LoadAsync(WorkspacePath, () => new ReleaserWorkspace(), cancellationToken);
             var machine = await WorkspaceStorage.LoadAsync(MachinePath, () => new ReleaserMachineSettings(), cancellationToken);
-            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 4;
+            var requiresMigrationSave = !workspaceExists || workspace.SchemaVersion < 5;
             var workspaceDefaultsChanged = Normalize(
                 workspace,
                 machine,
@@ -95,7 +96,7 @@ public sealed class ReleaserStateStore : IDisposable
         var previousSchemaVersion = workspace.SchemaVersion;
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 4);
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 5);
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;
@@ -205,10 +206,10 @@ public sealed class ReleaserStateStore : IDisposable
             },
             "yandex-disk" => new[]
             {
-                $"{YandexPublicRoot}?path=/{{version}}/{{file}}",
-                $"{YandexPublicRoot}?path=/{{version}}/{{file}}",
-                $"{YandexPublicRoot}?path=/{{version}}/addons/{{id}}/{{file}}",
-                $"{YandexPublicRoot}?path=/manifest.json",
+                $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/{{file}}",
+                $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/{{file}}",
+                $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/addons/{{id}}/{{file}}",
+                $"{YandexPublicRoot}?path={YandexChannelPath}/manifest.json",
             },
             _ => null,
         };
@@ -217,28 +218,33 @@ public sealed class ReleaserStateStore : IDisposable
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(mirror.GameUrl))
+        if (NeedsDefault(mirror.GameUrl))
         {
             mirror.GameUrl = defaults[0];
             changed = true;
         }
-        if (string.IsNullOrWhiteSpace(mirror.Mo2Url))
+        if (NeedsDefault(mirror.Mo2Url))
         {
             mirror.Mo2Url = defaults[1];
             changed = true;
         }
-        if (string.IsNullOrWhiteSpace(mirror.ContentUrl))
+        if (NeedsDefault(mirror.ContentUrl))
         {
             mirror.ContentUrl = defaults[2];
             changed = true;
         }
-        if (string.IsNullOrWhiteSpace(mirror.ManifestUrl))
+        if (NeedsDefault(mirror.ManifestUrl))
         {
             mirror.ManifestUrl = defaults[3];
             changed = true;
         }
         return changed;
     }
+
+    private static bool NeedsDefault(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+        || value.Contains("ЗАМЕНИТЕ", StringComparison.OrdinalIgnoreCase)
+        || value.Contains("ВАШ_PUBLIC_KEY", StringComparison.OrdinalIgnoreCase);
 
     private static void MigrateLegacyTranslation(
         Dictionary<string, ContentTranslationDraft> translations,

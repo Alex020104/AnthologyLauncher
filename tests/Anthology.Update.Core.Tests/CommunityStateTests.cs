@@ -24,16 +24,14 @@ public sealed class CommunityStateTests : IDisposable
             "Сообщение сохранено",
             DateTimeOffset.UtcNow);
         state.AppendMessage(message);
-        var receipt = state.CreateReport(new BugReportRequest(
-            "Persistent report",
-            "Description",
-            "Steps",
-            "Expected",
-            "Actual",
-            "0.2.0-alpha.1",
-            "sandbox",
-            null,
-            null));
+        var receipt = state.CreateReport(CreateValidReport() with
+        {
+            Title = "Persistent report",
+            Description = "Detailed persistent report description for storage test",
+            ReproductionSteps = "1. Start game. 2. Reproduce the persistent issue.",
+            GameVersion = "sandbox",
+            EvidenceUrl = "https://disk.yandex.ru/d/test-persistence",
+        });
 
         var reloaded = new CommunityState();
 
@@ -48,18 +46,10 @@ public sealed class CommunityStateTests : IDisposable
     {
         Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
         var state = new CommunityState();
-        var receipt = state.CreateReport(new BugReportRequest(
-            "Crash near depot",
-            "Crash while looting bodies",
-            "Load save and loot",
-            "No crash",
-            "Lua crash",
-            "0.3.0-alpha.1",
-            "Anthology 2.1",
-            "stack trace",
-            null,
-            "Test PC",
-            "https://disk.yandex.ru/example"));
+        var receipt = state.CreateReport(CreateValidReport() with
+        {
+            EvidenceUrl = "https://disk.yandex.ru/d/test-attachment",
+        });
         var bytes = "[anthology_test]\nenabled = true"u8.ToArray();
         await using var stream = new MemoryStream(bytes);
         var files = new FormFileCollection
@@ -85,21 +75,13 @@ public sealed class CommunityStateTests : IDisposable
     {
         Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
         var state = new CommunityState();
-        var receipt = state.CreateReport(new BugReportRequest(
-            "Crash near depot",
-            "Crash while looting bodies",
-            "Load save and loot",
-            "No crash",
-            "Lua crash",
-            "0.7.0-alpha.1",
-            "2.1.131",
-            "stack trace",
-            null,
-            "Test PC",
-            null,
-            "player-01",
-            "Шура",
-            "ru"));
+        var receipt = state.CreateReport(CreateValidReport() with
+        {
+            EvidenceUrl = "https://disk.yandex.ru/d/test-developer-flow",
+            ReporterId = "player-01",
+            ReporterName = "Шура",
+            InterfaceLanguage = "ru",
+        });
 
         Assert.False(string.IsNullOrWhiteSpace(receipt.AccessToken));
         Assert.True(state.ReportTokenMatches(receipt.Id, receipt.AccessToken));
@@ -129,16 +111,13 @@ public sealed class CommunityStateTests : IDisposable
     {
         Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
         var state = new CommunityState();
-        var receipt = state.CreateReport(new BugReportRequest(
-            "Backup test",
-            "Description",
-            "Steps",
-            "Expected",
-            "Actual",
-            "test",
-            "2.1.131",
-            null,
-            null));
+        var receipt = state.CreateReport(CreateValidReport() with
+        {
+            Title = "Backup test report",
+            Description = "Detailed backup report description for database test",
+            ReproductionSteps = "1. Create report. 2. Create backup. 3. Delete report.",
+            EvidenceUrl = "https://disk.yandex.ru/d/test-backup",
+        });
 
         var backup = state.CreateBackup();
         Assert.True(File.Exists(backup.Path));
@@ -146,6 +125,50 @@ public sealed class CommunityStateTests : IDisposable
         Assert.True(state.DeleteReport(receipt.Id));
         Assert.Null(new CommunityState().GetReport(receipt.Id));
     }
+
+    [Theory]
+    [InlineData("title")]
+    [InlineData("description")]
+    [InlineData("steps")]
+    [InlineData("expected")]
+    [InlineData("actual")]
+    [InlineData("log")]
+    [InlineData("contact")]
+    [InlineData("system")]
+    [InlineData("evidence")]
+    public void IncompleteBugReportIsRejected(string missingField)
+    {
+        Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
+        var report = CreateValidReport();
+        report = missingField switch
+        {
+            "title" => report with { Title = "" },
+            "description" => report with { Description = "" },
+            "steps" => report with { ReproductionSteps = "" },
+            "expected" => report with { ExpectedResult = "" },
+            "actual" => report with { ActualResult = "" },
+            "log" => report with { LogExcerpt = "" },
+            "contact" => report with { Contact = "" },
+            "system" => report with { SystemSpecs = "" },
+            "evidence" => report with { EvidenceUrl = "" },
+            _ => report,
+        };
+
+        Assert.Throws<ArgumentException>(() => new CommunityState().CreateReport(report));
+    }
+
+    private static BugReportRequest CreateValidReport() => new(
+        "Reproducible crash report",
+        "Detailed description of the reproducible problem and location",
+        "1. Load save. 2. Enter location. 3. Reproduce the crash.",
+        "The game continues without a crash",
+        "The game terminates with a Lua error",
+        "0.7.0-alpha.1",
+        "2.1.131 Standard",
+        "Expression: test; stack trace follows",
+        "discord-user",
+        "CPU: Test CPU; GPU: Test GPU; RAM: 32 GB; Drive: A:",
+        "https://disk.yandex.ru/d/test-evidence");
 
     public void Dispose()
     {
