@@ -12,10 +12,10 @@ public static class LauncherUpdateConfigurationPublisher
 
     public static string? ResolveStableManifestSource(ReleaserWorkspace workspace) =>
         workspace.Mirrors
-            // The GitHub publication root is only a working checkout until it is
-            // committed and pushed. Yandex.Disk is synchronized immediately, so
-            // it is the reliable stable descriptor for installed launchers.
-            .OrderBy(mirror => string.Equals(mirror.Provider, "yandex-disk", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            // The manifest is tiny and GitHub raw is more responsive than a
+            // public Yandex.Disk download. Large artifacts still use their own
+            // ordered mirror lists from the signed manifest.
+            .OrderBy(mirror => string.Equals(mirror.Provider, "github", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(mirror => mirror.Priority)
             .Select(mirror => mirror.ManifestUrl?.Trim())
             .FirstOrDefault(IsHttpAddress);

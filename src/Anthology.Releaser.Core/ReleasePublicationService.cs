@@ -52,6 +52,11 @@ public static partial class ReleasePublicationService
 
         var gameRoot = Path.GetFullPath(machine.GameSourceRoot);
         var launcherRoot = Path.Combine(gameRoot, "AnthologyLauncher");
+        var channelPreparation = await LauncherUpdateConfigurationPublisher.PrepareAsync(
+            workspace,
+            machine,
+            progress,
+            cancellationToken);
         var launcherAssembly = Path.Combine(launcherRoot, "App", "AnthologyLauncher.Next.dll");
         var startScript = Path.Combine(launcherRoot, "Start-AnthologyLauncherNext.ps1");
         if (!File.Exists(launcherAssembly) || !File.Exists(startScript))
@@ -92,7 +97,7 @@ public static partial class ReleasePublicationService
         var deliveryName = $"anthology-launcher-{workspace.Version.Trim()}.zip";
         var deliveryPath = Path.Combine(versionRoot, deliveryName);
         var pendingBase = "AnthologyLauncher/Update/LauncherPending";
-        var deliveredFiles = new[]
+        var deliveredFiles = new List<QuickReleaseFileDraft>
         {
             new QuickReleaseFileDraft
             {
@@ -113,6 +118,16 @@ public static partial class ReleasePublicationService
                 RelativePath = "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
             },
         };
+        if (!string.IsNullOrWhiteSpace(channelPreparation.DescriptorPath)
+            && File.Exists(channelPreparation.DescriptorPath))
+        {
+            deliveredFiles.Add(new QuickReleaseFileDraft
+            {
+                SourcePath = channelPreparation.DescriptorPath,
+                InstallRoot = "game",
+                RelativePath = "AnthologyLauncher/Update/channel.json",
+            });
+        }
         await CreateMappedArchiveAsync(deliveryPath, deliveredFiles, cancellationToken);
 
         var mirrors = workspace.Mirrors
