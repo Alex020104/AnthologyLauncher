@@ -85,6 +85,25 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void RebaseGamePathsUpdatesPortableAnomalyExecutablesAndCreatesBackup()
+    {
+        CreateInstance();
+        var gameRoot = Path.Combine(_root, "A.N.T.H.O.L.O.G.Y");
+        var gameBin = Path.Combine(gameRoot, "bin");
+        Directory.CreateDirectory(gameBin);
+        File.WriteAllText(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), string.Empty);
+
+        Mo2ProfileManager.RebaseGamePaths(_root, gameRoot);
+
+        var snapshot = Mo2ProfileManager.Detect(_root);
+        Assert.Equal(Path.GetFullPath(gameRoot), snapshot.GamePath);
+        var executable = Assert.Single(snapshot.Executables);
+        Assert.Equal(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), executable.Binary);
+        Assert.Equal(gameBin, executable.WorkingDirectory);
+        Assert.True(File.Exists(Path.Combine(_root, "ModOrganizer.ini.anthology-backup")));
+    }
+
+    [Fact]
     public void ContentIndexFindsWinningConflictsAndBrowsesVirtualTree()
     {
         CreateInstance();

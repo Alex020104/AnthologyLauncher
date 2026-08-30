@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Buffers;
 using System.IO;
 using Anthology.Mo2.Core;
 
@@ -15,6 +16,8 @@ public sealed class Mo2IntegrationService(
     LauncherSettingsStore settingsStore,
     LauncherBridge launcherBridge) : IDisposable
 {
+    private static readonly SearchValues<char> InvalidSaveNameCharacters =
+        SearchValues.Create("/\\:*?\"<>|^()[]%");
     private readonly SemaphoreSlim _contentGate = new(1, 1);
     private string? _contentKey;
     private Mo2ContentIndex? _contentIndex;
@@ -25,6 +28,12 @@ public sealed class Mo2IntegrationService(
         if (!instance.Available)
         {
             return new Mo2WorkspaceSnapshot(instance, null, null, null, IsRuntimeBusy());
+        }
+
+        if (!string.IsNullOrWhiteSpace(settingsStore.Current.GameRoot)
+            && Directory.Exists(settingsStore.Current.GameRoot))
+        {
+            instance = instance with { GamePath = Path.GetFullPath(settingsStore.Current.GameRoot) };
         }
 
         var profile = instance.Profiles.Contains(settingsStore.Current.SelectedMo2Profile, StringComparer.OrdinalIgnoreCase)
@@ -380,7 +389,17 @@ public sealed class Mo2IntegrationService(
         return index.GetConflicts(modName);
     }
 
-    public async Task<LauncherActionResult> LaunchSelectedAsync(CancellationToken cancellationToken = default)
+    public Task<LauncherActionResult> LaunchSelectedAsync(CancellationToken cancellationToken = default) =>
+        LaunchSelectedCoreAsync(null, cancellationToken);
+
+    public Task<LauncherActionResult> LaunchSaveAsync(
+        string savePath,
+        CancellationToken cancellationToken = default) =>
+        LaunchSelectedCoreAsync(savePath, cancellationToken);
+
+    private async Task<LauncherActionResult> LaunchSelectedCoreAsync(
+        string? savePath,
+        CancellationToken cancellationToken)
     {
         var workspace = GetWorkspace();
         if (!workspace.Instance.Available || workspace.SelectedProfile is null || workspace.SelectedExecutable is null)
@@ -393,6 +412,22 @@ public sealed class Mo2IntegrationService(
             return new LauncherActionResult(false, "MO2 или Anomaly уже запущены. Закройте текущую сессию перед запуском другого профиля.");
         }
 
+        string? saveName = null;
+        if (!string.IsNullOrWhiteSpace(savePath))
+        {
+            try
+            {
+                saveName = ValidateSaveForLaunch(workspace.Instance, savePath);
+            }
+            catch (Exception exception) when (exception is IOException
+                                               or InvalidDataException
+                                               or InvalidOperationException
+                                               or UnauthorizedAccessException)
+            {
+                return new LauncherActionResult(false, exception.Message);
+            }
+        }
+
         var prepared = await launcherBridge.PrepareModpackRuntimeAsync(cancellationToken);
         if (!prepared.Success)
         {
@@ -402,6 +437,10 @@ public sealed class Mo2IntegrationService(
         try
         {
             var organizer = Path.Combine(workspace.Instance.Root, "ModOrganizer.exe");
+            if (!string.IsNullOrWhiteSpace(workspace.Instance.GamePath))
+            {
+                Mo2ProfileManager.RebaseGamePaths(workspace.Instance.Root, workspace.Instance.GamePath);
+            }
             Mo2ProfileManager.SetSelectedProfile(workspace.Instance.Root, workspace.SelectedProfile);
             var startInfo = new ProcessStartInfo(organizer)
             {
@@ -414,11 +453,20 @@ public sealed class Mo2IntegrationService(
             startInfo.ArgumentList.Add("-e");
             startInfo.ArgumentList.Add(workspace.SelectedExecutable);
             startInfo.ArgumentList.Add("-a");
-            startInfo.ArgumentList.Add(launcherBridge.GetGameArguments());
+            var gameArguments = launcherBridge.GetGameArguments();
+            if (saveName is not null)
+            {
+                gameArguments = string.IsNullOrWhiteSpace(gameArguments)
+                    ? $"-load {saveName}"
+                    : $"{gameArguments} -load {saveName}";
+            }
+            startInfo.ArgumentList.Add(gameArguments);
             Process.Start(startInfo);
             return new LauncherActionResult(
                 true,
-                $"Запущена {workspace.SelectedProfile} через скрытый runtime MO2");
+                saveName is null
+                    ? $"Запущена {workspace.SelectedProfile} через скрытый runtime MO2"
+                    : $"Запущено сохранение «{saveName}» через профиль {workspace.SelectedProfile}");
         }
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
@@ -426,6 +474,56 @@ public sealed class Mo2IntegrationService(
         {
             return new LauncherActionResult(false, exception.Message);
         }
+    }
+
+    private static string ValidateSaveForLaunch(Mo2InstanceSnapshot instance, string savePath)
+    {
+        if (string.IsNullOrWhiteSpace(instance.GamePath))
+        {
+            throw new InvalidOperationException("MO2 не сообщает корень игры для проверки сохранения");
+        }
+
+        var fullPath = Path.GetFullPath(savePath);
+        if (!File.Exists(fullPath))
+        {
+            throw new IOException($"Файл сохранения не найден: {Path.GetFileName(fullPath)}");
+        }
+
+        var gameRoot = Path.GetFullPath(instance.GamePath);
+        var allowedDirectories = new[]
+        {
+            Path.Combine(gameRoot, "appdata", "savedgames"),
+            Path.Combine(gameRoot, "_appdata_", "savedgames"),
+            Path.Combine(gameRoot, "savedgames"),
+        };
+        if (!allowedDirectories.Any(directory => IsInsideDirectory(fullPath, directory)))
+        {
+            throw new InvalidOperationException("Запуск разрешён только для сохранений подключённой игры");
+        }
+
+        var extension = Path.GetExtension(fullPath);
+        if (!extension.Equals(".scop", StringComparison.OrdinalIgnoreCase)
+            && !extension.Equals(".scoc", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("Выбранный файл не является сохранением Anomaly");
+        }
+
+        var saveName = Path.GetFileNameWithoutExtension(fullPath);
+        if (string.IsNullOrWhiteSpace(saveName)
+            || saveName.AsSpan().IndexOfAny(InvalidSaveNameCharacters) >= 0)
+        {
+            throw new InvalidDataException("Имя сохранения содержит недопустимые для X-Ray символы");
+        }
+
+        return saveName;
+    }
+
+    private static bool IsInsideDirectory(string path, string directory)
+    {
+        var relative = Path.GetRelativePath(Path.GetFullPath(directory), path);
+        return !Path.IsPathRooted(relative)
+               && !relative.Equals("..", StringComparison.Ordinal)
+               && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
     }
 
     private string RequireRoot()

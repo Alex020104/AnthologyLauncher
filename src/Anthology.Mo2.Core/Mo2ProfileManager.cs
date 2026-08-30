@@ -258,6 +258,111 @@ public static class Mo2ProfileManager
         }
     }
 
+    public static void RebaseGamePaths(string root, string gameRoot)
+    {
+        var fullRoot = Path.GetFullPath(root);
+        var fullGameRoot = Path.GetFullPath(gameRoot);
+        var gameBin = Path.Combine(fullGameRoot, "bin");
+        if (!Directory.Exists(fullGameRoot) || !Directory.Exists(gameBin))
+        {
+            throw new DirectoryNotFoundException($"Корень Anomaly не найден: {fullGameRoot}");
+        }
+
+        var path = Path.Combine(fullRoot, OrganizerConfiguration);
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException("ModOrganizer.ini не найден.", path);
+        }
+
+        var lines = File.ReadAllLines(path).ToList();
+        var changed = false;
+        var gamePathLine = lines.FindIndex(line => line.StartsWith("gamePath=", StringComparison.OrdinalIgnoreCase));
+        var encodedGamePath = $"gamePath={EncodeQtByteArray(fullGameRoot)}";
+        if (gamePathLine >= 0)
+        {
+            if (!string.Equals(lines[gamePathLine], encodedGamePath, StringComparison.Ordinal))
+            {
+                lines[gamePathLine] = encodedGamePath;
+                changed = true;
+            }
+        }
+        else
+        {
+            var general = lines.FindIndex(line => string.Equals(line.Trim(), "[General]", StringComparison.OrdinalIgnoreCase));
+            lines.Insert(general >= 0 ? general + 1 : 0, encodedGamePath);
+            changed = true;
+        }
+
+        var rebasedExecutables = new HashSet<int>();
+        var inExecutables = false;
+        for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
+        {
+            var line = lines[lineIndex].Trim();
+            if (line.StartsWith('['))
+            {
+                inExecutables = string.Equals(line, "[customExecutables]", StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            if (!inExecutables || !TryReadExecutableSetting(line, out var executableIndex, out var field, out var value)
+                || !field.Equals("binary", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var fileName = Path.GetFileName(NormalizeIniPath(value));
+            if (!fileName.StartsWith("Anomaly", StringComparison.OrdinalIgnoreCase)
+                || !fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var target = Path.Combine(gameBin, fileName);
+            if (!File.Exists(target))
+            {
+                continue;
+            }
+
+            rebasedExecutables.Add(executableIndex);
+            var replacement = $"{executableIndex}\\binary={ToIniPath(target)}";
+            if (!string.Equals(lines[lineIndex], replacement, StringComparison.Ordinal))
+            {
+                lines[lineIndex] = replacement;
+                changed = true;
+            }
+        }
+
+        inExecutables = false;
+        for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
+        {
+            var line = lines[lineIndex].Trim();
+            if (line.StartsWith('['))
+            {
+                inExecutables = string.Equals(line, "[customExecutables]", StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            if (!inExecutables || !TryReadExecutableSetting(line, out var executableIndex, out var field, out _)
+                || !field.Equals("workingDirectory", StringComparison.OrdinalIgnoreCase)
+                || !rebasedExecutables.Contains(executableIndex))
+            {
+                continue;
+            }
+
+            var replacement = $"{executableIndex}\\workingDirectory={ToIniPath(gameBin)}";
+            if (!string.Equals(lines[lineIndex], replacement, StringComparison.Ordinal))
+            {
+                lines[lineIndex] = replacement;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            WriteAtomicWithBackup(path, lines);
+        }
+    }
+
     public static void AddMod(string root, string profileName, string modName, bool enabled)
     {
         var profileRoot = ResolveProfileRoot(root, profileName);
@@ -504,8 +609,33 @@ public static class Mo2ProfileManager
             .ToArray();
     }
 
+    private static bool TryReadExecutableSetting(
+        string line,
+        out int executableIndex,
+        out string field,
+        out string value)
+    {
+        executableIndex = 0;
+        field = string.Empty;
+        value = string.Empty;
+        var slash = line.IndexOf('\\');
+        var equals = line.IndexOf('=');
+        if (slash <= 0 || equals <= slash
+            || !int.TryParse(line[..slash], NumberStyles.None, CultureInfo.InvariantCulture, out executableIndex))
+        {
+            return false;
+        }
+
+        field = line[(slash + 1)..equals];
+        value = line[(equals + 1)..];
+        return true;
+    }
+
     private static string NormalizeIniPath(string? value) =>
         (value ?? string.Empty).Replace('/', Path.DirectorySeparatorChar);
+
+    private static string ToIniPath(string value) =>
+        value.Replace(Path.DirectorySeparatorChar, '/');
 
     internal static string DecodeQtByteArray(string value)
     {
