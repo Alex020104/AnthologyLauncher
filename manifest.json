@@ -3,12 +3,12 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.133",
-    "publishedAt": "2026-08-30T13:07:07.083264+00:00",
+    "publishedAt": "2026-08-30T13:41:39.9540026+00:00",
     "packages": [],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.133",
-      "publishedAt": "2026-08-30T13:07:07.0832625+00:00",
+      "publishedAt": "2026-08-30T13:41:39.9539502+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -247,6 +247,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "bY\u002BlLs98JOTJrF3WJXJRY9Ey7PYlRMq7zg/8NDKbrNOPZmlsnsLGuy3GHDC8\u002BqpEYm4C1mB5BVNLt3IrpwIssg=="
+    "value": "ENjL3DkG4zD2/\u002BAEJuKL2uCc1l9LNBARlKEa1/qEs2g\u002B6MUxkJHJM/ohIYlCwi9IdRqLvjpP62FkFug4z1zJeA=="
   }
 }
