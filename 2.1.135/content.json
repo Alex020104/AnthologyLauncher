@@ -1,20 +1,8 @@
 {
   "schemaVersion": 4,
   "version": "2.1.135",
-  "publishedAt": "2026-08-30T16:03:29.6458205+00:00",
+  "publishedAt": "2026-08-30T16:18:23.9814154+00:00",
   "items": [
-    {
-      "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
-      "kind": "mod",
-      "section": "dev",
-      "title": "\u041D\u043E\u0432\u044B\u0439 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B",
-      "summary": "",
-      "body": "",
-      "images": [],
-      "videos": [],
-      "translations": {},
-      "blocks": []
-    },
     {
       "id": "next-architecture",
       "kind": "news",

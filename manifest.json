@@ -3,25 +3,13 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.135",
-    "publishedAt": "2026-08-30T16:03:29.645822+00:00",
+    "publishedAt": "2026-08-30T16:18:23.9814169+00:00",
     "packages": [],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.135",
-      "publishedAt": "2026-08-30T16:03:29.6458205+00:00",
+      "publishedAt": "2026-08-30T16:18:23.9814154+00:00",
       "items": [
-        {
-          "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
-          "kind": "mod",
-          "section": "dev",
-          "title": "\u041D\u043E\u0432\u044B\u0439 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B",
-          "summary": "",
-          "body": "",
-          "images": [],
-          "videos": [],
-          "translations": {},
-          "blocks": []
-        },
         {
           "id": "next-architecture",
           "kind": "news",
@@ -257,6 +245,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "drSma8Px5d2ue0NNcCiIJpOR2fTzmVAuTFJ012Vk4qvyyLiGHv3aQfrFoCnEAF9qUj9c5xP0En7UN3ce\u002B26diQ=="
+    "value": "VvRdTwVcqnqtQptD0e3RwCrSUu2CagxIdoDfWtrf1a6\u002BNFMIRwrCnvmrUhFiup30ivZfGMtyNDZdS0S\u002BQXBpWQ=="
   }
 }
