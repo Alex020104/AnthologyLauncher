@@ -108,14 +108,27 @@ button { color: inherit; }
 .hero-social-logo img { width: 31px; height: 31px; object-fit: contain; filter: drop-shadow(0 0 7px color-mix(in srgb, var(--social-color, var(--accent)) 45%, transparent)); }
 .hero-social-copy { min-width: 0; }.hero-social-copy strong,.hero-social-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.hero-social-copy strong { color: #e3e7e9; font-size: 12px; }.hero-social-copy small { margin-top: 4px; color: #6f7b82; font-size: 9px; }
 .hero-social-link > i { color: var(--social-color, var(--accent)); font-size: 11px; font-style: normal; }
-.hero-actions { display: flex; gap: 10px; margin-top: 30px; }
+.hero-actions { max-width: 680px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 30px; }
+.launch-button { --launch-color: var(--accent); min-width: 0; min-height: 78px; position: relative; display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: center; gap: 11px; overflow: hidden; padding: 10px 13px; border: 1px solid var(--launch-border, var(--launch-color)); outline: 0; background: var(--launch-background); color: var(--launch-text, #f0f2f3); text-align: left; box-shadow: inset 0 0 0 1px #ffffff09, 0 5px 17px #0005; cursor: pointer; transition: transform .17s ease, border-color .17s ease, filter .17s ease, box-shadow .17s ease; }
+.launch-button::before { content: ""; position: absolute; inset: auto 0 0; height: 3px; background: var(--launch-glow, var(--launch-color)); box-shadow: 0 0 13px var(--launch-glow, var(--launch-color)); opacity: .72; }
+.launch-button::after { content: "›"; position: absolute; right: 10px; top: 7px; color: var(--launch-arrow, #ffffff88); font-size: 16px; line-height: 1; }
+.launch-button:hover:not(:disabled) { z-index: 2; transform: translateY(-3px); filter: brightness(1.12); box-shadow: inset 0 0 24px #ffffff0c, 0 10px 25px #0009, 0 0 18px color-mix(in srgb, var(--launch-color) 23%, transparent); }
+.launch-button:active:not(:disabled) { transform: translateY(-1px); }
+.launch-button:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.launch-button:disabled { cursor: not-allowed; filter: grayscale(.72); opacity: .38; box-shadow: none; }
+.launch-button-icon { width: 42px; height: 42px; position: relative; display: grid; place-items: center; border: 1px solid var(--launch-icon-border, #ffffff36); background: var(--launch-icon-background, #080b0d36); color: var(--launch-icon-color, currentColor); font: 700 15px "Segoe UI Variable", sans-serif; box-shadow: inset 0 0 13px #0005; }
+.launch-button-copy { min-width: 0; padding-right: 4px; }.launch-button-copy strong,.launch-button-copy small { display: block; }.launch-button-copy strong { overflow: visible; font-size: 10.5px; font-weight: 800; line-height: 1.28; letter-spacing: .055em; white-space: normal; }.launch-button-copy small { margin-top: 5px; overflow: hidden; color: var(--launch-muted, #ffffffa3); font-size: 8.5px; font-weight: 500; letter-spacing: .015em; text-overflow: ellipsis; white-space: nowrap; }
+.launch-modpack { --launch-color: #d6b660; --launch-border: #d8b85f; --launch-background: linear-gradient(135deg, #d5b568, #b89446); --launch-text: #17130b; --launch-muted: #3f3218; --launch-icon-background: #16120c1f; --launch-icon-border: #4d3c18; --launch-icon-color: #211a0d; --launch-arrow: #33270f; }
+.launch-original { --launch-color: #8ba9b6; --launch-border: #607b87; --launch-background: linear-gradient(135deg, #34464f, #202e35); --launch-text: #f1f5f7; --launch-muted: #aabdc5; --launch-icon-background: #10191e; --launch-icon-border: #7895a1; --launch-icon-color: #cfe1e8; --launch-arrow: #a9c3ce; }
+.launch-online { --launch-color: #72b184; --launch-border: #598468; --launch-background: linear-gradient(135deg, #355e44, #203d2d); --launch-text: #eef8f1; --launch-muted: #a8cbb1; --launch-icon-background: #102419; --launch-icon-border: #6b9e79; --launch-icon-color: #a6e2b6; --launch-arrow: #98d6a8; }
+.launch-online .launch-button-icon > i { position: absolute; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: #8ce3a3; box-shadow: 0 0 9px #8ce3a3; animation: launch-online-pulse 1.8s ease-in-out infinite; }
+@keyframes launch-online-pulse { 50% { opacity: .35; transform: scale(.72); } }
 .primary-button, .secondary-button { min-height: 43px; padding: 0 19px; border: 1px solid; font-size: 12px; font-weight: 700; letter-spacing: .12em; cursor: pointer; transition: .16s ease; }
 .primary-button { border-color: var(--accent); background: var(--accent); color: #11100c; }
 .primary-button:hover { border-color: var(--accent-bright); background: var(--accent-bright); }
 .primary-button:disabled { cursor: not-allowed; filter: saturate(.2); opacity: .45; }
 .secondary-button { border-color: #3a454b; background: #161d21; color: #b5bdc1; }
 .secondary-button:hover { border-color: var(--accent-deep); color: var(--accent-bright); }
-.play-triangle { margin-right: 8px; font-size: 11px; }
 .hero-radar { position: relative; min-height: 430px; overflow: hidden; isolation: isolate; opacity: .98; background: radial-gradient(circle at 50% 50%, #b58c2c20, transparent 58%); }
 .hero-radar::before { content: ""; position: absolute; inset: 4%; z-index: -2; background: radial-gradient(circle, #d2ae522b 0 1px, transparent 1.8px) 0 0 / 17px 17px; mask-image: radial-gradient(circle, black 16%, transparent 72%); }
 .hero-radar::after { content: ""; position: absolute; inset: 0; z-index: 7; pointer-events: none; background: repeating-linear-gradient(180deg, transparent 0 4px, #070a0c2b 4px 5px); opacity: .48; }
@@ -286,10 +299,7 @@ button { color: inherit; }
 .toast { position: absolute; right: 28px; bottom: 24px; max-width: 430px; display: flex; align-items: center; gap: 10px; padding: 13px 16px; border: 1px solid #536e56; background: #152019ee; color: #b9cbbd; font-size: 13px; box-shadow: 0 12px 45px #0008; cursor: pointer; }.toast > span { color: var(--green); }.toast.error { border-color: #724842; background: #241715ee; color: #d3b2ae; }.toast.error > span { color: var(--red); }
 .loading-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }.skeleton { min-height: 220px; border: 1px solid var(--line-soft); background: linear-gradient(90deg, #10161a, #182025, #10161a); background-size: 200%; animation: shimmer 1.6s linear infinite; }.hero-skeleton { grid-column: 1 / -1; min-height: 340px; } @keyframes shimmer { to { background-position: -200% 0; } }
 
-.hero-actions { flex-wrap: wrap; align-items: center; }
-.hero-actions .primary-button, .hero-actions .secondary-button { min-height: 46px; }
-.online-button { border-color: #4d664f; color: #a8c2aa; }
-.hero-update-link { min-height: 32px; padding: 0 5px; }
+.hero-update-link { grid-column: 1 / -1; justify-self: start; min-height: 32px; padding: 0 5px; }
 
 .library-sections { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 18px; }
 .library-section { min-height: 128px; display: grid; grid-template-columns: 32px 1fr; align-content: center; gap: 7px 12px; padding: 20px; border: 0; border-right: 1px solid var(--line-soft); background: transparent; color: var(--muted); text-align: left; cursor: pointer; }
@@ -431,6 +441,8 @@ button { color: inherit; }
     .hero { grid-template-columns: minmax(0, 1.15fr) 330px; }
     .hero-social-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .hero-social-link,.hero-social-link:nth-last-child(2):nth-child(4),.hero-social-link:last-child:nth-child(5) { grid-column: auto; }
+    .hero-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .launch-online { grid-column: 1 / -1; }
     .content-scroll.community-page-scroll { overflow-y: auto; }
     .community-layout { height: auto; min-height: 610px; overflow: visible; grid-template-columns: 200px minmax(340px, 1fr); }
     .chat-panel { height: 610px; }
@@ -478,6 +490,8 @@ button { color: inherit; }
     .workspace-header { padding-inline: 13px; }.header-actions { gap: 6px; }
     .hero-copy, .installation-hero, .update-hero, .mo2-hero { padding: 24px; }
     .hero-social-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hero-actions { grid-template-columns: 1fr; }
+    .launch-online { grid-column: auto; }
     .hero h2 { font-size: 31px; }.settings-profile-copy h2 { font-size: 30px; }
     .library-toolbar { align-items: stretch; flex-direction: column; }.search-box { width: 100%; }.filter-pills { flex-wrap: wrap; }
     .community-layout { grid-template-columns: 1fr; }.channel-list { max-height: 190px; overflow-y: auto; }.chat-panel { height: 560px; min-height: 500px; }

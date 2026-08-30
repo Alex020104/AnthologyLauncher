@@ -112,11 +112,18 @@
                             }
                         </div>
                         <div class="hero-actions">
-                            <button class="primary-button" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)">
-                                <span class="play-triangle">▶</span> ИГРАТЬ С МОДПАКОМ
+                            <button class="launch-button launch-modpack" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)">
+                                <span class="launch-button-icon">▶</span>
+                                <span class="launch-button-copy"><strong>ИГРАТЬ С МОДПАКОМ</strong><small>Профиль Mod Organizer 2</small></span>
                             </button>
-                            <button class="secondary-button" @onclick="LaunchOriginalAsync" disabled="@(!_installation.OriginalGameFound)">ИГРАТЬ В ОРИГИНАЛ</button>
-                            <button class="secondary-button online-button" @onclick="LaunchOnlineAsync" disabled="@(!_installation.OnlineModeFound)">ИГРАТЬ ОНЛАЙН</button>
+                            <button class="launch-button launch-original" @onclick="LaunchOriginalAsync" disabled="@(!_installation.OriginalGameFound)">
+                                <span class="launch-button-icon">A</span>
+                                <span class="launch-button-copy"><strong>ИГРАТЬ В ОРИГИНАЛ</strong><small>Чистая Anomaly без модпака</small></span>
+                            </button>
+                            <button class="launch-button launch-online" @onclick="LaunchOnlineAsync" disabled="@(!_installation.OnlineModeFound)">
+                                <span class="launch-button-icon"><i></i>◎</span>
+                                <span class="launch-button-copy"><strong>ИГРАТЬ ОНЛАЙН</strong><small>Сетевой режим Anthology</small></span>
+                            </button>
                             <button class="text-button hero-update-link" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ →</button>
                         </div>
                     </div>
