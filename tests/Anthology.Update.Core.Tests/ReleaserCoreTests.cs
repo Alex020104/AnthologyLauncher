@@ -920,6 +920,7 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.Contains(package.Files, path => path.EndsWith("launcher-update.json", StringComparison.Ordinal));
         Assert.True(File.Exists(Path.Combine(publication, workspace.Version, Path.GetFileName(result.ArtifactPath))));
         Assert.True(File.Exists(Path.Combine(publication, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(output, "manifest.json")));
         using var delivery = ZipFile.OpenRead(result.ArtifactPath);
         Assert.Contains(delivery.Entries, entry => entry.FullName.EndsWith("launcher-update.json", StringComparison.Ordinal));
         Assert.Contains(delivery.Entries, entry => entry.FullName.EndsWith("Start-AnthologyLauncherNext.ps1", StringComparison.Ordinal));

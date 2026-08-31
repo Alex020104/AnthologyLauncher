@@ -778,6 +778,20 @@ public static partial class ReleasePublicationService
         var manifestPath = manifestRelativePath is null
             ? null
             : Path.GetFullPath(Path.Combine(versionRoot, manifestRelativePath));
+
+        // OutputRoot is also the local source for sync-folder mirrors such as
+        // Yandex.Disk. It is deliberately excluded from publication targets to
+        // avoid copying every version onto itself, but its stable manifest must
+        // still advance together with the versioned manifest.
+        if (manifestPath is not null && File.Exists(manifestPath))
+        {
+            var outputRoot = Path.GetFullPath(machine.OutputRoot);
+            await CopyFileAtomicallyAsync(
+                manifestPath,
+                Path.Combine(outputRoot, "manifest.json"),
+                cancellationToken);
+        }
+
         foreach (var target in targets)
         {
             progress?.Report($"Выгрузка в {target.Provider}: {target.Root}…");
