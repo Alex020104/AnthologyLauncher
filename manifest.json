@@ -3,12 +3,42 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.139",
-    "publishedAt": "2026-08-31T03:25:40.6696488+00:00",
-    "packages": [],
+    "publishedAt": "2026-08-31T04:34:47.3906501+00:00",
+    "packages": [
+      {
+        "id": "anthology-files-modpack",
+        "displayName": "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B Mod Organizer 2",
+        "version": "2.1.139",
+        "kind": "modpack",
+        "installRoot": "modpack",
+        "archiveFormat": "zip",
+        "size": 22,
+        "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.139/anthology-files-modpack-2.1.139.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.139/anthology-files-modpack-2.1.139.zip",
+            "priority": 20
+          }
+        ],
+        "files": [],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": [],
+        "deletedDirectories": [
+          "mods/[GFX] Atmospherics 2.68.93_hotfix3 \u002B Weather Expansion v3.7 (ADDS 21 WEATHER PRESETS) \u2014 \u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u043F\u043E\u0433\u043E\u0434\u043D\u044B\u0435 \u0446\u0438\u043A\u043B\u044B \u002B \u0410\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0438\u043A\u0441 \u043E\u0442 \uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD_\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"
+        ]
+      }
+    ],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.139",
-      "publishedAt": "2026-08-31T03:25:40.6696473+00:00",
+      "publishedAt": "2026-08-31T04:34:47.3905858+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -331,6 +361,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "\u002BuyhmZ6bFpkFObKgwG44Z6XwO9wcy0EZWkBExsoGpP6vtAjfPDmsQMjr82krff1wuGnZaSrJEdDziUh3Y4XPnw=="
+    "value": "93BoO73g4gkXjUbpM5CqT1nFS4y1mUjk3AeS5dgYAcFAnA/QFB4y0f8lRdlhfNgZRnGhSlju/ZsL7Ww\u002BWprRGA=="
   }
 }
