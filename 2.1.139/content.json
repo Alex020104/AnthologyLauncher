@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "version": "2.1.139",
-  "publishedAt": "2026-08-31T03:22:20.7706501+00:00",
+  "publishedAt": "2026-08-31T03:24:37.734062+00:00",
   "items": [
     {
       "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -275,8 +275,8 @@
         "sha256": "4ca0144e4570e30282e1b02678735d41c1d6d299e216a27b9e9464cb61fc4d58",
         "mirrors": [
           {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/file/d/15ZukQ_Byhw_0B2Ew69_BriGLfxtF_vrj/view?usp=sharing",
+            "provider": "http",
+            "url": "https://drive.google.com/file/d/15ZukQ_Byhw_0B2Ew69_BriGLfxtF_vrj/view",
             "priority": 10
           }
         ],
