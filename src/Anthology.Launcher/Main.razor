@@ -219,9 +219,7 @@
                         </div>
                         @if (PublishedVideos.FirstOrDefault() is { } publishedVideo)
                         {
-                            var publishedEmbedUrl = GetSafeEmbedUrl(publishedVideo);
-                            var publishedDirectUrl = GetSafeDirectVideoUrl(publishedVideo);
-                            <article class="video-card">@if (publishedDirectUrl is not null) { <video src="@publishedDirectUrl" controls preload="metadata" playsinline></video> } else if (publishedEmbedUrl is not null) { <iframe src="@publishedEmbedUrl" title="@publishedVideo.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> } else { <div class="video-placeholder"><div class="video-play">▶</div><span>ССЫЛКА НА ВИДЕО</span><small>@publishedVideo.Url</small></div> }<div class="video-caption"><span>RELEASER</span><strong>@publishedVideo.Title</strong></div></article>
+                            <article class="video-card"><SafeVideoPlayer SourceUrl="@publishedVideo.Url" Title="@publishedVideo.Title" /><div class="video-caption"><span>RELEASER</span><strong>@publishedVideo.Title</strong></div></article>
                         }
                         else
                         {
@@ -337,9 +335,7 @@
                                     <div class="published-content-body">@localizedItem.Body</div>
                                     @foreach (var video in currentItem.Videos)
                                     {
-                                        var videoUrl = GetSafeEmbedUrl(video);
-                                        var directVideoUrl = GetSafeDirectVideoUrl(video);
-                                        @if (directVideoUrl is not null) { <video src="@directVideoUrl" controls preload="metadata" playsinline></video> } else if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe> }
+                                        <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" />
                                     }
                                 }
                                 <div class="published-card-actions"><button class="card-action" @onclick="() => ToggleContent(currentItem.Id)">@(_openContentId == currentItem.Id ? "СВЕРНУТЬ" : "ЧИТАТЬ ПОЛНОСТЬЮ") <span>→</span></button>@if (currentItem.Download is not null) { <button class="primary-button" disabled="@(_contentDownloadId is not null || _mo2Workspace.SelectedProfile is null)" @onclick="() => DownloadPublishedContentAsync(currentItem)">@(_contentDownloadId == currentItem.Id ? "ЗАГРУЗКА…" : _mo2Workspace.SelectedProfile is null ? "ВЫБЕРИТЕ ПРОФИЛЬ MO2" : "УСТАНОВИТЬ В MO2")</button> }</div>
@@ -525,7 +521,7 @@
                     {
                         var openNews = SelectedPublishedNews!;
                         var localizedNews = Localized(openNews);
-                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead">@localizedNews.Summary</p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body">@localizedNews.Body</div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" /><figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }@foreach (var video in openNews.Videos) { var videoUrl = GetSafeEmbedUrl(video); var directVideoUrl = GetSafeDirectVideoUrl(video); @if (directVideoUrl is not null) { <video src="@directVideoUrl" controls preload="metadata" playsinline></video> } else if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> } }</section>
+                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead">@localizedNews.Summary</p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body">@localizedNews.Body</div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" /><figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }@foreach (var video in openNews.Videos) { <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" /> }</section>
                     }
                 }
                 else
@@ -613,9 +609,7 @@
                                 }
                                 @foreach (var video in publishedInformation.Videos)
                                 {
-                                    var videoUrl = GetSafeEmbedUrl(video);
-                                    var directVideoUrl = GetSafeDirectVideoUrl(video);
-                                    @if (directVideoUrl is not null) { <video src="@directVideoUrl" controls preload="metadata" playsinline></video> } else if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> }
+                                    <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" />
                                 }
                             </article>
                         </section>
@@ -673,9 +667,7 @@
                                 }
                                 @foreach (var video in currentSupport.Videos)
                                 {
-                                    var videoUrl = GetSafeEmbedUrl(video);
-                                    var directVideoUrl = GetSafeDirectVideoUrl(video);
-                                    @if (directVideoUrl is not null) { <video src="@directVideoUrl" controls preload="metadata" playsinline></video> } else if (videoUrl is not null) { <iframe src="@videoUrl" title="@video.Title" allowfullscreen></iframe> }
+                                    <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" />
                                 }
                             </article>
                         </section>
@@ -3106,67 +3098,6 @@
 
     private void RemoveReportAttachment(string path) =>
         _reportAttachments.RemoveAll(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase));
-
-    private static string? GetSafeEmbedUrl(VideoItem video)
-    {
-        if (!Uri.TryCreate(video.EmbedUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
-        {
-            return null;
-        }
-
-        var allowedHosts = new[] { "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "vk.com", "moddb.com", "www.moddb.com" };
-        return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
-    }
-
-    private static string? GetSafeEmbedUrl(ContentVideo video)
-    {
-        if (!Uri.TryCreate(video.Url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
-        {
-            return null;
-        }
-
-        if (string.Equals(uri.Host, "youtu.be", StringComparison.OrdinalIgnoreCase))
-        {
-            var id = uri.AbsolutePath.Trim('/');
-            return string.IsNullOrWhiteSpace(id) ? null : $"https://www.youtube-nocookie.com/embed/{Uri.EscapeDataString(id)}";
-        }
-
-        if (uri.Host is "youtube.com" or "www.youtube.com" or "youtube-nocookie.com" or "www.youtube-nocookie.com")
-        {
-            if (uri.AbsolutePath.StartsWith("/embed/", StringComparison.OrdinalIgnoreCase))
-            {
-                return uri.AbsoluteUri;
-            }
-
-            var id = uri.Query.TrimStart('?')
-                .Split('&', StringSplitOptions.RemoveEmptyEntries)
-                .Select(part => part.Split('=', 2))
-                .Where(part => part.Length == 2 && string.Equals(part[0], "v", StringComparison.OrdinalIgnoreCase))
-                .Select(part => Uri.UnescapeDataString(part[1]))
-                .FirstOrDefault();
-            return string.IsNullOrWhiteSpace(id) ? null : $"https://www.youtube-nocookie.com/embed/{Uri.EscapeDataString(id)}";
-        }
-
-        var allowedHosts = new[] { "vk.com", "moddb.com", "www.moddb.com" };
-        return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
-    }
-
-    private static string? GetSafeDirectVideoUrl(ContentVideo video)
-    {
-        if (!Uri.TryCreate(video.Url, UriKind.Absolute, out var uri)
-            || uri.Scheme != Uri.UriSchemeHttps
-            || !string.IsNullOrEmpty(uri.UserInfo))
-        {
-            return null;
-        }
-
-        var extension = Path.GetExtension(uri.AbsolutePath);
-        return extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals(".webm", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals(".ogv", StringComparison.OrdinalIgnoreCase)
-            ? uri.AbsoluteUri
-            : null;
-    }
 
     private static string? GetSafeExternalUrl(string? value)
     {

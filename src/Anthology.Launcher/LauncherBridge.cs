@@ -246,6 +246,27 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
         return new LauncherActionResult(true, "Папка игры открыта");
     }
 
+    public static LauncherActionResult OpenExternalUrl(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || (!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            return new LauncherActionResult(false, "Некорректная внешняя ссылка");
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+            return new LauncherActionResult(true, "Ссылка открыта в браузере");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return new LauncherActionResult(false, $"Не удалось открыть браузер: {exception.Message}");
+        }
+    }
+
     private string? FindGameRoot()
     {
         var configured = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");

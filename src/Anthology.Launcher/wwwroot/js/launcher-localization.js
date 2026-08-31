@@ -1,5 +1,11 @@
 (() => {
     const dictionary = {
+        "Воспроизвести видео в лаунчере": ["Play video in launcher", "Video im Launcher abspielen", "Odtwórz film w launcherze", "Lire la vidéo dans le lanceur", "Reproducir vídeo en el lanzador", "在启动器中播放视频", "ランチャーで動画を再生"],
+        "СМОТРЕТЬ В ЛАУНЧЕРЕ": ["WATCH IN LAUNCHER", "IM LAUNCHER ANSEHEN", "OGLĄDAJ W LAUNCHERZE", "REGARDER DANS LE LANCEUR", "VER EN EL LANZADOR", "在启动器中观看", "ランチャーで視聴"],
+        "YouTube загрузится только после нажатия": ["YouTube loads only after you click", "YouTube wird erst nach dem Klicken geladen", "YouTube załaduje się dopiero po kliknięciu", "YouTube ne se charge qu’après un clic", "YouTube se carga solo después de hacer clic", "点击后才会加载 YouTube", "クリック後に YouTube を読み込みます"],
+        "↻ ПЕРЕЗАГРУЗИТЬ ПЛЕЕР": ["↻ RELOAD PLAYER", "↻ PLAYER NEU LADEN", "↻ PRZEŁADUJ ODTWARZACZ", "↻ RECHARGER LE LECTEUR", "↻ RECARGAR REPRODUCTOR", "↻ 重新加载播放器", "↻ プレーヤーを再読み込み"],
+        "↗ ОТКРЫТЬ НА YOUTUBE": ["↗ OPEN ON YOUTUBE", "↗ AUF YOUTUBE ÖFFNEN", "↗ OTWÓRZ W YOUTUBE", "↗ OUVRIR SUR YOUTUBE", "↗ ABRIR EN YOUTUBE", "↗ 在 YOUTUBE 中打开", "↗ YOUTUBE で開く"],
+        "↗ ОТКРЫТЬ В БРАУЗЕРЕ": ["↗ OPEN IN BROWSER", "↗ IM BROWSER ÖFFNEN", "↗ OTWÓRZ W PRZEGLĄDARCE", "↗ OUVRIR DANS LE NAVIGATEUR", "↗ ABRIR EN EL NAVEGADOR", "↗ 在浏览器中打开", "↗ ブラウザーで開く"],
         "ВЕРСИЯ ОБНОВЛЕНИЯ": ["UPDATE VERSION", "UPDATE-VERSION", "WERSJA AKTUALIZACJI", "VERSION DE MISE À JOUR", "VERSIÓN DE ACTUALIZACIÓN", "更新版本", "アップデート版"],
         "НЕ ОПРЕДЕЛЕНА": ["NOT DETECTED", "NICHT ERKANNT", "NIE WYKRYTO", "NON DÉTECTÉE", "NO DETECTADA", "未检测到", "未検出"],
         "Каталог сохранений": ["Save catalog", "Spielstandkatalog", "Katalog zapisów", "Catalogue des sauvegardes", "Catálogo de partidas", "存档目录", "セーブカタログ"],

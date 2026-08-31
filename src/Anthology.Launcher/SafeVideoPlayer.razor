@@ -1,0 +1,227 @@
+@if (_directUrl is not null)
+{
+    <div class="safe-video-player direct-video">
+        <video src="@_directUrl" controls preload="metadata" playsinline></video>
+    </div>
+}
+else if (_youtubeId is not null)
+{
+    <div class="safe-video-player youtube-video">
+        @if (!_embedRequested)
+        {
+            <button type="button" class="safe-video-preview" title="Воспроизвести видео в лаунчере" @onclick="ActivateEmbed">
+                <img src="@_posterUrl" alt="@Title" loading="lazy" />
+                <span class="safe-video-preview-shade"></span>
+                <span class="video-play">▶</span>
+                <span class="safe-video-preview-copy">
+                    <strong>СМОТРЕТЬ В ЛАУНЧЕРЕ</strong>
+                    <small>YouTube загрузится только после нажатия</small>
+                </span>
+            </button>
+        }
+        else
+        {
+            <iframe src="@_embedUrl"
+                    title="@Title"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen></iframe>
+        }
+        <div class="safe-video-actions">
+            @if (_embedRequested)
+            {
+                <button type="button" class="text-button" @onclick="ResetEmbed">↻ ПЕРЕЗАГРУЗИТЬ ПЛЕЕР</button>
+            }
+            <button type="button" class="secondary-button" @onclick="OpenInBrowser">↗ ОТКРЫТЬ НА YOUTUBE</button>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(_openError))
+        {
+            <small class="safe-video-error">@_openError</small>
+        }
+    </div>
+}
+else if (_embedUrl is not null)
+{
+    <div class="safe-video-player external-video">
+        <iframe src="@_embedUrl" title="@Title" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        @if (_externalUrl is not null)
+        {
+            <div class="safe-video-actions">
+                <button type="button" class="secondary-button" @onclick="OpenInBrowser">↗ ОТКРЫТЬ В БРАУЗЕРЕ</button>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="safe-video-player unavailable-video">
+        <div class="video-placeholder">
+            <div class="video-play">▶</div>
+            <span>ССЫЛКА НА ВИДЕО</span>
+            <small>@SourceUrl</small>
+        </div>
+        @if (_externalUrl is not null)
+        {
+            <div class="safe-video-actions">
+                <button type="button" class="secondary-button" @onclick="OpenInBrowser">↗ ОТКРЫТЬ В БРАУЗЕРЕ</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string SourceUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Title { get; set; } = "Видео Anthology";
+
+    [Parameter]
+    public string? PosterUrl { get; set; }
+
+    private string? _lastSourceUrl;
+    private string? _directUrl;
+    private string? _youtubeId;
+    private string? _embedUrl;
+    private string? _externalUrl;
+    private string? _posterUrl;
+    private string? _openError;
+    private bool _embedRequested;
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_lastSourceUrl, SourceUrl, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastSourceUrl = SourceUrl;
+        _embedRequested = false;
+        _openError = null;
+        _directUrl = GetDirectVideoUrl(SourceUrl);
+        _youtubeId = GetYouTubeVideoId(SourceUrl);
+        _externalUrl = GetSafeExternalUrl(SourceUrl);
+        _posterUrl = GetSafeExternalUrl(PosterUrl);
+
+        if (_youtubeId is not null)
+        {
+            _externalUrl = $"https://www.youtube.com/watch?v={Uri.EscapeDataString(_youtubeId)}";
+            _posterUrl ??= $"https://i.ytimg.com/vi/{Uri.EscapeDataString(_youtubeId)}/hqdefault.jpg";
+            _embedUrl = null;
+            return;
+        }
+
+        _embedUrl = GetAllowedEmbedUrl(SourceUrl);
+    }
+
+    private void ActivateEmbed()
+    {
+        if (_youtubeId is null)
+        {
+            return;
+        }
+
+        _embedUrl = $"https://www.youtube.com/embed/{Uri.EscapeDataString(_youtubeId)}?rel=0&playsinline=1&autoplay=1";
+        _embedRequested = true;
+    }
+
+    private void ResetEmbed()
+    {
+        _embedRequested = false;
+        _embedUrl = null;
+    }
+
+    private void OpenInBrowser()
+    {
+        if (_externalUrl is null)
+        {
+            return;
+        }
+
+        var result = LauncherBridge.OpenExternalUrl(_externalUrl);
+        _openError = result.Success ? null : result.Message;
+    }
+
+    private static string? GetDirectVideoUrl(string? value)
+    {
+        if (!TryGetSafeHttpsUri(value, out var uri))
+        {
+            return null;
+        }
+
+        var extension = Path.GetExtension(uri.AbsolutePath);
+        return extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".webm", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".ogv", StringComparison.OrdinalIgnoreCase)
+            ? uri.AbsoluteUri
+            : null;
+    }
+
+    private static string? GetYouTubeVideoId(string? value)
+    {
+        if (!TryGetSafeHttpsUri(value, out var uri))
+        {
+            return null;
+        }
+
+        string? id = null;
+        if (uri.Host.Equals("youtu.be", StringComparison.OrdinalIgnoreCase))
+        {
+            id = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        }
+        else if (uri.Host is "youtube.com" or "www.youtube.com" or "m.youtube.com" or "youtube-nocookie.com" or "www.youtube-nocookie.com")
+        {
+            var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length >= 2 && segments[0] is "embed" or "shorts" or "live")
+            {
+                id = segments[1];
+            }
+            else
+            {
+                id = uri.Query.TrimStart('?')
+                    .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(part => part.Split('=', 2))
+                    .Where(part => part.Length == 2 && part[0].Equals("v", StringComparison.OrdinalIgnoreCase))
+                    .Select(part => Uri.UnescapeDataString(part[1]))
+                    .FirstOrDefault();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(id)
+            || id.Length > 64
+            || id.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_')))
+        {
+            return null;
+        }
+
+        return id;
+    }
+
+    private static string? GetAllowedEmbedUrl(string? value)
+    {
+        if (!TryGetSafeHttpsUri(value, out var uri))
+        {
+            return null;
+        }
+
+        var allowedHosts = new[] { "vk.com", "www.vk.com", "vkvideo.ru", "www.vkvideo.ru", "moddb.com", "www.moddb.com" };
+        return allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase) ? uri.AbsoluteUri : null;
+    }
+
+    private static string? GetSafeExternalUrl(string? value) =>
+        TryGetSafeHttpsUri(value, out var uri) ? uri.AbsoluteUri : null;
+
+    private static bool TryGetSafeHttpsUri(string? value, out Uri uri)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var parsed)
+            && parsed.Scheme == Uri.UriSchemeHttps
+            && string.IsNullOrEmpty(parsed.UserInfo))
+        {
+            uri = parsed;
+            return true;
+        }
+
+        uri = null!;
+        return false;
+    }
+}

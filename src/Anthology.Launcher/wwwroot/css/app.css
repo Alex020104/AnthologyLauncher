@@ -189,6 +189,20 @@ button { color: inherit; }
 .video-block { min-width: 0; }
 .video-card { margin: 16px; border: 1px solid var(--line-soft); background: #080b0d; }
 .video-card iframe, .video-card video, .video-placeholder { width: 100%; aspect-ratio: 16/9; border: 0; background: #050708; }
+.safe-video-player { width: 100%; min-width: 0; background: #050708; }
+.safe-video-player > iframe, .safe-video-player > video { display: block; width: 100%; aspect-ratio: 16/9; border: 0; background: #050708; }
+.safe-video-preview { position: relative; display: grid; width: 100%; aspect-ratio: 16/9; overflow: hidden; place-items: center; padding: 0; border: 0; background: #050708; color: var(--text); cursor: pointer; }
+.safe-video-preview > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .72; transform: scale(1.015); transition: transform .24s ease, opacity .24s ease; }
+.safe-video-preview-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #0305061c, #030506d9), radial-gradient(circle at center, transparent 0 18%, #03050699 78%); }
+.safe-video-preview .video-play { position: relative; z-index: 1; width: 58px; height: 58px; border-width: 2px; background: #090d0fba; box-shadow: 0 0 32px #d7b45a40; font-size: 18px; transition: transform .2s ease, background .2s ease; }
+.safe-video-preview-copy { position: absolute; z-index: 1; left: 20px; right: 20px; bottom: 18px; display: grid; gap: 4px; text-align: left; }
+.safe-video-preview-copy strong { color: #fff; font-size: 12px; letter-spacing: .13em; }
+.safe-video-preview-copy small { color: #bac4c9; font-size: 11px; }
+.safe-video-preview:hover > img { opacity: .88; transform: scale(1.045); }
+.safe-video-preview:hover .video-play { transform: scale(1.08); background: #b89747d9; color: #090b0c; }
+.safe-video-actions { min-height: 48px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--line-soft); background: #090d0f; }
+.safe-video-actions .secondary-button { min-height: 32px; padding: 0 13px; font-size: 10px; }
+.safe-video-error { display: block; padding: 0 12px 10px; color: #ef8a73; font-size: 11px; }
 .video-placeholder { display: grid; place-content: center; justify-items: center; gap: 7px; background: radial-gradient(circle, #77643c2e, transparent 55%), repeating-linear-gradient(135deg, #101519, #101519 8px, #0d1114 8px, #0d1114 16px); }
 .video-play { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--accent); border-radius: 50%; color: var(--accent); padding-left: 2px; }
 .video-placeholder span { color: #a6afb3; font-size: 11px; letter-spacing: .15em; }
