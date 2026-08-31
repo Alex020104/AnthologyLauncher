@@ -422,6 +422,28 @@ public sealed class Mo2IntegrationService(
         string? savePath,
         CancellationToken cancellationToken)
     {
+        try
+        {
+            var settings = settingsStore.Current;
+            if (string.IsNullOrWhiteSpace(settings.ModpackRoot)
+                || string.IsNullOrWhiteSpace(settings.GameRoot))
+            {
+                return new LauncherActionResult(false, "Сначала подключите папки игры и Mod Organizer 2.");
+            }
+
+            Mo2ProfileManager.EnsurePortableConfiguration(
+                settings.ModpackRoot,
+                settings.GameRoot,
+                settings.SelectedMo2Profile);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException)
+        {
+            return new LauncherActionResult(false, $"Не удалось подготовить portable MO2: {exception.Message}");
+        }
+
         var workspace = GetWorkspace();
         if (!workspace.Instance.Available || workspace.SelectedProfile is null || workspace.SelectedExecutable is null)
         {

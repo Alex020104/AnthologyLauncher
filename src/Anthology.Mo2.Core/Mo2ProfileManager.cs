@@ -52,6 +52,17 @@ public static class Mo2ProfileManager
     private const string OrganizerExecutable = "ModOrganizer.exe";
     private const string OrganizerConfiguration = "ModOrganizer.ini";
     private const string ModListFile = "modlist.txt";
+    private static readonly (string FileName, string Title)[] AnomalyExecutables =
+    [
+        ("AnomalyDX11AVX.exe", "Anomaly (DX11-AVX)"),
+        ("AnomalyDX11.exe", "Anomaly (DX11)"),
+        ("AnomalyDX10AVX.exe", "Anomaly (DX10-AVX)"),
+        ("AnomalyDX10.exe", "Anomaly (DX10)"),
+        ("AnomalyDX9AVX.exe", "Anomaly (DX9-AVX)"),
+        ("AnomalyDX9.exe", "Anomaly (DX9)"),
+        ("AnomalyDX8AVX.exe", "Anomaly (DX8-AVX)"),
+        ("AnomalyDX8.exe", "Anomaly (DX8)"),
+    ];
 
     public static Mo2InstanceSnapshot Detect(string? root)
     {
@@ -92,6 +103,107 @@ public static class Mo2ProfileManager
                 ? "Профили найдены, но исполняемые файлы MO2 не настроены"
                 : $"Профилей: {profiles.Length} · запусков: {executables.Length}";
         return new Mo2InstanceSnapshot(true, fullRoot, selectedProfile, profiles, executables, status, gamePath);
+    }
+
+    /// <summary>
+    /// Makes a distributed MO2 directory a self-contained portable instance.
+    /// The releaser deliberately does not manage ModOrganizer.ini because it is
+    /// machine-local state. On a fresh PC the launcher therefore has to create
+    /// it once before starting MO2, otherwise the instance/game wizard appears.
+    /// </summary>
+    /// <returns>True when a missing or incomplete configuration was rebuilt.</returns>
+    public static bool EnsurePortableConfiguration(
+        string root,
+        string gameRoot,
+        string? preferredProfile = null)
+    {
+        var fullRoot = Path.GetFullPath(root);
+        var fullGameRoot = Path.GetFullPath(gameRoot);
+        var organizer = Path.Combine(fullRoot, OrganizerExecutable);
+        var gameBin = Path.Combine(fullGameRoot, "bin");
+        if (!File.Exists(organizer))
+        {
+            throw new FileNotFoundException("ModOrganizer.exe не найден.", organizer);
+        }
+        if (!Directory.Exists(gameBin))
+        {
+            throw new DirectoryNotFoundException($"Корень Anomaly не найден: {fullGameRoot}");
+        }
+
+        var profilesRoot = Path.Combine(fullRoot, "profiles");
+        var profiles = Directory.Exists(profilesRoot)
+            ? Directory.GetDirectories(profilesRoot)
+                .Where(path => File.Exists(Path.Combine(path, ModListFile)))
+                .Select(Path.GetFileName)
+                .OfType<string>()
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToArray()
+            : [];
+        if (profiles.Length == 0)
+        {
+            throw new DirectoryNotFoundException($"В portable-сборке MO2 не найден профиль с {ModListFile}: {profilesRoot}");
+        }
+
+        var selectedProfile = profiles.FirstOrDefault(profile =>
+                                  string.Equals(profile, preferredProfile, StringComparison.OrdinalIgnoreCase))
+                              ?? profiles[0];
+        var iniPath = Path.Combine(fullRoot, OrganizerConfiguration);
+        var rebuild = !File.Exists(iniPath);
+        if (!rebuild)
+        {
+            var current = Detect(fullRoot);
+            rebuild = current.Executables.Count == 0
+                      || string.IsNullOrWhiteSpace(current.GamePath)
+                      || !File.ReadLines(iniPath).Any(line =>
+                          line.Equals("gameName=STALKER Anomaly", StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (rebuild)
+        {
+            var executables = AnomalyExecutables
+                .Where(item => File.Exists(Path.Combine(gameBin, item.FileName)))
+                .ToArray();
+            if (executables.Length == 0)
+            {
+                throw new FileNotFoundException("В папке bin не найдены исполняемые файлы Anomaly.", gameBin);
+            }
+
+            var lines = new List<string>
+            {
+                "[General]",
+                "gameName=STALKER Anomaly",
+                $"gamePath={EncodeQtByteArray(fullGameRoot)}",
+                $"selected_profile={EncodeQtByteArray(selectedProfile)}",
+                "first_start=false",
+                string.Empty,
+                "[customExecutables]",
+                $"size={executables.Length}",
+            };
+            for (var index = 0; index < executables.Length; index++)
+            {
+                var number = index + 1;
+                var executable = executables[index];
+                lines.Add($"{number}\\arguments=");
+                lines.Add($"{number}\\binary={ToIniPath(Path.Combine(gameBin, executable.FileName))}");
+                lines.Add($"{number}\\hide=false");
+                lines.Add($"{number}\\ownicon=true");
+                lines.Add($"{number}\\steamAppID=");
+                lines.Add($"{number}\\title={executable.Title}");
+                lines.Add($"{number}\\toolbar=false");
+                lines.Add($"{number}\\workingDirectory={ToIniPath(gameBin)}");
+            }
+
+            if (File.Exists(iniPath))
+            {
+                File.Copy(iniPath, iniPath + ".anthology-backup", true);
+            }
+            WriteNewAtomic(iniPath, lines);
+            return true;
+        }
+
+        RebaseGamePaths(fullRoot, fullGameRoot);
+        SetSelectedProfile(fullRoot, selectedProfile);
+        return false;
     }
 
     public static Mo2ProfileSnapshot ReadProfile(string root, string profileName)
@@ -533,6 +645,23 @@ public static class Mo2ProfileManager
     {
         var backup = path + ".anthology-backup";
         File.Copy(path, backup, true);
+        var temporary = path + $".tmp-{Guid.NewGuid():N}";
+        try
+        {
+            File.WriteAllLines(temporary, lines, new UTF8Encoding(false));
+            File.Move(temporary, path, true);
+        }
+        finally
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
+    }
+
+    private static void WriteNewAtomic(string path, IReadOnlyCollection<string> lines)
+    {
         var temporary = path + $".tmp-{Guid.NewGuid():N}";
         try
         {

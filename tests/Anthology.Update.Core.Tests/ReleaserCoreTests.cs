@@ -893,6 +893,16 @@ public sealed class ReleaserCoreTests : IDisposable
             Version = "2.1.132",
             Channel = "next",
             Mirrors = [mirror],
+            Content =
+            [
+                new ContentDraft
+                {
+                    Id = "launcher-publication-news",
+                    Kind = ContentKind.News,
+                    Title = "Launcher publication must preserve me",
+                    IsPublished = true,
+                },
+            ],
         };
         var machine = new ReleaserMachineSettings
         {
@@ -907,6 +917,8 @@ public sealed class ReleaserCoreTests : IDisposable
             },
         };
 
+        await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
+        workspace.Content.Clear();
         var result = await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
 
         Assert.Equal(4, result.Files);
@@ -914,6 +926,7 @@ public sealed class ReleaserCoreTests : IDisposable
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
         var package = Assert.Single(manifest!.Payload.Packages);
+        Assert.Equal("launcher-publication-news", Assert.Single(manifest.Payload.Content!.Items).Id);
         Assert.Equal("anthology-launcher", package.Id);
         Assert.Equal(PackageKind.Launcher, package.Kind);
         Assert.Equal("game", package.InstallRoot);

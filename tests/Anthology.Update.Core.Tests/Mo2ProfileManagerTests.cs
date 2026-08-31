@@ -130,6 +130,65 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void MissingPortableConfigurationIsCreatedForDetectedGameAndProfile()
+    {
+        var profileName = "Anthology Portable";
+        var profile = Path.Combine(_root, "profiles", profileName);
+        var gameRoot = Path.Combine(_root, "game");
+        var gameBin = Path.Combine(gameRoot, "bin");
+        Directory.CreateDirectory(profile);
+        Directory.CreateDirectory(gameBin);
+        File.WriteAllText(Path.Combine(profile, "modlist.txt"), "+First\n");
+        File.WriteAllText(Path.Combine(_root, "ModOrganizer.exe"), string.Empty);
+        File.WriteAllText(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), string.Empty);
+        File.WriteAllText(Path.Combine(gameBin, "AnomalyDX9.exe"), string.Empty);
+
+        var created = Mo2ProfileManager.EnsurePortableConfiguration(_root, gameRoot, profileName);
+
+        Assert.True(created);
+        var snapshot = Mo2ProfileManager.Detect(_root);
+        Assert.True(snapshot.Available);
+        Assert.Equal(profileName, snapshot.SelectedProfile);
+        Assert.Equal(Path.GetFullPath(gameRoot), snapshot.GamePath);
+        Assert.Collection(
+            snapshot.Executables,
+            executable =>
+            {
+                Assert.Equal("Anomaly (DX11-AVX)", executable.Title);
+                Assert.Equal(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), executable.Binary);
+                Assert.Equal(gameBin, executable.WorkingDirectory);
+            },
+            executable => Assert.Equal("Anomaly (DX9)", executable.Title));
+    }
+
+    [Fact]
+    public void ExistingPortableConfigurationIsPreservedAndRebased()
+    {
+        CreateInstance();
+        var gameRoot = Path.Combine(_root, "relocated-game");
+        var gameBin = Path.Combine(gameRoot, "bin");
+        Directory.CreateDirectory(gameBin);
+        File.WriteAllText(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), string.Empty);
+        var iniPath = Path.Combine(_root, "ModOrganizer.ini");
+        var iniLines = File.ReadAllLines(iniPath).ToList();
+        iniLines.Insert(1, "gameName=STALKER Anomaly");
+        File.WriteAllLines(iniPath, iniLines);
+        Mo2ProfileManager.RebaseGamePaths(_root, gameRoot);
+
+        var created = Mo2ProfileManager.EnsurePortableConfiguration(
+            _root,
+            gameRoot,
+            "Anthology Стандарт");
+
+        Assert.False(created);
+        var snapshot = Mo2ProfileManager.Detect(_root);
+        Assert.Equal(Path.GetFullPath(gameRoot), snapshot.GamePath);
+        Assert.Equal("Anthology Стандарт", snapshot.SelectedProfile);
+        Assert.Equal(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), Assert.Single(snapshot.Executables).Binary);
+        Assert.True(File.Exists(Path.Combine(_root, "ModOrganizer.ini.anthology-backup")));
+    }
+
+    [Fact]
     public void ContentIndexFindsWinningConflictsAndBrowsesVirtualTree()
     {
         CreateInstance();

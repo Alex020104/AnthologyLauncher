@@ -144,7 +144,8 @@ public static partial class ReleasePublicationService
         }
 
         var manifestPath = Path.Combine(versionRoot, "manifest.json");
-        var packages = (await LoadExistingPackagesAsync(manifestPath, cancellationToken))
+        var existingManifest = await LoadExistingManifestAsync(manifestPath, cancellationToken);
+        var packages = (existingManifest?.Payload.Packages ?? [])
             .Where(package => !string.Equals(package.Id, "anthology-launcher", StringComparison.OrdinalIgnoreCase))
             .ToList();
         packages.Add(new PackageManifest(
@@ -160,8 +161,16 @@ public static partial class ReleasePublicationService
             deliveredFiles.Select(file => file.RelativePath).Order(StringComparer.Ordinal).ToArray(),
             PackageUpdateMode.Merge));
 
-        var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
-        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
+        // A launcher-only publication must never erase or rewrite the already
+        // published news/library/information catalog. Reuse the signed catalog
+        // from this game version; only a content/release action may replace it.
+        var media = PreparedContentMedia.Empty;
+        var catalog = existingManifest?.Payload.Content;
+        if (catalog is null)
+        {
+            media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
+            catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
+        }
         var updateManifest = new UpdateManifest(
             4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
@@ -754,6 +763,29 @@ public static partial class ReleasePublicationService
         var existing = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options, cancellationToken)
                        ?? throw new InvalidDataException("Существующий manifest.json повреждён.");
         return existing.Payload.Packages;
+    }
+
+    private static async Task<SignedUpdateManifest?> LoadExistingManifestAsync(
+        string manifestPath,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(manifestPath))
+        {
+            return null;
+        }
+
+        await using var stream = new FileStream(
+            manifestPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            64 * 1024,
+            FileOptions.Asynchronous);
+        return await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(
+                   stream,
+                   ManifestJson.Options,
+                   cancellationToken)
+               ?? throw new InvalidDataException("Существующий manifest.json повреждён.");
     }
 
     private static async Task<PublicationResult> PublishFilesAsync(
