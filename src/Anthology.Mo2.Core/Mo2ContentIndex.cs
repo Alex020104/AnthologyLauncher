@@ -37,9 +37,13 @@ public sealed record Mo2DownloadEntry(
 
 public sealed record Mo2SaveEntry(
     string Name,
+    string SaveName,
     string FullPath,
     long Size,
-    DateTime LastWriteTimeUtc);
+    DateTime LastWriteTimeUtc,
+    string? PreviewPath,
+    bool HasScop,
+    bool HasScoc);
 
 public sealed record Mo2ContentOverview(
     int EnabledMods,
@@ -406,18 +410,38 @@ public static class Mo2WorkspaceReader
             Path.Combine(root, "_appdata_", "savedgames"),
             Path.Combine(root, "savedgames"),
         };
-        var saves = candidates.FirstOrDefault(Directory.Exists);
-        if (saves is null)
+        var saveDirectories = candidates.Where(Directory.Exists).ToArray();
+        if (saveDirectories.Length == 0)
         {
             return [];
         }
 
-        return Directory.EnumerateFiles(saves, "*", SearchOption.TopDirectoryOnly)
+        return saveDirectories
+            .SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly))
             .Where(path => Path.GetExtension(path).Equals(".scop", StringComparison.OrdinalIgnoreCase)
                            || Path.GetExtension(path).Equals(".scoc", StringComparison.OrdinalIgnoreCase))
-            .Select(path => new FileInfo(path))
-            .OrderByDescending(info => info.LastWriteTimeUtc)
-            .Select(info => new Mo2SaveEntry(info.Name, info.FullName, info.Length, info.LastWriteTimeUtc))
+            .GroupBy(
+                path => Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path)),
+                StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var parts = group.Select(path => new FileInfo(path)).ToArray();
+                var persistent = parts.FirstOrDefault(info => info.Extension.Equals(".scop", StringComparison.OrdinalIgnoreCase));
+                var container = parts.FirstOrDefault(info => info.Extension.Equals(".scoc", StringComparison.OrdinalIgnoreCase));
+                var primary = persistent ?? container!;
+                var saveName = Path.GetFileName(group.Key);
+                var previewPath = group.Key + ".dds";
+                return new Mo2SaveEntry(
+                    primary.Name,
+                    saveName,
+                    primary.FullName,
+                    parts.Sum(info => info.Length),
+                    parts.Max(info => info.LastWriteTimeUtc),
+                    File.Exists(previewPath) ? previewPath : null,
+                    persistent is not null,
+                    container is not null);
+            })
+            .OrderByDescending(save => save.LastWriteTimeUtc)
             .ToArray();
     }
 }

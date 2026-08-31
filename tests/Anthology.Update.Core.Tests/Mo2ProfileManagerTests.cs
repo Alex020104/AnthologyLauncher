@@ -138,17 +138,45 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         var saves = Path.Combine(_root, "game", "appdata", "savedgames");
         Directory.CreateDirectory(saves);
         var older = Path.Combine(saves, "older.scop");
+        var newestPersistent = Path.Combine(saves, "newest.scop");
         var newest = Path.Combine(saves, "newest.scoc");
         File.WriteAllText(older, "older");
+        File.WriteAllText(newestPersistent, "persistent");
         File.WriteAllText(newest, "newest");
         File.WriteAllText(Path.Combine(saves, "newest.dds"), "preview");
         File.WriteAllText(Path.Combine(saves, "notes.txt"), "not a save");
         File.SetLastWriteTimeUtc(older, DateTime.UtcNow.AddMinutes(-10));
+        File.SetLastWriteTimeUtc(newestPersistent, DateTime.UtcNow.AddMinutes(-1));
         File.SetLastWriteTimeUtc(newest, DateTime.UtcNow.AddMinutes(-1));
 
         var result = Mo2WorkspaceReader.ReadSaves(Path.Combine(_root, "game"));
 
-        Assert.Equal(["newest.scoc", "older.scop"], result.Select(save => save.Name));
+        Assert.Equal(["newest.scop", "older.scop"], result.Select(save => save.Name));
+        Assert.True(result[0].HasScop);
+        Assert.True(result[0].HasScoc);
+        Assert.EndsWith("newest.dds", result[0].PreviewPath, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new FileInfo(newestPersistent).Length + new FileInfo(newest).Length, result[0].Size);
+    }
+
+    [Fact]
+    public void DdsPreviewDecoderDecodesDxt1Pixels()
+    {
+        var data = new byte[136];
+        "DDS "u8.CopyTo(data);
+        BitConverter.GetBytes(124).CopyTo(data, 4);
+        BitConverter.GetBytes(4).CopyTo(data, 12);
+        BitConverter.GetBytes(4).CopyTo(data, 16);
+        "DXT1"u8.CopyTo(data.AsSpan(84));
+        data[128] = 0x00;
+        data[129] = 0xf8;
+        data[130] = 0xe0;
+        data[131] = 0x07;
+
+        var decoded = DdsPreviewDecoder.DecodeDxt1(data);
+
+        Assert.Equal(4, decoded.Width);
+        Assert.Equal(4, decoded.Height);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, decoded.Bgra32[..4]);
     }
 
     [Fact]

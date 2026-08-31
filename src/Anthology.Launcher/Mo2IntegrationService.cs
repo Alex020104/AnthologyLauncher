@@ -456,9 +456,10 @@ public sealed class Mo2IntegrationService(
             var gameArguments = launcherBridge.GetGameArguments();
             if (saveName is not null)
             {
+                var quotedSaveName = $"\"{saveName.Replace("\"", "\\\"")}\"";
                 gameArguments = string.IsNullOrWhiteSpace(gameArguments)
-                    ? $"-load {saveName}"
-                    : $"{gameArguments} -load {saveName}";
+                    ? $"-load {quotedSaveName}"
+                    : $"{gameArguments} -load {quotedSaveName}";
             }
             startInfo.ArgumentList.Add(gameArguments);
             Process.Start(startInfo);

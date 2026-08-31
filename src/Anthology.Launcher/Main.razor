@@ -146,6 +146,11 @@
                                 </span>
                                 <span class="latest-save-mode">БЕЗ ГЛАВНОГО МЕНЮ</span>
                             </button>
+                            <button class="save-catalog-link" @onclick="ShowSaveCatalog">
+                                <span class="save-catalog-link-icon">▣</span>
+                                <span><strong>ОТКРЫТЬ КАТАЛОГ СОХРАНЕНИЙ</strong><small>Превью, описание и быстрый запуск выбранного сейва</small></span>
+                                <i>→</i>
+                            </button>
                             <button class="text-button hero-update-link" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ →</button>
                         </div>
                     </div>
@@ -221,6 +226,80 @@
                         }
                     </div>
                 </section>
+            }
+            else if (_section == "saves")
+            {
+                <section class="save-catalog-hero section-block panel-grid-texture">
+                    <div>
+                        <span class="eyebrow">АРХИВ ПРОХОЖДЕНИЙ</span>
+                        <h2>Сохранения Anomaly<br /><em>без главного меню.</em></h2>
+                        <p>Каталог объединяет игровые файлы .scop и .scoc, показывает штатное DDS-превью и запускает выбранную точку через назначенный профиль MO2.</p>
+                    </div>
+                    <div class="save-catalog-summary">
+                        <div><span>СОХРАНЕНИЙ</span><strong>@_saveCatalog.Count</strong></div>
+                        <div><span>С ПРЕВЬЮ</span><strong>@_saveCatalog.Count(item => item.PreviewDataUrl is not null)</strong></div>
+                        <button class="secondary-button" @onclick="RefreshSaveCatalogAsync" disabled="@_saveCatalogLoading">@(_saveCatalogLoading ? "ЧТЕНИЕ..." : "↻ ОБНОВИТЬ КАТАЛОГ")</button>
+                    </div>
+                </section>
+
+                <section class="save-catalog-toolbar">
+                    <div class="search-box"><span>⌕</span><input placeholder="Поиск по сохранениям" @bind="_saveCatalogSearch" @bind:event="oninput" /></div>
+                    <div class="save-catalog-hint">ДВОЙНОЙ ЩЕЛЧОК — ЗАГРУЗИТЬ СОХРАНЕНИЕ</div>
+                </section>
+
+                @if (_saveCatalogLoading)
+                {
+                    <section class="save-catalog-grid loading">
+                        @for (var index = 0; index < 4; index++)
+                        {
+                            <div class="save-card-skeleton skeleton"></div>
+                        }
+                    </section>
+                }
+                else if (!string.IsNullOrWhiteSpace(_saveCatalogError))
+                {
+                    <section class="managed-content-empty section-block"><span>!</span><div><strong>Не удалось прочитать сохранения</strong><small>@_saveCatalogError</small></div></section>
+                }
+                else if (!FilteredSaveCatalog.Any())
+                {
+                    <section class="managed-content-empty section-block"><span>0</span><div><strong>Сохранения не найдены</strong><small>Создайте сохранение в Anomaly или проверьте путь к игре в разделе «Установка».</small></div></section>
+                }
+                else
+                {
+                    <section class="save-catalog-grid">
+                        @foreach (var saveItem in FilteredSaveCatalog)
+                        {
+                            var currentSave = saveItem;
+                            <article class="save-catalog-card @currentSave.CategoryKey @(_selectedCatalogSavePath == currentSave.Save.FullPath ? "selected" : null)"
+                                     title="Двойной щелчок — загрузить это сохранение"
+                                     @onclick="() => _selectedCatalogSavePath = currentSave.Save.FullPath"
+                                     @ondblclick="() => LaunchCatalogSaveAsync(currentSave)">
+                                <div class="save-catalog-preview">
+                                    @if (currentSave.PreviewDataUrl is not null)
+                                    {
+                                        <img src="@currentSave.PreviewDataUrl" alt="Превью сохранения @currentSave.Title" />
+                                    }
+                                    else
+                                    {
+                                        <div class="save-preview-placeholder"><img src="assets/anthology-logo.png" alt="" /><span>ПРЕВЬЮ НЕТ</span></div>
+                                    }
+                                    <span class="save-category">@currentSave.CategoryLabel</span>
+                                </div>
+                                <div class="save-catalog-copy">
+                                    <div class="save-player"><span>ПРОФИЛЬ</span><strong>@currentSave.PlayerName</strong></div>
+                                    <h3>@currentSave.Title</h3>
+                                    <p>@currentSave.Description</p>
+                                    <div class="save-metadata">
+                                        <span><b>ДАТА</b>@currentSave.Save.LastWriteTimeUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                        <span><b>РАЗМЕР</b>@currentSave.SizeLabel</span>
+                                        <span><b>ФАЙЛЫ</b>@currentSave.PartsLabel</span>
+                                    </div>
+                                    <button class="save-load-button" @onclick="() => LaunchCatalogSaveAsync(currentSave)" disabled="@(!CanLaunchConfiguredSave)">▶ ЗАГРУЗИТЬ СОХРАНЕНИЕ</button>
+                                </div>
+                            </article>
+                        }
+                    </section>
+                }
             }
             else if (_section == "library")
             {
@@ -1091,6 +1170,7 @@
         new("information", "i", "Информация", "СПРАВОЧНИК", "Anthology и сюжеты"),
         new("community", "◉", "Сообщество", "СВЯЗЬ", "Чат и обратная связь"),
         new("mo2", "≡", "MO2", "СБОРКА", "Профили и моды"),
+        new("saves", "▣", "Каталог сохранений", "АРХИВ СЕССИЙ", "Сохранения Anomaly"),
         new("updates", "⇣", "Обновления", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
         new("support", "◇", "Баг-репорт", "ПОДДЕРЖКА", "Обращение разработчику"),
         new("installation", "⬡", "Установка", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
@@ -1229,6 +1309,11 @@
     private string? _selectedMo2ModName;
     private string? _selectedMo2SavePath;
     private Mo2SaveEntry? _latestMo2Save;
+    private IReadOnlyList<AnomalySaveCatalogItem> _saveCatalog = [];
+    private string _saveCatalogSearch = string.Empty;
+    private string? _selectedCatalogSavePath;
+    private bool _saveCatalogLoading;
+    private string? _saveCatalogError;
     private bool _mo2ContentLoading;
     private string? _mo2ContentError;
     private CancellationTokenSource? _mo2ContentCancellation;
@@ -1286,12 +1371,17 @@
         _mo2Search);
     private BugReportDetails? SelectedBugReport => _bugReports.FirstOrDefault(report =>
         string.Equals(report.Receipt.Id, _selectedBugReportId, StringComparison.OrdinalIgnoreCase));
-    private bool CanLaunchLatestMo2Save =>
-        _latestMo2Save is not null
-        && _mo2Workspace.Instance.Available
+    private IEnumerable<AnomalySaveCatalogItem> FilteredSaveCatalog => _saveCatalog.Where(item =>
+        string.IsNullOrWhiteSpace(_saveCatalogSearch)
+        || item.SearchText.Contains(_saveCatalogSearch, StringComparison.OrdinalIgnoreCase));
+    private bool CanLaunchConfiguredSave =>
+        _mo2Workspace.Instance.Available
         && _mo2Workspace.SelectedProfile is not null
         && _mo2Workspace.SelectedExecutable is not null
         && !_mo2Workspace.RuntimeBusy;
+    private bool CanLaunchLatestMo2Save =>
+        _latestMo2Save is not null
+        && CanLaunchConfiguredSave;
 
     private ContentTranslation Localized(ContentDocument content) =>
         ContentLocalization.Resolve(content, _settings.InterfaceLanguage);
@@ -1365,6 +1455,10 @@
         {
             await LoadMo2ContentAsync();
         }
+        if (section == "saves")
+        {
+            await RefreshSaveCatalogAsync();
+        }
         if (section == "support")
         {
             await RefreshBugReportsAsync();
@@ -1372,6 +1466,8 @@
     }
 
     private Task ShowUpdates() => SelectSection("updates");
+
+    private Task ShowSaveCatalog() => SelectSection("saves");
 
     private async Task LaunchModpackAsync()
     {
@@ -2228,6 +2324,37 @@
         }
 
         await LaunchMo2SaveAsync(_latestMo2Save);
+    }
+
+    private Task LaunchCatalogSaveAsync(AnomalySaveCatalogItem save) => LaunchMo2SaveAsync(save.Save);
+
+    private async Task RefreshSaveCatalogAsync()
+    {
+        _saveCatalogLoading = true;
+        _saveCatalogError = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var gameRoot = _mo2Workspace.Instance.GamePath ?? _installation.GameRoot ?? _settings.GameRoot;
+            _saveCatalog = SaveCatalog.Load(gameRoot);
+            _latestMo2Save = _saveCatalog.FirstOrDefault()?.Save;
+            if (_selectedCatalogSavePath is null
+                || !_saveCatalog.Any(item => string.Equals(item.Save.FullPath, _selectedCatalogSavePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                _selectedCatalogSavePath = _saveCatalog.FirstOrDefault()?.Save.FullPath;
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException)
+        {
+            _saveCatalog = [];
+            _saveCatalogError = exception.Message;
+        }
+        finally
+        {
+            _saveCatalogLoading = false;
+        }
     }
 
     private void RefreshMo2Workspace()
