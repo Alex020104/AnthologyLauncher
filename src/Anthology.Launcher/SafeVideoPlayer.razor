@@ -162,9 +162,9 @@ else
         _embedUrl = null;
     }
 
-    private void OpenYoutubeLogin()
+    private async Task OpenYoutubeLogin()
     {
-        var result = LauncherBridge.OpenYoutubeLogin();
+        var result = await LauncherBridge.OpenYoutubeLoginAsync();
         _loginStatus = result.Message;
         _openError = result.Success ? null : result.Message;
         if (!result.Success)

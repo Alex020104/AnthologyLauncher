@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
 
 namespace Anthology.Launcher;
 
@@ -45,21 +46,33 @@ public partial class MainWindow : Window
         _webViewCore.WebResourceRequested += YoutubePlayerResourceRequested;
     }
 
-    internal LauncherActionResult OpenYoutubeLogin()
+    internal Task<LauncherActionResult> OpenYoutubeLoginAsync()
     {
         if (_webViewCore is null)
         {
-            return new LauncherActionResult(false, "Веб-профиль лаунчера ещё не готов. Повторите через несколько секунд.");
+            return Task.FromResult(new LauncherActionResult(
+                false,
+                "Веб-профиль лаунчера ещё не готов. Повторите через несколько секунд."));
         }
 
-        var loginWindow = new YoutubeLoginWindow(_webViewCore.Environment)
+        var completion = new TaskCompletionSource<LauncherActionResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () =>
         {
-            Owner = this,
-        };
-        var completed = loginWindow.ShowDialog() == true;
-        return completed
-            ? new LauncherActionResult(true, "Вход в YouTube сохранён. Плеер перезагружен с этим профилем.")
-            : new LauncherActionResult(false, "Вход в YouTube закрыт без подтверждения.");
+            var loginWindow = new YoutubeLoginWindow(_webViewCore.Environment)
+            {
+                Owner = this,
+                ShowInTaskbar = false,
+            };
+            loginWindow.Closed += (_, _) =>
+            {
+                completion.TrySetResult(loginWindow.LoginCompleted
+                    ? new LauncherActionResult(true, "Вход в YouTube сохранён. Плеер перезагружен с этим профилем.")
+                    : new LauncherActionResult(false, "Вход в YouTube закрыт без подтверждения."));
+            };
+            loginWindow.Show();
+        });
+        return completion.Task;
     }
 
     private static void YoutubePlayerResourceRequested(

@@ -11,6 +11,8 @@ public partial class YoutubeLoginWindow : Window
     private readonly CoreWebView2Environment _environment;
     private bool _initialized;
 
+    public bool LoginCompleted { get; private set; }
+
     public YoutubeLoginWindow(CoreWebView2Environment environment)
     {
         _environment = environment ?? throw new ArgumentNullException(nameof(environment));
@@ -28,12 +30,20 @@ public partial class YoutubeLoginWindow : Window
         _initialized = true;
         try
         {
-            await YoutubeWebView.EnsureCoreWebView2Async(_environment);
+            LoginStatus.Text = "Запуск защищённого профиля YouTube…";
+            await YoutubeWebView.EnsureCoreWebView2Async(_environment)
+                .WaitAsync(TimeSpan.FromSeconds(20));
+            if (YoutubeWebView.CoreWebView2 is null)
+            {
+                throw new InvalidOperationException("WebView2 не создал браузерный профиль.");
+            }
+
             YoutubeWebView.CoreWebView2.NavigationCompleted += YoutubeWebView_OnNavigationCompleted;
             YoutubeWebView.CoreWebView2.NewWindowRequested += YoutubeWebView_OnNewWindowRequested;
+            LoginStatus.Text = "Открываю accounts.google.com…";
             YoutubeWebView.CoreWebView2.Navigate(YoutubeLoginUrl);
         }
-        catch (Exception exception) when (exception is InvalidOperationException or COMException)
+        catch (Exception exception) when (exception is InvalidOperationException or COMException or TimeoutException)
         {
             LoginStatus.Text = $"Не удалось открыть страницу входа: {exception.Message}";
         }
@@ -94,7 +104,7 @@ public partial class YoutubeLoginWindow : Window
 
     private void Complete_OnClick(object sender, RoutedEventArgs e)
     {
-        DialogResult = true;
+        LoginCompleted = true;
         Close();
     }
 

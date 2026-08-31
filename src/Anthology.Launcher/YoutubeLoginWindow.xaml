@@ -48,7 +48,7 @@
             </Grid>
         </Border>
 
-        <webview2:WebView2 x:Name="YoutubeWebView" Grid.Row="1" DefaultBackgroundColor="#080C0F" />
+        <webview2:WebView2CompositionControl x:Name="YoutubeWebView" Grid.Row="1" DefaultBackgroundColor="#080C0F" />
 
         <Border Grid.Row="2" Padding="16,11" BorderBrush="#29343A" BorderThickness="0,1,0,0" Background="#0D1317">
             <Grid>
