@@ -460,15 +460,30 @@ public static class UnifiedReleaseBuilder
 
     private static (string Left, string Right) SplitPair(string value, string defaultLeft)
     {
-        var separator = value.IndexOf('|');
-        if (separator < 0)
+        var trimmed = value.Trim();
+        var separator = trimmed.IndexOf('|');
+        if (separator > 0 && separator < trimmed.Length - 1)
         {
-            separator = value.IndexOf('=');
+            return (trimmed[..separator].Trim(), trimmed[(separator + 1)..].Trim());
         }
 
-        return separator > 0 && separator < value.Length - 1
-            ? (value[..separator].Trim(), value[(separator + 1)..].Trim())
-            : (defaultLeft, value.Trim());
+        // A plain URL may legally contain '=' in its query string, for example
+        // youtube.com/watch?v=... or drive.google.com/...?usp=sharing. Treat the
+        // whole value as the URL before supporting the legacy "name=url" form.
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out _))
+        {
+            return (defaultLeft, trimmed);
+        }
+
+        separator = trimmed.IndexOf('=');
+        if (separator < 0)
+        {
+            return (defaultLeft, trimmed);
+        }
+
+        return separator > 0 && separator < trimmed.Length - 1
+            ? (trimmed[..separator].Trim(), trimmed[(separator + 1)..].Trim())
+            : (defaultLeft, trimmed);
     }
 
     public static string NormalizeProvider(string provider) => provider.Trim().ToLowerInvariant() switch

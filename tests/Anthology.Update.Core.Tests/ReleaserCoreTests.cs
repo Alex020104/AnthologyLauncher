@@ -263,6 +263,38 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public void PlainUrlsKeepQueryParametersWhenContentCatalogIsBuilt()
+    {
+        const string videoUrl = "https://www.youtube.com/watch?v=R_-tFWOVSLE";
+        const string downloadUrl = "https://drive.google.com/file/d/demo/view?usp=sharing";
+        var mod = new ContentDraft
+        {
+            Id = "query-url-test",
+            Kind = ContentKind.Mod,
+            Title = "Query URL test",
+            IsPublished = true,
+            Videos = videoUrl,
+            DownloadFileName = "query-url-test.zip",
+            InstallFolderName = "Query URL test",
+            DownloadSize = 42,
+            DownloadSha256 = new string('a', 64),
+            DownloadMirrors = downloadUrl,
+        };
+        var workspace = new ReleaserWorkspace { Version = "2.1.140", Content = [mod] };
+
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+
+        var document = Assert.Single(catalog.Items);
+        var video = Assert.Single(document.Videos);
+        Assert.Equal("Видео", video.Title);
+        Assert.Equal(videoUrl, video.Url);
+        Assert.NotNull(document.Download);
+        var mirror = Assert.Single(document.Download.Mirrors);
+        Assert.Equal("http", mirror.Provider);
+        Assert.Equal(downloadUrl, mirror.Url);
+    }
+
+    [Fact]
     public void SocialLinksAreEditableOrderedAndPublishedWithContentCatalog()
     {
         var workspace = new ReleaserWorkspace
