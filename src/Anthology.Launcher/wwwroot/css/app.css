@@ -93,8 +93,12 @@ button { color: inherit; }
 .panel-grid-texture::before { content: ""; position: absolute; inset: 0; opacity: .17; background-image: linear-gradient(#79838a13 1px, transparent 1px), linear-gradient(90deg, #79838a13 1px, transparent 1px); background-size: 30px 30px; mask-image: linear-gradient(90deg, black, transparent 75%); pointer-events: none; }
 .hero::after { content: ""; position: absolute; left: 0; bottom: 0; width: 4px; height: 90px; background: var(--accent); }
 .hero-copy { position: relative; z-index: 2; padding: 42px 48px 39px; }
+.hero-topline { min-height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .hero-kicker { color: #8d979c; font-size: 11px; letter-spacing: .21em; }
 .hero-kicker span { display: inline-block; width: 24px; height: 1px; margin: 0 10px 3px 0; background: var(--accent); }
+.hero-version-chip { flex: none; display: flex; align-items: center; gap: 11px; min-height: 32px; padding: 6px 10px 6px 12px; border: 1px solid #75633a80; border-left: 2px solid var(--accent); background: linear-gradient(90deg, #9b7c351a, #11171b); box-shadow: inset 0 0 18px #b8953b0a; }
+.hero-version-chip span { color: #7e898e; font-size: 8px; letter-spacing: .14em; white-space: nowrap; }
+.hero-version-chip strong { color: var(--accent-bright); font: 700 14px var(--mono); letter-spacing: .08em; white-space: nowrap; }
 .hero h2 { margin: 21px 0 16px; font: 300 clamp(32px, 3.1vw, 49px)/1.06 "Segoe UI Variable", sans-serif; letter-spacing: -.045em; }
 .hero h2 em { color: var(--accent-bright); font-style: normal; font-weight: 400; }
 .hero p { max-width: 600px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }

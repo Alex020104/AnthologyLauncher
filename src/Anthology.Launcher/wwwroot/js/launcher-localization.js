@@ -1,5 +1,7 @@
 (() => {
     const dictionary = {
+        "ВЕРСИЯ ОБНОВЛЕНИЯ": ["UPDATE VERSION", "UPDATE-VERSION", "WERSJA AKTUALIZACJI", "VERSION DE MISE À JOUR", "VERSIÓN DE ACTUALIZACIÓN", "更新版本", "アップデート版"],
+        "НЕ ОПРЕДЕЛЕНА": ["NOT DETECTED", "NICHT ERKANNT", "NIE WYKRYTO", "NON DÉTECTÉE", "NO DETECTADA", "未检测到", "未検出"],
         "Каталог сохранений": ["Save catalog", "Spielstandkatalog", "Katalog zapisów", "Catalogue des sauvegardes", "Catálogo de partidas", "存档目录", "セーブカタログ"],
         "АРХИВ СЕССИЙ": ["SESSION ARCHIVE", "SITZUNGSARCHIV", "ARCHIWUM SESJI", "ARCHIVE DES SESSIONS", "ARCHIVO DE SESIONES", "会话存档", "セッションアーカイブ"],
         "Сохранения Anomaly": ["Anomaly saves", "Anomaly-Spielstände", "Zapisy Anomaly", "Sauvegardes Anomaly", "Partidas de Anomaly", "Anomaly 存档", "Anomaly セーブ"],

@@ -93,7 +93,10 @@
             {
                 <section class="hero panel-grid-texture">
                     <div class="hero-copy">
-                        <div class="hero-kicker"><span></span> НОВАЯ ПЛАТФОРМА ANTHOLOGY</div>
+                        <div class="hero-topline">
+                            <div class="hero-kicker"><span></span> НОВАЯ ПЛАТФОРМА ANTHOLOGY</div>
+                            <div class="hero-version-chip"><span>ВЕРСИЯ ОБНОВЛЕНИЯ</span><strong>@HomeGameVersion</strong></div>
+                        </div>
                         <h2>Зона становится<br /><em>больше лаунчера.</em></h2>
                         <p>Обновления из нескольких источников, библиотека модов, видео, голосования и прямая связь с командой — в одном приложении.</p>
                         <div class="hero-social-links" aria-label="Официальные площадки Anthology">
@@ -1366,6 +1369,14 @@
     private IReadOnlyList<SocialLink> HomeSocialLinks => _publishedContent?.SocialLinks ?? DefaultSocialLinks;
     private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
         .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
+    private string HomeGameVersion =>
+        _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Game)?.InstalledVersion
+        ?? _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Modpack)?.InstalledVersion
+        ?? _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Database)?.InstalledVersion
+        ?? _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Engine)?.InstalledVersion
+        ?? _publishedContent?.Version
+        ?? _updateCheck?.SignedManifest.Payload.Version
+        ?? "НЕ ОПРЕДЕЛЕНА";
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
