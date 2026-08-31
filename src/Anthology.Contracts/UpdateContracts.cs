@@ -139,6 +139,7 @@ public static class ProjectPersonLocalization
     }
 }
 
+#pragma warning disable CA1711 // This contract represents a published live broadcast, not System.IO.Stream.
 public sealed record LiveStream(
     string Id,
     string Title,
@@ -146,6 +147,7 @@ public sealed record LiveStream(
     string Url,
     int Order = 100,
     IReadOnlyDictionary<string, LiveStreamTranslation>? Translations = null);
+#pragma warning restore CA1711
 
 public sealed record LiveStreamTranslation(
     string Title,

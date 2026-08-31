@@ -1394,6 +1394,7 @@
     private bool _mo2ContentLoading;
     private string? _mo2ContentError;
     private CancellationTokenSource? _mo2ContentCancellation;
+    private readonly CancellationTokenSource _mo2RuntimeMonitorCancellation = new();
     private DotNetObjectReference<Main>? _mo2DragReference;
     private readonly HashSet<string> _collapsedMo2Separators = new(StringComparer.OrdinalIgnoreCase);
     private string _informationSection = string.Empty;
@@ -1511,6 +1512,7 @@
         _bundledMedia = Installer.DetectMedia();
         _setupStatus = Setup.Detect();
         RefreshMo2Workspace();
+        _ = MonitorMo2RuntimeAsync(_mo2RuntimeMonitorCancellation.Token);
         RelayChat.MessageReceived += OnRelayChatMessageReceived;
         RelayChat.StatusChanged += OnRelayChatStatusChanged;
         if (_settings.RelayChatAlways)
@@ -2493,6 +2495,43 @@
         RefreshLatestMo2Save();
     }
 
+    private async Task MonitorMo2RuntimeAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                var runtimeBusy = Mo2.RuntimeBusy;
+                if (runtimeBusy == _mo2Workspace.RuntimeBusy)
+                {
+                    continue;
+                }
+
+                await InvokeAsync(async () =>
+                {
+                    var wasBusy = _mo2Workspace.RuntimeBusy;
+                    RefreshMo2Workspace();
+                    if (wasBusy && !_mo2Workspace.RuntimeBusy)
+                    {
+                        if (_section == "mo2")
+                        {
+                            await LoadMo2ContentAsync(forceRefresh: true);
+                        }
+
+                        ShowToast("Игра закрыта — профиль MO2 снова доступен для изменений");
+                    }
+
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The monitor belongs to this launcher page and stops together with it.
+        }
+    }
+
     private void RefreshLatestMo2Save()
     {
         _latestMo2Save = null;
@@ -3243,6 +3282,8 @@
         _updateCancellation?.Dispose();
         _mo2ContentCancellation?.Cancel();
         _mo2ContentCancellation?.Dispose();
+        _mo2RuntimeMonitorCancellation.Cancel();
+        _mo2RuntimeMonitorCancellation.Dispose();
         _mo2FileSearchCancellation?.Cancel();
         _mo2FileSearchCancellation?.Dispose();
         _mo2DragReference?.Dispose();

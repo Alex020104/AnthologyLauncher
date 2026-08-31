@@ -395,7 +395,8 @@
         "СОХРАНИТЬ СЕРВЕР": ["SAVE SERVER", "SERVER SPEICHERN", "ZAPISZ SERWER", "ENREGISTRER LE SERVEUR", "GUARDAR SERVIDOR", "保存服务器", "サーバーを保存"],
         "Прокрутка страницы": ["Page scrolling", "Seite scrollen"],
         "Прокрутить вверх": ["Scroll up", "Nach oben scrollen"],
-        "Прокрутить вниз": ["Scroll down", "Nach unten scrollen"]
+        "Прокрутить вниз": ["Scroll down", "Nach unten scrollen"],
+        "Игра закрыта — профиль MO2 снова доступен для изменений": ["Game closed — the MO2 profile is available for changes again", "Spiel geschlossen — das MO2-Profil kann wieder bearbeitet werden", "Gra została zamknięta — profil MO2 można ponownie edytować", "Jeu fermé — le profil MO2 est de nouveau modifiable", "El juego se ha cerrado: el perfil de MO2 vuelve a estar disponible para editar", "游戏已关闭 — MO2 配置文件现在可再次修改", "ゲームが終了しました — MO2プロファイルを再び編集できます"]
     };
 
     const nodes = new WeakMap();

@@ -22,6 +22,10 @@ public sealed class Mo2IntegrationService(
     private string? _contentKey;
     private Mo2ContentIndex? _contentIndex;
 
+#pragma warning disable CA1822 // Exposed through the injected service so the UI can monitor runtime state.
+    public bool RuntimeBusy => IsRuntimeBusy();
+#pragma warning restore CA1822
+
     public Mo2WorkspaceSnapshot GetWorkspace()
     {
         var instance = Mo2ProfileManager.Detect(settingsStore.Current.ModpackRoot);
