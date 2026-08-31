@@ -1226,6 +1226,11 @@
                         <div class="settings-module-heading"><span class="module-index">04</span><div><span class="eyebrow">ИГРОВОЙ МОСТ</span><h3>Реальный чат</h3></div><span class="status-dot @(_relayChatRunning ? "online" : "warning")"></span></div>
                         <div class="service-orbit"><span>⌁</span><div><strong>@(_relayChatRunning ? "Мост уже подключён" : "Мост ожидает запуска")</strong><small>Чат работает из корня игры и остаётся доступен внутри Anomaly.</small></div></div>
                         <button class="next-option service-toggle @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span class="option-glyph">RC</span><div><strong>Подключать заранее</strong><small>Запускать Реальный чат вместе с лаунчером</small></div><em>@(_settings.RelayChatAlways ? "АВТО" : "ВРУЧНУЮ")</em></button>
+                        <details class="service-network-settings">
+                            <summary>СЕТЕВЫЕ НАСТРОЙКИ</summary>
+                            <label>Адрес сервера сообщества<input @bind="_settings.CommunityApiUrl" /></label>
+                            <small>Адрес поставляется вместе с лаунчером. Меняйте его только по указанию команды Anthology.</small>
+                        </details>
                     </article>
 
                 </section>
@@ -1237,17 +1242,71 @@
             }
             else if (_section == "installation")
             {
-                <section class="installation-hero section-block"><div><span class="eyebrow">ЛОКАЛЬНАЯ УСТАНОВКА</span><h2>Игра, модпак и канал обновлений</h2><p>В упакованной среде лаунчер сам находит корень игры и соседний Mod Organizer 2. Ручной путь нужен только для нестандартной установки.</p><button class="secondary-button" @onclick="UseAutomaticInstallationPathsAsync">↻ НАЙТИ ПУТИ АВТОМАТИЧЕСКИ</button></div><div class="install-media-state @(_bundledMedia.Available ? "ready" : null)"><span></span><strong>@(_bundledMedia.Available ? "INSTALL MEDIA READY" : "INSTALL MEDIA MISSING")</strong><small>@_bundledMedia.StatusText</small></div></section>
-                <section class="settings-grid installation-grid">
-                    <article class="setting-card section-block"><span>УСТАНОВКА ИГРЫ</span><h3>Комплектные бинарные пакеты</h3><code>@(_settings.InstallDestination ?? "Папка назначения не выбрана")</code><p>Лаунчер ищет подписанный комплект в <b>InstallMedia</b> рядом со своим EXE. Пакеты могут содержать bin, db, gamedata и остальные файлы сборки.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectInstallDestinationAsync">ВЫБРАТЬ ПАПКУ</button><button class="primary-button" disabled="@(!_bundledMedia.Available || string.IsNullOrWhiteSpace(_settings.InstallDestination) || _installBusy)" @onclick="InstallBundledGameAsync">@(_installBusy ? "УСТАНОВКА..." : "УСТАНОВИТЬ ИГРУ")</button></div>@if (_installProgress is not null) { <div class="install-progress"><div class="progress-track"><span style="width:@InstallProgressPercentage%"></span></div><small>@_installProgress.Message</small></div> }</article>
-                    <article class="setting-card setup-card section-block"><span>ОБЫЧНЫЙ УСТАНОВЩИК</span><h3>Запустить Setup</h3><code>@(_setupStatus.ExecutablePath ?? Path.Combine(_setupStatus.SetupRoot, "Setup.exe"))</code><p>Стабильная комплектная папка: <b>App\Setup</b>. Установщик может брать бинарные файлы из <b>Setup\bin</b> или <b>Setup\Payload\bin</b>.</p><div class="setup-state"><span class="status-dot @(_setupStatus.Available ? "online" : "warning")"></span><small>@_setupStatus.StatusText</small></div><div class="setting-actions"><button class="secondary-button" @onclick="SelectSetupAsync">ВЫБРАТЬ SETUP</button><button class="primary-button" disabled="@(!_setupStatus.Available)" @onclick="LaunchSetup">ЗАПУСТИТЬ SETUP</button></div></article>
-                    <article class="setting-card section-block"><span>@(_settings.GameRootManualOverride ? "РУЧНОЙ ПУТЬ" : "НАЙДЕНО АВТОМАТИЧЕСКИ")</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не найден")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>. Кнопка выбора сохраняет ручное переопределение.</p><button class="secondary-button" @onclick="SelectGameRootAsync">ИЗМЕНИТЬ ВРУЧНУЮ</button></article>
-                    <article class="setting-card section-block"><span>@(_settings.ModpackRootManualOverride ? "РУЧНОЙ ПУТЬ" : "НАЙДЕНО АВТОМАТИЧЕСКИ")</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не найден")</code><p>Лаунчер ищет <b>ModOrganizer.exe</b> в папках упакованной среды. Ручной выбор имеет приоритет, пока путь существует.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ИЗМЕНИТЬ ПУТЬ MO2</button></article>
-                    <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Автоматический подписанный канал</h3><div class="automatic-update-state @(UpdateConfigurationReady ? "ready" : null)"><i></i><div><strong>@ManifestConfigurationStatus</strong><small>@PublicKeyConfigurationStatus</small></div></div><p>Публичный ключ Anthology уже встроен в лаунчер. Manifest подхватывается автоматически из папки <b>Update</b> рядом с лаунчером или из настроенного командой онлайн-канала.</p><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><details class="advanced-update-settings"><summary>РАСШИРЕННАЯ НАСТРОЙКА ДЛЯ РАЗРАБОТЧИКА</summary><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Переопределить публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="Встроенный ключ используется автоматически" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ ДРУГОЙ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label></details><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
-                    <article class="setting-card source-path-card section-block"><span>ОБРАЗЦЫ ПУТЕЙ</span><h3>GitHub и Яндекс.Диск</h3><p>Рабочий каталог аддонов уже опубликован в одной ветке. Для обновления всей сборки релизер создаст отдельный подписанный <b>manifest.json</b>; в лаунчере вручную указывается только его постоянный адрес.</p><strong>GITHUB · РАБОЧАЯ ВЕТКА АДДОНОВ</strong><code>https://github.com/Alex020104/AnthologyLauncher/tree/addons-unified-library</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/addon-catalog.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/library/{category}/addon-NNN.7z</code><strong>GITHUB · КАНАЛ ОБНОВЛЕНИЙ</strong><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code><strong>ЯНДЕКС.ДИСК · РАБОЧИЙ КАНАЛ</strong><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/manifest.json</code><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/{file}</code><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/addons/{id}/{file}</code></article>
-                    <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
-                    <article class="setting-card section-block"><span>ОБЩИЙ СЕРВЕР</span><h3>Community API</h3><label>Адрес сервера<input @bind="_settings.CommunityApiUrl" placeholder="https://community.anthology.example/" /></label><p>Один адрес используется для чата, голосований и баг-репортов. Для локальной проверки оставьте http://127.0.0.1:5249; для работы с другими игроками укажите опубликованный HTTPS-адрес команды.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ СЕРВЕР</button><div class="safe-banner">@Settings.DataRoot</div></article>
+                <section class="installation-hero section-block">
+                    <div class="installation-hero-copy">
+                        <span class="eyebrow">ПОДКЛЮЧЕНИЕ ИГРЫ</span>
+                        <h2>@(_installation.GameFound ? "Anthology уже найдена" : "Найдём Anthology автоматически")</h2>
+                        <p>@(_installation.GameFound
+                            ? "Лаунчер определил установленную игру. Если папки сборки находятся рядом, их не нужно указывать вручную."
+                            : "Оставьте лаунчер внутри папки сборки или рядом с ней — при запуске он сам найдёт игру и Mod Organizer 2.")</p>
+                        <div class="installation-hero-actions">
+                            <button class="primary-button" @onclick="UseAutomaticInstallationPathsAsync">↻ ПРОВЕРИТЬ ОКРУЖЕНИЕ</button>
+                            @if (_installation.GameFound)
+                            {
+                                <button class="secondary-button" @onclick="OpenGameFolder">ОТКРЫТЬ ПАПКУ ИГРЫ</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="installation-summary @(_installation.GameFound ? (_installation.ModOrganizerFound ? "ready" : "partial") : "missing")">
+                        <span>@(_installation.GameFound ? (_installation.ModOrganizerFound ? "✓" : "!") : "?")</span>
+                        <div>
+                            <small>СОСТОЯНИЕ УСТАНОВКИ</small>
+                            <strong>@(_installation.GameFound ? (_installation.ModOrganizerFound ? "Игра и модпак готовы" : "Игра найдена, MO2 не найден") : "Игра пока не найдена")</strong>
+                            <p>@_installation.StatusText</p>
+                        </div>
+                    </div>
                 </section>
+
+                <section class="installation-paths section-block">
+                    <header>
+                        <div><span class="eyebrow">НАЙДЕНО ЛАУНЧЕРОМ</span><h3>Папки для запуска и обновлений</h3><p>Обычно здесь ничего менять не требуется. Ручной выбор нужен только после переноса игры или для нестандартной структуры папок.</p></div>
+                        <span class="installation-mode">@(_settings.GameRootManualOverride || _settings.ModpackRootManualOverride ? "ЕСТЬ РУЧНОЙ ПУТЬ" : "АВТОПОИСК ВКЛЮЧЁН")</span>
+                    </header>
+                    <div class="detected-path-list">
+                        <article class="@(_installation.GameFound ? "ready" : null)">
+                            <span>01</span>
+                            <div><small>@(_settings.GameRootManualOverride ? "ВЫБРАНО ВРУЧНУЮ" : "НАЙДЕНО В ОКРУЖЕНИИ")</small><strong>Игра Anthology</strong><code>@(_installation.GameRoot ?? _settings.GameRoot ?? "Папка игры не найдена")</code></div>
+                            <button class="secondary-button" @onclick="SelectGameRootAsync">@(_installation.GameFound ? "ИЗМЕНИТЬ" : "УКАЗАТЬ ПАПКУ")</button>
+                        </article>
+                        <article class="@(_installation.ModOrganizerFound ? "ready" : null)">
+                            <span>02</span>
+                            <div><small>@(_settings.ModpackRootManualOverride ? "ВЫБРАНО ВРУЧНУЮ" : "НАЙДЕНО В ОКРУЖЕНИИ")</small><strong>Mod Organizer 2</strong><code>@(_installation.ModpackRoot ?? _settings.ModpackRoot ?? "Папка MO2 не найдена")</code></div>
+                            <button class="secondary-button" @onclick="SelectModpackRootAsync">@(_installation.ModOrganizerFound ? "ИЗМЕНИТЬ" : "УКАЗАТЬ ПАПКУ")</button>
+                        </article>
+                    </div>
+                    <footer><span>✓</span><p>Автопоиск выполняется при каждом запуске лаунчера и при открытии этого раздела. Существующий ручной путь сохраняется, пока папка доступна.</p></footer>
+                </section>
+
+                <details class="installation-options section-block" open="@(!_installation.GameFound)">
+                    <summary><div><span class="eyebrow">ИГРА ЕЩЁ НЕ УСТАНОВЛЕНА?</span><strong>Установка или переустановка Anthology</strong><small>Раскройте этот блок только если игра не найдена или вы хотите перенести сборку.</small></div><span>РАСКРЫТЬ</span></summary>
+                    <div class="install-method-grid">
+                        <article class="install-method recommended">
+                            <span>РЕКОМЕНДУЕТСЯ</span><h3>Обычный установщик</h3><p>Запустите готовый установщик Anthology. Он сам предложит папку и разместит компоненты сборки.</p>
+                            <div class="setup-state"><span class="status-dot @(_setupStatus.Available ? "online" : "warning")"></span><small>@(_setupStatus.Available ? "Установщик готов к запуску" : "Установщик рядом с лаунчером не найден")</small></div>
+                            <div class="setting-actions"><button class="secondary-button" @onclick="SelectSetupAsync">ВЫБРАТЬ УСТАНОВЩИК</button><button class="primary-button" disabled="@(!_setupStatus.Available)" @onclick="LaunchSetup">ЗАПУСТИТЬ УСТАНОВЩИК</button></div>
+                        </article>
+                        <article class="install-method">
+                            <span>ЛОКАЛЬНЫЙ ПАКЕТ</span><h3>Установить из полного комплекта</h3><p>Используйте этот вариант, если вместе с лаунчером вам передали готовый пакет игры.</p>
+                            <div class="setup-state"><span class="status-dot @(_bundledMedia.Available ? "online" : "warning")"></span><small>@(_bundledMedia.Available ? "Локальный пакет готов" : "Локальный пакет не приложен")</small></div>
+                            <code>@(_settings.InstallDestination ?? "Сначала выберите папку для игры")</code>
+                            <div class="setting-actions"><button class="secondary-button" @onclick="SelectInstallDestinationAsync">ВЫБРАТЬ ПАПКУ</button><button class="primary-button" disabled="@(!_bundledMedia.Available || string.IsNullOrWhiteSpace(_settings.InstallDestination) || _installBusy)" @onclick="InstallBundledGameAsync">@(_installBusy ? "УСТАНОВКА..." : "УСТАНОВИТЬ")</button></div>
+                            @if (_installProgress is not null)
+                            {
+                                <div class="install-progress"><div class="progress-track"><span style="width:@InstallProgressPercentage%"></span></div><small>@_installProgress.Message</small></div>
+                            }
+                        </article>
+                    </div>
+                </details>
             }
         </div>
         </div>
@@ -1623,6 +1682,14 @@
         if (section == "support")
         {
             await RefreshBugReportsAsync();
+        }
+        if (section == "installation")
+        {
+            _installation = await Launcher.AutoConfigureInstallationAsync();
+            _settings = Settings.Current.Copy();
+            _bundledMedia = Installer.DetectMedia();
+            _setupStatus = Setup.Detect();
+            RefreshMo2Workspace();
         }
     }
 
