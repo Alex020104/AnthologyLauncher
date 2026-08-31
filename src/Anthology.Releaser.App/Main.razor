@@ -183,7 +183,7 @@
                                 </section>
                             }
 
-                            <div class="media-grid"><section class="photo-upload"><div><span>@(ActiveContentKind == ContentKind.Information ? "ФОТОГРАФИИ И ОБЛОЖКА ВКЛАДКИ" : ActiveContentKind == ContentKind.ProjectSupport ? "ФОТОГРАФИИ И ОБЛОЖКА ПОДДЕРЖКИ" : "ФОТОГРАФИИ МАТЕРИАЛА")</span><p>Выберите PNG, JPG или WEBP с компьютера. Первая фотография станет обложкой; файлы автоматически попадут во все источники при публикации.</p></div><button class="secondary" @onclick="SelectContentImages">＋ ЗАГРУЗИТЬ ФОТОГРАФИИ</button>@if (SelectedContentImagePaths.Count == 0) { <div class="photo-empty">Фотографии не выбраны</div> } else { <div class="photo-file-list">@foreach (var photo in SelectedContentImagePaths) { var currentPhoto = photo; <span><b>@Path.GetFileName(currentPhoto)</b><small>@currentPhoto</small><button title="Удалить фотографию" @onclick="() => RemoveContentImage(currentPhoto)">×</button></span> }</div> }</section><label class="video-url-editor">Видео по URL — «Название | HTTPS-ссылка»<textarea rows="7" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/watch?v=..."></textarea><small>YouTube, VK, ModDB и прямые HTTPS-ссылки на MP4/WEBM воспроизводятся внутри лаунчера.</small></label></div>
+                            <div class="media-grid"><section class="photo-upload"><div><span>@(ActiveContentKind == ContentKind.Information ? "ФОТОГРАФИИ И ОБЛОЖКА ВКЛАДКИ" : ActiveContentKind == ContentKind.ProjectSupport ? "ФОТОГРАФИИ И ОБЛОЖКА ПОДДЕРЖКИ" : "ФОТОГРАФИИ МАТЕРИАЛА")</span><p>Выберите PNG, JPG или WEBP с компьютера. Первая фотография станет обложкой; файлы автоматически попадут во все источники при публикации.</p></div><button class="secondary" @onclick="SelectContentImages">＋ ЗАГРУЗИТЬ ФОТОГРАФИИ</button>@if (SelectedContentImagePaths.Count == 0) { <div class="photo-empty">Фотографии не выбраны</div> } else { <div class="photo-file-list">@foreach (var photo in SelectedContentImagePaths) { var currentPhoto = photo; <span><b>@Path.GetFileName(currentPhoto)</b><small>@currentPhoto</small><button title="Удалить фотографию" @onclick="() => RemoveContentImage(currentPhoto)">×</button></span> }</div> }</section><section class="photo-upload video-file-upload"><div><span>ВИДЕОФАЙЛЫ ДЛЯ ВСТРОЕННОГО ПЛЕЕРА</span><p>Загрузите MP4, WEBM или OGV. Файл попадёт во все источники публикации и будет воспроизводиться внутри лаунчера без YouTube и авторизации.</p></div><button class="secondary" @onclick="SelectContentVideos">＋ ЗАГРУЗИТЬ ВИДЕОФАЙЛЫ</button>@if (SelectedContentVideoPaths.Count == 0) { <div class="photo-empty">Видеофайлы не выбраны</div> } else { <div class="photo-file-list">@foreach (var video in SelectedContentVideoPaths) { var currentVideo = video; <span><b>@Path.GetFileName(currentVideo)</b><small>@currentVideo</small><button title="Удалить видеофайл" @onclick="() => RemoveContentVideo(currentVideo)">×</button></span> }</div> }</section><label class="video-url-editor">Дополнительное видео по URL — «Название | HTTPS-ссылка»<textarea rows="7" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/watch?v=..."></textarea><small>Прямая загрузка видеофайла гарантированно работает внутри лаунчера. YouTube может потребовать авторизацию; URL остаётся дополнительным вариантом.</small></label></div>
                             @if (ActiveContentKind == ContentKind.Mod)
                             {
                                 <section class="download-editor"><div><span class="eyebrow">ПАКЕТ ДЛЯ БИБЛИОТЕКИ МОДОВ</span><h3>Автоматическая установка в MO2\mods</h3><p>Выберите готовый архив мода. Лаунчер скачает его с выбранного зеркала, проверит SHA‑256, распакует в папку <b>MO2\mods</b> и сразу включит в выбранном профиле. Повторная публикация безопасно заменит старую версию этого же мода.</p></div><code>@PathOrEmpty(SelectedContentArchivePath)</code><button class="secondary" @onclick="SelectContentArchiveAsync">ВЫБРАТЬ АРХИВ МОДА</button><div class="form-grid"><label>Имя архива<input @bind="SelectedContent.DownloadFileName" /></label><label>Папка мода в MO2<input @bind="SelectedContent.InstallFolderName" placeholder="Если пусто — используется ID публикации" /></label><label>Размер<input type="number" @bind="SelectedContent.DownloadSize" /></label><label class="wide">SHA‑256<input @bind="SelectedContent.DownloadSha256" /></label></div><label>Зеркала файла<textarea rows="5" @bind="SelectedContent.DownloadMirrors" placeholder="yandex-disk | https://.../{version}/addons/{id}/{file}&#10;google-drive | https://...&#10;http | https://cdn.example/{file}"></textarea></label><div class="publish-actions"><button class="danger" @onclick="UnpublishAddonAsync" disabled="@(_busy || !SelectedContent.IsPublished)">СНЯТЬ МОД</button><button class="primary" @onclick="PublishAddonAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ В БИБЛИОТЕКЕ")</button></div></section>
@@ -370,6 +370,9 @@
     private IReadOnlyList<string> SelectedContentImagePaths => SelectedContent is null
         ? []
         : GetImagePaths(ContentMediaPublisher.ContentKey(SelectedContent.Id));
+    private IReadOnlyList<string> SelectedContentVideoPaths => SelectedContent is null
+        ? []
+        : GetVideoPaths(ContentMediaPublisher.ContentKey(SelectedContent.Id));
     private int ConfiguredPublicationRootsCount => _workspace.Mirrors.Count(mirror =>
         _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) && !string.IsNullOrWhiteSpace(root));
     private int QuickAddCount => _machine.QuickReleaseFiles.Count + _machine.QuickReleaseFolders.Count;
@@ -410,6 +413,10 @@
                     ? ContentMediaPublisher.ContentKey(value)
                     : $"block/{value}/{mapping.Key[(mapping.Key.LastIndexOf('/') + 1)..]}";
                 _machine.ContentImagePaths[replacementKey] = mapping.Value;
+            }
+            if (_machine.ContentVideoPaths.Remove(ContentMediaPublisher.ContentKey(oldId), out var videoPaths))
+            {
+                _machine.ContentVideoPaths[ContentMediaPublisher.ContentKey(value)] = videoPaths;
             }
         }
     }
@@ -989,7 +996,7 @@
             }
 
             _machine.ContentArchivePaths.Remove(item.Id);
-            RemoveContentImageMappings(item.Id);
+            RemoveContentMediaMappings(item.Id);
             _workspace.Content.Remove(item);
             _selectedContentId = _workspace.Content.FirstOrDefault(candidate => candidate.Kind == ActiveContentKind)?.Id;
             await State.SaveWorkspaceAsync(_workspace, _machine, true);
@@ -1083,6 +1090,40 @@
         }
     }
 
+    private void SelectContentVideos()
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        var selected = Bridge.SelectFiles(
+            "Выберите видеофайлы материала",
+            "Видео (*.mp4;*.webm;*.ogv)|*.mp4;*.webm;*.ogv",
+            GetVideoPaths(ContentMediaPublisher.ContentKey(content.Id)).FirstOrDefault());
+        if (selected.Count == 0) { return; }
+        var key = ContentMediaPublisher.ContentKey(content.Id);
+        var paths = GetOrCreateVideoPaths(key);
+        foreach (var path in selected)
+        {
+            if (!paths.Contains(path, StringComparer.OrdinalIgnoreCase))
+            {
+                paths.Add(path);
+            }
+        }
+        Toast($"Добавлено видеофайлов: {selected.Count}. Они будут воспроизводиться внутри лаунчера без YouTube.");
+    }
+
+    private void RemoveContentVideo(string path)
+    {
+        var content = SelectedContent;
+        if (content is null) { return; }
+        var key = ContentMediaPublisher.ContentKey(content.Id);
+        if (!_machine.ContentVideoPaths.TryGetValue(key, out var paths)) { return; }
+        paths.RemoveAll(item => item.Equals(path, StringComparison.OrdinalIgnoreCase));
+        if (paths.Count == 0)
+        {
+            _machine.ContentVideoPaths.Remove(key);
+        }
+    }
+
     private void SelectBlockImage(ContentBlockDraft block)
     {
         var content = SelectedContent;
@@ -1114,6 +1155,9 @@
     private IReadOnlyList<string> GetImagePaths(string key) =>
         _machine.ContentImagePaths.TryGetValue(key, out var paths) ? paths : [];
 
+    private IReadOnlyList<string> GetVideoPaths(string key) =>
+        _machine.ContentVideoPaths.TryGetValue(key, out var paths) ? paths : [];
+
     private List<string> GetOrCreateImagePaths(string key)
     {
         if (!_machine.ContentImagePaths.TryGetValue(key, out var paths))
@@ -1124,7 +1168,17 @@
         return paths;
     }
 
-    private void RemoveContentImageMappings(string contentId)
+    private List<string> GetOrCreateVideoPaths(string key)
+    {
+        if (!_machine.ContentVideoPaths.TryGetValue(key, out var paths))
+        {
+            paths = [];
+            _machine.ContentVideoPaths[key] = paths;
+        }
+        return paths;
+    }
+
+    private void RemoveContentMediaMappings(string contentId)
     {
         var keys = _machine.ContentImagePaths.Keys
             .Where(key => key.Equals(ContentMediaPublisher.ContentKey(contentId), StringComparison.OrdinalIgnoreCase)
@@ -1134,6 +1188,7 @@
         {
             _machine.ContentImagePaths.Remove(key);
         }
+        _machine.ContentVideoPaths.Remove(ContentMediaPublisher.ContentKey(contentId));
     }
 
     private void MoveInformationBlock(ContentBlockDraft block, int direction)

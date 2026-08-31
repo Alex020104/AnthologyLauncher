@@ -511,12 +511,65 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public async Task UploadedVideoIsPublishedAndAddedToContentCatalog()
+    {
+        var output = Path.Combine(_root, "video-output");
+        var published = Path.Combine(_root, "video-published");
+        var keys = Path.Combine(_root, "video-keys");
+        var sourceVideo = Path.Combine(_root, "developer-diary.mp4");
+        Directory.CreateDirectory(keys);
+        await File.WriteAllBytesAsync(sourceVideo, [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]);
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var mirror = new ReleaseMirrorSet
+        {
+            Id = "video-cdn",
+            Provider = "http",
+            ContentUrl = "https://cdn.example/{version}/addons/{id}/{file}",
+            Priority = 10,
+        };
+        var news = new ContentDraft { Id = "video-news", Kind = ContentKind.News, Title = "Дневник разработки" };
+        var workspace = new ReleaserWorkspace { Version = "2.1.142", Mirrors = [mirror], Content = [news] };
+        var machine = new ReleaserMachineSettings
+        {
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "video-test-key",
+            ContentVideoPaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ContentMediaPublisher.ContentKey(news.Id)] = [sourceVideo],
+            },
+            PublicationRoots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [mirror.Id] = published,
+            },
+        };
+
+        await ReleasePublicationService.PublishContentAsync(news, workspace, machine);
+
+        var catalog = JsonSerializer.Deserialize<ContentCatalog>(
+            await File.ReadAllTextAsync(Path.Combine(output, workspace.Version, "content.json")),
+            ManifestJson.Options);
+        var video = Assert.Single(Assert.Single(catalog!.Items).Videos);
+        Assert.Equal("developer-diary", video.Title);
+        Assert.StartsWith("https://cdn.example/2.1.142/addons/video-news/media/video-01-developer-diary-", video.Url, StringComparison.Ordinal);
+        Assert.EndsWith(".mp4", video.Url, StringComparison.Ordinal);
+        var videoFileName = Path.GetFileName(new Uri(video.Url).AbsolutePath);
+        Assert.True(File.Exists(Path.Combine(output, workspace.Version, "addons", news.Id, "media", videoFileName)));
+        Assert.True(File.Exists(Path.Combine(published, workspace.Version, "addons", news.Id, "media", videoFileName)));
+    }
+
+    [Fact]
     public async Task InlineImagePrefersRawGithubUrlOverYandexSharingPage()
     {
         var versionRoot = Path.Combine(_root, "inline-media", "2.1.151");
         var sourcePhoto = Path.Combine(_root, "story-background.png");
+        var sourceVideo = Path.Combine(_root, "story-trailer.mp4");
         Directory.CreateDirectory(Path.GetDirectoryName(sourcePhoto)!);
         await File.WriteAllBytesAsync(sourcePhoto, [0x89, 0x50, 0x4e, 0x47]);
+        await File.WriteAllBytesAsync(sourceVideo, [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]);
         var story = new ContentDraft
         {
             Id = "stories",
@@ -561,13 +614,20 @@ public sealed class ReleaserCoreTests : IDisposable
             {
                 [ContentMediaPublisher.BlockKey(story.Id, story.Blocks[0].Id)] = [sourcePhoto],
             },
+            ContentVideoPaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ContentMediaPublisher.ContentKey(story.Id)] = [sourceVideo],
+            },
         };
 
         var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot);
 
         var url = Assert.Single(media.BlockImages).Value;
         Assert.StartsWith("https://raw.githubusercontent.com/", url, StringComparison.Ordinal);
-        Assert.True(File.Exists(Path.Combine(versionRoot, Assert.Single(media.RelativeFiles))));
+        var videoUrl = Assert.Single(media.ContentVideos[story.Id]).Url;
+        Assert.StartsWith("https://disk.yandex.ru/", videoUrl, StringComparison.Ordinal);
+        Assert.Equal(2, media.RelativeFiles.Count);
+        Assert.All(media.RelativeFiles, relativePath => Assert.True(File.Exists(Path.Combine(versionRoot, relativePath))));
     }
 
     [Fact]

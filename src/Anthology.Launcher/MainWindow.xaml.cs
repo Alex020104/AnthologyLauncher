@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Components.WebView;
+using Microsoft.Web.WebView2.Core;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -9,12 +11,46 @@ public partial class MainWindow : Window
 {
     private const int WmGetMinMaxInfo = 0x0024;
     private const uint MonitorDefaultToNearest = 0x00000002;
+    private const string YoutubeClientReferrer = "https://github.com/Alex020104/AnthologyLauncher";
+    private CoreWebView2? _webViewCore;
 
     public MainWindow()
     {
         InitializeComponent();
         UpdateWindowStateVisuals();
     }
+
+    private void LauncherWebView_OnInitialized(object? sender, BlazorWebViewInitializedEventArgs e)
+    {
+        _webViewCore = e.WebView.CoreWebView2;
+        _webViewCore.AddWebResourceRequestedFilter(
+            "https://www.youtube.com/embed/*",
+            CoreWebView2WebResourceContext.Document);
+        _webViewCore.AddWebResourceRequestedFilter(
+            "https://www.youtube-nocookie.com/embed/*",
+            CoreWebView2WebResourceContext.Document);
+        _webViewCore.WebResourceRequested += YoutubePlayerResourceRequested;
+    }
+
+    private static void YoutubePlayerResourceRequested(
+        object? sender,
+        CoreWebView2WebResourceRequestedEventArgs e)
+    {
+        if (!Uri.TryCreate(e.Request.Uri, UriKind.Absolute, out var uri)
+            || !IsYoutubePlayerHost(uri.Host))
+        {
+            return;
+        }
+
+        // YouTube requires desktop WebView clients to identify the embedding app
+        // with an HTTP Referer. This prevents the missing-client-identity error;
+        // YouTube can still independently demand account verification.
+        e.Request.Headers.SetHeader("Referer", YoutubeClientReferrer);
+    }
+
+    private static bool IsYoutubePlayerHost(string host) =>
+        host.Equals("www.youtube.com", StringComparison.OrdinalIgnoreCase)
+        || host.Equals("www.youtube-nocookie.com", StringComparison.OrdinalIgnoreCase);
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -111,6 +147,17 @@ public partial class MainWindow : Window
     }
 
     private void Close_OnClick(object sender, RoutedEventArgs e) => Close();
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (_webViewCore is not null)
+        {
+            _webViewCore.WebResourceRequested -= YoutubePlayerResourceRequested;
+            _webViewCore = null;
+        }
+
+        base.OnClosed(e);
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromWindow(IntPtr windowHandle, uint flags);

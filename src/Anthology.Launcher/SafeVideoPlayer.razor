@@ -1,3 +1,5 @@
+@inject HttpClient Http
+
 @if (_directUrl is not null)
 {
     <div class="safe-video-player direct-video">
@@ -88,20 +90,42 @@ else
     private string? _openError;
     private bool _embedRequested;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (string.Equals(_lastSourceUrl, SourceUrl, StringComparison.Ordinal))
         {
             return;
         }
 
-        _lastSourceUrl = SourceUrl;
+        var sourceUrl = SourceUrl;
+        _lastSourceUrl = sourceUrl;
         _embedRequested = false;
         _openError = null;
-        _directUrl = GetDirectVideoUrl(SourceUrl);
-        _youtubeId = GetYouTubeVideoId(SourceUrl);
-        _externalUrl = GetSafeExternalUrl(SourceUrl);
+        _directUrl = GetDirectVideoUrl(sourceUrl);
+        _youtubeId = GetYouTubeVideoId(sourceUrl);
+        _externalUrl = GetSafeExternalUrl(sourceUrl);
         _posterUrl = GetSafeExternalUrl(PosterUrl);
+
+        if (_directUrl is null && IsYandexDiskVideoUrl(sourceUrl))
+        {
+            try
+            {
+                var resolved = await YandexDiskMirrorResolver.ResolvePublicDownloadAsync(
+                    Http,
+                    sourceUrl,
+                    CancellationToken.None);
+                if (string.Equals(_lastSourceUrl, sourceUrl, StringComparison.Ordinal)
+                    && resolved.Scheme == Uri.UriSchemeHttps
+                    && string.IsNullOrEmpty(resolved.UserInfo))
+                {
+                    _directUrl = resolved.AbsoluteUri;
+                }
+            }
+            catch (Exception exception) when (exception is HttpRequestException or InvalidDataException or TaskCanceledException)
+            {
+                _openError = $"Не удалось подготовить видеопоток Яндекс.Диска: {exception.Message}";
+            }
+        }
 
         if (_youtubeId is not null)
         {
@@ -149,12 +173,39 @@ else
             return null;
         }
 
-        var extension = Path.GetExtension(uri.AbsolutePath);
-        return extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals(".webm", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals(".ogv", StringComparison.OrdinalIgnoreCase)
+        return HasSupportedVideoExtension(uri.AbsolutePath)
             ? uri.AbsoluteUri
             : null;
+    }
+
+    private static bool IsYandexDiskVideoUrl(string? value)
+    {
+        if (!TryGetSafeHttpsUri(value, out var uri)
+            || !uri.Host.EndsWith("disk.yandex.ru", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        foreach (var part in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pair = part.Split('=', 2);
+            if (pair.Length == 2
+                && pair[0].Equals("path", StringComparison.OrdinalIgnoreCase)
+                && HasSupportedVideoExtension(Uri.UnescapeDataString(pair[1])))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasSupportedVideoExtension(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".webm", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".ogv", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetYouTubeVideoId(string? value)

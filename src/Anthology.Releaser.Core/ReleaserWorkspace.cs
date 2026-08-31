@@ -260,6 +260,10 @@ public sealed class ReleaserMachineSettings
     // HTTPS URLs after the files have been copied into every configured publication root.
     public Dictionary<string, List<string>> ContentImagePaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    // Video sources also stay local. During publication they are copied to every configured
+    // publication root, while the signed catalog receives only their public HTTPS URLs.
+    public Dictionary<string, List<string>> ContentVideoPaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public List<QuickReleaseFileDraft> QuickReleaseFiles { get; set; } = [];
 
     public List<QuickReleaseFolderDraft> QuickReleaseFolders { get; set; } = [];

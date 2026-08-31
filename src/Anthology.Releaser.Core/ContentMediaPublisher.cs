@@ -5,11 +5,13 @@ namespace Anthology.Releaser.Core;
 
 public sealed record PreparedContentMedia(
     IReadOnlyDictionary<string, IReadOnlyList<string>> ContentImages,
+    IReadOnlyDictionary<string, IReadOnlyList<ContentVideo>> ContentVideos,
     IReadOnlyDictionary<string, string> BlockImages,
     IReadOnlyList<string> RelativeFiles)
 {
     public static PreparedContentMedia Empty { get; } = new(
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase),
+        new Dictionary<string, IReadOnlyList<ContentVideo>>(StringComparer.OrdinalIgnoreCase),
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
         []);
 }
@@ -17,9 +19,14 @@ public sealed record PreparedContentMedia(
 public static class ContentMediaPublisher
 {
     private const long MaximumImageBytes = 25L * 1024 * 1024;
-    private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private const long MaximumVideoBytes = 2L * 1024 * 1024 * 1024;
+    private static readonly HashSet<string> SupportedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".png", ".jpg", ".jpeg", ".webp",
+    };
+    private static readonly HashSet<string> SupportedVideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp4", ".webm", ".ogv",
     };
 
     public static string ContentKey(string contentId) => $"content/{contentId.Trim()}";
@@ -37,10 +44,11 @@ public static class ContentMediaPublisher
         ArgumentNullException.ThrowIfNull(workspace);
         ArgumentNullException.ThrowIfNull(machine);
         var selected = workspace.Content.Where(content => content.IsPublished).ToArray();
-        var hasLocalImages = selected.Any(content =>
+        var hasLocalMedia = selected.Any(content =>
             GetPaths(machine, ContentKey(content.Id)).Count > 0
+            || GetVideoPaths(machine, ContentKey(content.Id)).Count > 0
             || (content.Blocks ?? []).Any(block => GetPaths(machine, BlockKey(content.Id, block.Id)).Count > 0));
-        if (!hasLocalImages)
+        if (!hasLocalMedia)
         {
             return PreparedContentMedia.Empty;
         }
@@ -58,10 +66,20 @@ public static class ContentMediaPublisher
         if (string.IsNullOrWhiteSpace(publicTemplate))
         {
             throw new InvalidOperationException(
-                "Для публикации загруженных фотографий укажите HTTPS-шаблон «Аддоны и медиа» хотя бы у одного источника.");
+                "Для публикации загруженных фотографий и видео укажите HTTPS-шаблон «Аддоны и медиа» хотя бы у одного источника.");
         }
+        var videoPublicTemplate = workspace.Mirrors
+            .Where(mirror => !string.IsNullOrWhiteSpace(mirror.ContentUrl))
+            // A public Yandex.Disk folder can be resolved by the launcher through
+            // the official download API. Prefer it for video so large files do not
+            // inherit GitHub's repository file-size limit.
+            .OrderBy(mirror => VideoMediaProviderPriority(mirror.Provider))
+            .ThenBy(mirror => mirror.Priority)
+            .Select(mirror => mirror.ContentUrl.Trim())
+            .FirstOrDefault() ?? publicTemplate;
 
         var contentImages = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        var contentVideos = new Dictionary<string, IReadOnlyList<ContentVideo>>(StringComparer.OrdinalIgnoreCase);
         var blockImages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var relativeFiles = new List<string>();
         foreach (var content in selected)
@@ -89,6 +107,27 @@ public static class ContentMediaPublisher
                 contentImages[content.Id] = contentUrls;
             }
 
+            var videoPaths = GetVideoPaths(machine, ContentKey(content.Id));
+            var videoItems = new List<ContentVideo>();
+            for (var index = 0; index < videoPaths.Count; index++)
+            {
+                var prepared = await PrepareVideoAsync(
+                    videoPaths[index],
+                    normalizedContentId,
+                    $"{index + 1:00}",
+                    videoPublicTemplate,
+                    workspace.Version,
+                    versionRoot,
+                    progress,
+                    cancellationToken);
+                videoItems.Add(new ContentVideo(Path.GetFileNameWithoutExtension(videoPaths[index]), prepared.Url));
+                relativeFiles.Add(prepared.RelativePath);
+            }
+            if (videoItems.Count > 0)
+            {
+                contentVideos[content.Id] = videoItems;
+            }
+
             foreach (var block in content.Blocks ?? [])
             {
                 var blockPaths = GetPaths(machine, BlockKey(content.Id, block.Id));
@@ -111,13 +150,16 @@ public static class ContentMediaPublisher
             }
         }
 
-        return new PreparedContentMedia(contentImages, blockImages, relativeFiles
+        return new PreparedContentMedia(contentImages, contentVideos, blockImages, relativeFiles
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray());
     }
 
     private static List<string> GetPaths(ReleaserMachineSettings machine, string key) =>
         machine.ContentImagePaths.TryGetValue(key, out var paths) ? paths : [];
+
+    private static List<string> GetVideoPaths(ReleaserMachineSettings machine, string key) =>
+        machine.ContentVideoPaths.TryGetValue(key, out var paths) ? paths : [];
 
     private static int InlineMediaProviderPriority(string provider) =>
         UnifiedReleaseBuilder.NormalizeProvider(provider) switch
@@ -126,6 +168,16 @@ public static class ContentMediaPublisher
             "http" => 1,
             "google-drive" => 2,
             "yandex-disk" => 3,
+            _ => 4,
+        };
+
+    private static int VideoMediaProviderPriority(string provider) =>
+        UnifiedReleaseBuilder.NormalizeProvider(provider) switch
+        {
+            "yandex-disk" => 0,
+            "http" => 1,
+            "github" => 2,
+            "google-drive" => 3,
             _ => 4,
         };
 
@@ -145,7 +197,7 @@ public static class ContentMediaPublisher
             throw new FileNotFoundException("Загруженная фотография больше не найдена.", source);
         }
         var extension = Path.GetExtension(source).ToLowerInvariant();
-        if (!SupportedExtensions.Contains(extension))
+        if (!SupportedImageExtensions.Contains(extension))
         {
             throw new InvalidDataException($"Фотография должна быть PNG, JPG, JPEG или WEBP: {source}");
         }
@@ -175,6 +227,55 @@ public static class ContentMediaPublisher
         {
             throw new InvalidDataException(
                 $"Шаблон источника сформировал небезопасный адрес фотографии: {publicUrl}");
+        }
+
+        return (relativePath, uri.AbsoluteUri);
+    }
+
+    private static async Task<(string RelativePath, string Url)> PrepareVideoAsync(
+        string sourcePath,
+        string contentId,
+        string prefix,
+        string publicTemplate,
+        string version,
+        string versionRoot,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        var source = Path.GetFullPath(sourcePath);
+        if (!File.Exists(source))
+        {
+            throw new FileNotFoundException("Загруженный видеофайл больше не найден.", source);
+        }
+
+        var extension = Path.GetExtension(source).ToLowerInvariant();
+        if (!SupportedVideoExtensions.Contains(extension))
+        {
+            throw new InvalidDataException($"Видеофайл должен быть MP4, WEBM или OGV: {source}");
+        }
+        if (new FileInfo(source).Length > MaximumVideoBytes)
+        {
+            throw new InvalidDataException($"Видеофайл превышает ограничение 2 ГБ: {source}");
+        }
+
+        var contentHash = await ArtifactHash.ComputeSha256Async(source, cancellationToken);
+        var fileName = $"video-{NormalizeFilePart(prefix)}-{NormalizeFilePart(Path.GetFileNameWithoutExtension(source))}-{contentHash[..12]}{extension}";
+        var relativePath = Path.Combine("addons", contentId, "media", fileName);
+        var destination = Path.Combine(Path.GetFullPath(versionRoot), relativePath);
+        progress?.Report($"Подготовка видео {Path.GetFileName(source)}…");
+        await CopyFileAtomicallyAsync(source, destination, cancellationToken);
+
+        var publicUrl = UnifiedReleaseBuilder.ExpandUrl(
+            publicTemplate,
+            version,
+            contentId,
+            $"media/{fileName}");
+        if (!Uri.TryCreate(publicUrl, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            throw new InvalidDataException(
+                $"Шаблон источника сформировал небезопасный адрес видео: {publicUrl}");
         }
 
         return (relativePath, uri.AbsoluteUri);

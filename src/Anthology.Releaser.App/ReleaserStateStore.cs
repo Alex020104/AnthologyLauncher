@@ -152,6 +152,17 @@ public sealed class ReleaserStateStore : IDisposable
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
+        machine.ContentVideoPaths = new Dictionary<string, List<string>>(
+            machine.ContentVideoPaths ?? [],
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var key in machine.ContentVideoPaths.Keys.ToArray())
+        {
+            machine.ContentVideoPaths[key] = (machine.ContentVideoPaths[key] ?? [])
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
         machine.QuickReleaseFiles ??= [];
         machine.QuickReleaseFolders ??= [];
         machine.QuickDeleteFiles ??= [];

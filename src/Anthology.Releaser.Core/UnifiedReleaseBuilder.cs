@@ -280,9 +280,14 @@ public static class UnifiedReleaseBuilder
                 .Concat(SplitLines(item.Images))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            var videos = SplitLines(item.Videos)
-                .Select(line => SplitPair(line, "Видео"))
-                .Select(pair => new ContentVideo(pair.Left, pair.Right))
+            var uploadedVideos = media.ContentVideos.TryGetValue(item.Id, out var resolvedVideos)
+                ? resolvedVideos
+                : [];
+            var videos = uploadedVideos
+                .Concat(SplitLines(item.Videos)
+                    .Select(line => SplitPair(line, "Видео"))
+                    .Select(pair => new ContentVideo(pair.Left, pair.Right)))
+                .DistinctBy(video => video.Url, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             ContentDownload? download = null;
             var hasDownload = !string.IsNullOrWhiteSpace(item.DownloadFileName)
