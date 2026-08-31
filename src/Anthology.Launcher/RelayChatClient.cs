@@ -286,7 +286,10 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
                     {
                         throw new IOException("IRC-сервер закрыл соединение");
                     }
-                    await ProcessIrcLineAsync(line, cancellationToken);
+                    // Use the connection-scoped token here. Metadata requests started
+                    // while processing JOIN/NAMES must stop with this socket instead of
+                    // leaking into the next reconnect and multiplying IRC traffic.
+                    await ProcessIrcLineAsync(line, bridgeCancellation.Token);
                     registrationCompleted = IsConnected;
                 }
             }
@@ -318,7 +321,6 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
                 UpdateParticipant(_nick, _displayName, _faction);
                 SetStatus(true, $"Подключён к {_channel}");
                 AddSystemMessage($"Теперь Вы подключены к сети ({_displayName})");
-                _ = RequestParticipantMetadataSafelyAsync(cancellationToken);
                 await WriteRuntimeSettingsAsync(cancellationToken);
                 break;
             case "465":
@@ -353,33 +355,9 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         foreach (var nick in names.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(value => value.TrimStart('@', '+', '%', '~', '&')).Where(value => value.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var own = string.Equals(nick, _nick, StringComparison.OrdinalIgnoreCase);
-            UpdateParticipant(nick, own ? _displayName : nick, own ? _faction : DefaultFaction);
+            UpdateParticipant(nick, own ? _displayName : DisplayNameFromNick(nick), own ? _faction : DefaultFaction);
         }
         await WriteUsersAsync(cancellationToken);
-    }
-
-    private async Task RequestParticipantMetadataAsync(CancellationToken cancellationToken)
-    {
-        foreach (var participant in Participants.Where(item => !item.IsOwn).Take(40))
-        {
-            await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001DISPLAY\u0001", cancellationToken);
-            await Task.Delay(TimeSpan.FromMilliseconds(650), cancellationToken);
-            await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001FACTION\u0001", cancellationToken);
-            await Task.Delay(TimeSpan.FromMilliseconds(650), cancellationToken);
-        }
-    }
-
-    private async Task RequestParticipantMetadataSafelyAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await RequestParticipantMetadataAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
-        {
-            Debug.WriteLine($"Relay metadata probe stopped: {exception.Message}");
-        }
     }
 
     private async Task ProcessJoinAsync(IrcMessage message, CancellationToken cancellationToken)
@@ -387,28 +365,12 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         var nick = GetSenderNick(message);
         if (nick.Length == 0) return;
         var own = string.Equals(nick, _nick, StringComparison.OrdinalIgnoreCase);
-        UpdateParticipant(nick, own ? _displayName : nick, own ? _faction : DefaultFaction);
+        UpdateParticipant(nick, own ? _displayName : DisplayNameFromNick(nick), own ? _faction : DefaultFaction);
         if (!own)
         {
             AddSystemMessage($"{DisplayForNick(nick)} присоединился к каналу");
-            _ = RequestParticipantMetadataSafelyAsync(nick, cancellationToken);
         }
         await WriteUsersAsync(cancellationToken);
-    }
-
-    private async Task RequestParticipantMetadataSafelyAsync(string nick, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await SendRawAsync($"PRIVMSG {nick} :\u0001DISPLAY\u0001", cancellationToken);
-            await Task.Delay(TimeSpan.FromMilliseconds(650), cancellationToken);
-            await SendRawAsync($"PRIVMSG {nick} :\u0001FACTION\u0001", cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
-        {
-            Debug.WriteLine($"Relay metadata probe for {nick} stopped: {exception.Message}");
-        }
     }
 
     private async Task ProcessDepartureAsync(IrcMessage message, CancellationToken cancellationToken)
@@ -755,6 +717,20 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
 
     private string? GetBridgePath(string fileName) => string.IsNullOrWhiteSpace(_gameRoot) ? null : Path.Combine(_gameRoot, "gamedata", "configs", fileName);
     private static string GetSenderNick(IrcMessage message) => message.Prefix.Split('!', 2)[0];
+    private static string DisplayNameFromNick(string nick)
+    {
+        var display = nick.TrimStart('@', '+', '%', '~', '&');
+        var suffixIndex = display.LastIndexOf('_');
+        if (suffixIndex > 0)
+        {
+            var suffix = display[(suffixIndex + 1)..];
+            if (suffix.Length is >= 6 and <= 8 && suffix.All(Uri.IsHexDigit))
+            {
+                display = display[..suffixIndex];
+            }
+        }
+        return display.Replace('_', ' ').Trim();
+    }
     private static string SanitizeMessage(string? message) { var clean = (message ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ').Trim(); return clean.Length <= 380 ? clean : clean[..380]; }
     private static string NormalizeDisplayName(string? value) { var clean = SanitizeMessage(string.IsNullOrWhiteSpace(value) ? "Stalker" : value).Replace('★', '_'); return clean.Length <= 48 ? clean : clean[..48]; }
     private static string NormalizeChannel(string? value)
