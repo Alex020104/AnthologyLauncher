@@ -349,6 +349,16 @@ public static class UnifiedReleaseBuilder
                         blockTranslations);
                 })
                 .ToArray();
+            var authorLinks = (item.AuthorLinks ?? [])
+                .Where(link => link.IsVisible && !string.IsNullOrWhiteSpace(link.Url))
+                .OrderBy(link => link.Order)
+                .ThenBy(link => link.Id, StringComparer.OrdinalIgnoreCase)
+                .Select(link => new SocialLink(
+                    link.Id.Trim().ToLowerInvariant(),
+                    link.Title.Trim(),
+                    link.Subtitle.Trim(),
+                    link.Url.Trim()))
+                .ToArray();
 
             return new ContentDocument(
                 item.Id.Trim().ToLowerInvariant(),
@@ -362,7 +372,8 @@ public static class UnifiedReleaseBuilder
                 download,
                 translations,
                 blocks,
-                item.PublishedAt);
+                item.PublishedAt,
+                authorLinks);
         }).ToArray();
 
         var socialLinks = (workspace.SocialLinks ?? [])

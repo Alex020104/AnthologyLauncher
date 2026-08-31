@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.WebView;
 using Microsoft.Web.WebView2.Core;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -12,6 +13,11 @@ public partial class MainWindow : Window
     private const int WmGetMinMaxInfo = 0x0024;
     private const uint MonitorDefaultToNearest = 0x00000002;
     private const string YoutubeClientReferrer = "https://github.com/Alex020104/AnthologyLauncher";
+    private static readonly string WebViewUserDataFolder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "A.N.T.H.O.L.O.G.Y",
+        "LauncherNext",
+        "WebView2");
     private CoreWebView2? _webViewCore;
 
     public MainWindow()
@@ -20,9 +26,16 @@ public partial class MainWindow : Window
         UpdateWindowStateVisuals();
     }
 
+    private void LauncherWebView_OnInitializing(object? sender, BlazorWebViewInitializingEventArgs e)
+    {
+        Directory.CreateDirectory(WebViewUserDataFolder);
+        e.UserDataFolder = WebViewUserDataFolder;
+    }
+
     private void LauncherWebView_OnInitialized(object? sender, BlazorWebViewInitializedEventArgs e)
     {
         _webViewCore = e.WebView.CoreWebView2;
+        _webViewCore.Profile.PreferredTrackingPreventionLevel = CoreWebView2TrackingPreventionLevel.Basic;
         _webViewCore.AddWebResourceRequestedFilter(
             "https://www.youtube.com/embed/*",
             CoreWebView2WebResourceContext.Document);
@@ -30,6 +43,23 @@ public partial class MainWindow : Window
             "https://www.youtube-nocookie.com/embed/*",
             CoreWebView2WebResourceContext.Document);
         _webViewCore.WebResourceRequested += YoutubePlayerResourceRequested;
+    }
+
+    internal LauncherActionResult OpenYoutubeLogin()
+    {
+        if (_webViewCore is null)
+        {
+            return new LauncherActionResult(false, "Веб-профиль лаунчера ещё не готов. Повторите через несколько секунд.");
+        }
+
+        var loginWindow = new YoutubeLoginWindow(_webViewCore.Environment)
+        {
+            Owner = this,
+        };
+        var completed = loginWindow.ShowDialog() == true;
+        return completed
+            ? new LauncherActionResult(true, "Вход в YouTube сохранён. Плеер перезагружен с этим профилем.")
+            : new LauncherActionResult(false, "Вход в YouTube закрыт без подтверждения.");
     }
 
     private static void YoutubePlayerResourceRequested(

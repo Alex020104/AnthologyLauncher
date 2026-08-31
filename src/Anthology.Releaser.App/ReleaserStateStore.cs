@@ -119,7 +119,7 @@ public sealed class ReleaserStateStore : IDisposable
                 changed = true;
             }
         }
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 6);
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 7);
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;
@@ -127,6 +127,23 @@ public sealed class ReleaserStateStore : IDisposable
             if (previousSchemaVersion < 2)
             {
                 content.IsPublished = true;
+            }
+            content.AuthorLinks ??= [];
+            foreach (var defaultLink in SocialLinkDraft.CreateAuthorDefaults())
+            {
+                if (content.AuthorLinks.Any(link => string.Equals(link.Id, defaultLink.Id, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+                content.AuthorLinks.Add(defaultLink);
+                changed = true;
+            }
+            foreach (var link in content.AuthorLinks)
+            {
+                link.Id = link.Id?.Trim().ToLowerInvariant() ?? string.Empty;
+                link.Title = link.Title?.Trim() ?? string.Empty;
+                link.Subtitle = link.Subtitle?.Trim() ?? string.Empty;
+                link.Url = link.Url?.Trim() ?? string.Empty;
             }
             content.Blocks ??= [];
             content.Translations = new Dictionary<string, ContentTranslationDraft>(content.Translations ?? [], StringComparer.OrdinalIgnoreCase);

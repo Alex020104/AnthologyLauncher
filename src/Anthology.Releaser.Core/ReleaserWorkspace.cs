@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 6;
+    public int SchemaVersion { get; set; } = 7;
 
     public int Revision { get; set; }
 
@@ -86,6 +86,26 @@ public sealed class SocialLinkDraft
             Order = 50,
         },
     ];
+
+    public static List<SocialLinkDraft> CreateAuthorDefaults() =>
+    [
+        CreateAuthor("youtube", "YouTube", 10),
+        CreateAuthor("vk", "VK Видео", 20),
+        CreateAuthor("discord", "Discord", 30),
+        CreateAuthor("moddb", "ModDB", 40),
+        CreateAuthor("telegram", "Telegram", 50),
+        CreateAuthor("github", "GitHub", 60),
+    ];
+
+    private static SocialLinkDraft CreateAuthor(string id, string title, int order) => new()
+    {
+        Id = id,
+        Title = title,
+        Subtitle = string.Empty,
+        Url = string.Empty,
+        Order = order,
+        IsVisible = false,
+    };
 }
 
 public sealed class ReleaseMirrorSet
@@ -144,6 +164,8 @@ public sealed class ContentDraft
     public string Images { get; set; } = string.Empty;
 
     public string Videos { get; set; } = string.Empty;
+
+    public List<SocialLinkDraft> AuthorLinks { get; set; } = SocialLinkDraft.CreateAuthorDefaults();
 
     public List<ContentBlockDraft> Blocks { get; set; } = [];
 

@@ -17,7 +17,7 @@ else if (_youtubeId is not null)
                 <span class="video-play">▶</span>
                 <span class="safe-video-preview-copy">
                     <strong>СМОТРЕТЬ В ЛАУНЧЕРЕ</strong>
-                    <small>YouTube загрузится только после нажатия</small>
+                    <small>Если YouTube попросит подтверждение — войдите один раз кнопкой ниже</small>
                 </span>
             </button>
         }
@@ -30,6 +30,7 @@ else if (_youtubeId is not null)
                     allowfullscreen></iframe>
         }
         <div class="safe-video-actions">
+            <button type="button" class="secondary-button youtube-login-button" @onclick="OpenYoutubeLogin">👤 ВОЙТИ В YOUTUBE ОДИН РАЗ</button>
             @if (_embedRequested)
             {
                 <button type="button" class="text-button" @onclick="ResetEmbed">↻ ПЕРЕЗАГРУЗИТЬ ПЛЕЕР</button>
@@ -39,6 +40,10 @@ else if (_youtubeId is not null)
         @if (!string.IsNullOrWhiteSpace(_openError))
         {
             <small class="safe-video-error">@_openError</small>
+        }
+        @if (!string.IsNullOrWhiteSpace(_loginStatus))
+        {
+            <small class="safe-video-status">@_loginStatus</small>
         }
     </div>
 }
@@ -88,6 +93,7 @@ else
     private string? _externalUrl;
     private string? _posterUrl;
     private string? _openError;
+    private string? _loginStatus;
     private bool _embedRequested;
 
     protected override async Task OnParametersSetAsync()
@@ -101,6 +107,7 @@ else
         _lastSourceUrl = sourceUrl;
         _embedRequested = false;
         _openError = null;
+        _loginStatus = null;
         _directUrl = GetDirectVideoUrl(sourceUrl);
         _youtubeId = GetYouTubeVideoId(sourceUrl);
         _externalUrl = GetSafeExternalUrl(sourceUrl);
@@ -145,7 +152,7 @@ else
             return;
         }
 
-        _embedUrl = $"https://www.youtube.com/embed/{Uri.EscapeDataString(_youtubeId)}?rel=0&playsinline=1&autoplay=1";
+        _embedUrl = $"https://www.youtube.com/embed/{Uri.EscapeDataString(_youtubeId)}?rel=0&playsinline=1&autoplay=1&anthologySession={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
         _embedRequested = true;
     }
 
@@ -153,6 +160,20 @@ else
     {
         _embedRequested = false;
         _embedUrl = null;
+    }
+
+    private void OpenYoutubeLogin()
+    {
+        var result = LauncherBridge.OpenYoutubeLogin();
+        _loginStatus = result.Message;
+        _openError = result.Success ? null : result.Message;
+        if (!result.Success)
+        {
+            return;
+        }
+
+        ResetEmbed();
+        ActivateEmbed();
     }
 
     private void OpenInBrowser()

@@ -267,6 +267,27 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
         }
     }
 
+    public static LauncherActionResult OpenYoutubeLogin()
+    {
+        try
+        {
+            var application = System.Windows.Application.Current;
+            if (application?.MainWindow is not MainWindow window)
+            {
+                return new LauncherActionResult(false, "Главное окно лаунчера недоступно.");
+            }
+
+            return application.Dispatcher.CheckAccess()
+                ? window.OpenYoutubeLogin()
+                : application.Dispatcher.Invoke(window.OpenYoutubeLogin);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException
+                                           or System.Runtime.InteropServices.COMException)
+        {
+            return new LauncherActionResult(false, $"Не удалось открыть вход в YouTube: {exception.Message}");
+        }
+    }
+
     private string? FindGameRoot()
     {
         var configured = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");

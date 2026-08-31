@@ -306,6 +306,22 @@ public sealed class ReleaserCoreTests : IDisposable
                 new SocialLinkDraft { Id = "youtube", Title = "Видео", Subtitle = "Самаэль Морнингстар", Url = "https://www.youtube.com/@Samael-w3p", Order = 10 },
                 new SocialLinkDraft { Id = "moddb", Title = "Скрыто", Url = "https://www.moddb.com/mods/stalker-anomaly", Order = 30, IsVisible = false },
             ],
+            Content =
+            [
+                new ContentDraft
+                {
+                    Id = "author-project",
+                    Kind = ContentKind.Mod,
+                    Title = "Проект автора",
+                    IsPublished = true,
+                    AuthorLinks =
+                    [
+                        new SocialLinkDraft { Id = "github", Title = "GitHub", Subtitle = "Исходный код", Url = "https://github.com/example/project", Order = 20 },
+                        new SocialLinkDraft { Id = "youtube", Title = "YouTube", Subtitle = "Канал автора", Url = "https://www.youtube.com/@example", Order = 10 },
+                        new SocialLinkDraft { Id = "discord", Title = "Скрыто", Url = "https://discord.gg/example", Order = 30, IsVisible = false },
+                    ],
+                },
+            ],
         };
 
         var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
@@ -313,6 +329,9 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.Equal(["youtube", "discord"], catalog.SocialLinks!.Select(link => link.Id));
         Assert.Equal("Видео", catalog.SocialLinks![0].Title);
         Assert.Equal("https://discord.gg/uYS8JUz7J", catalog.SocialLinks![1].Url);
+        var content = Assert.Single(catalog.Items);
+        Assert.Equal(["youtube", "github"], content.AuthorLinks!.Select(link => link.Id));
+        Assert.Equal("https://github.com/example/project", content.AuthorLinks![1].Url);
     }
 
     [Fact]

@@ -83,7 +83,8 @@ public sealed record ContentDocument(
     ContentDownload? Download = null,
     IReadOnlyDictionary<string, ContentTranslation>? Translations = null,
     IReadOnlyList<ContentBlock>? Blocks = null,
-    DateTimeOffset? PublishedAt = null);
+    DateTimeOffset? PublishedAt = null,
+    IReadOnlyList<SocialLink>? AuthorLinks = null);
 
 public sealed record ContentTranslation(
     string Title,

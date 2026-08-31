@@ -332,6 +332,30 @@
                                 <h3>@localizedItem.Title</h3><p>@localizedItem.Summary</p>
                                 @if (_openContentId == currentItem.Id)
                                 {
+                                    var authorLinks = (currentItem.AuthorLinks ?? [])
+                                        .Where(link => GetSafeExternalUrl(link.Url) is not null)
+                                        .ToArray();
+                                    @if (currentItem.Images.FirstOrDefault() is { } detailImageUrl)
+                                    {
+                                        <figure class="published-detail-cover"><img src="@detailImageUrl" alt="@localizedItem.Title" /></figure>
+                                    }
+                                    @if (authorLinks.Length > 0)
+                                    {
+                                        <section class="published-author-resources">
+                                            <span>РЕСУРСЫ АВТОРА</span>
+                                            <div class="published-author-links">
+                                                @foreach (var authorLink in authorLinks)
+                                                {
+                                                    var authorUrl = GetSafeExternalUrl(authorLink.Url)!;
+                                                    <a class="published-author-link @authorLink.Id" href="@authorUrl" target="_blank" rel="noopener noreferrer" title="Открыть @authorLink.Title">
+                                                        <span><img src="assets/social/@(authorLink.Id).svg" alt="" /></span>
+                                                        <div><strong>@authorLink.Title</strong><small>@authorLink.Subtitle</small></div>
+                                                        <i>↗</i>
+                                                    </a>
+                                                }
+                                            </div>
+                                        </section>
+                                    }
                                     <div class="published-content-body">@localizedItem.Body</div>
                                     @foreach (var video in currentItem.Videos)
                                     {

@@ -283,6 +283,8 @@ public static partial class ManifestValidator
                 ValidatePublicHttpsUrl(video.Url, $"Content '{item.Id}' has unsafe video URL", errors);
             }
 
+            ValidateSocialLinks(item.AuthorLinks, $"Content '{item.Id}' author", errors);
+
             var blockIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var block in item.Blocks ?? [])
             {
@@ -361,23 +363,31 @@ public static partial class ManifestValidator
             }
         }
 
+        ValidateSocialLinks(content.SocialLinks, "Social", errors);
+    }
+
+    private static void ValidateSocialLinks(
+        IReadOnlyList<SocialLink>? links,
+        string label,
+        List<string> errors)
+    {
         var socialIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var social in content.SocialLinks ?? [])
+        foreach (var social in links ?? [])
         {
             if (string.IsNullOrWhiteSpace(social.Id) || !PackageIdRegex().IsMatch(social.Id))
             {
-                errors.Add($"Invalid social link id: '{social.Id}'.");
+                errors.Add($"{label} link has invalid id: '{social.Id}'.");
                 continue;
             }
             if (!socialIds.Add(social.Id))
             {
-                errors.Add($"Duplicate social link id: '{social.Id}'.");
+                errors.Add($"{label} has duplicate link id: '{social.Id}'.");
             }
             if (string.IsNullOrWhiteSpace(social.Title))
             {
-                errors.Add($"Social link '{social.Id}' has no title.");
+                errors.Add($"{label} link '{social.Id}' has no title.");
             }
-            ValidatePublicHttpsUrl(social.Url, $"Social link '{social.Id}' has unsafe URL", errors);
+            ValidatePublicHttpsUrl(social.Url, $"{label} link '{social.Id}' has unsafe URL", errors);
             ValidateSocialHost(social, errors);
         }
     }
@@ -396,6 +406,7 @@ public static partial class ManifestValidator
             "discord" => new[] { "discord.gg", "discord.com", "www.discord.com" },
             "moddb" => new[] { "moddb.com", "www.moddb.com" },
             "telegram" => new[] { "t.me", "telegram.me", "www.telegram.me" },
+            "github" => new[] { "github.com", "www.github.com" },
             _ => [],
         };
         if (allowedHosts.Length == 0 || !allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase))

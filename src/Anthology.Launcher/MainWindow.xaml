@@ -64,6 +64,7 @@
             <blazor:BlazorWebView Grid.Row="1"
                                   HostPage="wwwroot\index.html"
                                   Services="{DynamicResource services}"
+                                  BlazorWebViewInitializing="LauncherWebView_OnInitializing"
                                   BlazorWebViewInitialized="LauncherWebView_OnInitialized">
                 <blazor:BlazorWebView.RootComponents>
                     <blazor:RootComponent Selector="#app" ComponentType="{x:Type local:Main}" />
