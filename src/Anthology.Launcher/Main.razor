@@ -12,18 +12,24 @@
         </div>
 
         <nav class="navigation" aria-label="Основная навигация">
-            @foreach (var item in Navigation.Where(item => !item.Bottom))
+            @foreach (var group in Navigation.Where(item => !item.Bottom).GroupBy(item => item.Group))
             {
-                var currentItem = item;
-                <button class="nav-item @(_section == currentItem.Id ? "active" : null)"
-                        @onclick="() => SelectSection(currentItem.Id)">
-                    <span class="nav-icon">@currentItem.Icon</span>
-                    <span>@currentItem.Label</span>
-                    @if (currentItem.Badge is not null)
+                <section class="nav-group">
+                    <div class="nav-group-title">@group.Key</div>
+                    @foreach (var item in group)
                     {
-                        <span class="nav-badge">@currentItem.Badge</span>
+                        var currentItem = item;
+                        <button class="nav-item @(_section == currentItem.Id ? "active" : null)"
+                                @onclick="() => SelectSection(currentItem.Id)">
+                            <span class="nav-icon">@currentItem.Icon</span>
+                            <span>@currentItem.Label</span>
+                            @if (currentItem.Badge is not null)
+                            {
+                                <span class="nav-badge">@currentItem.Badge</span>
+                            }
+                        </button>
                     }
-                </button>
+                </section>
             }
         </nav>
 
@@ -216,16 +222,12 @@
                     <div class="section-block video-block">
                         <div class="section-heading compact">
                             <div><span>МЕДИА</span><h3>Трансляции в лаунчере</h3></div>
+                            <button class="text-button" @onclick="ShowStreams">ОТКРЫТЬ ЭФИРЫ →</button>
                         </div>
-                        @if (PublishedLiveStreams.Any())
+                        @if (SelectedLiveStream is { } homeStream)
                         {
-                            <div class="home-stream-grid">
-                            @foreach (var stream in PublishedLiveStreams)
-                            {
-                                var localizedStream = LiveStreamLocalization.Resolve(stream, _settings.InterfaceLanguage);
-                                <article class="video-card live-stream-card"><SafeVideoPlayer SourceUrl="@stream.Url" Title="@localizedStream.Title" /><div class="video-caption"><span>ТРАНСЛЯЦИЯ</span><strong>@localizedStream.Title</strong><small>@localizedStream.Subtitle</small></div></article>
-                            }
-                            </div>
+                            var localizedHomeStream = LiveStreamLocalization.Resolve(homeStream, _settings.InterfaceLanguage);
+                            <article class="video-card live-stream-card"><SafeVideoPlayer SourceUrl="@homeStream.Url" Title="@localizedHomeStream.Title" /><div class="video-caption"><span>ТРАНСЛЯЦИЯ</span><strong>@localizedHomeStream.Title</strong><small>@localizedHomeStream.Subtitle</small></div></article>
                         }
                         else if (PublishedVideos.FirstOrDefault() is { } publishedVideo)
                         {
@@ -237,6 +239,39 @@
                         }
                     </div>
                 </section>
+            }
+            else if (_section == "streams")
+            {
+                <section class="streams-page-hero section-block panel-grid-texture">
+                    <div><span class="eyebrow">ЭФИРНЫЙ ЦЕНТР</span><h2>Трансляции Anthology<br /><em>в большом формате.</em></h2><p>Выберите нужный эфир справа. Плеер занимает всю рабочую область и не ограничен маленькой карточкой главной страницы.</p></div>
+                    <div class="streams-page-count"><strong>@PublishedLiveStreams.Count()</strong><span>ОПУБЛИКОВАНО</span></div>
+                </section>
+
+                @if (SelectedLiveStream is { } selectedStream)
+                {
+                    var localizedSelectedStream = LiveStreamLocalization.Resolve(selectedStream, _settings.InterfaceLanguage);
+                    <section class="streams-studio">
+                        <article class="streams-stage section-block">
+                            <header><div><span class="eyebrow">СЕЙЧАС В ПЛЕЕРЕ</span><h2>@localizedSelectedStream.Title</h2><p>@localizedSelectedStream.Subtitle</p></div><span class="stream-live-mark"><i></i> ЭФИР</span></header>
+                            <SafeVideoPlayer SourceUrl="@selectedStream.Url" Title="@localizedSelectedStream.Title" />
+                        </article>
+                        <aside class="streams-picker section-block">
+                            <header><span class="eyebrow">СПИСОК ТРАНСЛЯЦИЙ</span><strong>@PublishedLiveStreams.Count()</strong></header>
+                            <div>
+                            @foreach (var stream in PublishedLiveStreams)
+                            {
+                                var currentStream = stream;
+                                var localizedStream = LiveStreamLocalization.Resolve(currentStream, _settings.InterfaceLanguage);
+                                <button class="stream-picker-item @(selectedStream.Id == currentStream.Id ? "active" : null)" @onclick="() => SelectLiveStream(currentStream.Id)"><span><i></i>@(selectedStream.Id == currentStream.Id ? "ВЫБРАНО" : "ТРАНСЛЯЦИЯ")</span><strong>@localizedStream.Title</strong><small>@localizedStream.Subtitle</small><em>→</em></button>
+                            }
+                            </div>
+                        </aside>
+                    </section>
+                }
+                else
+                {
+                    <section class="managed-content-empty section-block"><span>0</span><div><strong>Трансляции пока не опубликованы</strong><small>Добавьте ссылки в разделе «Трансляции» приложения Releaser Next и опубликуйте каталог.</small></div></section>
+                }
             }
             else if (_section == "saves")
             {
@@ -480,6 +515,7 @@
                                 <div class="relay-side-footer">
                                     <span class="status-dot @(_relayChatRunning ? "online" : "warning")"></span>
                                     <div><strong>@(_relayChatRunning ? "Канал подключён" : "Нет подключения")</strong><small>@RelayChat.StatusText</small></div>
+                                    <button title="Переподключить Реальный чат" @onclick="ReconnectRelayChatAsync">↻</button>
                                     <button title="Открыть параметры" @onclick="ShowRelayOptions">⚙</button>
                                 </div>
                             }
@@ -1201,12 +1237,12 @@
             }
             else if (_section == "installation")
             {
-                <section class="installation-hero section-block"><div><span class="eyebrow">ЛОКАЛЬНАЯ УСТАНОВКА</span><h2>Игра, модпак и канал обновлений</h2><p>Все пути выбираются вручную. Комплектные пакеты устанавливаются только после проверки подписи и SHA-256.</p></div><div class="install-media-state @(_bundledMedia.Available ? "ready" : null)"><span></span><strong>@(_bundledMedia.Available ? "INSTALL MEDIA READY" : "INSTALL MEDIA MISSING")</strong><small>@_bundledMedia.StatusText</small></div></section>
+                <section class="installation-hero section-block"><div><span class="eyebrow">ЛОКАЛЬНАЯ УСТАНОВКА</span><h2>Игра, модпак и канал обновлений</h2><p>В упакованной среде лаунчер сам находит корень игры и соседний Mod Organizer 2. Ручной путь нужен только для нестандартной установки.</p><button class="secondary-button" @onclick="UseAutomaticInstallationPathsAsync">↻ НАЙТИ ПУТИ АВТОМАТИЧЕСКИ</button></div><div class="install-media-state @(_bundledMedia.Available ? "ready" : null)"><span></span><strong>@(_bundledMedia.Available ? "INSTALL MEDIA READY" : "INSTALL MEDIA MISSING")</strong><small>@_bundledMedia.StatusText</small></div></section>
                 <section class="settings-grid installation-grid">
                     <article class="setting-card section-block"><span>УСТАНОВКА ИГРЫ</span><h3>Комплектные бинарные пакеты</h3><code>@(_settings.InstallDestination ?? "Папка назначения не выбрана")</code><p>Лаунчер ищет подписанный комплект в <b>InstallMedia</b> рядом со своим EXE. Пакеты могут содержать bin, db, gamedata и остальные файлы сборки.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectInstallDestinationAsync">ВЫБРАТЬ ПАПКУ</button><button class="primary-button" disabled="@(!_bundledMedia.Available || string.IsNullOrWhiteSpace(_settings.InstallDestination) || _installBusy)" @onclick="InstallBundledGameAsync">@(_installBusy ? "УСТАНОВКА..." : "УСТАНОВИТЬ ИГРУ")</button></div>@if (_installProgress is not null) { <div class="install-progress"><div class="progress-track"><span style="width:@InstallProgressPercentage%"></span></div><small>@_installProgress.Message</small></div> }</article>
                     <article class="setting-card setup-card section-block"><span>ОБЫЧНЫЙ УСТАНОВЩИК</span><h3>Запустить Setup</h3><code>@(_setupStatus.ExecutablePath ?? Path.Combine(_setupStatus.SetupRoot, "Setup.exe"))</code><p>Стабильная комплектная папка: <b>App\Setup</b>. Установщик может брать бинарные файлы из <b>Setup\bin</b> или <b>Setup\Payload\bin</b>.</p><div class="setup-state"><span class="status-dot @(_setupStatus.Available ? "online" : "warning")"></span><small>@_setupStatus.StatusText</small></div><div class="setting-actions"><button class="secondary-button" @onclick="SelectSetupAsync">ВЫБРАТЬ SETUP</button><button class="primary-button" disabled="@(!_setupStatus.Available)" @onclick="LaunchSetup">ЗАПУСТИТЬ SETUP</button></div></article>
-                    <article class="setting-card section-block"><span>УЖЕ УСТАНОВЛЕНО</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не выбран")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>.</p><div class="setting-actions"><button class="secondary-button" @onclick="SelectGameRootAsync">ВЫБРАТЬ</button><button class="text-button" @onclick="ClearInstallationAsync">ОТКЛЮЧИТЬ</button></div></article>
-                    <article class="setting-card section-block"><span>МОДПАК</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не выбран")</code><p>Корень MO2 используется для запуска модпака и установки пакетов <b>modpack/mods/tools</b>.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ВЫБРАТЬ ПАПКУ MO2</button></article>
+                    <article class="setting-card section-block"><span>@(_settings.GameRootManualOverride ? "РУЧНОЙ ПУТЬ" : "НАЙДЕНО АВТОМАТИЧЕСКИ")</span><h3>Корень Anomaly</h3><code>@(_settings.GameRoot ?? "Не найден")</code><p>Папка должна содержать <b>fsgame.ltx</b> и каталог <b>bin</b>. Кнопка выбора сохраняет ручное переопределение.</p><button class="secondary-button" @onclick="SelectGameRootAsync">ИЗМЕНИТЬ ВРУЧНУЮ</button></article>
+                    <article class="setting-card section-block"><span>@(_settings.ModpackRootManualOverride ? "РУЧНОЙ ПУТЬ" : "НАЙДЕНО АВТОМАТИЧЕСКИ")</span><h3>Mod Organizer 2</h3><code>@(_settings.ModpackRoot ?? _installation.ModpackRoot ?? "Не найден")</code><p>Лаунчер ищет <b>ModOrganizer.exe</b> в папках упакованной среды. Ручной выбор имеет приоритет, пока путь существует.</p><button class="secondary-button" @onclick="SelectModpackRootAsync">ИЗМЕНИТЬ ПУТЬ MO2</button></article>
                     <article class="setting-card update-settings-card section-block"><span>ОБНОВЛЕНИЯ</span><h3>Автоматический подписанный канал</h3><div class="automatic-update-state @(UpdateConfigurationReady ? "ready" : null)"><i></i><div><strong>@ManifestConfigurationStatus</strong><small>@PublicKeyConfigurationStatus</small></div></div><p>Публичный ключ Anthology уже встроен в лаунчер. Manifest подхватывается автоматически из папки <b>Update</b> рядом с лаунчером или из настроенного командой онлайн-канала.</p><label>Предпочитаемый ресурс<select @bind="_settings.PreferredMirrorProvider"><option value="auto">Автоматически</option><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option></select></label><details class="advanced-update-settings"><summary>РАСШИРЕННАЯ НАСТРОЙКА ДЛЯ РАЗРАБОТЧИКА</summary><label>Manifest URL или локальный JSON<input @bind="_settings.ManifestSource" placeholder="https://.../manifest.json" /></label><button class="text-button file-picker" @onclick="SelectManifestFile">ВЫБРАТЬ ЛОКАЛЬНЫЙ MANIFEST</button><label>Переопределить публичный ключ<input @bind="_settings.PublicKeyPath" placeholder="Встроенный ключ используется автоматически" /></label><button class="text-button file-picker" @onclick="SelectPublicKeyFile">ВЫБРАТЬ ДРУГОЙ КЛЮЧ</button><label>Канал<input @bind="_settings.UpdateChannel" placeholder="next" /></label></details><button class="primary-button save-settings" @onclick="SaveSettingsAsync">СОХРАНИТЬ УСТАНОВКУ</button></article>
                     <article class="setting-card source-path-card section-block"><span>ОБРАЗЦЫ ПУТЕЙ</span><h3>GitHub и Яндекс.Диск</h3><p>Рабочий каталог аддонов уже опубликован в одной ветке. Для обновления всей сборки релизер создаст отдельный подписанный <b>manifest.json</b>; в лаунчере вручную указывается только его постоянный адрес.</p><strong>GITHUB · РАБОЧАЯ ВЕТКА АДДОНОВ</strong><code>https://github.com/Alex020104/AnthologyLauncher/tree/addons-unified-library</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/addon-catalog.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/library/{category}/addon-NNN.7z</code><strong>GITHUB · КАНАЛ ОБНОВЛЕНИЙ</strong><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code><code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code><strong>ЯНДЕКС.ДИСК · РАБОЧИЙ КАНАЛ</strong><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/manifest.json</code><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/{file}</code><code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/addons/{id}/{file}</code></article>
                     <article class="setting-card update-settings-card section-block"><span>СООБЩЕСТВО</span><h3>Имя в чате</h3><label>Отображаемое имя<input @bind="_settings.CommunityNickname" maxlength="64" /></label><p>Имя и локальный идентификатор сохраняются только в portable-настройках.</p><button class="secondary-button" @onclick="SaveSettingsAsync">СОХРАНИТЬ ИМЯ</button></article>
@@ -1241,18 +1277,22 @@
 @code {
     private static readonly NavItem[] Navigation =
     [
-        new("home", "⌂", "Главная", "КОМАНДНЫЙ ЦЕНТР", "Добро пожаловать в Зону"),
-        new("news", "▤", "Новости", "ЛЕНТА", "Новости Anthology"),
-        new("library", "▦", "Библиотека", "КАТАЛОГ", "Моды и дополнения", "NEW"),
-        new("information", "i", "Информация", "СПРАВОЧНИК", "Anthology и сюжеты"),
-        new("community", "◉", "Сообщество", "СВЯЗЬ", "Чат и обратная связь"),
-        new("mo2", "≡", "MO2", "СБОРКА", "Профили и моды"),
-        new("saves", "▣", "Каталог сохранений", "АРХИВ СЕССИЙ", "Сохранения Anomaly"),
-        new("updates", "⇣", "Обновления", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
-        new("support", "◇", "Баг-репорт", "ПОДДЕРЖКА", "Обращение разработчику"),
-        new("installation", "⬡", "Установка", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
-        new("settings", "⚙", "Настройки", "КОНФИГУРАЦИЯ", "Параметры Anomaly"),
-        new("project-support", "♡", "Поддержка проекта", "ПОДДЕРЖКА ПРОЕКТА", "Помочь Anthology", Bottom: true),
+        new("home", "⌂", "Главная", "ИГРАТЬ", "КОМАНДНЫЙ ЦЕНТР", "Добро пожаловать в Зону"),
+        new("saves", "▣", "Сохранения", "ИГРАТЬ", "АРХИВ СЕССИЙ", "Сохранения Anomaly"),
+        new("mo2", "≡", "Моды и профили", "ИГРАТЬ", "СБОРКА", "Профили и моды"),
+
+        new("news", "▤", "Новости", "КОНТЕНТ", "ЛЕНТА", "Новости Anthology"),
+        new("streams", "▷", "Трансляции", "КОНТЕНТ", "ЭФИР", "Трансляции Anthology", "ЭФИР"),
+        new("library", "▦", "Библиотека модов", "КОНТЕНТ", "КАТАЛОГ", "Моды и дополнения", "NEW"),
+        new("information", "i", "Об игре", "КОНТЕНТ", "СПРАВОЧНИК", "Anthology и сюжеты"),
+
+        new("community", "◉", "Сообщество", "ОБЩЕНИЕ", "СВЯЗЬ", "Чат и обратная связь"),
+        new("support", "◇", "Сообщить о проблеме", "ОБЩЕНИЕ", "ПОДДЕРЖКА", "Обращение разработчику"),
+
+        new("updates", "⇣", "Обновление игры", "ОБСЛУЖИВАНИЕ", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
+        new("installation", "⬡", "Пути и установка", "ОБСЛУЖИВАНИЕ", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
+        new("settings", "⚙", "Настройки", "ОБСЛУЖИВАНИЕ", "КОНФИГУРАЦИЯ", "Параметры Anomaly"),
+        new("project-support", "♡", "Поддержать проект", string.Empty, "ПОДДЕРЖКА ПРОЕКТА", "Помочь Anthology", Bottom: true),
     ];
 
     private static readonly SocialLink[] DefaultSocialLinks =
@@ -1356,6 +1396,7 @@
     private UpdateRollbackCandidate? _rollbackCandidate;
     private ContentCatalog? _publishedContent;
     private string? _openContentId;
+    private string? _selectedLiveStreamId;
     private string? _contentDownloadId;
     private DownloadProgress? _contentDownloadProgress;
     private BundledMediaStatus _bundledMedia = new(false, string.Empty, "Проверка установочного комплекта");
@@ -1445,6 +1486,9 @@
         .OrderBy(person => person.Order);
     private IEnumerable<LiveStream> PublishedLiveStreams => (_publishedContent?.LiveStreams ?? [])
         .OrderBy(stream => stream.Order);
+    private LiveStream? SelectedLiveStream => PublishedLiveStreams
+        .FirstOrDefault(stream => string.Equals(stream.Id, _selectedLiveStreamId, StringComparison.OrdinalIgnoreCase))
+        ?? PublishedLiveStreams.FirstOrDefault();
     private IReadOnlyList<SocialLink> HomeSocialLinks => _publishedContent?.SocialLinks ?? DefaultSocialLinks;
     private ReleaseChangelogTranslation CurrentChangelog =>
         _updateCheck?.SignedManifest.Payload.Content?.Changelog is { } changelog
@@ -1507,7 +1551,8 @@
     protected override async Task OnInitializedAsync()
     {
         _settings = await Settings.LoadAsync();
-        _installation = Launcher.DetectInstallation();
+        _installation = await Launcher.AutoConfigureInstallationAsync();
+        _settings = Settings.Current.Copy();
         await RefreshSystemDiagnosticsAsync(showToast: false);
         _bundledMedia = Installer.DetectMedia();
         _setupStatus = Setup.Detect();
@@ -1656,12 +1701,34 @@
         _relayChatRunning = false;
         _settings.GameRoot = null;
         _settings.ModpackRoot = null;
+        _settings.GameRootManualOverride = false;
+        _settings.ModpackRootManualOverride = false;
         await Settings.SaveAsync(_settings);
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
         RefreshMo2Workspace();
         _updateCheck = null;
         ShowToast("Связь с установленной игрой отключена");
+    }
+
+    private async Task UseAutomaticInstallationPathsAsync()
+    {
+        _settings.GameRoot = null;
+        _settings.ModpackRoot = null;
+        _settings.GameRootManualOverride = false;
+        _settings.ModpackRootManualOverride = false;
+        await Settings.SaveAsync(_settings);
+        _installation = await Launcher.AutoConfigureInstallationAsync();
+        _settings = Settings.Current.Copy();
+        await RefreshSystemDiagnosticsAsync(showToast: false);
+        RefreshMo2Workspace();
+        ShowToast(
+            _installation.GameFound
+                ? _installation.ModOrganizerFound
+                    ? "Игра и Mod Organizer 2 найдены автоматически"
+                    : "Игра найдена автоматически, но Mod Organizer 2 не найден"
+                : "Упакованная среда Anthology рядом с лаунчером не найдена",
+            !_installation.GameFound);
     }
 
     private void SelectManifestFile()
@@ -1821,7 +1888,12 @@
         {
             _openContentId = null;
         }
+        _selectedLiveStreamId = SelectedLiveStream?.Id;
     }
+
+    private void SelectLiveStream(string id) => _selectedLiveStreamId = id;
+
+    private Task ShowStreams() => SelectSection("streams");
 
     private async Task SelectChannelAsync(string channelId)
     {
@@ -2428,6 +2500,16 @@
         _settings = Settings.Current.Copy();
         RefreshMo2Workspace();
         ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task ReconnectRelayChatAsync()
+    {
+        await RelayChat.StopAsync();
+        var result = await Launcher.EnsureRelayChatStartedAsync();
+        _relayChatRunning = RelayChat.IsConnected;
+        _relayMessages = RelayChat.Messages.ToList();
+        _relayParticipants = RelayChat.Participants;
+        ShowToast(result.Success ? "Реальный чат переподключается" : result.Message, !result.Success);
     }
 
     private async Task LaunchLatestSaveAsync()
@@ -3289,7 +3371,7 @@
         _mo2DragReference?.Dispose();
     }
 
-    private sealed record NavItem(string Id, string Icon, string Label, string Eyebrow, string Title, string? Badge = null, bool Bottom = false);
+    private sealed record NavItem(string Id, string Icon, string Label, string Group, string Eyebrow, string Title, string? Badge = null, bool Bottom = false);
 
     private sealed record LibrarySection(string Id, string Index, string Title, string Description);
 

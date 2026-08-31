@@ -28,10 +28,11 @@ public sealed class Mo2IntegrationService(
 
     public Mo2WorkspaceSnapshot GetWorkspace()
     {
+        var runtimeBusy = IsRuntimeBusy();
         var instance = Mo2ProfileManager.Detect(settingsStore.Current.ModpackRoot);
         if (!instance.Available)
         {
-            return new Mo2WorkspaceSnapshot(instance, null, null, null, IsRuntimeBusy());
+            return new Mo2WorkspaceSnapshot(instance, null, null, null, runtimeBusy);
         }
 
         if (!string.IsNullOrWhiteSpace(settingsStore.Current.GameRoot)
@@ -49,10 +50,26 @@ public sealed class Mo2IntegrationService(
         Mo2ProfileSnapshot? profileSnapshot = null;
         if (profile is not null)
         {
-            profileSnapshot = Mo2ProfileManager.ReadProfile(instance.Root, profile);
+            if (runtimeBusy)
+            {
+                profileSnapshot = Mo2ProfileManager.ReadProfile(instance.Root, profile);
+            }
+            else
+            {
+                var reconciliation = Mo2ProfileManager.ReconcileProfile(instance.Root, profile);
+                profileSnapshot = reconciliation.Profile;
+                if (reconciliation.Changed)
+                {
+                    InvalidateContent();
+                    instance = instance with
+                    {
+                        StatusText = $"{instance.StatusText} · modlist очищен: удалено {reconciliation.RemovedMissingMods.Count}, добавлено выключенными {reconciliation.AddedDisabledMods.Count}",
+                    };
+                }
+            }
         }
 
-        return new Mo2WorkspaceSnapshot(instance, profile, executable, profileSnapshot, IsRuntimeBusy());
+        return new Mo2WorkspaceSnapshot(instance, profile, executable, profileSnapshot, runtimeBusy);
     }
 
     public async Task<LauncherActionResult> SaveSelectionAsync(

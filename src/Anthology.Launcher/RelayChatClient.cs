@@ -318,7 +318,7 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
                 UpdateParticipant(_nick, _displayName, _faction);
                 SetStatus(true, $"Подключён к {_channel}");
                 AddSystemMessage($"Теперь Вы подключены к сети ({_displayName})");
-                await RequestParticipantMetadataAsync(cancellationToken);
+                _ = RequestParticipantMetadataSafelyAsync(cancellationToken);
                 await WriteRuntimeSettingsAsync(cancellationToken);
                 break;
             case "465":
@@ -360,10 +360,25 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
 
     private async Task RequestParticipantMetadataAsync(CancellationToken cancellationToken)
     {
-        foreach (var participant in Participants.Where(item => !item.IsOwn).Take(80))
+        foreach (var participant in Participants.Where(item => !item.IsOwn).Take(40))
         {
             await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001DISPLAY\u0001", cancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(650), cancellationToken);
             await SendRawAsync($"PRIVMSG {participant.Nick} :\u0001FACTION\u0001", cancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(650), cancellationToken);
+        }
+    }
+
+    private async Task RequestParticipantMetadataSafelyAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RequestParticipantMetadataAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            Debug.WriteLine($"Relay metadata probe stopped: {exception.Message}");
         }
     }
 
@@ -376,10 +391,24 @@ public sealed class RelayChatClient : IAsyncDisposable, IDisposable
         if (!own)
         {
             AddSystemMessage($"{DisplayForNick(nick)} присоединился к каналу");
-            await SendRawAsync($"PRIVMSG {nick} :\u0001DISPLAY\u0001", cancellationToken);
-            await SendRawAsync($"PRIVMSG {nick} :\u0001FACTION\u0001", cancellationToken);
+            _ = RequestParticipantMetadataSafelyAsync(nick, cancellationToken);
         }
         await WriteUsersAsync(cancellationToken);
+    }
+
+    private async Task RequestParticipantMetadataSafelyAsync(string nick, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SendRawAsync($"PRIVMSG {nick} :\u0001DISPLAY\u0001", cancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(650), cancellationToken);
+            await SendRawAsync($"PRIVMSG {nick} :\u0001FACTION\u0001", cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            Debug.WriteLine($"Relay metadata probe for {nick} stopped: {exception.Message}");
+        }
     }
 
     private async Task ProcessDepartureAsync(IrcMessage message, CancellationToken cancellationToken)

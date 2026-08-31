@@ -10,7 +10,11 @@ public sealed class LauncherSettings
 
     public string? GameRoot { get; set; }
 
+    public bool GameRootManualOverride { get; set; }
+
     public string? ModpackRoot { get; set; }
+
+    public bool ModpackRootManualOverride { get; set; }
 
     public string? InstallDestination { get; set; }
 
@@ -79,7 +83,9 @@ public sealed class LauncherSettings
     public LauncherSettings Copy() => new()
     {
         GameRoot = GameRoot,
+        GameRootManualOverride = GameRootManualOverride,
         ModpackRoot = ModpackRoot,
+        ModpackRootManualOverride = ModpackRootManualOverride,
         InstallDestination = InstallDestination,
         SetupExecutable = SetupExecutable,
         SelectedMo2Profile = SelectedMo2Profile,
@@ -458,6 +464,21 @@ public sealed class LauncherSettingsStore : IDisposable
         if (!string.IsNullOrWhiteSpace(configured))
         {
             return Path.GetFullPath(configured);
+        }
+
+        var applicationRoot = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+        var deploymentRoot = Directory.GetParent(applicationRoot)?.FullName;
+        if (!string.IsNullOrWhiteSpace(deploymentRoot))
+        {
+            var portableDataRoot = Path.Combine(deploymentRoot, "Data");
+            var packagedDeployment = Directory.Exists(portableDataRoot)
+                                     || File.Exists(Path.Combine(deploymentRoot, "Launch Anthology Next.cmd"))
+                                     || File.Exists(Path.Combine(deploymentRoot, "Start-AnthologyLauncherNext.ps1"))
+                                     || Directory.Exists(Path.Combine(deploymentRoot, "Services"));
+            if (packagedDeployment)
+            {
+                return portableDataRoot;
+            }
         }
 
         return Path.Combine(

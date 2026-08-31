@@ -38,6 +38,15 @@ public sealed record Mo2ProfileSnapshot(
     string ModListPath,
     IReadOnlyList<Mo2ModEntry> Mods);
 
+public sealed record Mo2ProfileReconcileResult(
+    Mo2ProfileSnapshot Profile,
+    IReadOnlyList<string> RemovedMissingMods,
+    IReadOnlyList<string> AddedDisabledMods,
+    string? RecoveryPath)
+{
+    public bool Changed => RemovedMissingMods.Count > 0 || AddedDisabledMods.Count > 0;
+}
+
 public static class Mo2ProfileManager
 {
     private const string OrganizerExecutable = "ModOrganizer.exe";
@@ -117,6 +126,78 @@ public static class Mo2ProfileManager
 
         return new Mo2ProfileSnapshot(profileName, modListPath, mods);
     }
+
+    public static Mo2ProfileReconcileResult ReconcileProfile(string root, string profileName)
+    {
+        var profileRoot = ResolveProfileRoot(root, profileName);
+        var modListPath = Path.Combine(profileRoot, ModListFile);
+        var modsRoot = Path.Combine(Path.GetFullPath(root), "mods");
+        if (!Directory.Exists(modsRoot))
+        {
+            return new Mo2ProfileReconcileResult(ReadProfile(root, profileName), [], [], null);
+        }
+
+        var directoryNames = Directory.GetDirectories(modsRoot)
+            .Select(Path.GetFileName)
+            .OfType<string>()
+            .Where(IsManagedModDirectoryName)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var directorySet = new HashSet<string>(directoryNames, StringComparer.OrdinalIgnoreCase);
+        var listedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var removedMissing = new List<string>();
+        var reconciledLines = new List<string>();
+
+        foreach (var line in File.ReadAllLines(modListPath))
+        {
+            if (!TryParseModLine(line, out var name, out _, out var unmanaged))
+            {
+                reconciledLines.Add(line);
+                continue;
+            }
+
+            if (!unmanaged && (!IsManagedModDirectoryName(name) || !directorySet.Contains(name)))
+            {
+                removedMissing.Add(name);
+                continue;
+            }
+
+            reconciledLines.Add(line);
+            if (!unmanaged)
+            {
+                listedDirectories.Add(name);
+            }
+        }
+
+        var addedDisabled = directoryNames
+            .Where(name => !listedDirectories.Contains(name))
+            .ToArray();
+        if (removedMissing.Count == 0 && addedDisabled.Length == 0)
+        {
+            return new Mo2ProfileReconcileResult(ReadProfile(root, profileName), [], [], null);
+        }
+
+        var insertIndex = reconciledLines.FindIndex(line => TryParseModLine(line, out _, out _, out _));
+        if (insertIndex < 0)
+        {
+            insertIndex = reconciledLines.Count;
+        }
+        reconciledLines.InsertRange(insertIndex, addedDisabled.Select(name => $"-{name}"));
+
+        var recoveryPath = modListPath + $".anthology-reconcile-{DateTime.UtcNow:yyyyMMdd-HHmmss}.bak";
+        File.Copy(modListPath, recoveryPath, overwrite: false);
+        WriteAtomicWithBackup(modListPath, reconciledLines);
+        return new Mo2ProfileReconcileResult(
+            ReadProfile(root, profileName),
+            removedMissing.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            addedDisabled,
+            recoveryPath);
+    }
+
+    private static bool IsManagedModDirectoryName(string name) =>
+        !string.IsNullOrWhiteSpace(name)
+        && name[0] != '.'
+        && !name.Equals("__MACOSX", StringComparison.OrdinalIgnoreCase);
 
     public static Mo2ProfileSnapshot SetEnabled(string root, string profileName, string modName, bool enabled)
     {

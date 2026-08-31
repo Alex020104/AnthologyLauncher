@@ -48,6 +48,37 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
             relayChatFound);
     }
 
+    public async Task<InstallationStatus> AutoConfigureInstallationAsync(CancellationToken cancellationToken = default)
+    {
+        var detected = DetectInstallation();
+        var settings = settingsStore.Current.Copy();
+        var changed = false;
+
+        if (detected.GameRoot is not null
+            && (!settings.GameRootManualOverride || !IsGameRoot(settings.GameRoot)))
+        {
+            changed |= !PathEquals(settings.GameRoot, detected.GameRoot) || settings.GameRootManualOverride;
+            settings.GameRoot = detected.GameRoot;
+            settings.GameRootManualOverride = false;
+        }
+
+        if (detected.ModpackRoot is not null
+            && (!settings.ModpackRootManualOverride || !IsModpackRoot(settings.ModpackRoot)))
+        {
+            changed |= !PathEquals(settings.ModpackRoot, detected.ModpackRoot) || settings.ModpackRootManualOverride;
+            settings.ModpackRoot = detected.ModpackRoot;
+            settings.ModpackRootManualOverride = false;
+        }
+
+        if (changed)
+        {
+            await settingsStore.SaveAsync(settings, cancellationToken);
+            detected = DetectInstallation();
+        }
+
+        return detected;
+    }
+
     public async Task<LauncherActionResult> SelectGameRootAsync(CancellationToken cancellationToken = default)
     {
         var selected = LauncherDialogService.SelectFolder("Выберите корневую папку Anomaly с fsgame.ltx", settingsStore.Current.GameRoot);
@@ -64,6 +95,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
 
         var settings = settingsStore.Current.Copy();
         settings.GameRoot = fullPath;
+        settings.GameRootManualOverride = true;
         await settingsStore.SaveAsync(settings, cancellationToken);
         return new LauncherActionResult(true, "Папка игры сохранена");
     }
@@ -84,6 +116,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
 
         var settings = settingsStore.Current.Copy();
         settings.ModpackRoot = fullPath;
+        settings.ModpackRootManualOverride = true;
         await settingsStore.SaveAsync(settings, cancellationToken);
         return new LauncherActionResult(true, "Папка Mod Organizer 2 сохранена");
     }
@@ -290,60 +323,148 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
 
     private string? FindGameRoot()
     {
-        var configured = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");
-        if (string.IsNullOrWhiteSpace(configured))
+        var environmentRoot = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");
+        if (IsGameRoot(environmentRoot))
         {
-            configured = settingsStore.Current.GameRoot;
+            return Path.GetFullPath(environmentRoot!);
         }
 
-        if (!string.IsNullOrWhiteSpace(configured))
+        var configured = settingsStore.Current.GameRoot;
+        if (settingsStore.Current.GameRootManualOverride && IsGameRoot(configured))
         {
-            var configuredFullPath = Path.GetFullPath(configured);
-            if (IsGameRoot(configuredFullPath))
-            {
-                return configuredFullPath;
-            }
+            return Path.GetFullPath(configured!);
         }
 
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
-        for (var level = 0; current is not null && level < 8; level++, current = current.Parent)
+        var packaged = FindNearbyRoot(AppContext.BaseDirectory, IsGameRoot, includeSiblingFolders: true);
+        if (packaged is not null)
         {
-            if (IsGameRoot(current.FullName))
-            {
-                return current.FullName;
-            }
+            return packaged;
         }
 
-        return null;
+        return IsGameRoot(configured) ? Path.GetFullPath(configured!) : null;
     }
 
     private string? FindModpackRoot(string gameRoot)
     {
-        if (!string.IsNullOrWhiteSpace(settingsStore.Current.ModpackRoot))
+        var environmentRoot = Environment.GetEnvironmentVariable("ANTHOLOGY_MO2_ROOT");
+        if (IsModpackRoot(environmentRoot))
         {
-            var configured = Path.GetFullPath(settingsStore.Current.ModpackRoot);
-            if (File.Exists(Path.Combine(configured, "ModOrganizer.exe")))
-            {
-                return configured;
-            }
+            return Path.GetFullPath(environmentRoot!);
+        }
+
+        var configuredRoot = settingsStore.Current.ModpackRoot;
+        if (settingsStore.Current.ModpackRootManualOverride && IsModpackRoot(configuredRoot))
+        {
+            return Path.GetFullPath(configuredRoot!);
         }
 
         var parent = Directory.GetParent(gameRoot)?.FullName ?? gameRoot;
         foreach (var folder in ModpackFolders)
         {
             var sibling = Path.Combine(parent, folder);
-            if (File.Exists(Path.Combine(sibling, "ModOrganizer.exe")))
+            if (IsModpackRoot(sibling))
             {
                 return sibling;
+            }
+        }
+
+        foreach (var anchor in new[] { gameRoot, AppContext.BaseDirectory })
+        {
+            var packaged = FindNearbyRoot(anchor, IsModpackRoot, includeSiblingFolders: true);
+            if (packaged is not null)
+            {
+                return packaged;
+            }
+        }
+
+        return IsModpackRoot(configuredRoot) ? Path.GetFullPath(configuredRoot!) : null;
+    }
+
+    private static string? FindNearbyRoot(
+        string anchor,
+        Func<string?, bool> predicate,
+        bool includeSiblingFolders)
+    {
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        DirectoryInfo? current;
+        try { current = new DirectoryInfo(Path.GetFullPath(anchor)); }
+        catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+        {
+            return null;
+        }
+
+        for (var level = 0; current is not null && level < 8; level++, current = current.Parent)
+        {
+            if (visited.Add(current.FullName) && predicate(current.FullName))
+            {
+                return current.FullName;
+            }
+
+            if (!includeSiblingFolders)
+            {
+                continue;
+            }
+
+            IEnumerable<string> directories;
+            try { directories = Directory.EnumerateDirectories(current.FullName).ToArray(); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            var match = directories
+                .Where(path => visited.Add(path) && predicate(path))
+                .OrderByDescending(PackagedRootScore)
+                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+            if (match is not null)
+            {
+                return match;
             }
         }
 
         return null;
     }
 
-    private static bool IsGameRoot(string path) =>
-        File.Exists(Path.Combine(path, "fsgame.ltx"))
+    private static int PackagedRootScore(string path)
+    {
+        var name = Path.GetFileName(path);
+        var score = 0;
+        if (name.Contains("anthology", StringComparison.OrdinalIgnoreCase)) score += 4;
+        if (name.Contains("modpack", StringComparison.OrdinalIgnoreCase)) score += 3;
+        if (name.Contains("mo2", StringComparison.OrdinalIgnoreCase)) score += 2;
+        if (name.Contains("anomaly", StringComparison.OrdinalIgnoreCase)) score += 1;
+        return score;
+    }
+
+    private static bool IsGameRoot(string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && File.Exists(Path.Combine(path, "fsgame.ltx"))
         && Directory.Exists(Path.Combine(path, "bin"));
+
+    private static bool IsModpackRoot(string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && File.Exists(Path.Combine(path, "ModOrganizer.exe"));
+
+    private static bool PathEquals(string? left, string? right)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+        {
+            return string.IsNullOrWhiteSpace(left) && string.IsNullOrWhiteSpace(right);
+        }
+
+        try
+        {
+            return string.Equals(
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(left)),
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(right)),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+        {
+            return false;
+        }
+    }
 
     private async Task PrepareGameLaunchAsync(string gameRoot, CancellationToken cancellationToken)
     {

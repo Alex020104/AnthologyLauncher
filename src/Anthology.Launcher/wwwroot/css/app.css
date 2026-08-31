@@ -38,7 +38,10 @@ button { color: inherit; }
 .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
 .brand-name { font-weight: 650; letter-spacing: .21em; font-size: 13px; }
 .brand-edition { margin-top: 4px; color: var(--dim); font-size: 11px; letter-spacing: .15em; }
-.navigation { min-height: 0; display: grid; gap: 4px; margin-top: 26px; overflow-y: auto; scrollbar-width: none; }
+.navigation { min-height: 0; display: grid; align-content: start; gap: 14px; margin-top: 20px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #705b2d #0b0f12; }
+.nav-group { min-width: 0; display: grid; gap: 3px; }
+.nav-group + .nav-group { padding-top: 10px; border-top: 1px solid #20272b; }
+.nav-group-title { padding: 0 13px 4px; color: #59666d; font-size: 9px; font-weight: 700; letter-spacing: .19em; }
 .navigation.bottom-navigation { flex: none; margin: 10px 0 12px; overflow: visible; border-top: 1px solid var(--line-soft); padding-top: 10px; }
 .bottom-navigation .nav-item { color: #b6a16c; background: linear-gradient(90deg, #5b48251c, transparent); }
 .bottom-navigation .nav-item:hover,.bottom-navigation .nav-item.active { background: linear-gradient(90deg, #715b2e35, transparent); color: var(--accent-bright); }
@@ -509,7 +512,7 @@ button { color: inherit; }
     .app-shell { grid-template-columns: 72px minmax(0, 1fr); }
     .sidebar { padding: 18px 8px 12px; }
     .brand { justify-content: center; padding: 0 0 20px; }.brand > div:last-child { display: none; }.brand-mark { width: 36px; height: 36px; }
-    .navigation { margin-top: 18px; }.nav-item { grid-template-columns: 1fr; justify-items: center; height: 44px; padding: 0; }.nav-item > span:nth-child(2), .nav-badge { display: none; }.nav-icon { width: auto; font-size: 18px; }
+    .navigation { margin-top: 18px; gap: 8px; }.nav-group-title { display: none; }.nav-group + .nav-group { padding-top: 7px; }.nav-item { grid-template-columns: 1fr; justify-items: center; height: 44px; padding: 0; }.nav-item > span:nth-child(2), .nav-badge { display: none; }.nav-icon { width: auto; font-size: 18px; }
     .build-card, .version-line { display: none; }
     .workspace-header { padding-inline: 18px; }.workspace-header h1 { font-size: 18px; }.connection-pill { display: none; }
     .content-scroll { padding: 20px 18px 38px; }

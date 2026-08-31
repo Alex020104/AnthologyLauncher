@@ -63,6 +63,32 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void ReconcileProfileRemovesMissingModsAndAddsNewFoldersDisabled()
+    {
+        CreateInstance();
+        var path = Path.Combine(_root, "profiles", "Anthology Стандарт", "modlist.txt");
+        File.WriteAllText(path, "# generated\n+Missing enabled\n*Unmanaged game data\n+Installed\n-Existing disabled\n-.git\n");
+        Directory.CreateDirectory(Path.Combine(_root, "mods", "Installed"));
+        Directory.CreateDirectory(Path.Combine(_root, "mods", "New external mod"));
+        Directory.CreateDirectory(Path.Combine(_root, "mods", ".git"));
+
+        var result = Mo2ProfileManager.ReconcileProfile(_root, "Anthology Стандарт");
+
+        Assert.True(result.Changed);
+        Assert.Equal(["Missing enabled", "Existing disabled", ".git"], result.RemovedMissingMods);
+        Assert.Equal(["New external mod"], result.AddedDisabledMods);
+        Assert.True(File.Exists(result.RecoveryPath));
+        var lines = File.ReadAllLines(path);
+        Assert.Contains("-New external mod", lines);
+        Assert.Contains("*Unmanaged game data", lines);
+        Assert.Contains("+Installed", lines);
+        Assert.DoesNotContain("+Missing enabled", lines);
+        Assert.DoesNotContain("-Existing disabled", lines);
+        Assert.DoesNotContain("-.git", lines);
+        Assert.Equal(["Installed", "Unmanaged game data", "New external mod"], result.Profile.Mods.Select(mod => mod.Name));
+    }
+
+    [Fact]
     public void ProfileTraversalIsRejected()
     {
         CreateInstance();
