@@ -3,12 +3,43 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.147",
-    "publishedAt": "2026-08-31T08:49:50.6176711+00:00",
-    "packages": [],
+    "publishedAt": "2026-08-31T08:50:33.8878321+00:00",
+    "packages": [
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.4",
+        "version": "0.7.0-alpha.4",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 4889390,
+        "sha256": "0ac2ce798e3eec9cac172e21b453b310e7bd269fe2aec0aedf59adc76939d34f",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.147/anthology-launcher-2.1.147.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.147/anthology-launcher-2.1.147.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.4.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false
+      }
+    ],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.147",
-      "publishedAt": "2026-08-31T08:49:50.6176706+00:00",
+      "publishedAt": "2026-08-31T08:50:33.8878315+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -458,6 +489,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "39J9I4mK19n\u002BLV0BnhW5yLm139eAswpBwh7MUfzk5unrnmu7Melo8EISNVMekEKb4nplGwcIQASz0szzjIavDQ=="
+    "value": "2Z7bZ7snDhyM7w23kN5cACrvR2eD3Lhm0y6M43tWgvQQplQqmnoB7K0dSsL8LmBcMgxNGaqnKM\u002BS3WdepCW/tw=="
   }
 }
