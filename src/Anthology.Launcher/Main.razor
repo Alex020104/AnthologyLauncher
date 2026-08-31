@@ -215,15 +215,25 @@
 
                     <div class="section-block video-block">
                         <div class="section-heading compact">
-                            <div><span>МЕДИА</span><h3>Видео в лаунчере</h3></div>
+                            <div><span>МЕДИА</span><h3>Трансляции в лаунчере</h3></div>
                         </div>
-                        @if (PublishedVideos.FirstOrDefault() is { } publishedVideo)
+                        @if (PublishedLiveStreams.Any())
+                        {
+                            <div class="home-stream-grid">
+                            @foreach (var stream in PublishedLiveStreams)
+                            {
+                                var localizedStream = LiveStreamLocalization.Resolve(stream, _settings.InterfaceLanguage);
+                                <article class="video-card live-stream-card"><SafeVideoPlayer SourceUrl="@stream.Url" Title="@localizedStream.Title" /><div class="video-caption"><span>ТРАНСЛЯЦИЯ</span><strong>@localizedStream.Title</strong><small>@localizedStream.Subtitle</small></div></article>
+                            }
+                            </div>
+                        }
+                        else if (PublishedVideos.FirstOrDefault() is { } publishedVideo)
                         {
                             <article class="video-card"><SafeVideoPlayer SourceUrl="@publishedVideo.Url" Title="@publishedVideo.Title" /><div class="video-caption"><span>RELEASER</span><strong>@publishedVideo.Title</strong></div></article>
                         }
                         else
                         {
-                            <div class="video-placeholder"><div class="video-play">＋</div><span>МЕДИА НЕ ОПУБЛИКОВАНО</span><small>Видео добавляется к новости в Releaser Next.</small></div>
+                            <div class="video-placeholder"><div class="video-play">＋</div><span>ТРАНСЛЯЦИИ НЕ ОПУБЛИКОВАНЫ</span><small>Их можно добавить и удалить в Releaser Next.</small></div>
                         }
                     </div>
                 </section>
@@ -701,6 +711,38 @@
                 {
                     <section class="managed-content-empty section-block"><span>♡</span><div><strong>Страница поддержки готовится</strong><small>Создайте и опубликуйте её в отдельном разделе «Поддержка проекта» приложения Releaser Next.</small></div></section>
                 }
+                @if (PublishedProjectPeople.Any())
+                {
+                    <section class="project-people section-block">
+                        <header><div><span class="eyebrow">ЛЮДИ ПРОЕКТА</span><h2>Те, кто помогает Anthology двигаться дальше</h2></div><strong>@PublishedProjectPeople.Count()</strong></header>
+                        <div class="project-people-grid">
+                        @foreach (var person in PublishedProjectPeople)
+                        {
+                            var localizedPerson = ProjectPersonLocalization.Resolve(person, _settings.InterfaceLanguage);
+                            <article class="project-person-card">
+                                @if (GetSafeExternalUrl(person.ImageUrl) is string portraitUrl)
+                                {
+                                    <div class="project-person-photo"><img src="@portraitUrl" alt="@localizedPerson.Name" /></div>
+                                }
+                                else
+                                {
+                                    <div class="project-person-photo placeholder"><span>@PersonInitials(localizedPerson.Name)</span></div>
+                                }
+                                <div class="project-person-copy"><span>@localizedPerson.Role</span><h3>@localizedPerson.Name</h3><p>@localizedPerson.Description</p></div>
+                                <div class="project-person-links">
+                                @foreach (var link in person.Links)
+                                {
+                                    @if (GetSafeExternalUrl(link.Url) is string personLinkUrl)
+                                    {
+                                        <a class="@link.Id" href="@personLinkUrl" target="_blank" rel="noopener noreferrer" title="@link.Title"><img src="@SocialIconPath(link.Id)" alt="" /><span>@link.Title</span></a>
+                                    }
+                                }
+                                </div>
+                            </article>
+                        }
+                        </div>
+                    </section>
+                }
             }
             else if (_section == "updates")
             {
@@ -750,6 +792,22 @@
                             }
                         </div>
                         <div class="signature-line">Ключ: <strong>@_updateCheck.TrustedKeyId</strong> · manifest: @_updateCheck.SignedManifest.Payload.Version</div>
+                        <section class="release-changelog">
+                            <header><div><span class="eyebrow">CHANGELOG · @_updateCheck.SignedManifest.Payload.Version</span><h3>@CurrentChangelog.Title</h3><p>@CurrentChangelog.Summary</p></div><span class="changelog-state">@(_updateCheck.HasUpdates ? "ПЕРЕД УСТАНОВКОЙ" : "УСТАНОВЛЕНО · МОЖНО ПРОСМОТРЕТЬ")</span></header>
+                            @if (!string.IsNullOrWhiteSpace(CurrentChangelog.Body))
+                            {
+                                <div class="changelog-body">@CurrentChangelog.Body</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(CurrentChangelog.Warnings))
+                            {
+                                <div class="changelog-warning"><strong>! ВАЖНЫЕ ПОСЛЕДСТВИЯ</strong><p>@CurrentChangelog.Warnings</p></div>
+                            }
+                            <div class="file-change-summary"><article><strong>@UpdateAddedFiles.Count</strong><span>ДОБАВЛЕНО / ЗАМЕНЕНО</span></article><article class="removed"><strong>@UpdateDeletedFiles.Count</strong><span>УДАЛЕНО</span></article></div>
+                            <div class="file-change-lists">
+                                <details><summary>ПОКАЗАТЬ ДОБАВЛЕННЫЕ И ЗАМЕНЁННЫЕ ФАЙЛЫ <b>@UpdateAddedFiles.Count</b></summary><div>@foreach (var file in UpdateAddedFiles) { <code>@file</code> }@if (UpdateAddedFiles.Count == 0) { <small>В этой версии нет добавляемых файлов.</small> }</div></details>
+                                <details class="removed"><summary>ПОКАЗАТЬ УДАЛЯЕМЫЕ ФАЙЛЫ И ПАПКИ <b>@UpdateDeletedFiles.Count</b></summary><div>@foreach (var file in UpdateDeletedFiles) { <code>@file</code> }@if (UpdateDeletedFiles.Count == 0) { <small>Удалений в этой версии нет.</small> }</div></details>
+                            </div>
+                        </section>
                     }
                     else if (!UpdateConfigurationReady)
                     {
@@ -1382,7 +1440,30 @@
     private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
         .Where(item => item.Kind == ContentKind.News);
     private IEnumerable<ContentVideo> PublishedVideos => PublishedNews.SelectMany(item => item.Videos);
+    private IEnumerable<ProjectPerson> PublishedProjectPeople => (_publishedContent?.ProjectPeople ?? [])
+        .OrderBy(person => person.Order);
+    private IEnumerable<LiveStream> PublishedLiveStreams => (_publishedContent?.LiveStreams ?? [])
+        .OrderBy(stream => stream.Order);
     private IReadOnlyList<SocialLink> HomeSocialLinks => _publishedContent?.SocialLinks ?? DefaultSocialLinks;
+    private ReleaseChangelogTranslation CurrentChangelog =>
+        _updateCheck?.SignedManifest.Payload.Content?.Changelog is { } changelog
+            ? ReleaseChangelogLocalization.Resolve(changelog, _settings.InterfaceLanguage)
+            : new ReleaseChangelogTranslation(
+                $"Обновление {_updateCheck?.SignedManifest.Payload.Version ?? "Anthology"}",
+                "Описание от разработчиков ещё не опубликовано.",
+                string.Empty,
+                string.Empty);
+    private IReadOnlyList<string> UpdateAddedFiles => (_updateCheck?.SignedManifest.Payload.Packages ?? [])
+        .SelectMany(package => package.Files.Select(path => $"{package.InstallRoot}\\{path}"))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Order(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    private IReadOnlyList<string> UpdateDeletedFiles => (_updateCheck?.SignedManifest.Payload.Packages ?? [])
+        .SelectMany(package => (package.DeletedFiles ?? []).Select(path => $"{package.InstallRoot}\\{path}")
+            .Concat((package.DeletedDirectories ?? []).Select(path => $"{package.InstallRoot}\\{path}\\ [папка]")))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Order(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
     private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
         .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
     private string HomeGameVersion =>
@@ -1415,6 +1496,12 @@
 
     private ContentBlockTranslation Localized(ContentBlock block) =>
         ContentBlockLocalization.Resolve(block, _settings.InterfaceLanguage);
+
+    private static string PersonInitials(string name)
+    {
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Concat(words.Take(2).Select(word => char.ToUpperInvariant(word[0])));
+    }
 
     protected override async Task OnInitializedAsync()
     {

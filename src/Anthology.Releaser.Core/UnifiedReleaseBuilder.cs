@@ -387,7 +387,112 @@ public static class UnifiedReleaseBuilder
                 link.Url.Trim()))
             .ToArray();
 
-        return new ContentCatalog(4, workspace.Version, DateTimeOffset.UtcNow, items, socialLinks);
+        var projectPeople = (workspace.ProjectPeople ?? [])
+            .Where(person => person.IsVisible && !string.IsNullOrWhiteSpace(person.Name))
+            .OrderBy(person => person.Order)
+            .ThenBy(person => person.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(person =>
+            {
+                var translations = new Dictionary<string, ProjectPersonTranslation>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (language, translation) in person.Translations ?? [])
+                {
+                    if (string.IsNullOrWhiteSpace(translation.Name)
+                        && string.IsNullOrWhiteSpace(translation.Role)
+                        && string.IsNullOrWhiteSpace(translation.Description))
+                    {
+                        continue;
+                    }
+                    translations[AnthologyLanguages.Normalize(language)] = new ProjectPersonTranslation(
+                        translation.Name.Trim(),
+                        translation.Role.Trim(),
+                        translation.Description.Trim());
+                }
+                var links = (person.Links ?? [])
+                    .Where(link => link.IsVisible && !string.IsNullOrWhiteSpace(link.Url))
+                    .OrderBy(link => link.Order)
+                    .Select(link => new SocialLink(
+                        link.Id.Trim().ToLowerInvariant(),
+                        link.Title.Trim(),
+                        link.Subtitle.Trim(),
+                        link.Url.Trim()))
+                    .ToArray();
+                var imageUrl = media.ProjectPersonImages.TryGetValue(person.Id, out var uploadedImage)
+                    ? uploadedImage
+                    : string.IsNullOrWhiteSpace(person.ImageUrl) ? null : person.ImageUrl.Trim();
+                return new ProjectPerson(
+                    person.Id.Trim().ToLowerInvariant(),
+                    person.Name.Trim(),
+                    person.Role.Trim(),
+                    person.Description.Trim(),
+                    imageUrl,
+                    links,
+                    person.Order,
+                    translations);
+            })
+            .ToArray();
+
+        var liveStreams = (workspace.LiveStreams ?? [])
+            .Where(stream => stream.IsVisible
+                             && !string.IsNullOrWhiteSpace(stream.Title)
+                             && !string.IsNullOrWhiteSpace(stream.Url))
+            .OrderBy(stream => stream.Order)
+            .ThenBy(stream => stream.Title, StringComparer.CurrentCultureIgnoreCase)
+            .Select(stream =>
+            {
+                var translations = new Dictionary<string, LiveStreamTranslation>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (language, translation) in stream.Translations ?? [])
+                {
+                    if (string.IsNullOrWhiteSpace(translation.Title)
+                        && string.IsNullOrWhiteSpace(translation.Subtitle))
+                    {
+                        continue;
+                    }
+                    translations[AnthologyLanguages.Normalize(language)] = new LiveStreamTranslation(
+                        translation.Title.Trim(),
+                        translation.Subtitle.Trim());
+                }
+                return new LiveStream(
+                    stream.Id.Trim().ToLowerInvariant(),
+                    stream.Title.Trim(),
+                    stream.Subtitle.Trim(),
+                    stream.Url.Trim(),
+                    stream.Order,
+                    translations);
+            })
+            .ToArray();
+
+        ReleaseChangelog? changelog = null;
+        if (workspace.Changelog is not null
+            && (!string.IsNullOrWhiteSpace(workspace.Changelog.Title)
+                || !string.IsNullOrWhiteSpace(workspace.Changelog.Summary)
+                || !string.IsNullOrWhiteSpace(workspace.Changelog.Body)
+                || !string.IsNullOrWhiteSpace(workspace.Changelog.Warnings)))
+        {
+            var translations = new Dictionary<string, ReleaseChangelogTranslation>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (language, translation) in workspace.Changelog.Translations ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(translation.Title)
+                    && string.IsNullOrWhiteSpace(translation.Summary)
+                    && string.IsNullOrWhiteSpace(translation.Body)
+                    && string.IsNullOrWhiteSpace(translation.Warnings))
+                {
+                    continue;
+                }
+                translations[AnthologyLanguages.Normalize(language)] = new ReleaseChangelogTranslation(
+                    translation.Title.Trim(),
+                    translation.Summary.Trim(),
+                    translation.Body.Trim(),
+                    translation.Warnings.Trim());
+            }
+            changelog = new ReleaseChangelog(
+                workspace.Changelog.Title.Trim(),
+                workspace.Changelog.Summary.Trim(),
+                workspace.Changelog.Body.Trim(),
+                workspace.Changelog.Warnings.Trim(),
+                translations);
+        }
+
+        return new ContentCatalog(4, workspace.Version, DateTimeOffset.UtcNow, items, socialLinks, projectPeople, liveStreams, changelog);
     }
 
     private static void AddTranslation(

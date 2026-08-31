@@ -30,6 +30,19 @@
             else if (_section == "release")
             {
                 <section class="hero panel"><div><span class="eyebrow">ЕДИНАЯ СБОРКА</span><h2>Одна версия.<br /><em>Два назначения.</em></h2><p>Релизер сам собирает корень игры и MO2 в один подписанный релиз. DB, MT и прочие части больше не публикуются отдельными обновлениями.</p></div><div class="version-orbit"><small>СЛЕДУЮЩИЙ РЕЛИЗ</small><strong>@_workspace.Version</strong><span>ECDSA · SHA‑256</span></div></section>
+                <section class="panel release-changelog-editor">
+                    <header><div><span class="eyebrow">CHANGELOG РАЗРАБОТЧИКОВ</span><h3>Что изменилось и какие последствия возможны</h3><p>Этот текст показывается игроку до и после установки. Списки файлов «Добавлено/заменено» и «Удалено» лаунчер сформирует сам из манифеста.</p></div><button class="secondary" @onclick="SaveAsync">СОХРАНИТЬ CHANGELOG</button></header>
+                    <div class="translation-tabs"><button class="@(_selectedChangelogLanguage == "source" ? "active" : null)" @onclick="SelectChangelogSource">ИСХОДНИК</button>@foreach (var language in AnthologyLanguages.All) { var changelogLanguage = language; <button class="@(_selectedChangelogLanguage == changelogLanguage.Code ? "active" : null)" @onclick="() => SelectChangelogLanguage(changelogLanguage.Code)">@changelogLanguage.ShortLabel</button> }</div>
+                    @if (_selectedChangelogLanguage == "source")
+                    {
+                        <div class="changelog-fields"><label>Заголовок<input @bind="_workspace.Changelog.Title" /></label><label>Кратко об обновлении<textarea rows="3" @bind="_workspace.Changelog.Summary"></textarea></label><label>Полный список изменений<textarea rows="7" @bind="_workspace.Changelog.Body"></textarea></label><label class="warning">Важные последствия / что сделать до обновления<textarea rows="4" @bind="_workspace.Changelog.Warnings" placeholder="Например: сохраните user.ltx; старые сейвы несовместимы…"></textarea></label></div>
+                    }
+                    else
+                    {
+                        var changelogTranslation = _workspace.Changelog.Translation(_selectedChangelogLanguage);
+                        <div class="changelog-fields translated"><label>Заголовок<input @bind="changelogTranslation.Title" /></label><label>Кратко об обновлении<textarea rows="3" @bind="changelogTranslation.Summary"></textarea></label><label>Полный список изменений<textarea rows="7" @bind="changelogTranslation.Body"></textarea></label><label class="warning">Важные последствия<textarea rows="4" @bind="changelogTranslation.Warnings"></textarea></label><small>Ручной перевод · API не требуется</small></div>
+                    }
+                </section>
                 <section class="grid three">
                     <article class="panel field-card"><span>ВЕРСИЯ</span><h3>Номер обновления</h3><label>Версия<input @bind="_workspace.Version" placeholder="2.1.131" /></label><label>Канал<input @bind="_workspace.Channel" placeholder="next" /></label><p>Допустимы версии 2.1.131 и выше. Дата больше не используется как номер сборки.</p></article>
                     <article class="panel field-card"><span>КОРЕНЬ ИГРЫ</span><h3>Полная Anthology</h3><code>@PathOrEmpty(_machine.GameSourceRoot)</code><p>Выберите подготовленную папку сборки. Личные appdata, логи и скриншоты автоматически исключаются.</p><button class="secondary" @onclick="SelectGameRoot">ВЫБРАТЬ КОРЕНЬ</button></article>
@@ -118,7 +131,7 @@
                                 }
                             </div>
                             <section class="translation-workbench">
-                                <div class="translation-head"><div><span class="eyebrow">АВТОПЕРЕВОД</span><h3>Один исходник — восемь языков</h3><p>Пишите на любом языке. Релизер определит исходный язык, заполнит переводы и сохранит их в подписанном каталоге. Игроку ключ перевода не передаётся.</p></div><button class="primary" @onclick="AutoTranslateContentAsync" disabled="@(_translationBusy || _busy)">@(_translationBusy ? "ПЕРЕВОДИМ…" : "ПЕРЕВЕСТИ НА ВСЕ ЯЗЫКИ")</button></div>
+                                <div class="translation-head"><div><span class="eyebrow">ПЕРЕВОДЫ</span><h3>Вручную или через API</h3><p>Выберите ниже нужный язык и введите перевод полностью вручную — API для этого не нужен. Автоперевод лишь заполняет поля, которые можно переписать.</p></div><div class="translation-head-actions"><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ РУЧНОЙ ПЕРЕВОД</button><button class="primary" @onclick="AutoTranslateContentAsync" disabled="@(_translationBusy || _busy)">@(_translationBusy ? "ПЕРЕВОДИМ…" : "ЗАПОЛНИТЬ ЧЕРЕЗ API")</button></div></div>
                                 <div class="translation-service-grid"><label>LibreTranslate API<input @bind="_machine.TranslationApiUrl" placeholder="https://translate.example/ или http://127.0.0.1:5000" /></label><label>API-ключ этой машины<input type="password" @bind="_machine.TranslationApiKey" autocomplete="off" /></label><label>Язык исходника<select @bind="SelectedContent.SourceLanguage"><option value="auto">Определить автоматически</option>@foreach (var language in AnthologyLanguages.All) { <option value="@language.Code">@language.ShortLabel · @language.NativeName</option> }</select></label></div>
                                 <div class="translation-tabs"><button class="@(_selectedContentLanguage == "source" ? "active" : null)" @onclick="SelectSourceLanguage">ИСТОЧНИК</button>@foreach (var language in AnthologyLanguages.All) { var localeButton = language; <button class="@(_selectedContentLanguage == localeButton.Code ? "active" : null)" @onclick="() => SelectContentLanguage(localeButton.Code)">@localeButton.ShortLabel</button> }</div>
                             </section>
@@ -130,7 +143,7 @@
                             {
                                 var selectedLanguage = AnthologyLanguages.Get(_selectedContentLanguage);
                                 var selectedTranslation = SelectedContent.Translation(selectedLanguage.Code);
-                                <section class="locale-editor translated-locale"><div class="locale-heading"><span>@selectedLanguage.ShortLabel</span><strong>@selectedLanguage.NativeName</strong><small>Автоперевод можно исправить вручную перед публикацией</small></div><label>Заголовок<input @bind="selectedTranslation.Title" /></label><label>Краткое описание<textarea rows="3" @bind="selectedTranslation.Summary"></textarea></label><label>Полный текст<textarea class="body-editor" rows="7" @bind="selectedTranslation.Body"></textarea></label></section>
+                                <section class="locale-editor translated-locale"><div class="locale-heading"><span>@selectedLanguage.ShortLabel</span><strong>@selectedLanguage.NativeName</strong><small>РУЧНОЙ ВВОД · API НЕ ТРЕБУЕТСЯ</small></div><label>Заголовок<input @bind="selectedTranslation.Title" /></label><label>Краткое описание<textarea rows="3" @bind="selectedTranslation.Summary"></textarea></label><label>Полный текст<textarea class="body-editor" rows="7" @bind="selectedTranslation.Body"></textarea></label></section>
                             }
 
                             @if (ActiveContentKind is ContentKind.Information or ContentKind.News or ContentKind.ProjectSupport)
@@ -212,6 +225,37 @@
                         <section class="panel empty"><span>＋</span><h2>@ContentEmptyTitle</h2><p>@ContentSectionDescription</p><button class="primary" @onclick="AddContent">@ContentAddLabel</button></section>
                     }
                 </section>
+                @if (ActiveContentKind == ContentKind.ProjectSupport)
+                {
+                    <section class="panel project-people-manager">
+                        <header class="project-people-head"><div><span class="eyebrow">ЛЮДИ ПРОЕКТА</span><h2>Кого мы ценим и поддерживаем</h2><p>Добавляйте людей, фотографии, описания и любые социальные ссылки. Все видимые карточки публикуются за один раз.</p></div><button class="primary" @onclick="AddProjectPerson">＋ ДОБАВИТЬ ЧЕЛОВЕКА</button></header>
+                        <div class="translation-tabs project-people-language"><button class="@(_selectedPeopleLanguage == "source" ? "active" : null)" @onclick="SelectPeopleSource">ИСХОДНИК</button>@foreach (var language in AnthologyLanguages.All) { var personLanguage = language; <button class="@(_selectedPeopleLanguage == personLanguage.Code ? "active" : null)" @onclick="() => SelectPeopleLanguage(personLanguage.Code)">@personLanguage.ShortLabel</button> }</div>
+                        @if (_workspace.ProjectPeople.Count == 0)
+                        {
+                            <div class="people-empty">Карточек пока нет. Нажмите «Добавить человека».</div>
+                        }
+                        @foreach (var person in _workspace.ProjectPeople.OrderBy(person => person.Order))
+                        {
+                            var currentPerson = person;
+                            <article class="project-person-editor @(!currentPerson.IsVisible ? "disabled" : null)">
+                                <header><div><span class="eyebrow">@currentPerson.Id</span><h3>@currentPerson.Name</h3></div><div><button class="social-link-visibility @(currentPerson.IsVisible ? "on" : null)" @onclick="() => currentPerson.IsVisible = !currentPerson.IsVisible"><span></span>@(currentPerson.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button><button class="danger" @onclick="() => RemoveProjectPerson(currentPerson)">УДАЛИТЬ</button></div></header>
+                                <div class="person-meta-grid"><label>ID<input @bind="currentPerson.Id" /></label><label>Порядок<input type="number" @bind="currentPerson.Order" /></label></div>
+                                @if (_selectedPeopleLanguage == "source")
+                                {
+                                    <div class="person-copy-grid"><label>Имя / название<input @bind="currentPerson.Name" /></label><label>Роль в проекте<input @bind="currentPerson.Role" /></label><label class="wide">Описание<textarea rows="4" @bind="currentPerson.Description"></textarea></label></div>
+                                }
+                                else
+                                {
+                                    var personTranslation = currentPerson.Translation(_selectedPeopleLanguage);
+                                    <div class="person-copy-grid translated"><label>Имя / название<input @bind="personTranslation.Name" /></label><label>Роль в проекте<input @bind="personTranslation.Role" /></label><label class="wide">Описание<textarea rows="4" @bind="personTranslation.Description"></textarea></label><small class="wide">Ручной перевод · API не требуется</small></div>
+                                }
+                                <div class="person-photo-row"><div><span>ФОТОГРАФИЯ</span><code>@PathOrEmpty(GetProjectPersonImagePath(currentPerson))</code></div><button class="secondary" @onclick="() => SelectProjectPersonImage(currentPerson)">ЗАГРУЗИТЬ PNG / JPG / WEBP</button>@if (GetProjectPersonImagePath(currentPerson).Length > 0) { <button class="remove" @onclick="() => RemoveProjectPersonImage(currentPerson)">×</button> }<label>Или готовый HTTP(S)-URL<input @bind="currentPerson.ImageUrl" placeholder="https://..." /></label></div>
+                                <section class="person-links"><header><div><span class="eyebrow">ССЫЛКИ ЧЕЛОВЕКА</span><p>YouTube, VK, Discord, ModDB, Telegram, GitHub, Twitch и любые другие HTTP(S)-ссылки.</p></div><button class="secondary" @onclick="() => AddProjectPersonLink(currentPerson)">＋ ДРУГАЯ ПЛОЩАДКА</button></header><div class="person-link-grid">@foreach (var link in currentPerson.Links.OrderBy(link => link.Order)) { var currentLink = link; <article class="@(!currentLink.IsVisible ? "disabled" : null)"><span><img src="@SocialIconPath(currentLink.Id)" alt="" />@currentLink.Title</span><button class="social-link-visibility @(currentLink.IsVisible ? "on" : null)" @onclick="() => currentLink.IsVisible = !currentLink.IsVisible">@(currentLink.IsVisible ? "ВКЛ" : "ВЫКЛ")</button><label>Площадка<input @bind="currentLink.Title" /></label><label>Подпись<input @bind="currentLink.Subtitle" /></label><label class="wide">Ссылка<input @bind="currentLink.Url" placeholder="https://..." /></label>@if (IsCustomSocialLink(currentLink.Id)) { <button class="remove" @onclick="() => RemoveProjectPersonLink(currentPerson, currentLink)">×</button> }</article> }</div></section>
+                            </article>
+                        }
+                        <div class="editor-actions"><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ЛЮДЕЙ И ПЕРЕВОДЫ</button><button class="primary" @onclick="PublishPresentationAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ВСЕ КАРТОЧКИ")</button></div>
+                    </section>
+                }
             }
             else if (_section == "social-links")
             {
@@ -231,6 +275,38 @@
                     }
                 </section>
                 <section class="panel social-link-publish"><div><span class="eyebrow">ПУБЛИКАЦИЯ</span><h3>Ссылки обновляются отдельно от файлов игры</h3><p>Кнопка переподпишет <code>manifest.json</code> и <code>content.json</code>, затем отправит их во все назначенные источники. Игрок увидит новые адреса после обычной проверки обновлений.</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ЧЕРНОВИК</button><button class="primary" @onclick="PublishSocialLinksAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ССЫЛКИ")</button></section>
+            }
+            else if (_section == "streams")
+            {
+                <section class="hero panel compact streams-hero"><div><span class="eyebrow">ГЛАВНЫЙ ЭКРАН ЛАУНЧЕРА</span><h2>Трансляции<br /><em>под вашим контролем.</em></h2><p>Добавляйте сколько угодно YouTube, VK, Twitch или других HTTP(S)-ссылок. Лаунчер покажет все видимые карточки.</p><button class="primary" @onclick="AddLiveStream">＋ ДОБАВИТЬ ТРАНСЛЯЦИЮ</button></div><div class="social-links-orbit"><strong>@_workspace.LiveStreams.Count(stream => stream.IsVisible)</strong><span>В ЛАУНЧЕРЕ</span></div></section>
+                <section class="panel streams-manager">
+                    <div class="translation-tabs"><button class="@(_selectedStreamLanguage == "source" ? "active" : null)" @onclick="SelectStreamSource">ИСХОДНИК</button>@foreach (var language in AnthologyLanguages.All) { var streamLanguage = language; <button class="@(_selectedStreamLanguage == streamLanguage.Code ? "active" : null)" @onclick="() => SelectStreamLanguage(streamLanguage.Code)">@streamLanguage.ShortLabel</button> }</div>
+                    @if (_workspace.LiveStreams.Count == 0)
+                    {
+                        <div class="people-empty">Трансляций пока нет.</div>
+                    }
+                    <div class="stream-editor-grid">
+                    @foreach (var stream in _workspace.LiveStreams.OrderBy(stream => stream.Order))
+                    {
+                        var currentStream = stream;
+                        <article class="stream-editor-card @(!currentStream.IsVisible ? "disabled" : null)">
+                            <header><div><span class="eyebrow">@currentStream.Id</span><h3>@currentStream.Title</h3></div><button class="social-link-visibility @(currentStream.IsVisible ? "on" : null)" @onclick="() => currentStream.IsVisible = !currentStream.IsVisible"><span></span>@(currentStream.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button><button class="danger" @onclick="() => RemoveLiveStream(currentStream)">×</button></header>
+                            <div class="person-meta-grid"><label>ID<input @bind="currentStream.Id" /></label><label>Порядок<input type="number" @bind="currentStream.Order" /></label></div>
+                            @if (_selectedStreamLanguage == "source")
+                            {
+                                <label>Название<input @bind="currentStream.Title" /></label><label>Подпись<input @bind="currentStream.Subtitle" /></label>
+                            }
+                            else
+                            {
+                                var streamTranslation = currentStream.Translation(_selectedStreamLanguage);
+                                <label>Название<input @bind="streamTranslation.Title" /></label><label>Подпись<input @bind="streamTranslation.Subtitle" /></label><small>Ручной перевод · API не требуется</small>
+                            }
+                            <label>Ссылка на трансляцию<input @bind="currentStream.Url" placeholder="https://youtube.com/watch?v=..." /></label>
+                        </article>
+                    }
+                    </div>
+                </section>
+                <section class="panel social-link-publish"><div><span class="eyebrow">ПУБЛИКАЦИЯ</span><h3>Обновить витрину трансляций</h3><p>Список попадёт в подписанный каталог и будет показан на главной игрока после проверки обновлений.</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ЧЕРНОВИК</button><button class="primary" @onclick="PublishPresentationAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ТРАНСЛЯЦИИ")</button></section>
             }
             else if (_section == "reports")
             {
@@ -315,6 +391,7 @@
         new("information", "i", "Информация", "СПРАВОЧНИК", "Вкладки и материалы"),
         new("project-support", "♡", "Поддержка проекта", "ПОДДЕРЖКА ПРОЕКТА", "Редактор страницы поддержки"),
         new("social-links", "◎", "Ссылки проекта", "ГЛАВНЫЙ ЭКРАН", "YouTube, VK, Discord, ModDB и Telegram"),
+        new("streams", "▷", "Трансляции", "ГЛАВНЫЙ ЭКРАН", "Несколько потоков в лаунчере"),
         new("reports", "◇", "Баг-репорты", "ПОДДЕРЖКА", "Обращения игроков"),
         new("sync", "↻", "Синхронизация", "КОМАНДА", "Работа двух разработчиков"),
         new("safety", "⌾", "Безопасность", "ПРОТОКОЛ", "Удаление и откат"),
@@ -346,6 +423,9 @@
     private Task? _bugReportRefreshTask;
     private readonly LibreTranslationClient _translator = new();
     private string _selectedContentLanguage = "source";
+    private string _selectedChangelogLanguage = "source";
+    private string _selectedPeopleLanguage = "source";
+    private string _selectedStreamLanguage = "source";
     private bool _translationBusy;
     private string _quickDeleteRoot = "game";
     private string _quickDeleteKind = "file";
@@ -866,6 +946,21 @@
 
     private void SelectSourceLanguage() => _selectedContentLanguage = "source";
 
+    private void SelectChangelogSource() => _selectedChangelogLanguage = "source";
+
+    private void SelectChangelogLanguage(string language) =>
+        _selectedChangelogLanguage = AnthologyLanguages.Normalize(language);
+
+    private void SelectPeopleSource() => _selectedPeopleLanguage = "source";
+
+    private void SelectPeopleLanguage(string language) =>
+        _selectedPeopleLanguage = AnthologyLanguages.Normalize(language);
+
+    private void SelectStreamSource() => _selectedStreamLanguage = "source";
+
+    private void SelectStreamLanguage(string language) =>
+        _selectedStreamLanguage = AnthologyLanguages.Normalize(language);
+
     private void SelectContentLanguage(string language) => _selectedContentLanguage = AnthologyLanguages.Normalize(language);
 
     private static void AddTranslationSegment(List<(string Text, Action<string> Apply)> segments, string text, Action<string> apply)
@@ -989,6 +1084,71 @@
         if (IsCustomSocialLink(link.Id))
         {
             _workspace.SocialLinks.Remove(link);
+        }
+    }
+
+    private void AddProjectPerson()
+    {
+        _workspace.ProjectPeople.Add(new ProjectPersonDraft
+        {
+            Order = (_workspace.ProjectPeople.Count == 0 ? 0 : _workspace.ProjectPeople.Max(person => person.Order)) + 10,
+        });
+    }
+
+    private void RemoveProjectPerson(ProjectPersonDraft person)
+    {
+        if (!Bridge.Confirm($"Удалить карточку «{person.Name}» из следующей публикации?", "Удалить человека"))
+        {
+            return;
+        }
+        _machine.ContentImagePaths.Remove(ContentMediaPublisher.ProjectPersonKey(person.Id));
+        _workspace.ProjectPeople.Remove(person);
+    }
+
+    private void AddProjectPersonLink(ProjectPersonDraft person) =>
+        person.Links.Add(CreateCustomSocialLink(person.Links));
+
+    private static void RemoveProjectPersonLink(ProjectPersonDraft person, SocialLinkDraft link)
+    {
+        if (IsCustomSocialLink(link.Id))
+        {
+            person.Links.Remove(link);
+        }
+    }
+
+    private void SelectProjectPersonImage(ProjectPersonDraft person)
+    {
+        var selected = Bridge.SelectFile(
+            $"Выберите фотографию: {person.Name}",
+            "Изображения (*.png;*.jpg;*.jpeg;*.webp)|*.png;*.jpg;*.jpeg;*.webp",
+            GetProjectPersonImagePath(person));
+        if (selected is null)
+        {
+            return;
+        }
+        _machine.ContentImagePaths[ContentMediaPublisher.ProjectPersonKey(person.Id)] = [selected];
+        person.ImageUrl = string.Empty;
+    }
+
+    private string GetProjectPersonImagePath(ProjectPersonDraft person) =>
+        GetImagePaths(ContentMediaPublisher.ProjectPersonKey(person.Id)).FirstOrDefault() ?? string.Empty;
+
+    private void RemoveProjectPersonImage(ProjectPersonDraft person) =>
+        _machine.ContentImagePaths.Remove(ContentMediaPublisher.ProjectPersonKey(person.Id));
+
+    private void AddLiveStream()
+    {
+        _workspace.LiveStreams.Add(new LiveStreamDraft
+        {
+            Order = (_workspace.LiveStreams.Count == 0 ? 0 : _workspace.LiveStreams.Max(stream => stream.Order)) + 10,
+        });
+    }
+
+    private void RemoveLiveStream(LiveStreamDraft stream)
+    {
+        if (Bridge.Confirm($"Удалить трансляцию «{stream.Title}»?", "Удалить трансляцию"))
+        {
+            _workspace.LiveStreams.Remove(stream);
         }
     }
 
@@ -1525,6 +1685,31 @@
         catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
         {
             _status = "Публикация ссылок остановлена";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task PublishPresentationAsync()
+    {
+        _busy = true;
+        try
+        {
+            var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
+            var result = await ReleasePublicationService.PublishSocialLinksAsync(_workspace, _machine, progress);
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = "Карточки проекта и трансляции опубликованы";
+            Toast(result.Targets == 0
+                ? "Подписанный каталог готов локально. Для выгрузки назначьте папки источников."
+                : $"Обновлено источников: {result.Targets}. Игроки получат людей проекта и трансляции при проверке обновлений.");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            _status = "Публикация каталога остановлена";
             Toast(exception.Message, true);
         }
         finally

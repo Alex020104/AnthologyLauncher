@@ -364,6 +364,68 @@ public static partial class ManifestValidator
         }
 
         ValidateSocialLinks(content.SocialLinks, "Social", errors);
+
+        var personIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var person in content.ProjectPeople ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(person.Id) || !PackageIdRegex().IsMatch(person.Id))
+            {
+                errors.Add($"Project person has invalid id: '{person.Id}'.");
+            }
+            else if (!personIds.Add(person.Id))
+            {
+                errors.Add($"Duplicate project person id: '{person.Id}'.");
+            }
+            if (string.IsNullOrWhiteSpace(person.Name))
+            {
+                errors.Add($"Project person '{person.Id}' has no name.");
+            }
+            if (!string.IsNullOrWhiteSpace(person.ImageUrl))
+            {
+                ValidatePublicWebUrl(person.ImageUrl, $"Project person '{person.Id}' has unsafe image URL", errors);
+            }
+            ValidateSocialLinks(person.Links, $"Project person '{person.Id}'", errors);
+            foreach (var language in person.Translations?.Keys ?? [])
+            {
+                if (!AnthologyLanguages.IsSupported(language))
+                {
+                    errors.Add($"Project person '{person.Id}' has unsupported translation '{language}'.");
+                }
+            }
+        }
+
+        var streamIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var stream in content.LiveStreams ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(stream.Id) || !PackageIdRegex().IsMatch(stream.Id))
+            {
+                errors.Add($"Live stream has invalid id: '{stream.Id}'.");
+            }
+            else if (!streamIds.Add(stream.Id))
+            {
+                errors.Add($"Duplicate live stream id: '{stream.Id}'.");
+            }
+            if (string.IsNullOrWhiteSpace(stream.Title))
+            {
+                errors.Add($"Live stream '{stream.Id}' has no title.");
+            }
+            ValidatePublicWebUrl(stream.Url, $"Live stream '{stream.Id}' has unsafe URL", errors);
+            foreach (var language in stream.Translations?.Keys ?? [])
+            {
+                if (!AnthologyLanguages.IsSupported(language))
+                {
+                    errors.Add($"Live stream '{stream.Id}' has unsupported translation '{language}'.");
+                }
+            }
+        }
+
+        foreach (var language in content.Changelog?.Translations?.Keys ?? [])
+        {
+            if (!AnthologyLanguages.IsSupported(language))
+            {
+                errors.Add($"Release changelog has unsupported translation '{language}'.");
+            }
+        }
     }
 
     private static void ValidateSocialLinks(

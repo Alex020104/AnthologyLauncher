@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 7;
+    public int SchemaVersion { get; set; } = 8;
 
     public int Revision { get; set; }
 
@@ -27,6 +27,102 @@ public sealed class ReleaserWorkspace
     public List<ContentDraft> Content { get; set; } = [];
 
     public List<SocialLinkDraft> SocialLinks { get; set; } = SocialLinkDraft.CreateDefaults();
+
+    public List<ProjectPersonDraft> ProjectPeople { get; set; } = [];
+
+    public List<LiveStreamDraft> LiveStreams { get; set; } = [];
+
+    public ReleaseChangelogDraft Changelog { get; set; } = new();
+}
+
+public sealed class ReleaseChangelogDraft
+{
+    public string Title { get; set; } = "Изменения обновления";
+    public string Summary { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string Warnings { get; set; } = string.Empty;
+    public string SourceLanguage { get; set; } = "auto";
+    public Dictionary<string, ReleaseChangelogTranslationDraft> Translations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public ReleaseChangelogTranslationDraft Translation(string language)
+    {
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (!Translations.TryGetValue(normalized, out var translation))
+        {
+            translation = new ReleaseChangelogTranslationDraft();
+            Translations[normalized] = translation;
+        }
+        return translation;
+    }
+}
+
+public sealed class ReleaseChangelogTranslationDraft
+{
+    public string Title { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string Warnings { get; set; } = string.Empty;
+}
+
+public sealed class ProjectPersonDraft
+{
+    public string Id { get; set; } = $"person-{Guid.NewGuid():N}";
+    public string Name { get; set; } = "Новый участник";
+    public string Role { get; set; } = "Друг проекта";
+    public string Description { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+    public string SourceLanguage { get; set; } = "auto";
+    public Dictionary<string, ProjectPersonTranslationDraft> Translations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<SocialLinkDraft> Links { get; set; } = SocialLinkDraft.CreateAuthorDefaults();
+    public int Order { get; set; } = 100;
+    public bool IsVisible { get; set; } = true;
+
+    public ProjectPersonTranslationDraft Translation(string language)
+    {
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (!Translations.TryGetValue(normalized, out var translation))
+        {
+            translation = new ProjectPersonTranslationDraft();
+            Translations[normalized] = translation;
+        }
+        return translation;
+    }
+}
+
+public sealed class ProjectPersonTranslationDraft
+{
+    public string Name { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
+public sealed class LiveStreamDraft
+{
+    public string Id { get; set; } = $"stream-{Guid.NewGuid():N}";
+    public string Title { get; set; } = "Новая трансляция";
+    public string Subtitle { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string SourceLanguage { get; set; } = "auto";
+    public Dictionary<string, LiveStreamTranslationDraft> Translations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public int Order { get; set; } = 100;
+    public bool IsVisible { get; set; } = true;
+
+    public LiveStreamTranslationDraft Translation(string language)
+    {
+        var normalized = AnthologyLanguages.Normalize(language);
+        if (!Translations.TryGetValue(normalized, out var translation))
+        {
+            translation = new LiveStreamTranslationDraft();
+            Translations[normalized] = translation;
+        }
+        return translation;
+    }
+}
+
+public sealed class LiveStreamTranslationDraft
+{
+    public string Title { get; set; } = string.Empty;
+    public string Subtitle { get; set; } = string.Empty;
 }
 
 public sealed class SocialLinkDraft

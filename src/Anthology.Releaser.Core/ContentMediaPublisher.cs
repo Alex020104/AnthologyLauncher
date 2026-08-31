@@ -7,11 +7,13 @@ public sealed record PreparedContentMedia(
     IReadOnlyDictionary<string, IReadOnlyList<string>> ContentImages,
     IReadOnlyDictionary<string, IReadOnlyList<ContentVideo>> ContentVideos,
     IReadOnlyDictionary<string, string> BlockImages,
+    IReadOnlyDictionary<string, string> ProjectPersonImages,
     IReadOnlyList<string> RelativeFiles)
 {
     public static PreparedContentMedia Empty { get; } = new(
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase),
         new Dictionary<string, IReadOnlyList<ContentVideo>>(StringComparer.OrdinalIgnoreCase),
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
         []);
 }
@@ -34,6 +36,8 @@ public static class ContentMediaPublisher
     public static string BlockKey(string contentId, string blockId) =>
         $"block/{contentId.Trim()}/{blockId.Trim()}";
 
+    public static string ProjectPersonKey(string personId) => $"project-person/{personId.Trim()}";
+
     public static async Task<PreparedContentMedia> PrepareAsync(
         ReleaserWorkspace workspace,
         ReleaserMachineSettings machine,
@@ -47,7 +51,9 @@ public static class ContentMediaPublisher
         var hasLocalMedia = selected.Any(content =>
             GetPaths(machine, ContentKey(content.Id)).Count > 0
             || GetVideoPaths(machine, ContentKey(content.Id)).Count > 0
-            || (content.Blocks ?? []).Any(block => GetPaths(machine, BlockKey(content.Id, block.Id)).Count > 0));
+            || (content.Blocks ?? []).Any(block => GetPaths(machine, BlockKey(content.Id, block.Id)).Count > 0))
+            || (workspace.ProjectPeople ?? []).Any(person =>
+                person.IsVisible && GetPaths(machine, ProjectPersonKey(person.Id)).Count > 0);
         if (!hasLocalMedia)
         {
             return PreparedContentMedia.Empty;
@@ -81,6 +87,7 @@ public static class ContentMediaPublisher
         var contentImages = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
         var contentVideos = new Dictionary<string, IReadOnlyList<ContentVideo>>(StringComparer.OrdinalIgnoreCase);
         var blockImages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var projectPersonImages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var relativeFiles = new List<string>();
         foreach (var content in selected)
         {
@@ -150,7 +157,28 @@ public static class ContentMediaPublisher
             }
         }
 
-        return new PreparedContentMedia(contentImages, contentVideos, blockImages, relativeFiles
+        foreach (var person in (workspace.ProjectPeople ?? []).Where(person => person.IsVisible))
+        {
+            var paths = GetPaths(machine, ProjectPersonKey(person.Id));
+            if (paths.Count == 0)
+            {
+                continue;
+            }
+
+            var prepared = await PrepareImageAsync(
+                paths[0],
+                $"project-person-{NormalizeId(person.Id)}",
+                "portrait",
+                publicTemplate,
+                workspace.Version,
+                versionRoot,
+                progress,
+                cancellationToken);
+            projectPersonImages[person.Id] = prepared.Url;
+            relativeFiles.Add(prepared.RelativePath);
+        }
+
+        return new PreparedContentMedia(contentImages, contentVideos, blockImages, projectPersonImages, relativeFiles
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray());
     }

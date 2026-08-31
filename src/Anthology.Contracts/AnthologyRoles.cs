@@ -7,7 +7,11 @@ public static class AnthologyRoles
         "alex020104",
         "srallnk",
         "шура",
+        "shura",
         "ratniy",
+        "maksratniy",
+        "maxratniy",
+        "максимратный",
     };
 
     private static readonly HashSet<string> Moderators = new(StringComparer.OrdinalIgnoreCase)
@@ -33,5 +37,9 @@ public static class AnthologyRoles
         _ => "пользователь",
     };
 
-    private static string Normalize(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
+    private static string Normalize(string? value) => new((value ?? string.Empty)
+        .Trim()
+        .ToLowerInvariant()
+        .Where(char.IsLetterOrDigit)
+        .ToArray());
 }

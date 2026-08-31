@@ -81,12 +81,41 @@ public static class WorkspaceSyncService
         var sharedChanged = !hasBaseline || !string.Equals(sharedHash, lastSyncedHash, StringComparison.OrdinalIgnoreCase);
         if (hasBaseline && localChanged && sharedChanged)
         {
-            var conflicts = Path.Combine(root, "Conflicts");
-            Directory.CreateDirectory(conflicts);
-            var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
-            await WorkspaceStorage.SaveAsync(Path.Combine(conflicts, $"local-{stamp}.json"), local, cancellationToken);
-            await WorkspaceStorage.SaveAsync(Path.Combine(conflicts, $"shared-{stamp}.json"), shared, cancellationToken);
-            throw new InvalidOperationException($"Оба разработчика изменили проект. Копии сохранены в {conflicts}; выберите нужную версию вручную.");
+            // Revision is the workspace's optimistic concurrency token. If the
+            // revisions differ, the newer edit is authoritative and the older
+            // variant is retained only as a recovery copy. Treating every stale
+            // LastSyncedHash as an irresolvable conflict used to lock automatic
+            // synchronization forever and could block an otherwise valid release.
+            if (local.Revision != shared.Revision)
+            {
+                var conflicts = Path.Combine(root, "Conflicts");
+                Directory.CreateDirectory(conflicts);
+                var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+                if (local.Revision > shared.Revision)
+                {
+                    await WorkspaceStorage.SaveAsync(Path.Combine(conflicts, $"superseded-shared-r{shared.Revision}-{stamp}.json"), shared, cancellationToken);
+                    await WorkspaceStorage.SaveAsync(sharedPath, local, cancellationToken);
+                    return new WorkspaceSyncResult(
+                        WorkspaceSyncDirection.Published,
+                        local,
+                        localHash,
+                        $"Опубликована более новая редакция {local.Revision}; старая общая редакция {shared.Revision} сохранена для восстановления.");
+                }
+
+                await WorkspaceStorage.SaveAsync(Path.Combine(conflicts, $"superseded-local-r{local.Revision}-{stamp}.json"), local, cancellationToken);
+                return new WorkspaceSyncResult(
+                    WorkspaceSyncDirection.Received,
+                    shared,
+                    sharedHash,
+                    $"Получена более новая общая редакция {shared.Revision}; локальная редакция {local.Revision} сохранена для восстановления.");
+            }
+
+            var concurrentConflicts = Path.Combine(root, "Conflicts");
+            Directory.CreateDirectory(concurrentConflicts);
+            var concurrentStamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            await WorkspaceStorage.SaveAsync(Path.Combine(concurrentConflicts, $"local-r{local.Revision}-{concurrentStamp}.json"), local, cancellationToken);
+            await WorkspaceStorage.SaveAsync(Path.Combine(concurrentConflicts, $"shared-r{shared.Revision}-{concurrentStamp}.json"), shared, cancellationToken);
+            throw new InvalidOperationException($"Два разных варианта имеют одинаковую редакцию {local.Revision}. Копии сохранены в {concurrentConflicts}; выберите нужную версию.");
         }
 
         if (shared.Revision > local.Revision || sharedChanged && !localChanged)

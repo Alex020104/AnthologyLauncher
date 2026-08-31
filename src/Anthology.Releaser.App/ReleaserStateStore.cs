@@ -97,6 +97,12 @@ public sealed class ReleaserStateStore : IDisposable
         workspace.Mirrors ??= [];
         workspace.Content ??= [];
         workspace.SocialLinks ??= [];
+        workspace.ProjectPeople ??= [];
+        workspace.LiveStreams ??= [];
+        workspace.Changelog ??= new ReleaseChangelogDraft();
+        workspace.Changelog.Translations = new Dictionary<string, ReleaseChangelogTranslationDraft>(
+            workspace.Changelog.Translations ?? [],
+            StringComparer.OrdinalIgnoreCase);
         foreach (var defaultLink in SocialLinkDraft.CreateDefaults())
         {
             if (workspace.SocialLinks.Any(link => string.Equals(link.Id, defaultLink.Id, StringComparison.OrdinalIgnoreCase)))
@@ -119,7 +125,33 @@ public sealed class ReleaserStateStore : IDisposable
                 changed = true;
             }
         }
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 7);
+        foreach (var person in workspace.ProjectPeople)
+        {
+            person.Id = string.IsNullOrWhiteSpace(person.Id) ? $"person-{Guid.NewGuid():N}" : person.Id.Trim().ToLowerInvariant();
+            person.Name = person.Name?.Trim() ?? string.Empty;
+            person.Role = person.Role?.Trim() ?? string.Empty;
+            person.Description = person.Description?.Trim() ?? string.Empty;
+            person.ImageUrl = person.ImageUrl?.Trim() ?? string.Empty;
+            person.Links ??= [];
+            foreach (var defaultLink in SocialLinkDraft.CreateAuthorDefaults())
+            {
+                if (!person.Links.Any(link => string.Equals(link.Id, defaultLink.Id, StringComparison.OrdinalIgnoreCase)))
+                {
+                    person.Links.Add(defaultLink);
+                    changed = true;
+                }
+            }
+            person.Translations = new Dictionary<string, ProjectPersonTranslationDraft>(person.Translations ?? [], StringComparer.OrdinalIgnoreCase);
+        }
+        foreach (var stream in workspace.LiveStreams)
+        {
+            stream.Id = string.IsNullOrWhiteSpace(stream.Id) ? $"stream-{Guid.NewGuid():N}" : stream.Id.Trim().ToLowerInvariant();
+            stream.Title = stream.Title?.Trim() ?? string.Empty;
+            stream.Subtitle = stream.Subtitle?.Trim() ?? string.Empty;
+            stream.Url = stream.Url?.Trim() ?? string.Empty;
+            stream.Translations = new Dictionary<string, LiveStreamTranslationDraft>(stream.Translations ?? [], StringComparer.OrdinalIgnoreCase);
+        }
+        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 8);
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;

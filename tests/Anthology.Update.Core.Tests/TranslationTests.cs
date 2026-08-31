@@ -21,6 +21,10 @@ public sealed class TranslationTests
     [InlineData("Шура")]
     [InlineData("alex020104")]
     [InlineData("RATNIY")]
+    [InlineData("Maks Ratniy")]
+    [InlineData("Max-Ratniy")]
+    [InlineData("Максим Ратный")]
+    [InlineData("Shura")]
     public void LegacyDeveloperNamesKeepTheirRole(string name)
     {
         Assert.True(AnthologyRoles.IsDeveloper(name));

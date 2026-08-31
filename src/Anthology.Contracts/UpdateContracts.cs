@@ -63,13 +63,110 @@ public sealed record ContentCatalog(
     string Version,
     DateTimeOffset PublishedAt,
     IReadOnlyList<ContentDocument> Items,
-    IReadOnlyList<SocialLink>? SocialLinks = null);
+    IReadOnlyList<SocialLink>? SocialLinks = null,
+    IReadOnlyList<ProjectPerson>? ProjectPeople = null,
+    IReadOnlyList<LiveStream>? LiveStreams = null,
+    ReleaseChangelog? Changelog = null);
+
+public sealed record ReleaseChangelog(
+    string Title,
+    string Summary,
+    string Body,
+    string Warnings,
+    IReadOnlyDictionary<string, ReleaseChangelogTranslation>? Translations = null);
+
+public sealed record ReleaseChangelogTranslation(
+    string Title,
+    string Summary,
+    string Body,
+    string Warnings);
+
+public static class ReleaseChangelogLocalization
+{
+    public static ReleaseChangelogTranslation Resolve(ReleaseChangelog changelog, string? language)
+    {
+        ArgumentNullException.ThrowIfNull(changelog);
+        var normalized = AnthologyLanguages.Normalize(language);
+        var translation = changelog.Translations?
+            .FirstOrDefault(pair => string.Equals(pair.Key, normalized, StringComparison.OrdinalIgnoreCase))
+            .Value;
+        return translation is null
+            ? new ReleaseChangelogTranslation(changelog.Title, changelog.Summary, changelog.Body, changelog.Warnings)
+            : new ReleaseChangelogTranslation(
+                string.IsNullOrWhiteSpace(translation.Title) ? changelog.Title : translation.Title,
+                string.IsNullOrWhiteSpace(translation.Summary) ? changelog.Summary : translation.Summary,
+                string.IsNullOrWhiteSpace(translation.Body) ? changelog.Body : translation.Body,
+                string.IsNullOrWhiteSpace(translation.Warnings) ? changelog.Warnings : translation.Warnings);
+    }
+}
 
 public sealed record SocialLink(
     string Id,
     string Title,
     string Subtitle,
     string Url);
+
+public sealed record ProjectPerson(
+    string Id,
+    string Name,
+    string Role,
+    string Description,
+    string? ImageUrl,
+    IReadOnlyList<SocialLink> Links,
+    int Order = 100,
+    IReadOnlyDictionary<string, ProjectPersonTranslation>? Translations = null);
+
+public sealed record ProjectPersonTranslation(
+    string Name,
+    string Role,
+    string Description);
+
+public static class ProjectPersonLocalization
+{
+    public static ProjectPersonTranslation Resolve(ProjectPerson person, string? language)
+    {
+        ArgumentNullException.ThrowIfNull(person);
+        var normalized = AnthologyLanguages.Normalize(language);
+        var translation = person.Translations?
+            .FirstOrDefault(pair => string.Equals(pair.Key, normalized, StringComparison.OrdinalIgnoreCase))
+            .Value;
+        return translation is null
+            ? new ProjectPersonTranslation(person.Name, person.Role, person.Description)
+            : new ProjectPersonTranslation(
+                string.IsNullOrWhiteSpace(translation.Name) ? person.Name : translation.Name,
+                string.IsNullOrWhiteSpace(translation.Role) ? person.Role : translation.Role,
+                string.IsNullOrWhiteSpace(translation.Description) ? person.Description : translation.Description);
+    }
+}
+
+public sealed record LiveStream(
+    string Id,
+    string Title,
+    string Subtitle,
+    string Url,
+    int Order = 100,
+    IReadOnlyDictionary<string, LiveStreamTranslation>? Translations = null);
+
+public sealed record LiveStreamTranslation(
+    string Title,
+    string Subtitle);
+
+public static class LiveStreamLocalization
+{
+    public static LiveStreamTranslation Resolve(LiveStream stream, string? language)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        var normalized = AnthologyLanguages.Normalize(language);
+        var translation = stream.Translations?
+            .FirstOrDefault(pair => string.Equals(pair.Key, normalized, StringComparison.OrdinalIgnoreCase))
+            .Value;
+        return translation is null
+            ? new LiveStreamTranslation(stream.Title, stream.Subtitle)
+            : new LiveStreamTranslation(
+                string.IsNullOrWhiteSpace(translation.Title) ? stream.Title : translation.Title,
+                string.IsNullOrWhiteSpace(translation.Subtitle) ? stream.Subtitle : translation.Subtitle);
+    }
+}
 
 public sealed record ContentDocument(
     string Id,

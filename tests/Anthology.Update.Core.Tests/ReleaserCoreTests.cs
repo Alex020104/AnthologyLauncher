@@ -99,6 +99,26 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public async Task NewerWorkspaceRevisionResolvesAStaleBaselineWithoutBlockingRelease()
+    {
+        var sharedRoot = Path.Combine(_root, "shared-stale-baseline");
+        Directory.CreateDirectory(sharedRoot);
+        var shared = new ReleaserWorkspace { Revision = 80, UpdatedBy = "Ratniy", Version = "2.1.140" };
+        await WorkspaceStorage.SaveAsync(Path.Combine(sharedRoot, WorkspaceSyncService.SharedFileName), shared);
+        var local = new ReleaserWorkspace { Revision = 84, UpdatedBy = "Шура", Version = "2.1.142" };
+
+        var result = await WorkspaceSyncService.SyncAsync(local, sharedRoot, "obsolete-baseline-hash");
+
+        Assert.Equal(WorkspaceSyncDirection.Published, result.Direction);
+        Assert.Equal(84, result.Workspace.Revision);
+        var synchronized = await WorkspaceStorage.LoadAsync(
+            Path.Combine(sharedRoot, WorkspaceSyncService.SharedFileName),
+            () => new ReleaserWorkspace());
+        Assert.Equal("2.1.142", synchronized.Version);
+        Assert.Single(Directory.GetFiles(Path.Combine(sharedRoot, "Conflicts"), "superseded-shared-r80-*.json"));
+    }
+
+    [Fact]
     public async Task AddonCanBePublishedAndRemovedWithoutRebuildingTheGame()
     {
         var output = Path.Combine(_root, "addon-output");
@@ -332,6 +352,56 @@ public sealed class ReleaserCoreTests : IDisposable
         var content = Assert.Single(catalog.Items);
         Assert.Equal(["youtube", "github"], content.AuthorLinks!.Select(link => link.Id));
         Assert.Equal("https://github.com/example/project", content.AuthorLinks![1].Url);
+    }
+
+    [Fact]
+    public void PresentationCatalogPublishesPeopleStreamsAndLocalizedChangelog()
+    {
+        var person = new ProjectPersonDraft
+        {
+            Id = "friend-of-project",
+            Name = "Друг проекта",
+            Role = "Автор",
+            Description = "Помогает проекту",
+            ImageUrl = "https://cdn.example/person.png",
+            Links =
+            [
+                new SocialLinkDraft { Id = "youtube", Title = "YouTube", Url = "https://youtube.com/@friend", IsVisible = true },
+                new SocialLinkDraft { Id = "discord", Title = "Discord", Url = "", IsVisible = false },
+            ],
+        };
+        person.Translation("en").Name = "Project Friend";
+        var stream = new LiveStreamDraft
+        {
+            Id = "launch-stream",
+            Title = "Трансляция",
+            Subtitle = "Разработка",
+            Url = "https://www.youtube.com/watch?v=example",
+        };
+        stream.Translation("en").Title = "Live stream";
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.143",
+            ProjectPeople = [person],
+            LiveStreams = [stream],
+            Changelog = new ReleaseChangelogDraft
+            {
+                Title = "Изменения 2.1.143",
+                Summary = "Кратко",
+                Body = "Добавлен файл.",
+                Warnings = "Будет удалён старый файл.",
+            },
+        };
+        workspace.Changelog.Translation("en").Warnings = "An old file will be removed.";
+
+        var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace);
+
+        var publishedPerson = Assert.Single(catalog.ProjectPeople!);
+        Assert.Equal("Project Friend", ProjectPersonLocalization.Resolve(publishedPerson, "en").Name);
+        Assert.Equal("https://youtube.com/@friend", Assert.Single(publishedPerson.Links).Url);
+        var publishedStream = Assert.Single(catalog.LiveStreams!);
+        Assert.Equal("Live stream", LiveStreamLocalization.Resolve(publishedStream, "en").Title);
+        Assert.Equal("An old file will be removed.", ReleaseChangelogLocalization.Resolve(catalog.Changelog!, "en").Warnings);
     }
 
     [Fact]

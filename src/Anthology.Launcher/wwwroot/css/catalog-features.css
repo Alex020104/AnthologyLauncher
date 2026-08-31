@@ -1,0 +1,47 @@
+.home-stream-grid { display: grid; gap: 14px; max-height: 620px; overflow: auto; padding-right: 4px; }
+.live-stream-card .video-caption small { display: block; margin-top: 3px; color: var(--muted); }
+.project-people { padding: 28px; }
+.project-people > header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 18px; }
+.project-people > header h2 { margin: 6px 0 0; font-size: 25px; }
+.project-people > header > strong { color: var(--accent); font-size: 38px; }
+.project-people-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.project-person-card { overflow: hidden; border: 1px solid #2b363c; background: linear-gradient(145deg,#12191d,#0b1013); }
+.project-person-photo { height: 230px; overflow: hidden; background: #080c0e; }
+.project-person-photo img { width: 100%; height: 100%; object-fit: cover; }
+.project-person-photo.placeholder { display: grid; place-items: center; background: radial-gradient(circle,#3b3420,#11181b 70%); }
+.project-person-photo.placeholder span { color: var(--accent); font-size: 50px; }
+.project-person-copy { padding: 18px; }
+.project-person-copy > span { color: var(--accent); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
+.project-person-copy h3 { margin: 7px 0 10px; font-size: 21px; }
+.project-person-copy p { margin: 0; color: #a9b3b8; line-height: 1.55; white-space: pre-line; }
+.project-person-links { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 18px 18px; }
+.project-person-links a { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #344148; color: #cfd5d8; text-decoration: none; font-size: 10px; }
+.project-person-links a:hover { border-color: var(--accent); color: var(--accent); }
+.project-person-links img { width: 18px; height: 18px; object-fit: contain; }
+.release-changelog { margin-top: 16px; padding: 18px; border: 1px solid #364047; background: #0b1114; }
+.release-changelog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.release-changelog h3 { margin: 5px 0; font-size: 21px; }
+.release-changelog header p { margin: 0; color: var(--muted); }
+.changelog-state { flex: none; padding: 7px 9px; border: 1px solid #5f512a; color: var(--accent); font-size: 9px; letter-spacing: .12em; }
+.changelog-body { margin-top: 14px; padding: 15px; border-left: 2px solid var(--accent); color: #c7cfd3; white-space: pre-line; line-height: 1.6; }
+.changelog-warning { margin-top: 12px; padding: 14px; border: 1px solid #74463d; background: #211512; }
+.changelog-warning strong { color: #f19479; font-size: 10px; letter-spacing: .12em; }
+.changelog-warning p { margin: 7px 0 0; white-space: pre-line; }
+.file-change-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.file-change-summary article { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #2d513f; }
+.file-change-summary article.removed { border-color: #67443e; }
+.file-change-summary strong { color: #7fd39a; font-size: 23px; }
+.file-change-summary .removed strong { color: #e78775; }
+.file-change-summary span { font-size: 10px; letter-spacing: .1em; }
+.file-change-lists { display: grid; gap: 8px; margin-top: 10px; }
+.file-change-lists details { border: 1px solid #2d383e; }
+.file-change-lists summary { cursor: pointer; padding: 12px; color: #bfc8cc; font-size: 10px; letter-spacing: .08em; }
+.file-change-lists summary b { float: right; color: var(--accent); }
+.file-change-lists details > div { max-height: 260px; overflow: auto; padding: 10px; border-top: 1px solid #273137; }
+.file-change-lists code { display: block; padding: 5px 7px; color: #8fb5a0; overflow-wrap: anywhere; }
+.file-change-lists .removed code { color: #d59386; }
+@media (max-width: 1100px) { .project-people-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 760px) {
+    .project-people-grid, .file-change-summary { grid-template-columns: 1fr; }
+    .release-changelog > header { flex-direction: column; }
+}
