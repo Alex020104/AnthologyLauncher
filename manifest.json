@@ -3,12 +3,43 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.151",
-    "publishedAt": "2026-08-31T09:34:10.2496968+00:00",
-    "packages": [],
+    "publishedAt": "2026-08-31T12:10:38.5309157+00:00",
+    "packages": [
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.5",
+        "version": "0.7.0-alpha.5",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 4895745,
+        "sha256": "11c9db16189d6053d111cf97774f871a3615927f5f50c39fbbc74659320a8779",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.151/anthology-launcher-2.1.151.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.151/anthology-launcher-2.1.151.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.5.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false
+      }
+    ],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.151",
-      "publishedAt": "2026-08-31T09:34:10.249696+00:00",
+      "publishedAt": "2026-08-31T12:10:38.5308481+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -545,6 +576,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "IK/X2h8fMVZ3EX92\u002Bx0e5wHzRjVHrlWfOlmxVwhbjNJE8KOqQm424DqAvD7gazrLYufrEaR/Oz8hKvV6JpDo3Q=="
+    "value": "vMW5P588zxjqCRKdrKL/iTFR4NtEQpwBNZYNIsfUBNNNjP4KWq9PXx93KEbOvDA\u002B2Q50tv8FH941yH2gSqWb5w=="
   }
 }
