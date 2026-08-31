@@ -159,6 +159,7 @@ public sealed class Mo2ProfileManagerTests : IDisposable
                 Assert.Equal(gameBin, executable.WorkingDirectory);
             },
             executable => Assert.Equal("Anomaly (DX9)", executable.Title));
+        Assert.True(File.Exists(Path.Combine(_root, "portable.txt")));
     }
 
     [Fact]
@@ -186,6 +187,27 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         Assert.Equal("Anthology Стандарт", snapshot.SelectedProfile);
         Assert.Equal(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), Assert.Single(snapshot.Executables).Binary);
         Assert.True(File.Exists(Path.Combine(_root, "ModOrganizer.ini.anthology-backup")));
+        Assert.True(File.Exists(Path.Combine(_root, "portable.txt")));
+    }
+
+    [Fact]
+    public void ExistingPortableLockIsPreserved()
+    {
+        CreateInstance();
+        var gameRoot = Path.Combine(_root, "ANTHOLOGY Test", "Anomaly-1.5.3-Anthology 2.1");
+        var gameBin = Path.Combine(gameRoot, "bin");
+        Directory.CreateDirectory(gameBin);
+        File.WriteAllText(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), string.Empty);
+        File.WriteAllText(Path.Combine(_root, "portable.txt"), "player-owned lock");
+        var iniPath = Path.Combine(_root, "ModOrganizer.ini");
+        var iniLines = File.ReadAllLines(iniPath).ToList();
+        iniLines.Insert(1, "gameName=STALKER Anomaly");
+        File.WriteAllLines(iniPath, iniLines);
+
+        Mo2ProfileManager.EnsurePortableConfiguration(_root, gameRoot, "Anthology Стандарт");
+
+        Assert.Equal("player-owned lock", File.ReadAllText(Path.Combine(_root, "portable.txt")));
+        Assert.Equal(Path.GetFullPath(gameRoot), Mo2ProfileManager.Detect(_root).GamePath);
     }
 
     [Fact]

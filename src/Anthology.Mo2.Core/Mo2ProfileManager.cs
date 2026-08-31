@@ -51,6 +51,7 @@ public static class Mo2ProfileManager
 {
     private const string OrganizerExecutable = "ModOrganizer.exe";
     private const string OrganizerConfiguration = "ModOrganizer.ini";
+    private const string PortableInstanceLock = "portable.txt";
     private const string ModListFile = "modlist.txt";
     private static readonly (string FileName, string Title)[] AnomalyExecutables =
     [
@@ -110,6 +111,8 @@ public static class Mo2ProfileManager
     /// The releaser deliberately does not manage ModOrganizer.ini because it is
     /// machine-local state. On a fresh PC the launcher therefore has to create
     /// it once before starting MO2, otherwise the instance/game wizard appears.
+    /// portable.txt is also required because MO2 2.5.0 otherwise reuses the last
+    /// global instance from AppData even when a valid local INI is present.
     /// </summary>
     /// <returns>True when a missing or incomplete configuration was rebuilt.</returns>
     public static bool EnsurePortableConfiguration(
@@ -198,11 +201,13 @@ public static class Mo2ProfileManager
                 File.Copy(iniPath, iniPath + ".anthology-backup", true);
             }
             WriteNewAtomic(iniPath, lines);
+            EnsurePortableInstanceLock(fullRoot);
             return true;
         }
 
         RebaseGamePaths(fullRoot, fullGameRoot);
         SetSelectedProfile(fullRoot, selectedProfile);
+        EnsurePortableInstanceLock(fullRoot);
         return false;
     }
 
@@ -675,6 +680,17 @@ public static class Mo2ProfileManager
                 File.Delete(temporary);
             }
         }
+    }
+
+    private static void EnsurePortableInstanceLock(string root)
+    {
+        var path = Path.Combine(root, PortableInstanceLock);
+        if (File.Exists(path))
+        {
+            return;
+        }
+
+        WriteNewAtomic(path, ["Anthology portable MO2 instance lock."]);
     }
 
     private static string ResolveProfileRoot(string root, string profileName)
