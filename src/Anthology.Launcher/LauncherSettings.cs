@@ -339,20 +339,20 @@ public sealed class LauncherSettingsStore : IDisposable
 
     private static void ApplyBundledUpdateConfiguration(LauncherSettings settings)
     {
-        if (string.IsNullOrWhiteSpace(settings.PublicKeyPath)
-            || !File.Exists(settings.PublicKeyPath))
+        var bundledKey = FindFirstExistingFile(
+            Path.Combine(AppContext.BaseDirectory, "TrustedKeys", "anthology.public.pem"),
+            Path.Combine(GetDeploymentRoot(), "TrustedKeys", "anthology.public.pem"));
+        if (bundledKey is not null)
         {
-            var bundledKey = FindFirstExistingFile(
-                Path.Combine(AppContext.BaseDirectory, "TrustedKeys", "anthology.public.pem"),
-                Path.Combine(GetDeploymentRoot(), "TrustedKeys", "anthology.public.pem"));
-            if (bundledKey is not null)
-            {
-                settings.PublicKeyPath = bundledKey;
-            }
+            // The public update channel is pinned to the key shipped with this
+            // launcher. Never keep an absolute path to a stale key from an older
+            // installation after the launcher has been moved or replaced.
+            settings.PublicKeyPath = bundledKey;
         }
 
-        if (!string.IsNullOrWhiteSpace(settings.ManifestSource)
-            && !IsManagedLocalManifest(settings.ManifestSource))
+        // Explicit environment overrides remain available for developer/test
+        // runs, but ordinary portable installations always follow channel.json.
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHOLOGY_MANIFEST_SOURCE")))
         {
             return;
         }

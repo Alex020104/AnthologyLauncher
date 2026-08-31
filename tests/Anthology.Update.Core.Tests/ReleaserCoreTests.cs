@@ -12,6 +12,27 @@ public sealed class ReleaserCoreTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"anthology-releaser-{Guid.NewGuid():N}");
 
     [Fact]
+    public void ProductionSigningPolicyRejectsAnotherKeyPair()
+    {
+        var keys = Path.Combine(_root, "wrong-production-keys");
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var machine = new ReleaserMachineSettings
+        {
+            OutputRoot = Path.Combine(_root, "output"),
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = ProductionSigningKeyPolicy.KeyId,
+        };
+
+        var exception = Assert.Throws<CryptographicException>(
+            () => UnifiedReleaseBuilder.ValidateMachine(machine));
+
+        Assert.Contains("другой production-ключ", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task UnifiedBuilderCreatesOneVersionForGameMo2AndContent()
     {
         var game = Path.Combine(_root, "game");

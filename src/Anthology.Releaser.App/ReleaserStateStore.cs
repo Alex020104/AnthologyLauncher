@@ -1,6 +1,5 @@
 using Anthology.Releaser.Core;
 using System.IO;
-using System.Security.Cryptography;
 
 namespace Anthology.Releaser.App;
 
@@ -378,19 +377,9 @@ public sealed class ReleaserStateStore : IDisposable
             changed = true;
         }
 
-        var privateExists = File.Exists(machine.PrivateKeyPath);
-        var publicExists = File.Exists(machine.PublicKeyPath);
-        if (!privateExists && !publicExists)
+        if (!string.Equals(machine.KeyId, ProductionSigningKeyPolicy.KeyId, StringComparison.Ordinal))
         {
-            UnifiedReleaseBuilder.GenerateKeys(machine.PrivateKeyPath, machine.PublicKeyPath);
-            changed = true;
-        }
-        else if (privateExists && !publicExists)
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(machine.PublicKeyPath)!);
-            using var key = ECDsa.Create();
-            key.ImportFromPem(File.ReadAllText(machine.PrivateKeyPath));
-            File.WriteAllText(machine.PublicKeyPath, key.ExportSubjectPublicKeyInfoPem());
+            machine.KeyId = ProductionSigningKeyPolicy.KeyId;
             changed = true;
         }
 

@@ -80,7 +80,7 @@
                     <div class="quick-release-actions"><button class="secondary" @onclick="ClearQuickRelease" disabled="@(_busy || QuickSelectionCount == 0)">ОЧИСТИТЬ СПИСОК</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">УДАЛИТЬ ЭТОТ ВЫПУСК ИЗ ИСТОЧНИКОВ</button><button class="primary" @onclick="PublishQuickFilesAsync" disabled="@(_busy || QuickSelectionCount == 0)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ВЫБРАННОЕ")</button></div>
                 </section>
                 <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
-                <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ</span><h3>Закрытый ключ хранится только у разработчика</h3><p>В общий рабочий файл попадают настройки релиза и материалы. Закрытый ключ и пути этой машины никогда не синхронизируются.</p></div><label>ID ключа<input @bind="_machine.KeyId" /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="GenerateKeys">СОЗДАТЬ КЛЮЧИ</button></section>
+                <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ · ЗАФИКСИРОВАНА</span><h3>Все выпуски подписываются одним production-ключом</h3><p>Релизер больше не создаёт ключи автоматически и не примет другую пару. Если закрытый ключ потерян, публикация остановится до восстановления текущего ключа из резервной копии.</p></div><label>ID ключа<input value="@ProductionSigningKeyPolicy.KeyId" readonly /></label><label>Отпечаток ключа<input value="@ProductionSigningKeyPolicy.PublicKeyFingerprint" readonly /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="RestoreProductionPublicKeyAsync">ВОССТАНОВИТЬ ПУБЛИЧНЫЙ КЛЮЧ</button></section>
                 <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ ВСЕЙ СБОРКИ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Полный слепок добавит новые файлы и пометит отсутствующие для безопасного удаления у игрока." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="secondary" @onclick="PublishLauncherAsync" disabled="@_busy">ВЫПУСТИТЬ ЛАУНЧЕР</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">СНЯТЬ ВЕРСИЮ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ ВСЮ СБОРКУ")</button></section>
             }
             else if (_section == "sources")
@@ -846,17 +846,15 @@
         }
     }
 
-    private async Task GenerateKeys()
+    private async Task RestoreProductionPublicKeyAsync()
     {
-        var root = Bridge.SelectFolder("Выберите закрытую папку для ключей", Path.GetDirectoryName(_machine.PrivateKeyPath));
-        if (root is null) { return; }
         try
         {
-            _machine.PrivateKeyPath = Path.Combine(root, "anthology.private.pem");
-            _machine.PublicKeyPath = Path.Combine(root, "anthology.public.pem");
-            UnifiedReleaseBuilder.GenerateKeys(_machine.PrivateKeyPath, _machine.PublicKeyPath);
+            _machine.KeyId = ProductionSigningKeyPolicy.KeyId;
+            ProductionSigningKeyPolicy.RestorePublicKey(_machine.PrivateKeyPath, _machine.PublicKeyPath);
+            ProductionSigningKeyPolicy.Validate(_machine);
             await State.SaveMachineAsync(_workspace, _machine);
-            Toast("Ключи созданы. Закрытый PEM никому не передавайте.");
+            Toast("Публичный production-ключ восстановлен из текущего закрытого ключа.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or CryptographicException)
         {

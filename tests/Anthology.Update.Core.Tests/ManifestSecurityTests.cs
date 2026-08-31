@@ -21,6 +21,38 @@ public sealed class ManifestSecurityTests
     }
 
     [Fact]
+    public void ProductionTrustAnchorRejectsAnotherPublicKey()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"anthology-untrusted-{Guid.NewGuid():N}.pem");
+        try
+        {
+            using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            File.WriteAllText(path, key.ExportSubjectPublicKeyInfoPem());
+
+            var exception = Assert.Throws<CryptographicException>(
+                () => ProductionTrustAnchor.ValidatePublicKey(path));
+
+            Assert.Contains("неизвестный публичный ключ", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ProductionTrustAnchorRejectsAnotherKeyId()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var manifest = ManifestSecurity.Sign(CreateManifest(), key, "another-key");
+
+        var exception = Assert.Throws<CryptographicException>(
+            () => ProductionTrustAnchor.ValidateManifest(manifest));
+
+        Assert.Contains(ProductionTrustAnchor.KeyId, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ValidatorRejectsPathTraversal()
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);

@@ -637,6 +637,11 @@ public static class UnifiedReleaseBuilder
         {
             throw new ArgumentException("Укажите идентификатор ключа.");
         }
+
+        if (string.Equals(machine.KeyId.Trim(), ProductionSigningKeyPolicy.KeyId, StringComparison.Ordinal))
+        {
+            ProductionSigningKeyPolicy.Validate(machine);
+        }
     }
 
     private static void ValidatePathSeparation(

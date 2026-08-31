@@ -15,12 +15,14 @@ public sealed class LauncherUpdateService(
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken cancellationToken = default)
     {
         var settings = settingsStore.Current;
+        ProductionTrustAnchor.ValidatePublicKey(settings.PublicKeyPath);
         var result = await _coordinator.CheckAsync(
             settings.ManifestSource,
             settings.PublicKeyPath,
             settings.UpdateChannel,
             settingsStore.UpdaterStateRoot,
             cancellationToken);
+        ProductionTrustAnchor.ValidateManifest(result.SignedManifest);
         await CacheVerifiedManifestAsync(result.SignedManifest, cancellationToken);
         return result;
     }
@@ -38,12 +40,14 @@ public sealed class LauncherUpdateService(
 
         try
         {
+            ProductionTrustAnchor.ValidatePublicKey(settings.PublicKeyPath);
             var check = await _coordinator.CheckAsync(
                 cachePath,
                 settings.PublicKeyPath,
                 settings.UpdateChannel,
                 settingsStore.UpdaterStateRoot,
                 cancellationToken);
+            ProductionTrustAnchor.ValidateManifest(check.SignedManifest);
             return check.SignedManifest.Payload.Content;
         }
         catch (Exception exception) when (exception is IOException
