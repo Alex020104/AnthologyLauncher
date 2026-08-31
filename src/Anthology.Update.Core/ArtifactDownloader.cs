@@ -17,7 +17,13 @@ public sealed class ArtifactDownloader
     {
         _httpClient = httpClient;
         _resolvers = resolvers?.ToArray()
-            ?? [new YandexDiskMirrorResolver(httpClient), new LocalFileMirrorResolver(), new DirectMirrorResolver()];
+            ??
+            [
+                new YandexDiskMirrorResolver(httpClient),
+                new WebShareMirrorResolver(),
+                new LocalFileMirrorResolver(),
+                new DirectMirrorResolver(),
+            ];
     }
 
     public async Task<DownloadResult> DownloadAsync(

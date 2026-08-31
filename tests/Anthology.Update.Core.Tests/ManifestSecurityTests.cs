@@ -46,6 +46,62 @@ public sealed class ManifestSecurityTests
         Assert.Contains(errors, error => error.Contains("unsafe directory deletion path", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void ValidatorAcceptsArbitraryWebSocialAndDownloadLinks()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var content = new ContentCatalog(
+            1,
+            "2.1.140",
+            DateTimeOffset.UtcNow,
+            [
+                new ContentDocument(
+                    "custom-links",
+                    ContentKind.Mod,
+                    "community",
+                    "Проект",
+                    "Описание",
+                    "Текст",
+                    ["http://media.example.test/cover.png"],
+                    [new ContentVideo("Видео", "http://video.example.test/watch/42")],
+                    new ContentDownload(
+                        "archive.7z",
+                        42,
+                        new string('b', 64),
+                        [new MirrorManifest("http", "https://drive.google.com/file/d/example/view")]),
+                    AuthorLinks:
+                    [
+                        new SocialLink("discord", "Discord", "Канал", "https://discordapp.com/channels/1/2"),
+                        new SocialLink("telegram", "Статья", "Telegra.ph", "https://telegra.ph/example"),
+                        new SocialLink("boosty", "Boosty", "Автор", "http://creator.example.test/profile"),
+                    ]),
+            ],
+            [new SocialLink("website", "Сайт", "Официальная страница", "https://example.test")]);
+        var manifest = CreateManifest() with { SchemaVersion = 4, Content = content };
+        var signed = ManifestSecurity.Sign(manifest, key, "test-key");
+
+        var errors = ManifestValidator.Validate(signed);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidatorStillRejectsNonWebSocialLinks()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var content = new ContentCatalog(
+            1,
+            "2.1.140",
+            DateTimeOffset.UtcNow,
+            [],
+            [new SocialLink("unsafe", "Опасная ссылка", string.Empty, "javascript:alert(1)")]);
+        var signed = ManifestSecurity.Sign(CreateManifest() with { SchemaVersion = 4, Content = content }, key, "test-key");
+
+        var errors = ManifestValidator.Validate(signed);
+
+        Assert.Contains(errors, error => error.Contains("unsafe URL", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static UpdateManifest CreateManifest() => new(
         1,
         "next",

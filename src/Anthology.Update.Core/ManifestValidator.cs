@@ -148,7 +148,7 @@ public static partial class ManifestValidator
                           || !string.IsNullOrEmpty(uri.Query)
                           || !string.IsNullOrEmpty(uri.Fragment)
                           || !string.IsNullOrEmpty(uri.UserInfo)
-                        : uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
+                        : !IsWebUri(uri)))
             {
                 errors.Add($"Package '{package.Id}' has unsafe mirror URL '{mirror.Url}'.");
             }
@@ -275,12 +275,12 @@ public static partial class ManifestValidator
 
             foreach (var image in item.Images)
             {
-                ValidatePublicHttpsUrl(image, $"Content '{item.Id}' has unsafe image URL", errors);
+                ValidatePublicWebUrl(image, $"Content '{item.Id}' has unsafe image URL", errors);
             }
 
             foreach (var video in item.Videos)
             {
-                ValidatePublicHttpsUrl(video.Url, $"Content '{item.Id}' has unsafe video URL", errors);
+                ValidatePublicWebUrl(video.Url, $"Content '{item.Id}' has unsafe video URL", errors);
             }
 
             ValidateSocialLinks(item.AuthorLinks, $"Content '{item.Id}' author", errors);
@@ -306,7 +306,7 @@ public static partial class ManifestValidator
                 if (block.Kind is ContentBlockKind.Image or ContentBlockKind.Link
                     || block.Kind == ContentBlockKind.Article && !string.IsNullOrWhiteSpace(block.Url))
                 {
-                    ValidatePublicHttpsUrl(block.Url ?? string.Empty, $"Content '{item.Id}' block '{block.Id}' has unsafe URL", errors);
+                    ValidatePublicWebUrl(block.Url ?? string.Empty, $"Content '{item.Id}' block '{block.Id}' has unsafe URL", errors);
                 }
 
                 if (block.Translations is null)
@@ -355,7 +355,7 @@ public static partial class ManifestValidator
                         || !Uri.TryCreate(mirror.Url, UriKind.Absolute, out var uri)
                         || (localFile
                             ? !uri.IsFile
-                            : uri.Scheme != Uri.UriSchemeHttps && !IsLocalDevelopmentUri(uri)))
+                            : !IsWebUri(uri)))
                     {
                         errors.Add($"Content '{item.Id}' has unsafe download URL '{mirror.Url}'.");
                     }
@@ -387,47 +387,22 @@ public static partial class ManifestValidator
             {
                 errors.Add($"{label} link '{social.Id}' has no title.");
             }
-            ValidatePublicHttpsUrl(social.Url, $"{label} link '{social.Id}' has unsafe URL", errors);
-            ValidateSocialHost(social, errors);
+            ValidatePublicWebUrl(social.Url, $"{label} link '{social.Id}' has unsafe URL", errors);
         }
     }
 
-    private static void ValidateSocialHost(SocialLink social, List<string> errors)
-    {
-        if (!Uri.TryCreate(social.Url, UriKind.Absolute, out var uri))
-        {
-            return;
-        }
-
-        var allowedHosts = social.Id.ToLowerInvariant() switch
-        {
-            "youtube" => new[] { "youtube.com", "www.youtube.com", "youtu.be" },
-            "vk" => new[] { "vk.com", "www.vk.com", "vkvideo.ru", "www.vkvideo.ru", "live.vkvideo.ru" },
-            "discord" => new[] { "discord.gg", "discord.com", "www.discord.com" },
-            "moddb" => new[] { "moddb.com", "www.moddb.com" },
-            "telegram" => new[] { "t.me", "telegram.me", "www.telegram.me" },
-            "github" => new[] { "github.com", "www.github.com" },
-            _ => [],
-        };
-        if (allowedHosts.Length == 0 || !allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase))
-        {
-            errors.Add($"Social link '{social.Id}' does not point to its expected service.");
-        }
-    }
-
-    private static void ValidatePublicHttpsUrl(string value, string prefix, List<string> errors)
+    private static void ValidatePublicWebUrl(string value, string prefix, List<string> errors)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            || uri.Scheme != Uri.UriSchemeHttps
+            || !IsWebUri(uri)
             || !string.IsNullOrEmpty(uri.UserInfo))
         {
             errors.Add($"{prefix} '{value}'.");
         }
     }
 
-    private static bool IsLocalDevelopmentUri(Uri uri) =>
-        uri.Scheme == Uri.UriSchemeHttp
-        && (uri.IsLoopback || string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase));
+    private static bool IsWebUri(Uri uri) =>
+        uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp;
 
     [GeneratedRegex("^[a-z0-9][a-z0-9._-]{1,79}$", RegexOptions.CultureInvariant)]
     private static partial Regex PackageIdRegex();

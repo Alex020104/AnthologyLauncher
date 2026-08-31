@@ -127,6 +127,50 @@ public sealed class ArtifactDownloaderTests : IDisposable
         Assert.Equal("http.invalid", handler.FirstHost);
     }
 
+    [Fact]
+    public async Task GoogleDriveSharePageIsConvertedToDirectDownload()
+    {
+        const string fileId = "15ZukQ_Byhw_0B2Ew69_BriGLfxtF_vrj";
+        var resolver = new WebShareMirrorResolver();
+        var mirror = new MirrorManifest(
+            "http",
+            $"https://drive.google.com/file/d/{fileId}/view?usp=sharing");
+
+        Assert.True(resolver.CanResolve(mirror));
+        var resolved = await resolver.ResolveAsync(mirror, CancellationToken.None);
+
+        Assert.Equal("drive.usercontent.google.com", resolved.Host);
+        Assert.Contains($"id={fileId}", resolved.Query, StringComparison.Ordinal);
+        Assert.Contains("export=download", resolved.Query, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("https://www.dropbox.com/scl/fi/test/archive.7z?rlkey=key", "www.dropbox.com", "dl=1")]
+    [InlineData("https://github.com/owner/repo/blob/main/archive.7z", "raw.githubusercontent.com", "/owner/repo/main/archive.7z")]
+    [InlineData("https://gitlab.com/owner/repo/-/blob/main/archive.7z", "gitlab.com", "/owner/repo/-/raw/main/archive.7z")]
+    [InlineData("https://huggingface.co/owner/repo/blob/main/archive.7z", "huggingface.co", "/owner/repo/resolve/main/archive.7z")]
+    public void CommonShareLinksAreConvertedToDownloadUrls(
+        string source,
+        string expectedHost,
+        string expectedPart)
+    {
+        var resolved = WebShareMirrorResolver.ResolveShareUrl(source);
+
+        Assert.Equal(expectedHost, resolved.Host);
+        Assert.Contains(expectedPart, resolved.AbsoluteUri, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void YandexPublicLinkIsRecognizedWithoutProviderPrefix()
+    {
+        using var client = new HttpClient(new RejectHttpHandler());
+        var resolver = new YandexDiskMirrorResolver(client);
+
+        Assert.True(resolver.CanResolve(new MirrorManifest(
+            "http",
+            "https://disk.yandex.ru/d/example?path=/Anthology/archive.7z")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

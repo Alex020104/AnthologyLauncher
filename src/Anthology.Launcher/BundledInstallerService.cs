@@ -101,6 +101,7 @@ public sealed class BundledInstallerService(
         [
             new BundleFileMirrorResolver(_mediaRoot),
             new YandexDiskMirrorResolver(httpClient),
+            new WebShareMirrorResolver(),
             new LocalFileMirrorResolver(),
             new DirectMirrorResolver(),
         ]);

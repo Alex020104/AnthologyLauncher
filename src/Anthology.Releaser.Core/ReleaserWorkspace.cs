@@ -95,6 +95,7 @@ public sealed class SocialLinkDraft
         CreateAuthor("moddb", "ModDB", 40),
         CreateAuthor("telegram", "Telegram", 50),
         CreateAuthor("github", "GitHub", 60),
+        CreateAuthor("twitch", "Twitch", 70),
     ];
 
     private static SocialLinkDraft CreateAuthor(string id, string title, int order) => new()

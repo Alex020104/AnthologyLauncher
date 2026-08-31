@@ -183,18 +183,18 @@
                                 </section>
                             }
 
-                            <div class="media-grid"><section class="photo-upload"><div><span>@(ActiveContentKind == ContentKind.Information ? "ФОТОГРАФИИ И ОБЛОЖКА ВКЛАДКИ" : ActiveContentKind == ContentKind.ProjectSupport ? "ФОТОГРАФИИ И ОБЛОЖКА ПОДДЕРЖКИ" : "ФОТОГРАФИИ МАТЕРИАЛА")</span><p>Выберите PNG, JPG или WEBP с компьютера. Первая фотография станет обложкой; файлы автоматически попадут во все источники при публикации.</p></div><button class="secondary" @onclick="SelectContentImages">＋ ЗАГРУЗИТЬ ФОТОГРАФИИ</button>@if (SelectedContentImagePaths.Count == 0) { <div class="photo-empty">Фотографии не выбраны</div> } else { <div class="photo-file-list">@foreach (var photo in SelectedContentImagePaths) { var currentPhoto = photo; <span><b>@Path.GetFileName(currentPhoto)</b><small>@currentPhoto</small><button title="Удалить фотографию" @onclick="() => RemoveContentImage(currentPhoto)">×</button></span> }</div> }</section><section class="photo-upload video-file-upload"><div><span>ВИДЕОФАЙЛЫ ДЛЯ ВСТРОЕННОГО ПЛЕЕРА</span><p>Загрузите MP4, WEBM или OGV. Файл попадёт во все источники публикации и будет воспроизводиться внутри лаунчера без YouTube и авторизации.</p></div><button class="secondary" @onclick="SelectContentVideos">＋ ЗАГРУЗИТЬ ВИДЕОФАЙЛЫ</button>@if (SelectedContentVideoPaths.Count == 0) { <div class="photo-empty">Видеофайлы не выбраны</div> } else { <div class="photo-file-list">@foreach (var video in SelectedContentVideoPaths) { var currentVideo = video; <span><b>@Path.GetFileName(currentVideo)</b><small>@currentVideo</small><button title="Удалить видеофайл" @onclick="() => RemoveContentVideo(currentVideo)">×</button></span> }</div> }</section><label class="video-url-editor">Дополнительное видео по URL — «Название | HTTPS-ссылка»<textarea rows="7" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/watch?v=..."></textarea><small>Прямая загрузка видеофайла гарантированно работает внутри лаунчера. YouTube может потребовать авторизацию; URL остаётся дополнительным вариантом.</small></label></div>
+                            <div class="media-grid"><section class="photo-upload"><div><span>@(ActiveContentKind == ContentKind.Information ? "ФОТОГРАФИИ И ОБЛОЖКА ВКЛАДКИ" : ActiveContentKind == ContentKind.ProjectSupport ? "ФОТОГРАФИИ И ОБЛОЖКА ПОДДЕРЖКИ" : "ФОТОГРАФИИ МАТЕРИАЛА")</span><p>Выберите PNG, JPG или WEBP с компьютера. Первая фотография станет обложкой; файлы автоматически попадут во все источники при публикации.</p></div><button class="secondary" @onclick="SelectContentImages">＋ ЗАГРУЗИТЬ ФОТОГРАФИИ</button>@if (SelectedContentImagePaths.Count == 0) { <div class="photo-empty">Фотографии не выбраны</div> } else { <div class="photo-file-list">@foreach (var photo in SelectedContentImagePaths) { var currentPhoto = photo; <span><b>@Path.GetFileName(currentPhoto)</b><small>@currentPhoto</small><button title="Удалить фотографию" @onclick="() => RemoveContentImage(currentPhoto)">×</button></span> }</div> }</section><section class="photo-upload video-file-upload"><div><span>ВИДЕОФАЙЛЫ ДЛЯ ВСТРОЕННОГО ПЛЕЕРА</span><p>Загрузите MP4, WEBM или OGV. Файл попадёт во все источники публикации и будет воспроизводиться внутри лаунчера без YouTube и авторизации.</p></div><button class="secondary" @onclick="SelectContentVideos">＋ ЗАГРУЗИТЬ ВИДЕОФАЙЛЫ</button>@if (SelectedContentVideoPaths.Count == 0) { <div class="photo-empty">Видеофайлы не выбраны</div> } else { <div class="photo-file-list">@foreach (var video in SelectedContentVideoPaths) { var currentVideo = video; <span><b>@Path.GetFileName(currentVideo)</b><small>@currentVideo</small><button title="Удалить видеофайл" @onclick="() => RemoveContentVideo(currentVideo)">×</button></span> }</div> }</section><label class="video-url-editor">Дополнительное видео по URL — «Название | HTTP(S)-ссылка»<textarea rows="7" @bind="SelectedContent.Videos" placeholder="Дневник разработки | https://youtube.com/watch?v=..."></textarea><small>Прямая загрузка видеофайла гарантированно работает внутри лаунчера. YouTube может потребовать авторизацию; URL остаётся дополнительным вариантом.</small></label></div>
                             <section class="content-author-links-editor">
-                                <header><div><span class="eyebrow">РЕСУРСЫ АВТОРА МАТЕРИАЛА</span><h3>Ссылки под полной обложкой</h3><p>Укажите площадки именно автора или команды этого материала. В лаунчере они появятся только в подробной карточке. Доступны YouTube, VK, Discord, ModDB, Telegram и GitHub.</p></div></header>
+                                <header><div><span class="eyebrow">РЕСУРСЫ АВТОРА МАТЕРИАЛА</span><h3>Ссылки под полной обложкой</h3><p>Укажите любую HTTP(S)-страницу автора, команды или проекта. Название карточки и адрес больше не привязаны к конкретному сервису.</p></div><button class="secondary" @onclick="AddAuthorLink">＋ ДРУГАЯ ПЛОЩАДКА</button></header>
                                 <div class="social-link-editor-grid author-social-grid">
                                     @foreach (var authorLink in SelectedContent.AuthorLinks.OrderBy(link => link.Order))
                                     {
                                         var currentAuthorLink = authorLink;
                                         <article class="panel social-link-editor-card @currentAuthorLink.Id @(!currentAuthorLink.IsVisible ? "disabled" : null)">
-                                            <header><span class="social-link-editor-logo"><img src="assets/social/@(currentAuthorLink.Id).svg" alt="" /></span><div><span class="eyebrow">@currentAuthorLink.Id.ToUpperInvariant()</span><h3>@currentAuthorLink.Title</h3></div><button class="social-link-visibility @(currentAuthorLink.IsVisible ? "on" : null)" @onclick="() => currentAuthorLink.IsVisible = !currentAuthorLink.IsVisible"><span></span>@(currentAuthorLink.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button></header>
+                                            <header><span class="social-link-editor-logo"><img src="@SocialIconPath(currentAuthorLink.Id)" alt="" /></span><div><span class="eyebrow">@currentAuthorLink.Id.ToUpperInvariant()</span><h3>@currentAuthorLink.Title</h3></div><button class="social-link-visibility @(currentAuthorLink.IsVisible ? "on" : null)" @onclick="() => currentAuthorLink.IsVisible = !currentAuthorLink.IsVisible"><span></span>@(currentAuthorLink.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button>@if (IsCustomSocialLink(currentAuthorLink.Id)) { <button class="social-link-remove" title="Удалить площадку" @onclick="() => RemoveAuthorLink(currentAuthorLink)">×</button> }</header>
                                             <label>Название площадки<input @bind="currentAuthorLink.Title" maxlength="40" /></label>
                                             <label>Имя автора или подпись<input @bind="currentAuthorLink.Subtitle" maxlength="90" placeholder="Имя автора / назначение ссылки" /></label>
-                                            <label>HTTPS-ссылка автора<input @bind="currentAuthorLink.Url" placeholder="https://..." /></label>
+                                            <label>HTTP(S)-ссылка автора<input @bind="currentAuthorLink.Url" placeholder="https://... или http://..." /></label>
                                             <label class="social-order">Порядок<input type="number" min="0" max="999" @bind="currentAuthorLink.Order" /></label>
                                         </article>
                                     }
@@ -215,16 +215,16 @@
             }
             else if (_section == "social-links")
             {
-                <section class="hero panel compact social-links-hero"><div><span class="eyebrow">ГЛАВНЫЙ ЭКРАН ЛАУНЧЕРА</span><h2>Официальные площадки<br /><em>в один щелчок.</em></h2><p>Карточки находятся прямо под заголовком «Зона становится больше лаунчера». Меняйте название, пояснение, адрес, порядок и видимость — новый набор попадёт в подписанный каталог без пересборки игры.</p></div><div class="social-links-orbit"><strong>@_workspace.SocialLinks.Count(link => link.IsVisible)</strong><span>ПЛОЩАДОК</span></div></section>
+                <section class="hero panel compact social-links-hero"><div><span class="eyebrow">ГЛАВНЫЙ ЭКРАН ЛАУНЧЕРА</span><h2>Официальные площадки<br /><em>в один щелчок.</em></h2><p>Можно использовать любую HTTP(S)-ссылку: соцсеть, сайт, канал, профиль или страницу проекта. Название карточки не ограничивает домен.</p><button class="secondary" @onclick="AddProjectSocialLink">＋ ДРУГАЯ ПЛОЩАДКА</button></div><div class="social-links-orbit"><strong>@_workspace.SocialLinks.Count(link => link.IsVisible)</strong><span>ПЛОЩАДОК</span></div></section>
                 <section class="social-link-editor-grid">
                     @foreach (var socialLink in _workspace.SocialLinks.OrderBy(link => link.Order))
                     {
                         var currentSocialLink = socialLink;
                         <article class="panel social-link-editor-card @currentSocialLink.Id @(!currentSocialLink.IsVisible ? "disabled" : null)">
-                            <header><span class="social-link-editor-logo"><img src="assets/social/@(currentSocialLink.Id).svg" alt="" /></span><div><span class="eyebrow">@currentSocialLink.Id.ToUpperInvariant()</span><h3>@currentSocialLink.Title</h3></div><button class="social-link-visibility @(currentSocialLink.IsVisible ? "on" : null)" @onclick="() => currentSocialLink.IsVisible = !currentSocialLink.IsVisible"><span></span>@(currentSocialLink.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button></header>
+                            <header><span class="social-link-editor-logo"><img src="@SocialIconPath(currentSocialLink.Id)" alt="" /></span><div><span class="eyebrow">@currentSocialLink.Id.ToUpperInvariant()</span><h3>@currentSocialLink.Title</h3></div><button class="social-link-visibility @(currentSocialLink.IsVisible ? "on" : null)" @onclick="() => currentSocialLink.IsVisible = !currentSocialLink.IsVisible"><span></span>@(currentSocialLink.IsVisible ? "ПОКАЗЫВАТЬ" : "СКРЫТО")</button>@if (IsCustomSocialLink(currentSocialLink.Id)) { <button class="social-link-remove" title="Удалить площадку" @onclick="() => RemoveProjectSocialLink(currentSocialLink)">×</button> }</header>
                             <label>Название карточки<input @bind="currentSocialLink.Title" maxlength="40" /></label>
                             <label>Короткое описание<input @bind="currentSocialLink.Subtitle" maxlength="90" /></label>
-                            <label>HTTPS-ссылка<input @bind="currentSocialLink.Url" placeholder="https://..." /></label>
+                            <label>HTTP(S)-ссылка<input @bind="currentSocialLink.Url" placeholder="https://... или http://..." /></label>
                             <label class="social-order">Порядок<input type="number" min="0" max="999" @bind="currentSocialLink.Order" /></label>
                             <small>Если карточка скрыта, она не попадёт в следующий опубликованный каталог.</small>
                         </article>
@@ -319,6 +319,11 @@
         new("sync", "↻", "Синхронизация", "КОМАНДА", "Работа двух разработчиков"),
         new("safety", "⌾", "Безопасность", "ПРОТОКОЛ", "Удаление и откат"),
     ];
+
+    private static readonly HashSet<string> BuiltInSocialLinkIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "youtube", "vk", "discord", "moddb", "telegram", "github", "twitch",
+    };
 
     private ReleaserWorkspace _workspace = new();
     private ReleaserMachineSettings _machine = new();
@@ -957,6 +962,54 @@
     }
 
     private void AddMirror() => _workspace.Mirrors.Add(new ReleaseMirrorSet { Provider = "http", Priority = (_workspace.Mirrors.MaxBy(item => item.Priority)?.Priority ?? 0) + 10 });
+
+    private void AddAuthorLink()
+    {
+        if (SelectedContent is null)
+        {
+            return;
+        }
+
+        SelectedContent.AuthorLinks.Add(CreateCustomSocialLink(SelectedContent.AuthorLinks));
+    }
+
+    private void RemoveAuthorLink(SocialLinkDraft link)
+    {
+        if (SelectedContent is not null && IsCustomSocialLink(link.Id))
+        {
+            SelectedContent.AuthorLinks.Remove(link);
+        }
+    }
+
+    private void AddProjectSocialLink() =>
+        _workspace.SocialLinks.Add(CreateCustomSocialLink(_workspace.SocialLinks));
+
+    private void RemoveProjectSocialLink(SocialLinkDraft link)
+    {
+        if (IsCustomSocialLink(link.Id))
+        {
+            _workspace.SocialLinks.Remove(link);
+        }
+    }
+
+    private static SocialLinkDraft CreateCustomSocialLink(IReadOnlyCollection<SocialLinkDraft> links) => new()
+    {
+        Id = $"link-{Guid.NewGuid():N}",
+        Title = "Другая площадка",
+        Subtitle = string.Empty,
+        Url = string.Empty,
+        IsVisible = true,
+        Order = (links.Count == 0 ? 0 : links.Max(link => link.Order)) + 10,
+    };
+
+    private static bool IsCustomSocialLink(string? id) =>
+        string.IsNullOrWhiteSpace(id) || !BuiltInSocialLinkIds.Contains(id);
+
+    private static string SocialIconPath(string? id) =>
+        !string.IsNullOrWhiteSpace(id) && BuiltInSocialLinkIds.Contains(id)
+            ? $"assets/social/{id.Trim().ToLowerInvariant()}.svg"
+            : "assets/social/link.svg";
+
     private void RemoveMirror(ReleaseMirrorSet mirror)
     {
         _machine.PublicationRoots.Remove(mirror.Id);

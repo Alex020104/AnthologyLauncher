@@ -189,7 +189,7 @@ else
 
     private static string? GetDirectVideoUrl(string? value)
     {
-        if (!TryGetSafeHttpsUri(value, out var uri))
+        if (!TryGetSafeWebUri(value, out var uri))
         {
             return null;
         }
@@ -201,7 +201,7 @@ else
 
     private static bool IsYandexDiskVideoUrl(string? value)
     {
-        if (!TryGetSafeHttpsUri(value, out var uri)
+        if (!TryGetSafeWebUri(value, out var uri)
             || !uri.Host.EndsWith("disk.yandex.ru", StringComparison.OrdinalIgnoreCase))
         {
             return false;
@@ -231,7 +231,7 @@ else
 
     private static string? GetYouTubeVideoId(string? value)
     {
-        if (!TryGetSafeHttpsUri(value, out var uri))
+        if (!TryGetSafeWebUri(value, out var uri))
         {
             return null;
         }
@@ -271,7 +271,7 @@ else
 
     private static string? GetAllowedEmbedUrl(string? value)
     {
-        if (!TryGetSafeHttpsUri(value, out var uri))
+        if (!TryGetSafeWebUri(value, out var uri))
         {
             return null;
         }
@@ -281,12 +281,12 @@ else
     }
 
     private static string? GetSafeExternalUrl(string? value) =>
-        TryGetSafeHttpsUri(value, out var uri) ? uri.AbsoluteUri : null;
+        TryGetSafeWebUri(value, out var uri) ? uri.AbsoluteUri : null;
 
-    private static bool TryGetSafeHttpsUri(string? value, out Uri uri)
+    private static bool TryGetSafeWebUri(string? value, out Uri uri)
     {
         if (Uri.TryCreate(value, UriKind.Absolute, out var parsed)
-            && parsed.Scheme == Uri.UriSchemeHttps
+            && (parsed.Scheme == Uri.UriSchemeHttps || parsed.Scheme == Uri.UriSchemeHttp)
             && string.IsNullOrEmpty(parsed.UserInfo))
         {
             uri = parsed;
