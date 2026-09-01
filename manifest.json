@@ -3,17 +3,17 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.151",
-    "publishedAt": "2026-08-31T14:35:37.2230065+00:00",
+    "publishedAt": "2026-09-01T06:55:49.8544002+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.6",
-        "version": "0.7.0-alpha.6",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.7",
+        "version": "0.7.0-alpha.7",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 4897333,
-        "sha256": "2ecefe01bc803547063d62ec7782f6d8b29af3052d895de58c97a4fe8475810a",
+        "size": 4899066,
+        "sha256": "5226667629cec47f0ffb2dfa78ed02618213c724c0d198fe7238d4e1fa965581",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -28,7 +28,7 @@
         ],
         "files": [
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.6.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.7.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -576,6 +576,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "ytaZxBdvnDa6LNHkgD1bZZMr4HxN28VGKbQmcHPdris\u002BsrLrDLGoOy\u002BG2LplTfM944R1Rtk/kCIDpyTH5OqEaQ=="
+    "value": "9uLW3cnXyh5SO5bM88QoLlcOsrjBRyqJyz/nNyiZztT/bCcx634qc5isLsgq1iWs\u002BL2qYj6Oq9AMFB5NVPEM8w=="
   }
 }
