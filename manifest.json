@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.151",
-    "publishedAt": "2026-09-01T09:14:03.3533423+00:00",
+    "publishedAt": "2026-09-01T09:20:10.6335759+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
@@ -12,8 +12,8 @@
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 4947921,
-        "sha256": "bc7006f12c5c40d8c17e7c74827631f15eded786a5d5374e4400ec9f91549f86",
+        "size": 4948134,
+        "sha256": "ece1f1210543b27e713c8afb159bff8102e15e2d73b9f112d62b191e2024e021",
         "mirrors": [
           {
             "provider": "github",
@@ -576,6 +576,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "Kgx8VfmeGLJYedN76TLBxS3xhu/JLk04iVezO/kJPcq8VwiqcYbFGcbSfX7AUVcIZia4bOEXCOFkgQMmGQLuDw=="
+    "value": "bjPBg4Nd5Hv0\u002B/FErv60kRNarC26hFUor\u002Bs0zF6dZuf0rXEiEgh\u002Bp4zDiq4TobI/lqGapC1pjrYZn72K9zhSMQ=="
   }
 }
