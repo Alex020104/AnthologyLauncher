@@ -254,3 +254,21 @@
     .project-support-hero { align-items: flex-start; flex-direction: column; padding: 27px 24px; }
     .project-support-mark { width: 100%; }
 }
+
+.auto-link-text {
+    white-space: pre-line;
+}
+
+.auto-link-text a {
+    color: #e2bc63;
+    font-weight: 650;
+    text-decoration: underline;
+    text-decoration-color: #e2bc6380;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+}
+
+.auto-link-text a:hover {
+    color: #ffe3a0;
+    text-decoration-color: currentColor;
+}

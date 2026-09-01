@@ -136,17 +136,17 @@
                             </button>
                             <button class="launch-button launch-latest-save"
                                     @onclick="LaunchLatestSaveAsync"
-                                    disabled="@(!CanLaunchLatestMo2Save)"
-                                    title="Запустить самое новое сохранение через выбранный профиль MO2">
+                                    disabled="@(!CanLaunchLatestSave)"
+                                    title="Запустить самое новое сохранение только в совместимом режиме">
                                 <span class="launch-button-icon">↻</span>
                                 <span class="launch-button-copy">
                                     <strong>ЗАГРУЗИТЬ ПОСЛЕДНЕЕ СОХРАНЕНИЕ</strong>
                                     <small>
-                                        @if (_latestMo2Save is not null)
+                                        @if (_latestSave is not null)
                                         {
                                             <span>Последний сейв:</span>
-                                            <b>@Path.GetFileNameWithoutExtension(_latestMo2Save.Name)</b>
-                                            <time>@_latestMo2Save.LastWriteTimeUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                                            <b>@Path.GetFileNameWithoutExtension(_latestSave.Save.Name)</b>
+                                            <time>@_latestSave.Save.LastWriteTimeUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @_latestSave.Origin.Label</time>
                                         }
                                         else
                                         {
@@ -331,6 +331,7 @@
                                         <div class="save-preview-placeholder"><img src="assets/anthology-logo.png" alt="" /><span>ПРЕВЬЮ НЕТ</span></div>
                                     }
                                     <span class="save-category">@currentSave.CategoryLabel</span>
+                                    <span class="save-origin @currentSave.Origin.Origin.ToString().ToLowerInvariant()">@currentSave.Origin.Label</span>
                                 </div>
                                 <div class="save-catalog-copy">
                                     <div class="save-player"><span>ПРОФИЛЬ</span><strong>@currentSave.PlayerName</strong></div>
@@ -341,7 +342,7 @@
                                         <span><b>РАЗМЕР</b>@currentSave.SizeLabel</span>
                                         <span><b>ФАЙЛЫ</b>@currentSave.PartsLabel</span>
                                     </div>
-                                    <button class="save-load-button" @onclick="() => LaunchCatalogSaveAsync(currentSave)" disabled="@(!CanLaunchConfiguredSave)">▶ ЗАГРУЗИТЬ СОХРАНЕНИЕ</button>
+                                    <button class="save-load-button" @onclick="() => LaunchCatalogSaveAsync(currentSave)" disabled="@(!CanLaunchCatalogSave(currentSave))">▶ @(currentSave.Origin.IsKnown ? "ЗАГРУЗИТЬ СОХРАНЕНИЕ" : "ИСТОЧНИК НЕИЗВЕСТЕН")</button>
                                 </div>
                             </article>
                         }
@@ -402,7 +403,7 @@
                                             </div>
                                         </section>
                                     }
-                                    <div class="published-content-body">@localizedItem.Body</div>
+                                    <div class="published-content-body"><AutoLinkText Text="@localizedItem.Body" /></div>
                                     @foreach (var video in currentItem.Videos)
                                     {
                                         <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" />
@@ -592,7 +593,7 @@
                     {
                         var openNews = SelectedPublishedNews!;
                         var localizedNews = Localized(openNews);
-                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead">@localizedNews.Summary</p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body">@localizedNews.Body</div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" /><figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }@foreach (var video in openNews.Videos) { <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" /> }</section>
+                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead"><AutoLinkText Text="@localizedNews.Summary" /></p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body"><AutoLinkText Text="@localizedNews.Body" /></div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div><AutoLinkText Text="@localizedBlock.Body" /></div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" /><figcaption><strong>@localizedBlock.Title</strong><span><AutoLinkText Text="@localizedBlock.Body" /></span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }@foreach (var video in openNews.Videos) { <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" /> }</section>
                     }
                 }
                 else
@@ -629,17 +630,17 @@
                             <article class="published-information-copy">
                                 <span class="eyebrow">СПРАВОЧНИК ANTHOLOGY · @publishedInformation.Section</span>
                                 <h2>@localizedInformation.Title</h2>
-                                <p class="information-lead">@localizedInformation.Summary</p>
+                                <p class="information-lead"><AutoLinkText Text="@localizedInformation.Summary" /></p>
                                 @if (!string.IsNullOrWhiteSpace(localizedInformation.Body))
                                 {
-                                    <div class="information-body published-intro">@localizedInformation.Body</div>
+                                    <div class="information-body published-intro"><AutoLinkText Text="@localizedInformation.Body" /></div>
                                 }
                                 @foreach (var block in (publishedInformation.Blocks ?? []).Where(block => block.Kind != ContentBlockKind.Article))
                                 {
                                     var localizedBlock = Localized(block);
                                     @if (block.Kind == ContentBlockKind.Section)
                                     {
-                                        <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section>
+                                        <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div><AutoLinkText Text="@localizedBlock.Body" /></div></section>
                                     }
                                     else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
                                     {
@@ -669,7 +670,7 @@
                                             var articleBackground = GetSafeExternalUrl(selectedArticleBlock.Url);
                                             <article class="managed-article-copy @(articleBackground is null ? null : "has-background")">
                                                 @if (articleBackground is not null) { <img src="@articleBackground" alt="" /> }
-                                                <div><span class="eyebrow">@ArticleStatus(selectedArticleCopy.Body)</span><h3>@selectedArticleCopy.Title</h3><div class="information-body">@ArticleText(selectedArticleCopy.Body)</div></div>
+                                                <div><span class="eyebrow">@ArticleStatus(selectedArticleCopy.Body)</span><h3>@selectedArticleCopy.Title</h3><div class="information-body"><AutoLinkText Text="@ArticleText(selectedArticleCopy.Body)" /></div></div>
                                             </article>
                                         }
                                     </section>
@@ -711,17 +712,17 @@
                             <article class="published-information-copy">
                                 <span class="eyebrow">ПОДДЕРЖКА ПРОЕКТА · @currentSupport.Section</span>
                                 <h2>@localizedSupport.Title</h2>
-                                <p class="information-lead">@localizedSupport.Summary</p>
+                                <p class="information-lead"><AutoLinkText Text="@localizedSupport.Summary" /></p>
                                 @if (!string.IsNullOrWhiteSpace(localizedSupport.Body))
                                 {
-                                    <div class="information-body published-intro">@localizedSupport.Body</div>
+                                    <div class="information-body published-intro"><AutoLinkText Text="@localizedSupport.Body" /></div>
                                 }
                                 @foreach (var block in currentSupport.Blocks ?? [])
                                 {
                                     var localizedBlock = Localized(block);
                                     @if (block.Kind == ContentBlockKind.Section)
                                     {
-                                        <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div>@localizedBlock.Body</div></section>
+                                        <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div><AutoLinkText Text="@localizedBlock.Body" /></div></section>
                                     }
                                     else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
                                     {
@@ -833,11 +834,11 @@
                             <header><div><span class="eyebrow">CHANGELOG · @_updateCheck.SignedManifest.Payload.Version</span><h3>@CurrentChangelog.Title</h3><p>@CurrentChangelog.Summary</p></div><span class="changelog-state">@(_updateCheck.HasUpdates ? "ПЕРЕД УСТАНОВКОЙ" : "УСТАНОВЛЕНО · МОЖНО ПРОСМОТРЕТЬ")</span></header>
                             @if (!string.IsNullOrWhiteSpace(CurrentChangelog.Body))
                             {
-                                <div class="changelog-body">@CurrentChangelog.Body</div>
+                                <div class="changelog-body"><AutoLinkText Text="@CurrentChangelog.Body" /></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(CurrentChangelog.Warnings))
                             {
-                                <div class="changelog-warning"><strong>! ВАЖНЫЕ ПОСЛЕДСТВИЯ</strong><p>@CurrentChangelog.Warnings</p></div>
+                                <div class="changelog-warning"><strong>! ВАЖНЫЕ ПОСЛЕДСТВИЯ</strong><p><AutoLinkText Text="@CurrentChangelog.Warnings" /></p></div>
                             }
                             <div class="file-change-summary"><article><strong>@UpdateAddedFiles.Count</strong><span>ДОБАВЛЕНО / ЗАМЕНЕНО</span></article><article class="removed"><strong>@UpdateDeletedFiles.Count</strong><span>УДАЛЕНО</span></article></div>
                             <div class="file-change-lists">
@@ -932,7 +933,7 @@
                         <section class="report-form-section">
                             <header><span>04</span><div><strong>СБОРКА И ОБРАТНАЯ СВЯЗЬ</strong><small>Версия игры и контакт для ответа разработчика</small></div></header>
                             <div class="form-two">
-                                <div><label>Версия и вариант сборки *<InputText @bind-Value="_report.GameVersion" placeholder="Например: 2.1.131 · Standard · обновлено полностью" /></label><ValidationMessage For="@(() => _report.GameVersion)" /></div>
+                                <div class="report-auto-version"><small>ОПРЕДЕЛЕНО ЛАУНЧЕРОМ</small><strong>@DetectedBugReportGameVersion</strong><span>Версию игры, обновление Anthology и профиль сборки изменить вручную нельзя.</span><ValidationMessage For="@(() => _report.GameVersion)" /></div>
                                 <div><label>Контакт для ответа *<InputText @bind-Value="_report.Contact" placeholder="Discord / Telegram / email" /></label><ValidationMessage For="@(() => _report.Contact)" /></div>
                             </div>
                         </section>
@@ -946,6 +947,7 @@
                                 <div><small>НАКОПИТЕЛЬ ИГРЫ</small><strong>@_systemDiagnostics.StorageText</strong></div>
                                 <div class="wide"><small>КОРЕНЬ ИГРЫ</small><code>@_systemDiagnostics.GameRoot</code></div>
                                 <div class="wide"><small>ОС И ДИАГНОСТИКА</small><code>@_systemDiagnostics.OperatingSystem · @_systemDiagnostics.CollectedAt.LocalDateTime.ToString("dd.MM.yyyy HH:mm:ss")</code></div>
+                                <div class="wide"><small>АВТОМАТИЧЕСКОЕ ВЛОЖЕНИЕ</small><code>xray_log · user.ltx · axr_options.ltx · modlist.txt всех профилей MO2</code></div>
                             </div>
                             <input type="hidden" value="@_report.SystemSpecs" />
                             <ValidationMessage For="@(() => _report.SystemSpecs)" />
@@ -1243,7 +1245,7 @@
                         <div class="game-settings-intro">
                             <div>
                                 <strong>Знакомое меню Anomaly и Mod Configuration Menu</strong>
-                                <p>Обычные параметры показаны понятными названиями и элементами управления. Anomaly записывается в <code>appdata\user.ltx</code>, а MCM — только в оригинальный <code>gamedata\configs\axr_options.ltx</code> в корне игры.</p>
+                                <p>Структура повторяет разделы оригинальной Anomaly и вложенные страницы MCM. Оба меню записываются в оригинальный <code>gamedata\configs\axr_options.ltx</code>: Anomaly — в <code>[options]</code>, MCM — в <code>[mcm]</code>.</p>
                             </div>
                             <div class="game-settings-actions">
                                 <button class="secondary-button" @onclick="() => RefreshGameConfigurationAsync()" disabled="@_gameConfigurationBusy">↻ ОБНОВИТЬ СПИСОК</button>
@@ -1263,26 +1265,30 @@
                         {
                             <div class="game-settings-tabs">
                                 <button class="@(_configurationKind == AnomalyConfigurationKind.Anomaly ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Anomaly)" disabled="@(!_gameConfiguration.AnomalyAvailable)">
-                                    <span>ORIGINAL ANOMALY</span><strong>@_gameConfiguration.AnomalySettings.Count</strong><small>appdata\user.ltx</small>
+                                    <span>ORIGINAL ANOMALY</span><strong>@_gameConfiguration.AnomalySettings.Count</strong><small>axr_options.ltx · [options]</small>
                                 </button>
                                 <button class="@(_configurationKind == AnomalyConfigurationKind.Mcm ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Mcm)" disabled="@(!_gameConfiguration.McmAvailable)">
                                     <span>MOD CONFIGURATION MENU</span><strong>@_gameConfiguration.McmSettings.Count</strong><small>axr_options.ltx · [mcm]</small>
                                 </button>
                             </div>
                             <div class="game-settings-source">
-                                <span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ОРИГИНАЛЬНЫЙ ФАЙЛ MCM" : "АКТИВНЫЙ ФАЙЛ ANOMALY")</span><code>@CurrentConfigurationPath</code>
+                                <span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ОРИГИНАЛЬНЫЙ ФАЙЛ MCM" : "ОРИГИНАЛЬНЫЙ ФАЙЛ ANOMALY")</span><code>@CurrentConfigurationPath</code>
                                 <button @onclick="RestoreGameConfigurationAsync" disabled="@_gameConfigurationBusy">ВОССТАНОВИТЬ КОПИЮ</button>
                             </div>
                             <div class="native-options-shell">
                                 <aside class="native-options-navigation">
-                                    <header><span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "МОДУЛИ MCM" : "РАЗДЕЛЫ ANOMALY")</span><strong>@ConfigurationCategories.Count</strong></header>
-                                    <button class="@(_configurationCategory.Length == 0 ? "active" : null)" @onclick="() => SelectConfigurationCategory(string.Empty)"><span>Все настройки</span><small>@FriendlyConfigurationCount</small></button>
-                                    @foreach (var category in ConfigurationCategories)
+                                    <header><span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ДЕРЕВО MCM" : "МЕНЮ ANOMALY")</span><strong>@ConfigurationMenuPages.Count</strong></header>
+                                    @foreach (var group in ConfigurationMenuGroups)
                                     {
-                                        var currentCategory = category;
-                                        <button class="@(_configurationCategory.Equals(currentCategory, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationCategory(currentCategory)">
-                                            <span>@GameSettingsPresentation.CategoryTitle(_configurationKind, currentCategory)</span><small>@ConfigurationCategoryCount(currentCategory)</small>
-                                        </button>
+                                        var currentGroup = group;
+                                        <div class="native-options-group"><span>@currentGroup.Title</span><small>@currentGroup.Count</small></div>
+                                        @foreach (var page in currentGroup.Pages)
+                                        {
+                                            var currentPage = page;
+                                            <button class="depth-@currentPage.Depth @(_configurationCategory.Equals(currentPage.Path, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationCategory(currentPage.Path)">
+                                                <span>@currentPage.Title</span><small>@currentPage.Count</small>
+                                            </button>
+                                        }
                                     }
                                 </aside>
                                 <section class="native-options-panel">
@@ -1292,7 +1298,7 @@
                                     </header>
                                     <div class="native-options-tools">
                                         <label class="game-settings-search"><span>⌕</span><input placeholder="Найти настройку" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
-                                        <button class="advanced-settings-toggle @(_configurationAdvanced ? "active" : null)" @onclick="ToggleAdvancedConfiguration"><i></i><span>РАСШИРЕННЫЙ РЕЖИМ</span></button>
+                                        <button class="advanced-settings-toggle @(_configurationAdvanced ? "active" : null)" @onclick="ToggleAdvancedConfiguration"><i></i><span>ТЕХНИЧЕСКИЕ ИМЕНА</span></button>
                                     </div>
                                     <div class="game-settings-list native-settings-list">
                                         @foreach (var setting in VisibleConfigurationSettings)
@@ -1338,11 +1344,6 @@
                                     {
                                         <div class="game-settings-empty compact"><strong>Подходящих настроек нет</strong><small>Измените поиск, раздел или включите расширенный режим.</small></div>
                                     }
-                                    <div class="game-settings-pagination">
-                                        <button @onclick="PreviousConfigurationPage" disabled="@(_configurationPage == 0)">← НАЗАД</button>
-                                        <span>СТРАНИЦА <strong>@(_configurationPage + 1)</strong> / @ConfigurationPageCount</span>
-                                        <button @onclick="NextConfigurationPage" disabled="@(_configurationPage + 1 >= ConfigurationPageCount)">ДАЛЬШЕ →</button>
-                                    </div>
                                 </section>
                             </div>
                             <div class="game-settings-warning"><span>!</span><p><strong>Игра и MO2 должны быть закрыты.</strong> Перед записью создаётся резервная копия. MCM сохраняется непосредственно в оригинальный файл игры и применяется после следующего запуска.</p></div>
@@ -1553,7 +1554,6 @@
     private AnomalyConfigurationKind _configurationKind = AnomalyConfigurationKind.Anomaly;
     private string _configurationSearch = string.Empty;
     private string _configurationCategory = string.Empty;
-    private int _configurationPage;
     private bool _configurationAdvanced;
     private bool _gameConfigurationBusy;
     private UpdateCheckResult? _updateCheck;
@@ -1608,7 +1608,7 @@
     private string _mo2DataPath = string.Empty;
     private string? _selectedMo2ModName;
     private string? _selectedMo2SavePath;
-    private Mo2SaveEntry? _latestMo2Save;
+    private AnomalySaveCatalogItem? _latestSave;
     private IReadOnlyList<AnomalySaveCatalogItem> _saveCatalog = [];
     private string _saveCatalogSearch = string.Empty;
     private string? _selectedCatalogSavePath;
@@ -1701,6 +1701,17 @@
         ?? _publishedContent?.Version
         ?? _updateCheck?.SignedManifest.Payload.Version
         ?? "НЕ ОПРЕДЕЛЕНА";
+    private string DetectedBugReportGameVersion
+    {
+        get
+        {
+            var gameRoot = _installation.GameRoot ?? _settings.GameRoot;
+            var profile = _mo2Workspace.SelectedProfile is null
+                ? "MO2-профиль не выбран"
+                : $"MO2-профиль: {_mo2Workspace.SelectedProfile}";
+            return $"Anomaly 1.5.3 · Anthology {HomeGameVersion} · {profile} · последний запуск: {SaveCatalog.LastSessionLabel(gameRoot)}";
+        }
+    }
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(
         _mo2Workspace.Profile?.Mods ?? [],
         _mo2Search);
@@ -1714,21 +1725,15 @@
         && _mo2Workspace.SelectedProfile is not null
         && _mo2Workspace.SelectedExecutable is not null
         && !_mo2Workspace.RuntimeBusy;
-    private bool CanLaunchLatestMo2Save =>
-        _latestMo2Save is not null
-        && CanLaunchConfiguredSave;
-    private const int ConfigurationPageSize = 60;
+    private bool CanLaunchLatestSave => _latestSave is not null && CanLaunchCatalogSave(_latestSave);
     private IReadOnlyList<AnomalyConfigurationEntry> CurrentConfigurationSettings =>
         _configurationKind == AnomalyConfigurationKind.Mcm
             ? _gameConfiguration.McmSettings
             : _gameConfiguration.AnomalySettings;
-    private IEnumerable<AnomalyConfigurationEntry> FriendlyConfigurationSettings => CurrentConfigurationSettings
-        .Where(item => _configurationKind == AnomalyConfigurationKind.Mcm
-                       || _configurationAdvanced
-                       || GameSettingsPresentation.For(item).IsFriendly);
+    private IEnumerable<AnomalyConfigurationEntry> FriendlyConfigurationSettings => CurrentConfigurationSettings;
     private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => FriendlyConfigurationSettings
-        .Where(item => string.IsNullOrWhiteSpace(_configurationCategory)
-                       || GameSettingsPresentation.For(item).CategoryTitle.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
+        .Where(item => !string.IsNullOrWhiteSpace(_configurationSearch)
+                       || item.MenuPath.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
         .Where(item =>
         {
             if (string.IsNullOrWhiteSpace(_configurationSearch))
@@ -1741,38 +1746,67 @@
                    || item.Value.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
                    || view.Title.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
                    || view.Description.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
-                   || view.CategoryTitle.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase);
+                   || view.CategoryTitle.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                   || item.MenuDisplayName?.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase) == true;
         });
     private IReadOnlyList<AnomalyConfigurationEntry> VisibleConfigurationSettings => FilteredConfigurationSettings
-        .Skip(_configurationPage * ConfigurationPageSize)
-        .Take(ConfigurationPageSize)
+        .OrderBy(item => item.DisplayOrder)
+        .ThenBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
         .ToArray();
-    private IReadOnlyList<string> ConfigurationCategories => FriendlyConfigurationSettings
-        .Select(item => GameSettingsPresentation.For(item).CategoryTitle)
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .Order(StringComparer.OrdinalIgnoreCase)
+    private IReadOnlyList<ConfigurationMenuPage> ConfigurationMenuPages => FriendlyConfigurationSettings
+        .GroupBy(item => string.IsNullOrWhiteSpace(item.MenuPath) ? item.Category : item.MenuPath, StringComparer.OrdinalIgnoreCase)
+        .Select(group =>
+        {
+            var first = group.OrderBy(item => item.DisplayOrder).First();
+            var categoryKey = first.Category;
+            var categoryTitle = first.CategoryDisplayName ?? GameSettingsPresentation.Humanize(categoryKey);
+            var path = group.Key;
+            var leaf = path.Split('/').Last();
+            var pageTitle = first.MenuDisplayName
+                            ?? (path.Equals(categoryKey, StringComparison.OrdinalIgnoreCase) ? categoryTitle : null)
+                            ?? GameSettingsPresentation.Humanize(leaf);
+            var menuOrder = group.Min(item => item.MenuOrder);
+            if (menuOrder == int.MaxValue)
+            {
+                menuOrder = group.Min(item => item.DisplayOrder);
+            }
+            return new ConfigurationMenuPage(
+                path,
+                pageTitle,
+                categoryKey,
+                categoryTitle,
+                Math.Max(0, path.Count(character => character == '/')),
+                menuOrder,
+                group.Count());
+        })
+        .OrderBy(page => page.Order)
+        .ThenBy(page => page.CategoryTitle, StringComparer.OrdinalIgnoreCase)
+        .ThenBy(page => page.Title, StringComparer.OrdinalIgnoreCase)
         .ToArray();
-    private int FriendlyConfigurationCount => FriendlyConfigurationSettings.Count();
+    private IReadOnlyList<ConfigurationMenuGroup> ConfigurationMenuGroups => ConfigurationMenuPages
+        .GroupBy(page => page.CategoryKey, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new ConfigurationMenuGroup(
+            group.Key,
+            group.First().CategoryTitle,
+            group.Sum(page => page.Count),
+            group.OrderBy(page => page.Depth).ThenBy(page => page.Order).ToArray()))
+        .ToArray();
     private int FilteredConfigurationCount => FilteredConfigurationSettings.Count();
-    private int ConfigurationPageCount => Math.Max(1, (int)Math.Ceiling(FilteredConfigurationCount / (double)ConfigurationPageSize));
     private string CurrentConfigurationPath => _configurationKind == AnomalyConfigurationKind.Mcm
         ? _gameConfiguration.McmPath ?? "MCM не найден"
-        : _gameConfiguration.UserLtxPath ?? "user.ltx не найден";
-    private string SelectedConfigurationCategoryTitle => string.IsNullOrWhiteSpace(_configurationCategory)
-        ? _configurationKind == AnomalyConfigurationKind.Mcm ? "Все установленные модули" : "Основные настройки игры"
-        : _configurationCategory;
+        : _gameConfiguration.AnomalyPath ?? "axr_options.ltx не найден";
+    private string SelectedConfigurationCategoryTitle => ConfigurationMenuPages
+        .FirstOrDefault(page => page.Path.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))?.Title
+        ?? (_configurationKind == AnomalyConfigurationKind.Mcm ? "Mod Configuration Menu" : "Настройки Anomaly");
     private string SelectedConfigurationCategoryDescription => _configurationKind == AnomalyConfigurationKind.Mcm
-        ? "Параметры организованы по модулям так же, как в игровом MCM. Выберите модуль слева."
-        : _configurationAdvanced
-            ? "Показаны также системные команды user.ltx. Неизвестные значения изменяйте только осознанно."
-            : "Здесь собраны понятные повседневные параметры. Системные команды скрыты в расширенном режиме.";
+        ? "Вложенность модулей и подменю повторяет установленный MCM выбранного профиля MO2."
+        : "Разделы и страницы следуют структуре штатного меню Anomaly; значения сохраняются в [options].";
     private string ConfigurationSearch
     {
         get => _configurationSearch;
         set
         {
             _configurationSearch = value ?? string.Empty;
-            _configurationPage = 0;
         }
     }
 
@@ -1809,6 +1843,7 @@
         _relayParticipants = RelayChat.Participants;
         _rollbackCandidate = await Updater.GetLatestRollbackAsync();
         _publishedContent = await Updater.LoadCachedContentAsync();
+        _report.GameVersion = DetectedBugReportGameVersion;
         EnsurePublishedContentSelection();
         _feed = await Community.GetFeedAsync();
         Community.MessageReceived += OnChatMessageReceived;
@@ -2115,17 +2150,11 @@
     private void SelectConfigurationCategory(string category)
     {
         _configurationCategory = category;
-        _configurationPage = 0;
     }
-
-    private int ConfigurationCategoryCount(string category) => FriendlyConfigurationSettings.Count(item =>
-        GameSettingsPresentation.For(item).CategoryTitle.Equals(category, StringComparison.OrdinalIgnoreCase));
 
     private void ToggleAdvancedConfiguration()
     {
         _configurationAdvanced = !_configurationAdvanced;
-        _configurationCategory = string.Empty;
-        _configurationPage = 0;
     }
 
     private static void ChangeConfigurationValue(AnomalyConfigurationEntry setting, string? value) =>
@@ -2146,21 +2175,10 @@
     private static void ResetConfigurationValue(AnomalyConfigurationEntry setting) =>
         setting.Value = setting.OriginalValue;
 
-    private void PreviousConfigurationPage()
-    {
-        _configurationPage = Math.Max(0, _configurationPage - 1);
-    }
-
-    private void NextConfigurationPage()
-    {
-        _configurationPage = Math.Min(ConfigurationPageCount - 1, _configurationPage + 1);
-    }
-
     private void ResetConfigurationFilters()
     {
         _configurationSearch = string.Empty;
-        _configurationCategory = string.Empty;
-        _configurationPage = 0;
+        _configurationCategory = ConfigurationMenuPages.FirstOrDefault()?.Path ?? string.Empty;
     }
 
     private static string ToggleClass(bool enabled) => enabled ? "active" : string.Empty;
@@ -2908,16 +2926,68 @@
     private async Task LaunchLatestSaveAsync()
     {
         RefreshLatestMo2Save();
-        if (_latestMo2Save is null)
+        if (_latestSave is null)
         {
-            ShowToast("Сохранения Anomaly не найдены", true);
+            ShowToast("Совместимое сохранение Anomaly не найдено. Откройте каталог и проверьте источник сейва.", true);
             return;
         }
 
-        await LaunchMo2SaveAsync(_latestMo2Save);
+        await LaunchCatalogSaveAsync(_latestSave);
     }
 
-    private Task LaunchCatalogSaveAsync(AnomalySaveCatalogItem save) => LaunchMo2SaveAsync(save.Save);
+    private bool CanLaunchCatalogSave(AnomalySaveCatalogItem save) => save.Origin.Origin switch
+    {
+        SaveRuntimeOrigin.Original => _installation.OriginalGameFound && !_mo2Workspace.RuntimeBusy,
+        SaveRuntimeOrigin.ModOrganizer => CanLaunchConfiguredSave
+                                          && string.Equals(
+                                              save.Origin.Profile,
+                                              _mo2Workspace.SelectedProfile,
+                                              StringComparison.OrdinalIgnoreCase),
+        _ => false,
+    };
+
+    private bool IsConfiguredSaveOrigin(AnomalySaveCatalogItem save) => save.Origin.Origin switch
+    {
+        SaveRuntimeOrigin.Original => _installation.OriginalGameFound,
+        SaveRuntimeOrigin.ModOrganizer => _mo2Workspace.Instance.Available
+                                          && _mo2Workspace.SelectedExecutable is not null
+                                          && string.Equals(
+                                              save.Origin.Profile,
+                                              _mo2Workspace.SelectedProfile,
+                                              StringComparison.OrdinalIgnoreCase),
+        _ => false,
+    };
+
+    private async Task LaunchCatalogSaveAsync(AnomalySaveCatalogItem save)
+    {
+        if (save.Origin.Origin == SaveRuntimeOrigin.Unknown)
+        {
+            ShowToast("Источник старого сохранения неизвестен. Запуск заблокирован, чтобы не открыть сейв сборки в оригинальной игре или наоборот.", true);
+            return;
+        }
+
+        if (save.Origin.Origin == SaveRuntimeOrigin.ModOrganizer
+            && !string.Equals(save.Origin.Profile, _mo2Workspace.SelectedProfile, StringComparison.OrdinalIgnoreCase))
+        {
+            ShowToast($"Для этого сохранения нужен профиль MO2 «{save.Origin.Profile}». Выберите его в разделе MO2.", true);
+            return;
+        }
+
+        LauncherActionResult result;
+        if (save.Origin.Origin == SaveRuntimeOrigin.Original)
+        {
+            result = await Launcher.LaunchOriginalSaveAsync(save.Save.FullPath);
+        }
+        else
+        {
+            _selectedMo2SavePath = save.Save.FullPath;
+            result = await Mo2.LaunchSaveAsync(save.Save.FullPath);
+        }
+
+        _settings = Settings.Current.Copy();
+        RefreshMo2Workspace();
+        ShowToast(result.Message, !result.Success);
+    }
 
     private async Task RefreshSaveCatalogAsync()
     {
@@ -2927,8 +2997,8 @@
         try
         {
             var gameRoot = _mo2Workspace.Instance.GamePath ?? _installation.GameRoot ?? _settings.GameRoot;
-            _saveCatalog = SaveCatalog.Load(gameRoot);
-            _latestMo2Save = _saveCatalog.FirstOrDefault()?.Save;
+            _saveCatalog = SaveCatalog.Load(gameRoot, _mo2Workspace.Instance.Root);
+            _latestSave = _saveCatalog.FirstOrDefault(IsConfiguredSaveOrigin);
             if (_selectedCatalogSavePath is null
                 || !_saveCatalog.Any(item => string.Equals(item.Save.FullPath, _selectedCatalogSavePath, StringComparison.OrdinalIgnoreCase)))
             {
@@ -3009,10 +3079,12 @@
 
     private void RefreshLatestMo2Save()
     {
-        _latestMo2Save = null;
+        _latestSave = null;
         try
         {
-            _latestMo2Save = Mo2WorkspaceReader.ReadSaves(_mo2Workspace.Instance.GamePath).FirstOrDefault();
+            var gameRoot = _mo2Workspace.Instance.GamePath ?? _installation.GameRoot ?? _settings.GameRoot;
+            _saveCatalog = SaveCatalog.Load(gameRoot, _mo2Workspace.Instance.Root);
+            _latestSave = _saveCatalog.FirstOrDefault(IsConfiguredSaveOrigin);
         }
         catch (Exception exception) when (exception is IOException
                                            or InvalidDataException
@@ -3506,9 +3578,17 @@
         }
 
         _report.SystemSpecs = _systemDiagnostics.ToReportText();
+        _report.GameVersion = DetectedBugReportGameVersion;
         _submittingReport = true;
+        BugReportDiagnosticBundle? automaticBundle = null;
         try
         {
+            automaticBundle = BugReportDiagnostics.Create(
+                _installation.GameRoot ?? _settings.GameRoot,
+                string.IsNullOrWhiteSpace(_mo2Workspace.Instance.Root)
+                    ? _settings.ModpackRoot
+                    : _mo2Workspace.Instance.Root);
+            var attachments = new[] { automaticBundle.Path }.Concat(_reportAttachments).ToArray();
             var submittedTitle = _report.Title;
             var receipt = await Community.SubmitBugReportAsync(new BugReportRequest(
                 _report.Title,
@@ -3525,7 +3605,7 @@
                 _settings.UserId,
                 _settings.CommunityNickname,
                 _settings.InterfaceLanguage),
-                _reportAttachments);
+                attachments);
             _settings.BugReports.Insert(0, new BugReportReference
             {
                 Id = receipt.Id,
@@ -3535,18 +3615,36 @@
             });
             await Settings.SaveAsync(_settings);
             _settings = Settings.Current.Copy();
-            _report = new BugReportForm { SystemSpecs = _systemDiagnostics.ToReportText() };
+            _report = new BugReportForm
+            {
+                SystemSpecs = _systemDiagnostics.ToReportText(),
+                GameVersion = DetectedBugReportGameVersion,
+            };
             _reportAttachments = [];
             _selectedBugReportId = receipt.Id;
             await RefreshBugReportsAsync();
             ShowToast($"Обращение {receipt.Id} зарегистрировано");
         }
-        catch (Exception exception) when (exception is HttpRequestException or InvalidDataException)
+        catch (Exception exception) when (exception is HttpRequestException
+                                           or InvalidDataException
+                                           or IOException
+                                           or UnauthorizedAccessException)
         {
-            ShowToast("Сервер обращений недоступен. Текст сохранён в форме.", true);
+            ShowToast($"Не удалось отправить баг-репорт: {exception.Message}. Текст сохранён в форме.", true);
         }
         finally
         {
+            if (automaticBundle is not null)
+            {
+                try
+                {
+                    File.Delete(automaticBundle.Path);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // A temporary diagnostic bundle can be cleaned up on a later report.
+                }
+            }
             _submittingReport = false;
         }
     }
@@ -3569,6 +3667,7 @@
             var gameRoot = _installation.GameRoot ?? _settings.GameRoot;
             _systemDiagnostics = await Task.Run(() => SystemDiagnosticsService.Collect(gameRoot));
             _report.SystemSpecs = _systemDiagnostics.ToReportText();
+            _report.GameVersion = DetectedBugReportGameVersion;
             if (showToast)
             {
                 ShowToast("CPU, GPU, RAM и накопитель игры определены автоматически");
@@ -3714,10 +3813,10 @@
             }
         }
 
-        if (_reportAttachments.Sum(path => new FileInfo(path).Length) > 15 * 1024 * 1024)
+        if (_reportAttachments.Sum(path => new FileInfo(path).Length) > 10 * 1024 * 1024)
         {
             _reportAttachments = [];
-            ShowToast("Общий размер вложений превышает 15 МБ. Используйте ссылку на полный пакет.", true);
+            ShowToast("Ручные вложения превышают 10 МБ. Ещё до 5 МБ резервируется для автоматической диагностики.", true);
         }
     }
 
@@ -3773,6 +3872,21 @@
     private sealed record ChoiceOption(string Value, string ShortLabel, string Title);
 
     private sealed record Mo2ModGroup(Mo2ModEntry? Separator, IReadOnlyList<Mo2ModEntry> Mods);
+
+    private sealed record ConfigurationMenuPage(
+        string Path,
+        string Title,
+        string CategoryKey,
+        string CategoryTitle,
+        int Depth,
+        int Order,
+        int Count);
+
+    private sealed record ConfigurationMenuGroup(
+        string Key,
+        string Title,
+        int Count,
+        IReadOnlyList<ConfigurationMenuPage> Pages);
 
     private sealed class BugReportForm
     {

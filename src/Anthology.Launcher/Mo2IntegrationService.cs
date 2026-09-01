@@ -14,7 +14,8 @@ public sealed record Mo2WorkspaceSnapshot(
 
 public sealed class Mo2IntegrationService(
     LauncherSettingsStore settingsStore,
-    LauncherBridge launcherBridge) : IDisposable
+    LauncherBridge launcherBridge,
+    SaveProvenanceService saveProvenance) : IDisposable
 {
     private static readonly SearchValues<char> InvalidSaveNameCharacters =
         SearchValues.Create("/\\:*?\"<>|^()[]%");
@@ -460,7 +461,7 @@ public sealed class Mo2IntegrationService(
         {
             try
             {
-                saveName = ValidateSaveForLaunch(workspace.Instance, savePath);
+                saveName = ValidateSaveForLaunch(workspace.Instance, workspace.SelectedProfile, savePath);
             }
             catch (Exception exception) when (exception is IOException
                                                or InvalidDataException
@@ -506,6 +507,10 @@ public sealed class Mo2IntegrationService(
             }
             startInfo.ArgumentList.Add(gameArguments);
             Process.Start(startInfo);
+            saveProvenance.BeginSession(
+                workspace.Instance.GamePath ?? settingsStore.Current.GameRoot!,
+                SaveRuntimeOrigin.ModOrganizer,
+                workspace.SelectedProfile);
             return new LauncherActionResult(
                 true,
                 saveName is null
@@ -520,7 +525,7 @@ public sealed class Mo2IntegrationService(
         }
     }
 
-    private static string ValidateSaveForLaunch(Mo2InstanceSnapshot instance, string savePath)
+    private static string ValidateSaveForLaunch(Mo2InstanceSnapshot instance, string selectedProfile, string savePath)
     {
         if (string.IsNullOrWhiteSpace(instance.GamePath))
         {
@@ -539,6 +544,7 @@ public sealed class Mo2IntegrationService(
             Path.Combine(gameRoot, "appdata", "savedgames"),
             Path.Combine(gameRoot, "_appdata_", "savedgames"),
             Path.Combine(gameRoot, "savedgames"),
+            Path.Combine(instance.Root, "profiles", selectedProfile, "saves"),
         };
         if (!allowedDirectories.Any(directory => IsInsideDirectory(fullPath, directory)))
         {

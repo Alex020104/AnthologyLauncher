@@ -36,7 +36,7 @@ public sealed class AnomalyConfigurationService(
 
         var target = kind == AnomalyConfigurationKind.Mcm
             ? snapshot.McmPath
-            : snapshot.UserLtxPath;
+            : snapshot.AnomalyPath;
         return Task.Run(() => AnomalyConfigurationManager.RestoreLatestBackup(target));
     }
 }

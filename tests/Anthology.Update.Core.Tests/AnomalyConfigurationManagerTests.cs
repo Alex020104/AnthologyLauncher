@@ -5,11 +5,13 @@ namespace Anthology.Update.Core.Tests;
 public sealed class AnomalyConfigurationManagerTests
 {
     [Fact]
-    public void LoadReadsLiveUserLtxAndAlwaysUsesOriginalGameMcm()
+    public void LoadReadsOriginalAnomalyAndMcmSectionsFromGameAxrOptions()
     {
         using var environment = TestEnvironment.Create();
-        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\nsnd_volume_eff 0.75\r\ng_game_difficulty gd_veteran\r\n");
-        environment.WriteGame("gamedata/configs/axr_options.ltx", "[mcm]\r\nbase/value = false\r\n");
+        environment.WriteGame("appdata/user.ltx", "r2_sun legacy-value\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[options]\r\nvideo/basic/r2_sun = on\r\nsound/general/snd_volume_eff = 0.75\r\ngameplay/general/g_game_difficulty = gd_veteran\r\n\r\n[mcm]\r\nbase/value = false\r\n");
         environment.WriteMo2("overwrite/gamedata/configs/axr_options.ltx", "[mcm]\r\naim_stamina/enabled = true\r\naim_stamina/drain = 0.5\r\n");
 
         var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
@@ -18,8 +20,10 @@ public sealed class AnomalyConfigurationManagerTests
         Assert.True(snapshot.McmAvailable);
         Assert.Equal(3, snapshot.AnomalySettings.Count);
         Assert.Single(snapshot.McmSettings);
-        Assert.Equal("Графика", snapshot.AnomalySettings[0].Category);
+        Assert.Equal("video", snapshot.AnomalySettings[0].Category);
+        Assert.Equal("video/basic", snapshot.AnomalySettings[0].MenuPath);
         Assert.Equal("base", snapshot.McmSettings[0].Category);
+        Assert.Equal(snapshot.AnomalyPath, snapshot.McmPath);
         Assert.Equal(Path.Combine(environment.GameRoot, "gamedata", "configs", "axr_options.ltx"), snapshot.McmPath);
     }
 
@@ -27,23 +31,23 @@ public sealed class AnomalyConfigurationManagerTests
     public void SaveChangesOnlySelectedValuesAndCreatesBackups()
     {
         using var environment = TestEnvironment.Create();
-        var originalUser = "; keep this comment\r\nr2_sun on\r\nsnd_volume_eff 0.75\r\n";
-        var originalMcm = "[options]\r\nuntouched = 1\r\n\r\n[mcm]\r\naim_stamina/enabled = true\r\naim_stamina/drain = 0.5\r\n";
+        var originalUser = "; keep this legacy file\r\nr2_sun legacy\r\n";
+        var originalMcm = "[options]\r\nvideo/basic/r2_sun = on\r\nuntouched = 1\r\n\r\n[mcm]\r\naim_stamina/enabled = true\r\naim_stamina/drain = 0.5\r\n";
         environment.WriteGame("appdata/user.ltx", originalUser);
         environment.WriteGame("gamedata/configs/axr_options.ltx", originalMcm);
         environment.WriteMo2("overwrite/gamedata/configs/axr_options.ltx", "[mcm]\r\naim_stamina/drain = 99\r\n");
         var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
-        snapshot.AnomalySettings.Single(item => item.Key == "r2_sun").Value = "off";
+        snapshot.AnomalySettings.Single(item => item.Key == "video/basic/r2_sun").Value = "off";
         snapshot.McmSettings.Single(item => item.Key == "aim_stamina/drain").Value = "0.8";
 
         var result = AnomalyConfigurationManager.Save(snapshot);
 
         Assert.True(result.Success, result.Message);
         Assert.Equal(2, result.ChangedValues);
-        Assert.Equal(2, result.BackupPaths?.Count);
+        Assert.Single(result.BackupPaths!);
         Assert.All(result.BackupPaths!, path => Assert.True(File.Exists(path)));
-        Assert.Equal("; keep this comment\r\nr2_sun off\r\nsnd_volume_eff 0.75\r\n", File.ReadAllText(snapshot.UserLtxPath!));
-        Assert.Equal("[options]\r\nuntouched = 1\r\n\r\n[mcm]\r\naim_stamina/enabled = true\r\naim_stamina/drain = 0.8\r\n", File.ReadAllText(snapshot.McmPath!));
+        Assert.Equal(originalUser, File.ReadAllText(Path.Combine(environment.GameRoot, "appdata", "user.ltx")));
+        Assert.Equal("[options]\r\nvideo/basic/r2_sun = off\r\nuntouched = 1\r\n\r\n[mcm]\r\naim_stamina/enabled = true\r\naim_stamina/drain = 0.8\r\n", File.ReadAllText(snapshot.AnomalyPath!));
         Assert.Contains("aim_stamina/drain = 99", File.ReadAllText(Path.Combine(environment.Mo2Root, "overwrite", "gamedata", "configs", "axr_options.ltx")));
         Assert.Equal(0, snapshot.DirtyCount);
     }

@@ -41,10 +41,12 @@ public partial class App : System.Windows.Application
         services.AddSingleton<LauncherSettingsStore>();
         services.AddSingleton<CommunityClient>();
         services.AddSingleton<RelayChatClient>();
+        services.AddSingleton<SaveProvenanceService>();
         services.AddSingleton<LauncherBridge>();
         services.AddSingleton<Mo2IntegrationService>();
         services.AddSingleton<AnomalyConfigurationService>();
         services.AddSingleton<AnomalySaveCatalogService>();
+        services.AddSingleton<BugReportDiagnosticBundleService>();
         services.AddSingleton<LauncherUpdateService>();
         services.AddSingleton<BundledInstallerService>();
         services.AddSingleton<SetupLauncherService>();

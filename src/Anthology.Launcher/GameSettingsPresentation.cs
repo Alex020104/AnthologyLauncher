@@ -136,14 +136,18 @@ public static partial class GameSettingsPresentation
     {
         if (entry.Kind == AnomalyConfigurationKind.Anomaly)
         {
-            return Anomaly.TryGetValue(entry.Key, out var definition)
+            var leafKey = entry.Key.Split('/').Last();
+            return Anomaly.TryGetValue(leafKey, out var definition)
                 ? definition
                 : new GameSettingView(
-                    Humanize(entry.Key),
-                    "Системный параметр Anomaly. Изменяйте его только если знаете допустимое значение.",
-                    entry.Category,
+                    entry.DisplayName ?? Humanize(leafKey),
+                    entry.Description ?? "Параметр оригинального меню Anomaly.",
+                    entry.CategoryDisplayName ?? Humanize(entry.Category),
                     InferControl(entry),
-                    false);
+                    true,
+                    entry.Minimum,
+                    entry.Maximum,
+                    entry.Step);
         }
 
         var slash = entry.Key.IndexOf('/');
@@ -198,7 +202,7 @@ public static partial class GameSettingsPresentation
         return value.Contains('.') ? Math.Abs(number) < 1 ? 0.01 : 0.1 : 1;
     }
 
-    private static string Humanize(string value)
+    public static string Humanize(string value)
     {
         var text = CamelCaseBoundary().Replace(value.Replace('_', ' ').Replace('-', ' '), "$1 $2");
         var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

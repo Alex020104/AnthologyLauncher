@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.WebView;
 using Microsoft.Web.WebView2.Core;
 using System.IO;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -44,6 +45,7 @@ public partial class MainWindow : Window
             "https://www.youtube-nocookie.com/embed/*",
             CoreWebView2WebResourceContext.Document);
         _webViewCore.WebResourceRequested += YoutubePlayerResourceRequested;
+        _webViewCore.NewWindowRequested += OpenExternalLink;
     }
 
     internal Task<LauncherActionResult> OpenYoutubeLoginAsync()
@@ -94,6 +96,26 @@ public partial class MainWindow : Window
     private static bool IsYoutubePlayerHost(string host) =>
         host.Equals("www.youtube.com", StringComparison.OrdinalIgnoreCase)
         || host.Equals("www.youtube-nocookie.com", StringComparison.OrdinalIgnoreCase);
+
+    private static void OpenExternalLink(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+    {
+        e.Handled = true;
+        if (!Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            // A missing system browser must not terminate the launcher window.
+        }
+    }
 
     protected override void OnSourceInitialized(EventArgs e)
     {

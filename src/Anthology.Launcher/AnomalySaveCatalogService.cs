@@ -15,23 +15,47 @@ public sealed record AnomalySaveCatalogItem(
     string Description,
     string SizeLabel,
     string PartsLabel,
-    string? PreviewDataUrl)
+    string? PreviewDataUrl,
+    SaveOriginResolution Origin)
 {
-    public string SearchText => $"{Title} {PlayerName} {CategoryLabel} {Save.SaveName}";
+    public string SearchText => $"{Title} {PlayerName} {CategoryLabel} {Save.SaveName} {Origin.Label}";
 }
 
-public sealed class AnomalySaveCatalogService
+public sealed class AnomalySaveCatalogService(SaveProvenanceService provenance)
 {
     private readonly ConcurrentDictionary<string, string> _previewCache = new(StringComparer.OrdinalIgnoreCase);
 
-    public IReadOnlyList<AnomalySaveCatalogItem> Load(string? gameRoot)
+    public IReadOnlyList<AnomalySaveCatalogItem> Load(string? gameRoot, string? mo2Root = null)
     {
-        return Mo2WorkspaceReader.ReadSaves(gameRoot)
-            .Select(CreateCatalogItem)
+        if (string.IsNullOrWhiteSpace(gameRoot))
+        {
+            return [];
+        }
+
+        var saves = new List<Mo2SaveEntry>(Mo2WorkspaceReader.ReadSaves(gameRoot));
+        if (!string.IsNullOrWhiteSpace(mo2Root))
+        {
+            var profilesRoot = Path.Combine(Path.GetFullPath(mo2Root), "profiles");
+            if (Directory.Exists(profilesRoot))
+            {
+                foreach (var profileRoot in Directory.EnumerateDirectories(profilesRoot))
+                {
+                    saves.AddRange(Mo2WorkspaceReader.ReadSavesFromDirectory(Path.Combine(profileRoot, "saves")));
+                }
+            }
+        }
+
+        return saves
+            .GroupBy(save => save.FullPath, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderByDescending(save => save.LastWriteTimeUtc)
+            .Select(save => CreateCatalogItem(gameRoot, mo2Root, save))
             .ToArray();
     }
 
-    private AnomalySaveCatalogItem CreateCatalogItem(Mo2SaveEntry save)
+    public string LastSessionLabel(string? gameRoot) => provenance.LastSessionLabel(gameRoot);
+
+    private AnomalySaveCatalogItem CreateCatalogItem(string gameRoot, string? mo2Root, Mo2SaveEntry save)
     {
         var (playerName, title) = SplitSaveName(save.SaveName);
         var (categoryKey, categoryLabel, description) = DescribeSave(title);
@@ -49,7 +73,8 @@ public sealed class AnomalySaveCatalogService
                 { HasScop: true } => ".scop",
                 _ => ".scoc",
             },
-            CreatePreviewDataUrl(save.PreviewPath));
+            CreatePreviewDataUrl(save.PreviewPath),
+            provenance.Resolve(gameRoot, save, mo2Root));
     }
 
     private string? CreatePreviewDataUrl(string? previewPath)

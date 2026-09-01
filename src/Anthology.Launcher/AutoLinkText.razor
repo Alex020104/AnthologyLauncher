@@ -1,0 +1,93 @@
+@using System.Text.RegularExpressions
+
+<span class="auto-link-text">
+    @foreach (var segment in Segments)
+    {
+        if (segment.Url is not null)
+        {
+            <a href="@segment.Url" target="_blank" rel="noopener noreferrer" title="Открыть ссылку во внешнем браузере">@segment.Text</a>
+        }
+        else
+        {
+            @segment.Text
+        }
+    }
+</span>
+
+@code {
+    private static readonly Regex UrlPattern = new(
+        @"https?://[^\s<>\""']+",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    [Parameter]
+    public string? Text { get; set; }
+
+    private IReadOnlyList<TextSegment> Segments => Parse(Text);
+
+    private static IReadOnlyList<TextSegment> Parse(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return [];
+        }
+
+        var result = new List<TextSegment>();
+        var offset = 0;
+        foreach (Match match in UrlPattern.Matches(value))
+        {
+            if (match.Index > offset)
+            {
+                result.Add(new TextSegment(value[offset..match.Index], null));
+            }
+
+            var candidate = match.Value;
+            var trailingLength = 0;
+            while (candidate.Length > 0 && IsTrailingPunctuation(candidate[^1]))
+            {
+                candidate = candidate[..^1];
+                trailingLength++;
+            }
+
+            if (TryNormalize(candidate, out var safeUrl))
+            {
+                result.Add(new TextSegment(candidate, safeUrl));
+            }
+            else
+            {
+                result.Add(new TextSegment(candidate, null));
+            }
+
+            if (trailingLength > 0)
+            {
+                result.Add(new TextSegment(match.Value[^trailingLength..], null));
+            }
+
+            offset = match.Index + match.Length;
+        }
+
+        if (offset < value.Length)
+        {
+            result.Add(new TextSegment(value[offset..], null));
+        }
+
+        return result;
+    }
+
+    private static bool TryNormalize(string value, out string? result)
+    {
+        result = null;
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            return false;
+        }
+
+        result = uri.AbsoluteUri;
+        return true;
+    }
+
+    private static bool IsTrailingPunctuation(char value) => value is '.' or ',' or ';' or ':' or '!' or '?' or ')' or ']' or '}';
+
+    private sealed record TextSegment(string Text, string? Url);
+}

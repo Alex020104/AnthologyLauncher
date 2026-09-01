@@ -15,7 +15,10 @@ public sealed record InstallationStatus(
 
 public sealed record LauncherActionResult(bool Success, string Message);
 
-public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayChatClient relayChat)
+public sealed class LauncherBridge(
+    LauncherSettingsStore settingsStore,
+    RelayChatClient relayChat,
+    SaveProvenanceService saveProvenance)
 {
     private static readonly string[] ModpackFolders =
     [
@@ -173,6 +176,7 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
                 UseShellExecute = true,
                 Arguments = BuildGameArguments(settingsStore.Current),
             });
+            saveProvenance.BeginSession(status.GameRoot, SaveRuntimeOrigin.Original);
             return new LauncherActionResult(true, "Оригинальная Anomaly запущена");
         }
         catch (Exception exception) when (exception is IOException
@@ -263,6 +267,81 @@ public sealed class LauncherBridge(LauncherSettingsStore settingsStore, RelayCha
         {
             return new LauncherActionResult(false, exception.Message);
         }
+    }
+
+    public async Task<LauncherActionResult> LaunchOriginalSaveAsync(
+        string savePath,
+        CancellationToken cancellationToken = default)
+    {
+        var status = DetectInstallation();
+        if (!status.OriginalGameFound || status.GameRoot is null)
+        {
+            return new LauncherActionResult(false, status.StatusText);
+        }
+
+        try
+        {
+            var saveName = ValidateOriginalSave(status.GameRoot, savePath);
+            var executable = GetSelectedGameExecutable(status.GameRoot, settingsStore.Current);
+            await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
+            await StartRelayChatIfEnabledAsync(status.GameRoot, cancellationToken);
+            var arguments = BuildGameArguments(settingsStore.Current);
+            arguments = string.IsNullOrWhiteSpace(arguments)
+                ? $"-load \"{saveName}\""
+                : $"{arguments} -load \"{saveName}\"";
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                WorkingDirectory = Path.GetDirectoryName(executable)!,
+                UseShellExecute = true,
+                Arguments = arguments,
+            });
+            saveProvenance.BeginSession(status.GameRoot, SaveRuntimeOrigin.Original);
+            return new LauncherActionResult(true, $"Сохранение «{saveName}» запущено в оригинальной Anomaly");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException
+                                           or InvalidDataException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+    }
+
+    private static string ValidateOriginalSave(string gameRoot, string savePath)
+    {
+        var fullPath = Path.GetFullPath(savePath);
+        if (!File.Exists(fullPath))
+        {
+            throw new IOException($"Файл сохранения не найден: {Path.GetFileName(fullPath)}");
+        }
+
+        var allowed = new[]
+        {
+            Path.Combine(gameRoot, "appdata", "savedgames"),
+            Path.Combine(gameRoot, "_appdata_", "savedgames"),
+            Path.Combine(gameRoot, "savedgames"),
+        };
+        if (!allowed.Any(directory => IsInsideDirectory(fullPath, directory)))
+        {
+            throw new InvalidOperationException("Это сохранение не принадлежит оригинальной папке игры");
+        }
+
+        var extension = Path.GetExtension(fullPath);
+        if (!extension.Equals(".scop", StringComparison.OrdinalIgnoreCase)
+            && !extension.Equals(".scoc", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("Выбранный файл не является сохранением Anomaly");
+        }
+
+        return Path.GetFileNameWithoutExtension(fullPath);
+    }
+
+    private static bool IsInsideDirectory(string path, string directory)
+    {
+        var relative = Path.GetRelativePath(Path.GetFullPath(directory), Path.GetFullPath(path));
+        return !Path.IsPathRooted(relative)
+               && !relative.Equals("..", StringComparison.Ordinal)
+               && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
     }
 
     public string GetGameArguments() => BuildGameArguments(settingsStore.Current);

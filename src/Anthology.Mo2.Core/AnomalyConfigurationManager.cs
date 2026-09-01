@@ -25,6 +25,8 @@ public sealed class AnomalyConfigurationEntry
 
     public required string TargetPath { get; init; }
 
+    public required string StorageSection { get; init; }
+
     public required int LineIndex { get; init; }
 
     public string? DisplayName { get; init; }
@@ -32,6 +34,14 @@ public sealed class AnomalyConfigurationEntry
     public string? Description { get; init; }
 
     public string? CategoryDisplayName { get; init; }
+
+    public string MenuPath { get; init; } = string.Empty;
+
+    public string? MenuDisplayName { get; init; }
+
+    public int MenuOrder { get; init; } = int.MaxValue;
+
+    public int DisplayOrder { get; init; } = int.MaxValue;
 
     public string? ControlType { get; init; }
 
@@ -67,7 +77,7 @@ public sealed class AnomalyConfigurationEntry
 }
 
 public sealed record AnomalyConfigurationSnapshot(
-    string? UserLtxPath,
+    string? AnomalyPath,
     string? McmPath,
     IReadOnlyList<AnomalyConfigurationEntry> AnomalySettings,
     IReadOnlyList<AnomalyConfigurationEntry> McmSettings,
@@ -80,7 +90,7 @@ public sealed record AnomalyConfigurationSnapshot(
         [],
         "Настройки Anomaly и MCM ещё не загружены");
 
-    public bool AnomalyAvailable => UserLtxPath is not null && AnomalySettings.Count > 0;
+    public bool AnomalyAvailable => AnomalyPath is not null && AnomalySettings.Count > 0;
 
     public bool McmAvailable => McmPath is not null && McmSettings.Count > 0;
 
@@ -100,22 +110,22 @@ public static class AnomalyConfigurationManager
 
     public static AnomalyConfigurationSnapshot Load(string? gameRoot, string? mo2Root)
     {
-        var userLtx = ResolveUserLtx(gameRoot);
         var (mcmSource, mcmTarget) = ResolveMcm(gameRoot);
+        var metadataCatalog = McmConfigurationMetadataCatalog.Load(mo2Root, gameRoot);
 
-        var anomalySettings = userLtx is null
+        var anomalySettings = mcmSource is null || mcmTarget is null
             ? []
-            : ParseAnomaly(userLtx, userLtx);
+            : ParseAnomaly(mcmSource, mcmTarget, metadataCatalog);
         var mcmSettings = mcmSource is null || mcmTarget is null
             ? []
-            : ParseMcm(mcmSource, mcmTarget, McmConfigurationMetadataCatalog.Load(mo2Root));
+            : ParseMcm(mcmSource, mcmTarget, metadataCatalog);
 
         var status = anomalySettings.Count == 0 && mcmSettings.Count == 0
-            ? "Файлы user.ltx и MCM не найдены. Проверьте установленную игру."
+            ? "Оригинальный axr_options.ltx с разделами [options] и [mcm] не найден. Проверьте установленную игру."
             : $"Anomaly: {anomalySettings.Count} параметров · MCM: {mcmSettings.Count} параметров";
 
         return new AnomalyConfigurationSnapshot(
-            userLtx,
+            mcmTarget,
             mcmTarget,
             anomalySettings,
             mcmSettings,
@@ -169,9 +179,7 @@ public static class AnomalyConfigurationManager
                         throw new InvalidDataException($"Параметр {entry.Key} изменился на диске. Обновите список и повторите.");
                     }
 
-                    document.Lines[lineIndex] = entry.Kind == AnomalyConfigurationKind.Mcm
-                        ? ReplaceMcmValue(document.Lines[lineIndex], entry.Value)
-                        : ReplaceAnomalyValue(document.Lines[lineIndex], entry.Value);
+                    document.Lines[lineIndex] = ReplaceMcmValue(document.Lines[lineIndex], entry.Value);
                 }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
@@ -239,24 +247,6 @@ public static class AnomalyConfigurationManager
         }
     }
 
-    private static string? ResolveUserLtx(string? gameRoot)
-    {
-        if (string.IsNullOrWhiteSpace(gameRoot) || !Directory.Exists(gameRoot))
-        {
-            return null;
-        }
-
-        var root = Path.GetFullPath(gameRoot);
-        var live = Path.Combine(root, "appdata", "user.ltx");
-        if (File.Exists(live))
-        {
-            return live;
-        }
-
-        var fallback = Path.Combine(root, "user.ltx");
-        return File.Exists(fallback) ? fallback : null;
-    }
-
     private static (string? Source, string? Target) ResolveMcm(string? gameRoot)
     {
         var gameMcm = string.IsNullOrWhiteSpace(gameRoot)
@@ -271,27 +261,50 @@ public static class AnomalyConfigurationManager
         return (null, null);
     }
 
-    private static List<AnomalyConfigurationEntry> ParseAnomaly(string sourcePath, string targetPath)
+    private static List<AnomalyConfigurationEntry> ParseAnomaly(
+        string sourcePath,
+        string targetPath,
+        McmConfigurationMetadataCatalog metadataCatalog)
     {
         var document = TextFileDocument.Read(sourcePath);
         var result = new List<AnomalyConfigurationEntry>();
+        var section = string.Empty;
         for (var index = 0; index < document.Lines.Count; index++)
         {
-            if (!TryParseAnomalyLine(document.Lines[index], out var key, out var value))
+            var trimmed = document.Lines[index].Trim();
+            if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
+            {
+                section = trimmed[1..^1].Trim();
+                continue;
+            }
+
+            if (!section.Equals("options", StringComparison.OrdinalIgnoreCase)
+                || !TryParseMcmLine(document.Lines[index], out var key, out var value))
             {
                 continue;
             }
 
+            var slash = key.IndexOf('/');
+            var metadata = metadataCatalog.ResolveAnomaly(key, index);
+
             result.Add(new AnomalyConfigurationEntry
             {
                 Kind = AnomalyConfigurationKind.Anomaly,
-                Category = GetAnomalyCategory(key),
+                Category = slash > 0 ? key[..slash] : "other",
                 Key = key,
                 Value = value,
                 OriginalValue = value,
                 SourcePath = sourcePath,
                 TargetPath = targetPath,
+                StorageSection = "options",
                 LineIndex = index,
+                DisplayName = metadata.DisplayName,
+                Description = metadata.Description,
+                CategoryDisplayName = metadata.CategoryDisplayName,
+                MenuPath = metadata.MenuPath,
+                MenuDisplayName = metadata.MenuDisplayName,
+                MenuOrder = metadata.MenuOrder,
+                DisplayOrder = metadata.DisplayOrder,
             });
         }
 
@@ -323,6 +336,7 @@ public static class AnomalyConfigurationManager
 
             var slash = key.IndexOf('/');
             var metadata = metadataCatalog.Resolve(key);
+            var menuPath = metadata?.MenuPath ?? (key.Contains('/') ? key[..key.LastIndexOf('/')] : key);
             result.Add(new AnomalyConfigurationEntry
             {
                 Kind = AnomalyConfigurationKind.Mcm,
@@ -332,10 +346,15 @@ public static class AnomalyConfigurationManager
                 OriginalValue = value,
                 SourcePath = sourcePath,
                 TargetPath = targetPath,
+                StorageSection = McmSection,
                 LineIndex = index,
                 DisplayName = metadata?.DisplayName,
                 Description = metadata?.Description,
                 CategoryDisplayName = metadata?.CategoryDisplayName,
+                MenuPath = menuPath,
+                MenuDisplayName = metadata?.MenuDisplayName,
+                MenuOrder = metadata?.MenuOrder ?? int.MaxValue,
+                DisplayOrder = metadata?.DisplayOrder ?? index,
                 ControlType = metadata?.ControlType,
                 Minimum = metadata?.Minimum,
                 Maximum = metadata?.Maximum,
@@ -363,8 +382,7 @@ public static class AnomalyConfigurationManager
                 continue;
             }
 
-            if (entry.Kind == AnomalyConfigurationKind.Mcm
-                && !currentSection.Equals(McmSection, StringComparison.OrdinalIgnoreCase))
+            if (!currentSection.Equals(entry.StorageSection, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -380,31 +398,8 @@ public static class AnomalyConfigurationManager
 
     private static bool LineMatches(string line, AnomalyConfigurationEntry entry)
     {
-        var parsed = entry.Kind == AnomalyConfigurationKind.Mcm
-            ? TryParseMcmLine(line, out var key, out _)
-            : TryParseAnomalyLine(line, out key, out _);
+        var parsed = TryParseMcmLine(line, out var key, out _);
         return parsed && key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool TryParseAnomalyLine(string line, out string key, out string value)
-    {
-        key = string.Empty;
-        value = string.Empty;
-        var trimmed = line.Trim();
-        if (trimmed.Length == 0 || IsComment(trimmed) || trimmed.StartsWith('['))
-        {
-            return false;
-        }
-
-        var split = IndexOfWhitespace(trimmed);
-        if (split <= 0)
-        {
-            return false;
-        }
-
-        key = trimmed[..split];
-        value = trimmed[split..].Trim();
-        return value.Length > 0;
     }
 
     private static bool TryParseMcmLine(string line, out string key, out string value)
@@ -428,25 +423,6 @@ public static class AnomalyConfigurationManager
         return key.Length > 0 && value.Length > 0;
     }
 
-    private static string ReplaceAnomalyValue(string line, string value)
-    {
-        var leadingLength = line.Length - line.TrimStart().Length;
-        var trimmed = line[leadingLength..];
-        var split = IndexOfWhitespace(trimmed);
-        if (split < 0)
-        {
-            throw new InvalidDataException("Строка user.ltx имеет неизвестный формат");
-        }
-
-        var valueStart = split;
-        while (valueStart < trimmed.Length && char.IsWhiteSpace(trimmed[valueStart]))
-        {
-            valueStart++;
-        }
-
-        return line[..leadingLength] + trimmed[..valueStart] + value;
-    }
-
     private static string ReplaceMcmValue(string line, string value)
     {
         var equals = line.IndexOf('=');
@@ -462,54 +438,6 @@ public static class AnomalyConfigurationManager
         }
 
         return line[..valueStart] + value;
-    }
-
-    private static string GetAnomalyCategory(string key)
-    {
-        if (key.Equals("bind", StringComparison.OrdinalIgnoreCase)
-            || key.Equals("bind_sec", StringComparison.OrdinalIgnoreCase)
-            || key.Contains("mouse", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Управление";
-        }
-
-        if (key.StartsWith("snd", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Звук";
-        }
-
-        if (key.StartsWith("r_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("r2_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("r3_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("r4_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("rs_", StringComparison.OrdinalIgnoreCase)
-            || key.Contains("fov", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Графика";
-        }
-
-        if (key.StartsWith("g_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("hud_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("wpn_", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("actor_", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Игровой процесс";
-        }
-
-        return "Система и прочее";
-    }
-
-    private static int IndexOfWhitespace(string text)
-    {
-        for (var index = 0; index < text.Length; index++)
-        {
-            if (char.IsWhiteSpace(text[index]))
-            {
-                return index;
-            }
-        }
-
-        return -1;
     }
 
     private static bool IsComment(string trimmed) =>

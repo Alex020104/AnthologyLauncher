@@ -416,6 +416,21 @@ public static class Mo2WorkspaceReader
             return [];
         }
 
+        return ReadSaveDirectories(saveDirectories);
+    }
+
+    public static IReadOnlyList<Mo2SaveEntry> ReadSavesFromDirectory(string? saveDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(saveDirectory) || !Directory.Exists(saveDirectory))
+        {
+            return [];
+        }
+
+        return ReadSaveDirectories([Path.GetFullPath(saveDirectory)]);
+    }
+
+    private static Mo2SaveEntry[] ReadSaveDirectories(IEnumerable<string> saveDirectories)
+    {
         return saveDirectories
             .SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly))
             .Where(path => Path.GetExtension(path).Equals(".scop", StringComparison.OrdinalIgnoreCase)
