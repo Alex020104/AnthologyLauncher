@@ -1174,7 +1174,7 @@
                     <div class="settings-profile-copy">
                         <span class="eyebrow">ANOMALY RUNTIME CONTROL</span>
                         <h2>Соберите свой<br /><em>профиль запуска.</em></h2>
-                        <p>Здесь только параметры игры. Установка, обновления и подключение MO2 вынесены в собственные разделы Anthology Next.</p>
+                        <p>Здесь находятся профиль запуска, оригинальные параметры Anomaly и сохранённые настройки всех модов MCM. Пути и обновления остаются в отдельных разделах.</p>
                         <div class="settings-profile-tags"><span>@_settings.Renderer</span><span>@(_settings.UseAvx ? "AVX ON" : "AVX OFF")</span><span>SMAP @_settings.ShadowMapSize</span><span>@(_settings.RelayChatAlways ? "CHAT READY" : "CHAT MANUAL")</span></div>
                     </div>
                     <div class="settings-profile-terminal">
@@ -1231,6 +1231,80 @@
                             <label>Адрес сервера сообщества<input @bind="_settings.CommunityApiUrl" /></label>
                             <small>Адрес поставляется вместе с лаунчером. Меняйте его только по указанию команды Anthology.</small>
                         </details>
+                    </article>
+
+                    <article class="settings-module game-settings-module section-block">
+                        <div class="settings-module-heading game-settings-heading">
+                            <span class="module-index">05</span>
+                            <div><span class="eyebrow">РЕАЛЬНЫЕ ФАЙЛЫ ИГРЫ</span><h3>Настройки оригинальной Anomaly и MCM</h3></div>
+                            <small>@_gameConfiguration.StatusText</small>
+                        </div>
+                        <div class="game-settings-intro">
+                            <div>
+                                <strong>Полный редактор сохранённых параметров</strong>
+                                <p>Изменения записываются в <code>user.ltx</code> и приоритетный <code>MO2\overwrite\gamedata\configs\axr_options.ltx</code>. Перед каждой записью лаунчер создаёт резервную копию.</p>
+                            </div>
+                            <div class="game-settings-actions">
+                                <button class="secondary-button" @onclick="() => RefreshGameConfigurationAsync()" disabled="@_gameConfigurationBusy">↻ ОБНОВИТЬ СПИСОК</button>
+                                <button class="primary-button" @onclick="SaveGameConfigurationAsync" disabled="@(_gameConfigurationBusy || _gameConfiguration.DirtyCount == 0)">СОХРАНИТЬ ИЗМЕНЕНИЯ @(_gameConfiguration.DirtyCount > 0 ? $"({_gameConfiguration.DirtyCount})" : null)</button>
+                            </div>
+                        </div>
+
+                        @if (_gameConfigurationBusy)
+                        {
+                            <div class="game-settings-empty"><span class="settings-spinner"></span><strong>Читаем настройки игры…</strong></div>
+                        }
+                        else if (!_gameConfiguration.AnomalyAvailable && !_gameConfiguration.McmAvailable)
+                        {
+                            <div class="game-settings-empty"><span>!</span><div><strong>Файлы настроек пока не найдены</strong><small>Убедитесь, что игра была запущена хотя бы один раз и путь к Anthology определён в разделе «Пути и установка».</small></div></div>
+                        }
+                        else
+                        {
+                            <div class="game-settings-tabs">
+                                <button class="@(_configurationKind == AnomalyConfigurationKind.Anomaly ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Anomaly)" disabled="@(!_gameConfiguration.AnomalyAvailable)">
+                                    <span>ORIGINAL ANOMALY</span><strong>@_gameConfiguration.AnomalySettings.Count</strong><small>appdata\user.ltx</small>
+                                </button>
+                                <button class="@(_configurationKind == AnomalyConfigurationKind.Mcm ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Mcm)" disabled="@(!_gameConfiguration.McmAvailable)">
+                                    <span>MOD CONFIGURATION MENU</span><strong>@_gameConfiguration.McmSettings.Count</strong><small>axr_options.ltx · [mcm]</small>
+                                </button>
+                            </div>
+                            <div class="game-settings-source">
+                                <span>АКТИВНЫЙ ФАЙЛ</span><code>@CurrentConfigurationPath</code>
+                                <button @onclick="RestoreGameConfigurationAsync" disabled="@_gameConfigurationBusy">ВОССТАНОВИТЬ КОПИЮ</button>
+                            </div>
+                            <div class="game-settings-toolbar">
+                                <label class="game-settings-search"><span>⌕</span><input placeholder="Поиск параметра или значения" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
+                                <label><span>ГРУППА</span><select value="@_configurationCategory" @onchange="ChangeConfigurationCategory"><option value="">Все группы</option>@foreach (var category in ConfigurationCategories) { <option value="@category">@category</option> }</select></label>
+                                <div class="game-settings-counter"><strong>@FilteredConfigurationCount</strong><small>НАЙДЕНО</small></div>
+                            </div>
+                            <div class="game-settings-list">
+                                @foreach (var setting in VisibleConfigurationSettings)
+                                {
+                                    <div class="game-setting-row @(setting.IsDirty ? "changed" : null)">
+                                        <div class="game-setting-key"><span>@setting.Category</span><strong title="@setting.Key">@setting.Key</strong></div>
+                                        @if (setting.IsBoolean)
+                                        {
+                                            <button class="game-setting-boolean @(setting.BooleanValue ? "active" : null)" @onclick="setting.ToggleBoolean"><i></i><span>@setting.Value</span></button>
+                                        }
+                                        else
+                                        {
+                                            <input class="game-setting-value" value="@setting.Value" @oninput="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())" />
+                                        }
+                                        <button class="game-setting-reset" title="Вернуть исходное значение" @onclick="() => ResetConfigurationValue(setting)" disabled="@(!setting.IsDirty)">↶</button>
+                                    </div>
+                                }
+                            </div>
+                            @if (FilteredConfigurationCount == 0)
+                            {
+                                <div class="game-settings-empty compact"><strong>По этому запросу параметров нет</strong><small>Измените строку поиска или группу.</small></div>
+                            }
+                            <div class="game-settings-pagination">
+                                <button @onclick="PreviousConfigurationPage" disabled="@(_configurationPage == 0)">← НАЗАД</button>
+                                <span>СТРАНИЦА <strong>@(_configurationPage + 1)</strong> / @ConfigurationPageCount</span>
+                                <button @onclick="NextConfigurationPage" disabled="@(_configurationPage + 1 >= ConfigurationPageCount)">ДАЛЬШЕ →</button>
+                            </div>
+                            <div class="game-settings-warning"><span>!</span><p><strong>Игра и MO2 должны быть закрыты.</strong> MCM применит сохранённые значения после следующего запуска. Имена параметров оставлены оригинальными, чтобы ни один мод не потерял свои настройки.</p></div>
+                        }
                     </article>
 
                 </section>
@@ -1433,6 +1507,12 @@
     private SystemDiagnosticsSnapshot _systemDiagnostics = SystemDiagnosticsSnapshot.Pending();
     private bool _diagnosticsLoading;
     private LauncherSettings _settings = new();
+    private AnomalyConfigurationSnapshot _gameConfiguration = AnomalyConfigurationSnapshot.Empty;
+    private AnomalyConfigurationKind _configurationKind = AnomalyConfigurationKind.Anomaly;
+    private string _configurationSearch = string.Empty;
+    private string _configurationCategory = string.Empty;
+    private int _configurationPage;
+    private bool _gameConfigurationBusy;
     private UpdateCheckResult? _updateCheck;
     private UpdateProgress? _updateProgress;
     private bool _updateBusy;
@@ -1594,6 +1674,41 @@
     private bool CanLaunchLatestMo2Save =>
         _latestMo2Save is not null
         && CanLaunchConfiguredSave;
+    private const int ConfigurationPageSize = 100;
+    private IReadOnlyList<AnomalyConfigurationEntry> CurrentConfigurationSettings =>
+        _configurationKind == AnomalyConfigurationKind.Mcm
+            ? _gameConfiguration.McmSettings
+            : _gameConfiguration.AnomalySettings;
+    private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => CurrentConfigurationSettings
+        .Where(item => string.IsNullOrWhiteSpace(_configurationCategory)
+                       || item.Category.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
+        .Where(item => string.IsNullOrWhiteSpace(_configurationSearch)
+                       || item.Key.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                       || item.Value.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                       || item.Category.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase));
+    private IReadOnlyList<AnomalyConfigurationEntry> VisibleConfigurationSettings => FilteredConfigurationSettings
+        .Skip(_configurationPage * ConfigurationPageSize)
+        .Take(ConfigurationPageSize)
+        .ToArray();
+    private IReadOnlyList<string> ConfigurationCategories => CurrentConfigurationSettings
+        .Select(item => item.Category)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Order(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    private int FilteredConfigurationCount => FilteredConfigurationSettings.Count();
+    private int ConfigurationPageCount => Math.Max(1, (int)Math.Ceiling(FilteredConfigurationCount / (double)ConfigurationPageSize));
+    private string CurrentConfigurationPath => _configurationKind == AnomalyConfigurationKind.Mcm
+        ? _gameConfiguration.McmPath ?? "MCM не найден"
+        : _gameConfiguration.UserLtxPath ?? "user.ltx не найден";
+    private string ConfigurationSearch
+    {
+        get => _configurationSearch;
+        set
+        {
+            _configurationSearch = value ?? string.Empty;
+            _configurationPage = 0;
+        }
+    }
 
     private ContentTranslation Localized(ContentDocument content) =>
         ContentLocalization.Resolve(content, _settings.InterfaceLanguage);
@@ -1682,6 +1797,10 @@
         if (section == "support")
         {
             await RefreshBugReportsAsync();
+        }
+        if (section == "settings")
+        {
+            await RefreshGameConfigurationAsync(showToast: false);
         }
         if (section == "installation")
         {
@@ -1835,6 +1954,124 @@
         ShowToast(
             relayResult.Success ? "Настройки сохранены" : $"Настройки сохранены, но чат не подключён: {relayResult.Message}",
             !relayResult.Success);
+    }
+
+    private async Task RefreshGameConfigurationAsync(bool showToast = true)
+    {
+        if (_gameConfigurationBusy)
+        {
+            return;
+        }
+
+        _gameConfigurationBusy = true;
+        try
+        {
+            _gameConfiguration = await GameConfiguration.LoadAsync();
+            if (!_gameConfiguration.AnomalyAvailable && _gameConfiguration.McmAvailable)
+            {
+                _configurationKind = AnomalyConfigurationKind.Mcm;
+            }
+            else if (_configurationKind == AnomalyConfigurationKind.Mcm && !_gameConfiguration.McmAvailable)
+            {
+                _configurationKind = AnomalyConfigurationKind.Anomaly;
+            }
+
+            ResetConfigurationFilters();
+            if (showToast)
+            {
+                ShowToast(_gameConfiguration.StatusText, !_gameConfiguration.AnomalyAvailable && !_gameConfiguration.McmAvailable);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            ShowToast($"Не удалось прочитать настройки игры: {exception.Message}", true);
+        }
+        finally
+        {
+            _gameConfigurationBusy = false;
+        }
+    }
+
+    private async Task SaveGameConfigurationAsync()
+    {
+        if (_gameConfigurationBusy)
+        {
+            return;
+        }
+
+        _gameConfigurationBusy = true;
+        try
+        {
+            var result = await GameConfiguration.SaveAsync(_gameConfiguration);
+            ShowToast(result.Message, !result.Success);
+            if (result.Success && result.ChangedValues > 0)
+            {
+                _gameConfiguration = await GameConfiguration.LoadAsync();
+            }
+        }
+        finally
+        {
+            _gameConfigurationBusy = false;
+        }
+    }
+
+    private async Task RestoreGameConfigurationAsync()
+    {
+        if (_gameConfigurationBusy)
+        {
+            return;
+        }
+
+        _gameConfigurationBusy = true;
+        try
+        {
+            var result = await GameConfiguration.RestoreLatestBackupAsync(_gameConfiguration, _configurationKind);
+            ShowToast(result.Message, !result.Success);
+            if (result.Success)
+            {
+                _gameConfiguration = await GameConfiguration.LoadAsync();
+                ResetConfigurationFilters();
+            }
+        }
+        finally
+        {
+            _gameConfigurationBusy = false;
+        }
+    }
+
+    private void SelectConfigurationKind(AnomalyConfigurationKind kind)
+    {
+        _configurationKind = kind;
+        ResetConfigurationFilters();
+    }
+
+    private void ChangeConfigurationCategory(ChangeEventArgs eventArgs)
+    {
+        _configurationCategory = eventArgs.Value?.ToString() ?? string.Empty;
+        _configurationPage = 0;
+    }
+
+    private static void ChangeConfigurationValue(AnomalyConfigurationEntry setting, string? value) =>
+        setting.Value = value ?? string.Empty;
+
+    private static void ResetConfigurationValue(AnomalyConfigurationEntry setting) =>
+        setting.Value = setting.OriginalValue;
+
+    private void PreviousConfigurationPage()
+    {
+        _configurationPage = Math.Max(0, _configurationPage - 1);
+    }
+
+    private void NextConfigurationPage()
+    {
+        _configurationPage = Math.Min(ConfigurationPageCount - 1, _configurationPage + 1);
+    }
+
+    private void ResetConfigurationFilters()
+    {
+        _configurationSearch = string.Empty;
+        _configurationCategory = string.Empty;
+        _configurationPage = 0;
     }
 
     private static string ToggleClass(bool enabled) => enabled ? "active" : string.Empty;

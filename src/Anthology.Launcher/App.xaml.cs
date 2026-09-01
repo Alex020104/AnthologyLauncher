@@ -43,6 +43,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<RelayChatClient>();
         services.AddSingleton<LauncherBridge>();
         services.AddSingleton<Mo2IntegrationService>();
+        services.AddSingleton<AnomalyConfigurationService>();
         services.AddSingleton<AnomalySaveCatalogService>();
         services.AddSingleton<LauncherUpdateService>();
         services.AddSingleton<BundledInstallerService>();

@@ -9,7 +9,7 @@
     <SelfContained>true</SelfContained>
     <ApplicationIcon>../../assets/A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico</ApplicationIcon>
     <AssemblyName>AnthologyLauncher.Next</AssemblyName>
-    <Version>0.7.0-alpha.7</Version>
+    <Version>0.7.0-alpha.8</Version>
   </PropertyGroup>
 
   <ItemGroup>
