@@ -27,6 +27,20 @@ public sealed class AnomalyConfigurationEntry
 
     public required int LineIndex { get; init; }
 
+    public string? DisplayName { get; init; }
+
+    public string? Description { get; init; }
+
+    public string? CategoryDisplayName { get; init; }
+
+    public string? ControlType { get; init; }
+
+    public double? Minimum { get; init; }
+
+    public double? Maximum { get; init; }
+
+    public double? Step { get; init; }
+
     public bool IsDirty => !string.Equals(Value, OriginalValue, StringComparison.Ordinal);
 
     public bool IsBoolean => Value.Equals("true", StringComparison.OrdinalIgnoreCase)
@@ -87,14 +101,14 @@ public static class AnomalyConfigurationManager
     public static AnomalyConfigurationSnapshot Load(string? gameRoot, string? mo2Root)
     {
         var userLtx = ResolveUserLtx(gameRoot);
-        var (mcmSource, mcmTarget) = ResolveMcm(gameRoot, mo2Root);
+        var (mcmSource, mcmTarget) = ResolveMcm(gameRoot);
 
         var anomalySettings = userLtx is null
             ? []
             : ParseAnomaly(userLtx, userLtx);
         var mcmSettings = mcmSource is null || mcmTarget is null
             ? []
-            : ParseMcm(mcmSource, mcmTarget);
+            : ParseMcm(mcmSource, mcmTarget, McmConfigurationMetadataCatalog.Load(mo2Root));
 
         var status = anomalySettings.Count == 0 && mcmSettings.Count == 0
             ? "Файлы user.ltx и MCM не найдены. Проверьте установленную игру."
@@ -243,23 +257,15 @@ public static class AnomalyConfigurationManager
         return File.Exists(fallback) ? fallback : null;
     }
 
-    private static (string? Source, string? Target) ResolveMcm(string? gameRoot, string? mo2Root)
+    private static (string? Source, string? Target) ResolveMcm(string? gameRoot)
     {
         var gameMcm = string.IsNullOrWhiteSpace(gameRoot)
             ? null
             : Path.Combine(Path.GetFullPath(gameRoot), "gamedata", "configs", "axr_options.ltx");
-        var mo2Mcm = string.IsNullOrWhiteSpace(mo2Root)
-            ? null
-            : Path.Combine(Path.GetFullPath(mo2Root), "overwrite", "gamedata", "configs", "axr_options.ltx");
-
-        if (mo2Mcm is not null && File.Exists(mo2Mcm))
-        {
-            return (mo2Mcm, mo2Mcm);
-        }
 
         if (gameMcm is not null && File.Exists(gameMcm))
         {
-            return mo2Mcm is null ? (gameMcm, gameMcm) : (gameMcm, mo2Mcm);
+            return (gameMcm, gameMcm);
         }
 
         return (null, null);
@@ -292,7 +298,10 @@ public static class AnomalyConfigurationManager
         return result;
     }
 
-    private static List<AnomalyConfigurationEntry> ParseMcm(string sourcePath, string targetPath)
+    private static List<AnomalyConfigurationEntry> ParseMcm(
+        string sourcePath,
+        string targetPath,
+        McmConfigurationMetadataCatalog metadataCatalog)
     {
         var document = TextFileDocument.Read(sourcePath);
         var result = new List<AnomalyConfigurationEntry>();
@@ -313,6 +322,7 @@ public static class AnomalyConfigurationManager
             }
 
             var slash = key.IndexOf('/');
+            var metadata = metadataCatalog.Resolve(key);
             result.Add(new AnomalyConfigurationEntry
             {
                 Kind = AnomalyConfigurationKind.Mcm,
@@ -323,6 +333,13 @@ public static class AnomalyConfigurationManager
                 SourcePath = sourcePath,
                 TargetPath = targetPath,
                 LineIndex = index,
+                DisplayName = metadata?.DisplayName,
+                Description = metadata?.Description,
+                CategoryDisplayName = metadata?.CategoryDisplayName,
+                ControlType = metadata?.ControlType,
+                Minimum = metadata?.Minimum,
+                Maximum = metadata?.Maximum,
+                Step = metadata?.Step,
             });
         }
 

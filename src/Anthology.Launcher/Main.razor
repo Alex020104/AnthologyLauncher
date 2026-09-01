@@ -1,4 +1,5 @@
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
 @implements IDisposable
 
 <div class="app-shell @(ShowTransferDock ? "transfer-active" : null)">
@@ -1241,8 +1242,8 @@
                         </div>
                         <div class="game-settings-intro">
                             <div>
-                                <strong>Полный редактор сохранённых параметров</strong>
-                                <p>Изменения записываются в <code>user.ltx</code> и приоритетный <code>MO2\overwrite\gamedata\configs\axr_options.ltx</code>. Перед каждой записью лаунчер создаёт резервную копию.</p>
+                                <strong>Знакомое меню Anomaly и Mod Configuration Menu</strong>
+                                <p>Обычные параметры показаны понятными названиями и элементами управления. Anomaly записывается в <code>appdata\user.ltx</code>, а MCM — только в оригинальный <code>gamedata\configs\axr_options.ltx</code> в корне игры.</p>
                             </div>
                             <div class="game-settings-actions">
                                 <button class="secondary-button" @onclick="() => RefreshGameConfigurationAsync()" disabled="@_gameConfigurationBusy">↻ ОБНОВИТЬ СПИСОК</button>
@@ -1269,41 +1270,82 @@
                                 </button>
                             </div>
                             <div class="game-settings-source">
-                                <span>АКТИВНЫЙ ФАЙЛ</span><code>@CurrentConfigurationPath</code>
+                                <span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ОРИГИНАЛЬНЫЙ ФАЙЛ MCM" : "АКТИВНЫЙ ФАЙЛ ANOMALY")</span><code>@CurrentConfigurationPath</code>
                                 <button @onclick="RestoreGameConfigurationAsync" disabled="@_gameConfigurationBusy">ВОССТАНОВИТЬ КОПИЮ</button>
                             </div>
-                            <div class="game-settings-toolbar">
-                                <label class="game-settings-search"><span>⌕</span><input placeholder="Поиск параметра или значения" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
-                                <label><span>ГРУППА</span><select value="@_configurationCategory" @onchange="ChangeConfigurationCategory"><option value="">Все группы</option>@foreach (var category in ConfigurationCategories) { <option value="@category">@category</option> }</select></label>
-                                <div class="game-settings-counter"><strong>@FilteredConfigurationCount</strong><small>НАЙДЕНО</small></div>
-                            </div>
-                            <div class="game-settings-list">
-                                @foreach (var setting in VisibleConfigurationSettings)
-                                {
-                                    <div class="game-setting-row @(setting.IsDirty ? "changed" : null)">
-                                        <div class="game-setting-key"><span>@setting.Category</span><strong title="@setting.Key">@setting.Key</strong></div>
-                                        @if (setting.IsBoolean)
-                                        {
-                                            <button class="game-setting-boolean @(setting.BooleanValue ? "active" : null)" @onclick="setting.ToggleBoolean"><i></i><span>@setting.Value</span></button>
-                                        }
-                                        else
-                                        {
-                                            <input class="game-setting-value" value="@setting.Value" @oninput="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())" />
-                                        }
-                                        <button class="game-setting-reset" title="Вернуть исходное значение" @onclick="() => ResetConfigurationValue(setting)" disabled="@(!setting.IsDirty)">↶</button>
+                            <div class="native-options-shell">
+                                <aside class="native-options-navigation">
+                                    <header><span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "МОДУЛИ MCM" : "РАЗДЕЛЫ ANOMALY")</span><strong>@ConfigurationCategories.Count</strong></header>
+                                    <button class="@(_configurationCategory.Length == 0 ? "active" : null)" @onclick="() => SelectConfigurationCategory(string.Empty)"><span>Все настройки</span><small>@FriendlyConfigurationCount</small></button>
+                                    @foreach (var category in ConfigurationCategories)
+                                    {
+                                        var currentCategory = category;
+                                        <button class="@(_configurationCategory.Equals(currentCategory, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationCategory(currentCategory)">
+                                            <span>@GameSettingsPresentation.CategoryTitle(_configurationKind, currentCategory)</span><small>@ConfigurationCategoryCount(currentCategory)</small>
+                                        </button>
+                                    }
+                                </aside>
+                                <section class="native-options-panel">
+                                    <header class="native-options-header">
+                                        <div><span class="eyebrow">@(_configurationKind == AnomalyConfigurationKind.Mcm ? "MOD CONFIGURATION MENU" : "ORIGINAL ANOMALY")</span><h3>@SelectedConfigurationCategoryTitle</h3><p>@SelectedConfigurationCategoryDescription</p></div>
+                                        <div class="game-settings-counter"><strong>@FilteredConfigurationCount</strong><small>ПАРАМЕТРОВ</small></div>
+                                    </header>
+                                    <div class="native-options-tools">
+                                        <label class="game-settings-search"><span>⌕</span><input placeholder="Найти настройку" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
+                                        <button class="advanced-settings-toggle @(_configurationAdvanced ? "active" : null)" @onclick="ToggleAdvancedConfiguration"><i></i><span>РАСШИРЕННЫЙ РЕЖИМ</span></button>
                                     </div>
-                                }
+                                    <div class="game-settings-list native-settings-list">
+                                        @foreach (var setting in VisibleConfigurationSettings)
+                                        {
+                                            var view = GameSettingsPresentation.For(setting);
+                                            <div class="game-setting-row native-setting-row @(setting.IsDirty ? "changed" : null)">
+                                                <div class="game-setting-key">
+                                                    <strong>@view.Title</strong>
+                                                    <p>@view.Description</p>
+                                                    @if (_configurationAdvanced) { <code>@setting.Key</code> }
+                                                </div>
+                                                @if (view.Control == GameSettingControl.Toggle)
+                                                {
+                                                    <button class="game-setting-boolean @(setting.BooleanValue ? "active" : null)" @onclick="setting.ToggleBoolean"><i></i><span>@(setting.BooleanValue ? "ВКЛ" : "ВЫКЛ")</span></button>
+                                                }
+                                                else if (view.Control == GameSettingControl.Select)
+                                                {
+                                                    <select class="game-setting-value native-select" value="@setting.Value" @onchange="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())">
+                                                        @foreach (var choice in view.Choices ?? []) { <option value="@choice.Value">@choice.Label</option> }
+                                                        @if (!(view.Choices ?? []).Any(choice => choice.Value.Equals(setting.Value, StringComparison.OrdinalIgnoreCase))) { <option value="@setting.Value">@setting.Value</option> }
+                                                    </select>
+                                                }
+                                                else if (view.Control == GameSettingControl.Slider)
+                                                {
+                                                    <div class="native-slider-control">
+                                                        <input type="range" min="@Invariant(view.Minimum)" max="@Invariant(view.Maximum)" step="@Invariant(view.Step)" value="@setting.Value" @oninput="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())" />
+                                                        <input class="game-setting-value" type="number" min="@Invariant(view.Minimum)" max="@Invariant(view.Maximum)" step="@Invariant(view.Step)" value="@setting.Value" @oninput="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())" />
+                                                    </div>
+                                                }
+                                                else if (view.Control == GameSettingControl.Number)
+                                                {
+                                                    <div class="native-number-control"><button @onclick="() => StepConfigurationValue(setting, -(view.Step ?? 1))">−</button><input class="game-setting-value" type="number" step="@Invariant(view.Step)" value="@setting.Value" @oninput="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())" /><button @onclick="() => StepConfigurationValue(setting, view.Step ?? 1)">+</button></div>
+                                                }
+                                                else
+                                                {
+                                                    <input class="game-setting-value" value="@setting.Value" @oninput="eventArgs => ChangeConfigurationValue(setting, eventArgs.Value?.ToString())" />
+                                                }
+                                                <button class="game-setting-reset" title="Вернуть исходное значение" @onclick="() => ResetConfigurationValue(setting)" disabled="@(!setting.IsDirty)">↶</button>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (FilteredConfigurationCount == 0)
+                                    {
+                                        <div class="game-settings-empty compact"><strong>Подходящих настроек нет</strong><small>Измените поиск, раздел или включите расширенный режим.</small></div>
+                                    }
+                                    <div class="game-settings-pagination">
+                                        <button @onclick="PreviousConfigurationPage" disabled="@(_configurationPage == 0)">← НАЗАД</button>
+                                        <span>СТРАНИЦА <strong>@(_configurationPage + 1)</strong> / @ConfigurationPageCount</span>
+                                        <button @onclick="NextConfigurationPage" disabled="@(_configurationPage + 1 >= ConfigurationPageCount)">ДАЛЬШЕ →</button>
+                                    </div>
+                                </section>
                             </div>
-                            @if (FilteredConfigurationCount == 0)
-                            {
-                                <div class="game-settings-empty compact"><strong>По этому запросу параметров нет</strong><small>Измените строку поиска или группу.</small></div>
-                            }
-                            <div class="game-settings-pagination">
-                                <button @onclick="PreviousConfigurationPage" disabled="@(_configurationPage == 0)">← НАЗАД</button>
-                                <span>СТРАНИЦА <strong>@(_configurationPage + 1)</strong> / @ConfigurationPageCount</span>
-                                <button @onclick="NextConfigurationPage" disabled="@(_configurationPage + 1 >= ConfigurationPageCount)">ДАЛЬШЕ →</button>
-                            </div>
-                            <div class="game-settings-warning"><span>!</span><p><strong>Игра и MO2 должны быть закрыты.</strong> MCM применит сохранённые значения после следующего запуска. Имена параметров оставлены оригинальными, чтобы ни один мод не потерял свои настройки.</p></div>
+                            <div class="game-settings-warning"><span>!</span><p><strong>Игра и MO2 должны быть закрыты.</strong> Перед записью создаётся резервная копия. MCM сохраняется непосредственно в оригинальный файл игры и применяется после следующего запуска.</p></div>
                         }
                     </article>
 
@@ -1512,6 +1554,7 @@
     private string _configurationSearch = string.Empty;
     private string _configurationCategory = string.Empty;
     private int _configurationPage;
+    private bool _configurationAdvanced;
     private bool _gameConfigurationBusy;
     private UpdateCheckResult? _updateCheck;
     private UpdateProgress? _updateProgress;
@@ -1674,32 +1717,55 @@
     private bool CanLaunchLatestMo2Save =>
         _latestMo2Save is not null
         && CanLaunchConfiguredSave;
-    private const int ConfigurationPageSize = 100;
+    private const int ConfigurationPageSize = 60;
     private IReadOnlyList<AnomalyConfigurationEntry> CurrentConfigurationSettings =>
         _configurationKind == AnomalyConfigurationKind.Mcm
             ? _gameConfiguration.McmSettings
             : _gameConfiguration.AnomalySettings;
-    private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => CurrentConfigurationSettings
+    private IEnumerable<AnomalyConfigurationEntry> FriendlyConfigurationSettings => CurrentConfigurationSettings
+        .Where(item => _configurationKind == AnomalyConfigurationKind.Mcm
+                       || _configurationAdvanced
+                       || GameSettingsPresentation.For(item).IsFriendly);
+    private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => FriendlyConfigurationSettings
         .Where(item => string.IsNullOrWhiteSpace(_configurationCategory)
-                       || item.Category.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
-        .Where(item => string.IsNullOrWhiteSpace(_configurationSearch)
-                       || item.Key.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
-                       || item.Value.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
-                       || item.Category.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase));
+                       || GameSettingsPresentation.For(item).CategoryTitle.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
+        .Where(item =>
+        {
+            if (string.IsNullOrWhiteSpace(_configurationSearch))
+            {
+                return true;
+            }
+
+            var view = GameSettingsPresentation.For(item);
+            return item.Key.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                   || item.Value.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                   || view.Title.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                   || view.Description.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase)
+                   || view.CategoryTitle.Contains(_configurationSearch, StringComparison.OrdinalIgnoreCase);
+        });
     private IReadOnlyList<AnomalyConfigurationEntry> VisibleConfigurationSettings => FilteredConfigurationSettings
         .Skip(_configurationPage * ConfigurationPageSize)
         .Take(ConfigurationPageSize)
         .ToArray();
-    private IReadOnlyList<string> ConfigurationCategories => CurrentConfigurationSettings
-        .Select(item => item.Category)
+    private IReadOnlyList<string> ConfigurationCategories => FriendlyConfigurationSettings
+        .Select(item => GameSettingsPresentation.For(item).CategoryTitle)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Order(StringComparer.OrdinalIgnoreCase)
         .ToArray();
+    private int FriendlyConfigurationCount => FriendlyConfigurationSettings.Count();
     private int FilteredConfigurationCount => FilteredConfigurationSettings.Count();
     private int ConfigurationPageCount => Math.Max(1, (int)Math.Ceiling(FilteredConfigurationCount / (double)ConfigurationPageSize));
     private string CurrentConfigurationPath => _configurationKind == AnomalyConfigurationKind.Mcm
         ? _gameConfiguration.McmPath ?? "MCM не найден"
         : _gameConfiguration.UserLtxPath ?? "user.ltx не найден";
+    private string SelectedConfigurationCategoryTitle => string.IsNullOrWhiteSpace(_configurationCategory)
+        ? _configurationKind == AnomalyConfigurationKind.Mcm ? "Все установленные модули" : "Основные настройки игры"
+        : _configurationCategory;
+    private string SelectedConfigurationCategoryDescription => _configurationKind == AnomalyConfigurationKind.Mcm
+        ? "Параметры организованы по модулям так же, как в игровом MCM. Выберите модуль слева."
+        : _configurationAdvanced
+            ? "Показаны также системные команды user.ltx. Неизвестные значения изменяйте только осознанно."
+            : "Здесь собраны понятные повседневные параметры. Системные команды скрыты в расширенном режиме.";
     private string ConfigurationSearch
     {
         get => _configurationSearch;
@@ -2042,17 +2108,40 @@
     private void SelectConfigurationKind(AnomalyConfigurationKind kind)
     {
         _configurationKind = kind;
+        _configurationAdvanced = false;
         ResetConfigurationFilters();
     }
 
-    private void ChangeConfigurationCategory(ChangeEventArgs eventArgs)
+    private void SelectConfigurationCategory(string category)
     {
-        _configurationCategory = eventArgs.Value?.ToString() ?? string.Empty;
+        _configurationCategory = category;
+        _configurationPage = 0;
+    }
+
+    private int ConfigurationCategoryCount(string category) => FriendlyConfigurationSettings.Count(item =>
+        GameSettingsPresentation.For(item).CategoryTitle.Equals(category, StringComparison.OrdinalIgnoreCase));
+
+    private void ToggleAdvancedConfiguration()
+    {
+        _configurationAdvanced = !_configurationAdvanced;
+        _configurationCategory = string.Empty;
         _configurationPage = 0;
     }
 
     private static void ChangeConfigurationValue(AnomalyConfigurationEntry setting, string? value) =>
         setting.Value = value ?? string.Empty;
+
+    private static void StepConfigurationValue(AnomalyConfigurationEntry setting, double step)
+    {
+        if (!double.TryParse(setting.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var current))
+        {
+            current = 0;
+        }
+
+        setting.Value = (current + step).ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static string? Invariant(double? value) => value?.ToString("0.###", CultureInfo.InvariantCulture);
 
     private static void ResetConfigurationValue(AnomalyConfigurationEntry setting) =>
         setting.Value = setting.OriginalValue;
