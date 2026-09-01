@@ -171,6 +171,18 @@ public static partial class ReleasePublicationService
             media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
             catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
         }
+        else
+        {
+            // Keep every already-published document and media URL, but allow each
+            // launcher release to carry its own release notes and current version.
+            var releaseNotes = UnifiedReleaseBuilder.CreateContentCatalog(workspace).Changelog;
+            catalog = catalog with
+            {
+                Version = workspace.Version.Trim(),
+                PublishedAt = DateTimeOffset.UtcNow,
+                Changelog = releaseNotes ?? catalog.Changelog,
+            };
+        }
         var updateManifest = new UpdateManifest(
             4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),

@@ -919,6 +919,13 @@ public sealed class ReleaserCoreTests : IDisposable
 
         await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
         workspace.Content.Clear();
+        workspace.Changelog = new ReleaseChangelogDraft
+        {
+            Title = "Launcher 0.7.0 alpha",
+            Summary = "New launcher build",
+            Body = "Diagnostics and settings were updated.",
+            Warnings = "Restart the launcher after installation.",
+        };
         var result = await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
 
         Assert.Equal(4, result.Files);
@@ -927,6 +934,9 @@ public sealed class ReleaserCoreTests : IDisposable
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
         var package = Assert.Single(manifest!.Payload.Packages);
         Assert.Equal("launcher-publication-news", Assert.Single(manifest.Payload.Content!.Items).Id);
+        Assert.Equal(workspace.Version, manifest.Payload.Content.Version);
+        Assert.Equal("Launcher 0.7.0 alpha", manifest.Payload.Content.Changelog!.Title);
+        Assert.Equal("Diagnostics and settings were updated.", manifest.Payload.Content.Changelog.Body);
         Assert.Equal("anthology-launcher", package.Id);
         Assert.Equal(PackageKind.Launcher, package.Kind);
         Assert.Equal("game", package.InstallRoot);
