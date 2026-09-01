@@ -3,32 +3,32 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.151",
-    "publishedAt": "2026-09-01T08:29:28.6471853+00:00",
+    "publishedAt": "2026-09-01T09:14:03.3533423+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.8",
-        "version": "0.7.0-alpha.8",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.9",
+        "version": "0.7.0-alpha.9",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 4923435,
-        "sha256": "1db74f570b3fab9a882b1df41fc90c259d7161ebbedb8a25bfff0cb84ca07754",
+        "size": 4947921,
+        "sha256": "bc7006f12c5c40d8c17e7c74827631f15eded786a5d5374e4400ec9f91549f86",
         "mirrors": [
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.151/anthology-launcher-2.1.151.zip",
-            "priority": 10
-          },
           {
             "provider": "github",
             "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.151/anthology-launcher-2.1.151.zip",
+            "priority": 10
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.151/anthology-launcher-2.1.151.zip",
             "priority": 20
           }
         ],
         "files": [
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.8.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.9.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -576,6 +576,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "iiamqV/nZZCOkhDOq6css/ljRceykksqcMFs6v/045cznMTRpz0u3MWko4NKBxcylve2vdi6DseuIlbUnvcPfA=="
+    "value": "Kgx8VfmeGLJYedN76TLBxS3xhu/JLk04iVezO/kJPcq8VwiqcYbFGcbSfX7AUVcIZia4bOEXCOFkgQMmGQLuDw=="
   }
 }
