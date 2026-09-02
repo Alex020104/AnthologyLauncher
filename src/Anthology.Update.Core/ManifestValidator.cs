@@ -232,6 +232,11 @@ public static partial class ManifestValidator
                 errors.Add($"Package '{package.Id}' has unsafe directory deletion path '{path}': {exception.Message}");
             }
         }
+
+        foreach (var error in PackageInstallScopePolicy.Validate(package))
+        {
+            errors.Add(error);
+        }
     }
 
     private static void ValidateContent(ContentCatalog content, List<string> errors)

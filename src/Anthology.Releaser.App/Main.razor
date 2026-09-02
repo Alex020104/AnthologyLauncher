@@ -659,7 +659,10 @@
             Toast("Удаляемая папка должна находиться внутри выбранного корня; удалить сам корень нельзя.", true);
             return;
         }
-        AddQuickFolderDeletion(installRoot, relative);
+        var destination = installRoot == "game"
+            ? PathSafety.NormalizeRelativePath(relative)
+            : QuickReleaseDestinationMapper.CreateFolderDestination(installRoot, root, folder);
+        AddQuickFolderDeletion(installRoot, destination);
     }
 
     private void SelectQuickDeletionFiles(string installRoot)
@@ -684,7 +687,10 @@
                 Toast("Удаляемый файл должен находиться внутри выбранного корня.", true);
                 continue;
             }
-            AddQuickDeletion(installRoot, relative);
+            var destination = installRoot == "game"
+                ? PathSafety.NormalizeRelativePath(relative)
+                : QuickReleaseDestinationMapper.CreateFileDestination(installRoot, root, file);
+            AddQuickDeletion(installRoot, destination);
         }
     }
 

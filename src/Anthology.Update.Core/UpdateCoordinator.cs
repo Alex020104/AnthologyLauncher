@@ -463,6 +463,13 @@ public sealed class UpdateCoordinator
             return new UpdateApplyResult(0, 0, 0);
         }
 
+        foreach (var update in pending)
+        {
+            // ApplyAsync is public, so do not assume every caller obtained this
+            // result from CheckAsync in the same process.
+            PackageInstallScopePolicy.ValidateAndThrow(update.Package);
+        }
+
         var resolvedRoots = pending.ToDictionary(
             update => update.Package.Id,
             update => ResolveInstallRoot(update.Package, installRoots),
@@ -558,13 +565,19 @@ public sealed class UpdateCoordinator
                         package.PreservedPaths ?? [])
                         .Except(package.Files, StringComparer.OrdinalIgnoreCase));
                 }
+                var distinctObsoleteFiles = obsoleteFiles
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                PackageInstallScopePolicy.ValidateResolvedTargetsAndThrow(
+                    package,
+                    installPaths.Concat(distinctObsoleteFiles));
                 progress?.Report(new UpdateProgress(UpdateStage.Installing, $"Установка {package.DisplayName}", package.Id));
                 var installResult = await TransactionalFileInstaller.ApplyAsync(
                     stagingRoot,
                     resolvedRoots[package.Id],
                     stateRoot,
                     installPaths,
-                    obsoleteFiles.Distinct(StringComparer.OrdinalIgnoreCase),
+                    distinctObsoleteFiles,
                     cancellationToken);
 
                 applied.Add(new AppliedPackage(
@@ -1061,11 +1074,7 @@ public sealed class UpdateCoordinator
 
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 32 * 1024, FileOptions.Asynchronous);
         var files = await JsonSerializer.DeserializeAsync<string[]>(stream, ManifestJson.Options, cancellationToken) ?? [];
-        return files
-            .Select(PathSafety.NormalizeRelativePath)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        return NormalizeManagedPaths(packageId, files);
     }
 
     private static Task WriteManagedFilesAsync(
@@ -1075,7 +1084,7 @@ public sealed class UpdateCoordinator
         CancellationToken cancellationToken) =>
         WriteStringArrayAtomicallyAsync(
             GetManagedFilesPath(stateRoot, packageId),
-            files,
+            NormalizeManagedPaths(packageId, files),
             cancellationToken);
 
     private static Task WriteManagedSnapshotAsync(
@@ -1133,8 +1142,7 @@ public sealed class UpdateCoordinator
     {
         var files = package.UpdateMode == PackageUpdateMode.ManagedExact || package.PruneInstallRoot
             ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            : previousFiles
-                .Select(PathSafety.NormalizeRelativePath)
+            : NormalizeManagedPaths(package.Id, previousFiles)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         RemoveDeletedPaths(files, package.DeletedFiles, package.DeletedDirectories);
         files.UnionWith(package.Files.Select(PathSafety.NormalizeRelativePath));
@@ -1146,11 +1154,11 @@ public sealed class UpdateCoordinator
         IReadOnlyList<PackageFileIntegrity> archiveIntegrity,
         ManagedIntegrityState? previous)
     {
+        var previousFiles = SanitizeManagedIntegrityState(package.Id, previous)?.Files ?? [];
         var files = package.UpdateMode == PackageUpdateMode.ManagedExact || package.PruneInstallRoot
             ? new Dictionary<string, PackageFileIntegrity>(StringComparer.OrdinalIgnoreCase)
-            : (previous?.Files ?? [])
-                .ToDictionary(
-                    file => PathSafety.NormalizeRelativePath(file.Path),
+            : previousFiles.ToDictionary(
+                    file => file.Path,
                     file => file,
                     StringComparer.OrdinalIgnoreCase);
         RemoveDeletedPaths(files, package.DeletedFiles, package.DeletedDirectories);
@@ -1221,14 +1229,7 @@ public sealed class UpdateCoordinator
         {
             throw new InvalidDataException($"Managed integrity state for '{packageId}' is invalid.");
         }
-        return state with
-        {
-            Files = state.Files
-                .Select(file => file with { Path = PathSafety.NormalizeRelativePath(file.Path) })
-                .DistinctBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
-                .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
-                .ToArray(),
-        };
+        return SanitizeManagedIntegrityState(packageId, state);
     }
 
     private static async Task WriteManagedIntegrityAsync(
@@ -1246,7 +1247,72 @@ public sealed class UpdateCoordinator
             }
             return;
         }
-        await WriteJsonAtomicallyAsync(path, state, cancellationToken);
+        await WriteJsonAtomicallyAsync(
+            path,
+            SanitizeManagedIntegrityState(packageId, state),
+            cancellationToken);
+    }
+
+    private static string[] NormalizeManagedPaths(
+        string packageId,
+        IEnumerable<string> paths)
+    {
+        var normalized = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in paths)
+        {
+            if (!TryNormalizeManagedPath(packageId, path, out var candidate))
+            {
+                continue;
+            }
+            normalized.Add(candidate);
+        }
+
+        return normalized.Order(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static ManagedIntegrityState? SanitizeManagedIntegrityState(
+        string packageId,
+        ManagedIntegrityState? state)
+    {
+        if (state is null)
+        {
+            return null;
+        }
+
+        var files = new Dictionary<string, PackageFileIntegrity>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in state.Files ?? [])
+        {
+            if (TryNormalizeManagedPath(packageId, file.Path, out var path))
+            {
+                files.TryAdd(path, file with { Path = path });
+            }
+        }
+
+        return state with
+        {
+            Files = files.Values
+                .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+        };
+    }
+
+    private static bool TryNormalizeManagedPath(
+        string packageId,
+        string path,
+        out string normalized)
+    {
+        var restricted = PackageInstallScopePolicy.IsMo2ModsOnlyPackage(packageId);
+        try
+        {
+            normalized = PathSafety.NormalizeRelativePath(path);
+        }
+        catch (ArgumentException) when (restricted)
+        {
+            normalized = string.Empty;
+            return false;
+        }
+
+        return !restricted || PackageInstallScopePolicy.IsAllowedMo2ModsPath(normalized);
     }
 
     private static Task WriteManagedIntegritySnapshotAsync(

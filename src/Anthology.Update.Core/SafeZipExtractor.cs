@@ -37,6 +37,10 @@ public static class SafeZipExtractor
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingRoot);
         ArgumentNullException.ThrowIfNull(package);
 
+        // Callers normally arrive through ManifestValidator, but extraction is a
+        // public API and must enforce the package-specific boundary on its own.
+        PackageInstallScopePolicy.ValidateAndThrow(package);
+
         var expected = package.Files
             .Select(PathSafety.NormalizeRelativePath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -45,9 +49,7 @@ public static class SafeZipExtractor
             throw new InvalidDataException("Manifest contains duplicate package paths.");
         }
 
-        Directory.CreateDirectory(Path.GetFullPath(stagingRoot));
         using var archive = ZipFile.OpenRead(Path.GetFullPath(archivePath));
-        var extracted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var expectedIntegrity = integrity?.ToDictionary(
             file => PathSafety.NormalizeRelativePath(file.Path),
             StringComparer.OrdinalIgnoreCase);
@@ -58,29 +60,34 @@ public static class SafeZipExtractor
         {
             throw new InvalidDataException("Selected extraction paths are not declared by the package.");
         }
-        var extractedSelected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        long expandedSize = 0;
 
+        // Validate the complete central directory before creating or writing the
+        // staging tree. A bad entry must never be discovered after earlier files
+        // have already been extracted.
+        var archivedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        long expandedSize = 0;
         foreach (var entry in archive.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.IsNullOrEmpty(entry.Name))
-            {
-                continue;
-            }
-
             if (IsSymbolicLink(entry))
             {
                 throw new InvalidDataException($"Symbolic link is forbidden in package: '{entry.FullName}'.");
             }
 
+            if (string.IsNullOrEmpty(entry.Name))
+            {
+                PackageInstallScopePolicy.ValidateArchiveEntryAndThrow(package, entry.FullName, true);
+                continue;
+            }
+
             var relativePath = PathSafety.NormalizeRelativePath(entry.FullName);
+            PackageInstallScopePolicy.ValidateArchiveEntryAndThrow(package, relativePath, false);
             if (!expected.Contains(relativePath))
             {
                 throw new InvalidDataException($"Archive contains undeclared file '{relativePath}'.");
             }
 
-            if (!extracted.Add(relativePath))
+            if (!archivedFiles.Add(relativePath))
             {
                 throw new InvalidDataException($"Archive contains duplicate file '{relativePath}'.");
             }
@@ -97,12 +104,28 @@ public static class SafeZipExtractor
             {
                 throw new InvalidDataException($"Integrity metadata does not match '{relativePath}'.");
             }
+        }
 
+        var missing = expected.Except(archivedFiles, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (missing.Length > 0)
+        {
+            throw new InvalidDataException($"Archive is missing {missing.Length} declared file(s): {string.Join(", ", missing.Take(5))}.");
+        }
+
+        Directory.CreateDirectory(Path.GetFullPath(stagingRoot));
+        foreach (var entry in archive.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrEmpty(entry.Name))
+            {
+                continue;
+            }
+
+            var relativePath = PathSafety.NormalizeRelativePath(entry.FullName);
             if (!selected.Contains(relativePath))
             {
                 continue;
             }
-            extractedSelected.Add(relativePath);
 
             var destination = PathSafety.ResolveUnderRoot(stagingRoot, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -139,17 +162,6 @@ public static class SafeZipExtractor
                 }
             }
             await target.FlushAsync(cancellationToken);
-        }
-
-        var missing = expected.Except(extracted, StringComparer.OrdinalIgnoreCase).ToArray();
-        if (missing.Length > 0)
-        {
-            throw new InvalidDataException($"Archive is missing {missing.Length} declared file(s): {string.Join(", ", missing.Take(5))}.");
-        }
-        var missingSelected = selected.Except(extractedSelected, StringComparer.OrdinalIgnoreCase).ToArray();
-        if (missingSelected.Length > 0)
-        {
-            throw new InvalidDataException($"Archive is missing {missingSelected.Length} selected file(s): {string.Join(", ", missingSelected.Take(5))}.");
         }
     }
 

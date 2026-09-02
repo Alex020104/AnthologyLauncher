@@ -19,8 +19,11 @@ public sealed class LauncherUpdateService(
 
     private readonly UpdateCoordinator _coordinator = new(httpClient);
 
+    public LegacyMo2LayoutMigrationResult? LastLegacyLayoutMigration { get; private set; }
+
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken cancellationToken = default)
     {
+        using var transferLease = operationGate.EnterTransfer();
         var settings = settingsStore.Current;
         ProductionTrustAnchor.ValidatePublicKey(settings.PublicKeyPath);
         var result = await _coordinator.CheckAsync(
@@ -32,6 +35,7 @@ public sealed class LauncherUpdateService(
             cancellationToken);
         ProductionTrustAnchor.ValidateManifest(result.SignedManifest);
         await CacheVerifiedManifestAsync(result.SignedManifest, cancellationToken);
+        await RunLegacyLayoutMigrationAsync(settings, cancellationToken);
         return result;
     }
 
@@ -108,19 +112,22 @@ public sealed class LauncherUpdateService(
         return destination;
     }
 
-    public Task<UpdateApplyResult> ApplyAsync(
+    public async Task<UpdateApplyResult> ApplyAsync(
         UpdateCheckResult check,
         IProgress<UpdateProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        using var transferLease = operationGate.EnterTransfer();
         var settings = settingsStore.Current;
-        return _coordinator.ApplyAsync(
+        var result = await _coordinator.ApplyAsync(
             check,
             CreateInstallRoots(settings),
             settingsStore.UpdaterStateRoot,
             progress,
             settings.PreferredMirrorProvider,
             cancellationToken);
+        await RunLegacyLayoutMigrationAsync(settings, cancellationToken);
+        return result;
     }
 
     public Task<UpdateApplyResult> ApplyLauncherOnlyAsync(
@@ -249,7 +256,15 @@ public sealed class LauncherUpdateService(
     {
         var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         AddRoots(roots, settings.GameRoot, "game", "engine", "database");
-        AddRoots(roots, settings.ModpackRoot, "modpack", "mods", "tools");
+        AddRoots(roots, settings.ModpackRoot, "modpack", "tools");
+        if (!string.IsNullOrWhiteSpace(settings.ModpackRoot))
+        {
+            // "modpack" addresses the portable MO2 instance itself, while "mods"
+            // is deliberately constrained to its mods directory. Keeping these
+            // aliases distinct prevents a mods-scoped package from ever writing
+            // next to ModOrganizer.exe.
+            roots["mods"] = Path.Combine(Path.GetFullPath(settings.ModpackRoot), "mods");
+        }
         return roots;
     }
 
@@ -267,6 +282,23 @@ public sealed class LauncherUpdateService(
         {
             roots[name] = path;
         }
+    }
+
+    private async Task RunLegacyLayoutMigrationAsync(
+        LauncherSettings settings,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(settings.ModpackRoot)
+            || !Directory.Exists(settings.ModpackRoot))
+        {
+            LastLegacyLayoutMigration = null;
+            return;
+        }
+
+        LastLegacyLayoutMigration = await LegacyMo2LayoutMigrator.MigrateAsync(
+            settings.ModpackRoot,
+            settingsStore.UpdaterStateRoot,
+            cancellationToken);
     }
 
     private string? FindPendingLauncherRoot()

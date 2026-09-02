@@ -122,6 +122,43 @@ public sealed class ReleaserCoreTests : IDisposable
     }
 
     [Fact]
+    public async Task UnifiedBuilderRejectsModsDirectoryAsTheFullMo2Root()
+    {
+        var game = Path.Combine(_root, "wrong-mo2-root-game");
+        var mo2 = Path.Combine(_root, "wrong-mo2-root");
+        var mods = Path.Combine(mo2, "mods");
+        var output = Path.Combine(_root, "wrong-mo2-root-output");
+        var keys = Path.Combine(_root, "wrong-mo2-root-keys");
+        Directory.CreateDirectory(game);
+        Directory.CreateDirectory(mods);
+        Directory.CreateDirectory(keys);
+        await File.WriteAllTextAsync(Path.Combine(game, "fsgame.ltx"), "game");
+        await File.WriteAllTextAsync(Path.Combine(mo2, "ModOrganizer.exe"), "mo2");
+        await File.WriteAllTextAsync(Path.Combine(mods, "Example Addon.txt"), "addon");
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var machine = new ReleaserMachineSettings
+        {
+            GameSourceRoot = game,
+            Mo2SourceRoot = mods,
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "wrong-mo2-root-test",
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            UnifiedReleaseBuilder.BuildAsync(new UnifiedReleaseRequest(
+                new ReleaserWorkspace { Version = "2.1.201" },
+                machine)));
+
+        Assert.Contains("MO2\\mods", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ModOrganizer.exe", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(Directory.Exists(Path.Combine(output, "2.1.201")));
+    }
+
+    [Fact]
     public async Task SharedWorkspaceSynchronizesWithoutMachineSecrets()
     {
         var shared = Path.Combine(_root, "shared");

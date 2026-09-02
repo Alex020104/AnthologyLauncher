@@ -623,6 +623,12 @@ public static partial class ReleasePublicationService
                 RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
             })
             .ToArray();
+
+        ValidateQuickModpackScope(
+            additions.Select(item => (item.InstallRoot, item.RelativePath, PathKind: "файл"))
+                .Concat(deletions.Select(item => (item.InstallRoot, item.RelativePath, PathKind: "удаляемый файл")))
+                .Concat(directoryDeletions.Select(item => (item.InstallRoot, item.RelativePath, PathKind: "удаляемая папка"))));
+
         if (additions.Length == 0 && deletions.Length == 0 && directoryDeletions.Length == 0)
         {
             throw new InvalidOperationException("Добавьте хотя бы один файл или папку для загрузки либо удаления.");
@@ -1262,6 +1268,23 @@ public static partial class ReleasePublicationService
             throw;
         }
         File.Move(temporary, artifactPath, true);
+    }
+
+    private static void ValidateQuickModpackScope(
+        IEnumerable<(string InstallRoot, string RelativePath, string PathKind)> targets)
+    {
+        foreach (var target in targets)
+        {
+            if (!target.InstallRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase)
+                || PackageInstallScopePolicy.IsAllowedMo2ModsPath(target.RelativePath))
+            {
+                continue;
+            }
+
+            throw new InvalidDataException(
+                $"Быстрый пакет MO2 может изменять только 'mods/**': {target.PathKind} '{target.RelativePath}'. "
+                + "Выберите объект заново или укажите путь с префиксом 'mods/'.");
+        }
     }
 
     private static CompressionLevel SelectQuickArchiveCompression(string sourcePath)

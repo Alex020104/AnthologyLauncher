@@ -55,11 +55,11 @@ public static class PackageIntegrityCatalogBuilder
                 fileHashCache,
                 progress,
                 cancellationToken))
-            : CreateManagedView(previousCatalog.Payload);
+            : CreateManagedView(previousCatalog);
         var sources = new List<ArtifactSource>();
         foreach (var currentPackage in currentPackages.Where(IsProtectedPackage))
         {
-            if (previousCatalog?.Payload.Artifacts.Any(artifact =>
+            if (previousCatalog?.Artifacts.Any(artifact =>
                     string.Equals(artifact.PackageId, currentPackage.Id, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(
                         artifact.RequiredPackageVersion,
@@ -181,7 +181,7 @@ public static class PackageIntegrityCatalogBuilder
         return new PackageIntegrityBuildResult(package, artifactPath, catalogPath);
     }
 
-    private static async Task<SignedPackageIntegrityCatalog?> LoadLatestIntegrityCatalogAsync(
+    private static async Task<PackageIntegrityCatalog?> LoadLatestIntegrityCatalogAsync(
         string currentVersionRoot,
         string channel,
         ECDsa trustedKey,
@@ -193,7 +193,7 @@ public static class PackageIntegrityCatalogBuilder
             return null;
         }
 
-        SignedPackageIntegrityCatalog? latest = null;
+        PackageIntegrityCatalog? latest = null;
         var catalogPaths = Directory.EnumerateDirectories(releasesRoot)
             .Select(directory => Path.Combine(directory, "package-integrity.json"))
             .Where(File.Exists)
@@ -220,10 +220,11 @@ public static class PackageIntegrityCatalogBuilder
                 {
                     continue;
                 }
-                PackageIntegrityCatalogValidator.ValidateAndThrow(catalog);
-                if (latest is null || catalog.Payload.PublishedAt > latest.Payload.PublishedAt)
+                var safeBaseline = RemoveUnsafeLegacyArtifacts(catalog);
+                PackageIntegrityCatalogValidator.ValidateAndThrow(safeBaseline);
+                if (latest is null || safeBaseline.Payload.PublishedAt > latest.PublishedAt)
                 {
-                    latest = catalog;
+                    latest = safeBaseline.Payload;
                 }
             }
             catch (Exception exception) when (exception is IOException
@@ -236,6 +237,49 @@ public static class PackageIntegrityCatalogBuilder
             }
         }
         return latest;
+    }
+
+    private static SignedPackageIntegrityCatalog RemoveUnsafeLegacyArtifacts(
+        SignedPackageIntegrityCatalog verifiedCatalog)
+    {
+        // Older releasers could sign a quick-MO2 archive whose paths were relative
+        // to MO2\mods instead of the MO2 root. Never carry such an origin into a
+        // new repair catalog: its physical ZIP cannot be extracted safely under
+        // the new mods/** invariant. Filtering is monotonic (records are only
+        // removed) and happens after the original signature was verified.
+        var safeArtifacts = (verifiedCatalog.Payload.Artifacts ?? [])
+            .Where(IsSafeLegacyArtifact)
+            .ToArray();
+        return verifiedCatalog with
+        {
+            Payload = verifiedCatalog.Payload with { Artifacts = safeArtifacts },
+        };
+    }
+
+    private static bool IsSafeLegacyArtifact(PackageArtifactIntegrity artifact)
+    {
+        if (!PackageInstallScopePolicy.IsMo2ModsOnlyPackage(artifact.PackageId))
+        {
+            return true;
+        }
+        if (!artifact.InstallRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        try
+        {
+            return artifact.ArchiveFiles is { Count: > 0 }
+                   && artifact.ManagedFiles is { Count: > 0 }
+                   && artifact.ArchiveFiles.All(file =>
+                       PackageInstallScopePolicy.IsAllowedMo2ModsPath(file.Path))
+                   && artifact.ManagedFiles.All(
+                       PackageInstallScopePolicy.IsAllowedMo2ModsPath);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     private static async Task<List<ArtifactSource>> LoadHistoricalArtifactsAsync(

@@ -128,6 +128,8 @@ public static partial class PackageIntegrityCatalogValidator
                     errors.Add($"Integrity artifact '{package.ArtifactId}' has unsafe managed path '{managedPath}': {exception.Message}");
                 }
             }
+
+            PackageInstallScopePolicy.AppendIntegrityArtifactErrors(package, errors);
         }
 
         if (errors.Count > 0)

@@ -160,6 +160,45 @@ public sealed class QuickReleaseDestinationMapperTests : IDisposable
             "example.ltx")));
     }
 
+    [Fact]
+    public async Task LegacyMo2DeletionWithoutModsPrefixIsRejectedBeforeArtifactsAreCreated()
+    {
+        var authorMo2 = CreateMo2Root("DeletionAuthorMo2");
+        var keys = CreateDirectory(_root, "deletion-keys");
+        var output = Path.Combine(_root, "deletion-output");
+        var privateKey = Path.Combine(keys, "private.pem");
+        var publicKey = Path.Combine(keys, "public.pem");
+        UnifiedReleaseBuilder.GenerateKeys(privateKey, publicKey);
+        var workspace = new ReleaserWorkspace
+        {
+            Version = "2.1.202",
+            Channel = "next",
+        };
+        var machine = new ReleaserMachineSettings
+        {
+            Mo2SourceRoot = authorMo2,
+            OutputRoot = output,
+            PrivateKeyPath = privateKey,
+            PublicKeyPath = publicKey,
+            KeyId = "quick-mo2-deletion-scope-test",
+            QuickDeleteFolders =
+            [
+                new QuickDeleteFolderDraft
+                {
+                    InstallRoot = "modpack",
+                    RelativePath = "Example Addon",
+                },
+            ],
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            ReleasePublicationService.PublishQuickFilesAsync(workspace, machine));
+
+        Assert.Contains("mods/**", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Example Addon", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(Directory.Exists(Path.Combine(output, workspace.Version)));
+    }
+
     private string CreateMo2Root(string name = "ModOrganizer")
     {
         var root = CreateDirectory(_root, name);

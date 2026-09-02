@@ -57,6 +57,8 @@ public static class UnifiedReleaseBuilder
             throw new InvalidOperationException("Для выпуска всей сборки выберите оба подготовленных корня: игру и MO2.");
         }
 
+        var mo2SourceRoot = ValidateFullMo2SourceRoot(machine.Mo2SourceRoot);
+
         var outputRoot = Path.Combine(Path.GetFullPath(machine.OutputRoot), workspace.Version);
         ValidatePathSeparation(machine.GameSourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
         ValidatePathSeparation(machine.Mo2SourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
@@ -99,7 +101,7 @@ public static class UnifiedReleaseBuilder
                 "Anthology — Mod Organizer 2",
                 PackageKind.Modpack,
                 "modpack",
-                machine.Mo2SourceRoot,
+                mo2SourceRoot,
                 outputRoot,
                 workspace,
                 static mirror => mirror.Mo2Url,
@@ -671,6 +673,33 @@ public static class UnifiedReleaseBuilder
         {
             ProductionSigningKeyPolicy.Validate(machine);
         }
+    }
+
+    private static string ValidateFullMo2SourceRoot(string sourceRoot)
+    {
+        var fullRoot = Path.GetFullPath(sourceRoot);
+        if (!Directory.Exists(fullRoot))
+        {
+            throw new DirectoryNotFoundException($"Не найден полный корень MO2: {fullRoot}");
+        }
+
+        if (!File.Exists(Path.Combine(fullRoot, "ModOrganizer.exe")))
+        {
+            var selectedDirectory = Path.GetFileName(Path.TrimEndingDirectorySeparator(fullRoot));
+            var parentRoot = Directory.GetParent(fullRoot)?.FullName;
+            if (selectedDirectory.Equals("mods", StringComparison.OrdinalIgnoreCase)
+                && parentRoot is not null
+                && File.Exists(Path.Combine(parentRoot, "ModOrganizer.exe")))
+            {
+                throw new InvalidDataException(
+                    $"Выбрана папка MO2\\mods. Для полного выпуска выберите её родительский корень, содержащий ModOrganizer.exe: {parentRoot}");
+            }
+
+            throw new InvalidDataException(
+                $"Полный корень MO2 должен содержать ModOrganizer.exe: {fullRoot}");
+        }
+
+        return fullRoot;
     }
 
     private static void ValidatePathSeparation(

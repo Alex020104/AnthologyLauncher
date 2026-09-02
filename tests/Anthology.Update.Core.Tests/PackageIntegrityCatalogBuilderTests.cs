@@ -121,27 +121,30 @@ public sealed class PackageIntegrityCatalogBuilderTests : IDisposable
             ("downloads/private-addon.zip", "download"),
             ("overwrite/gamedata/configs/generated.ltx", "overwrite"),
             ("ModOrganizer.ini", "settings"));
+        var safeLegacyOrigin = await CreatePackageAsync(
+            legacyRoot,
+            "legacy-safe-origin",
+            "2.1.157",
+            "modpack",
+            ("mods/Retained Addon/gamedata/configs/retained.ltx", "retained"));
+        var safeLegacy = safeLegacyOrigin with
+        {
+            Id = "anthology-files-modpack",
+            DisplayName = "anthology-files-modpack",
+        };
         await WriteManifestAsync(legacyRoot, "2.1.157", [legacy], key);
 
-        // First produce the same kind of signed legacy baseline that existed in
-        // production, then prove a later correctly mapped publication purges it.
-        Assert.NotNull(await PackageIntegrityCatalogBuilder.BuildAsync(
-            [legacy],
-            legacyRoot,
-            new ReleaserWorkspace { Version = "2.1.157", Channel = "next" },
-            key,
-            "test-key-01"));
+        // Reproduce the signed legacy baseline that existed before the mods/**
+        // boundary was introduced, then prove a later correctly mapped
+        // publication migrates it without trusting its unsafe archive.
+        await WriteLegacyIntegrityCatalogAsync(legacyRoot, key, legacy, safeLegacy);
 
         var current = await CreatePackageAsync(
             currentRoot,
             "anthology-files-modpack",
             "2.1.160",
             "modpack",
-            ("mods/Legacy Addon/gamedata/configs/legacy.ltx", "current"),
-            ("profiles/Player/saves/player.scop", "must-not-be-repaired"),
-            ("downloads/private-addon.zip", "must-not-be-repaired"),
-            ("overwrite/gamedata/configs/generated.ltx", "must-not-be-repaired"),
-            ("ModOrganizer.ini", "must-not-be-repaired"));
+            ("mods/Legacy Addon/gamedata/configs/legacy.ltx", "current"));
         var result = await PackageIntegrityCatalogBuilder.BuildAsync(
             [current],
             currentRoot,
@@ -155,8 +158,19 @@ public sealed class PackageIntegrityCatalogBuilderTests : IDisposable
         var repairTargets = catalog.Payload.Artifacts
             .SelectMany(artifact => artifact.ManagedFiles)
             .ToArray();
-        Assert.Equal(["mods/Legacy Addon/gamedata/configs/legacy.ltx"], repairTargets);
-        Assert.DoesNotContain(catalog.Payload.Artifacts, artifact => artifact.PackageVersion == "2.1.157");
+        Assert.Equal(
+            [
+                "mods/Legacy Addon/gamedata/configs/legacy.ltx",
+                "mods/Retained Addon/gamedata/configs/retained.ltx",
+            ],
+            repairTargets.Order(StringComparer.OrdinalIgnoreCase));
+        Assert.DoesNotContain(catalog.Payload.Artifacts, artifact =>
+            artifact.ArchiveSha256.Equals(legacy.Sha256, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(catalog.Payload.Artifacts, artifact =>
+            artifact.PackageVersion == "2.1.157"
+            && artifact.ManagedFiles.Contains(
+                "mods/Retained Addon/gamedata/configs/retained.ltx",
+                StringComparer.OrdinalIgnoreCase));
         Assert.DoesNotContain(repairTargets, path =>
             !path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(repairTargets, path =>
@@ -277,6 +291,65 @@ public sealed class PackageIntegrityCatalogBuilderTests : IDisposable
         await File.WriteAllTextAsync(
             Path.Combine(releaseRoot, "manifest.json"),
             JsonSerializer.Serialize(manifest, ManifestJson.Options));
+    }
+
+    private static async Task WriteLegacyIntegrityCatalogAsync(
+        string releaseRoot,
+        ECDsa key,
+        params PackageManifest[] packages)
+    {
+        var artifacts = new List<PackageArtifactIntegrity>();
+        for (var index = 0; index < packages.Length; index++)
+        {
+            var package = packages[index];
+            var archivePath = new Uri(package.Mirrors[0].Url).LocalPath;
+            var archiveFiles = new List<PackageFileIntegrity>();
+            using (var archive = ZipFile.OpenRead(archivePath))
+            {
+                foreach (var entry in archive.Entries.Where(entry => !string.IsNullOrEmpty(entry.Name)))
+                {
+                    await using var stream = entry.Open();
+                    archiveFiles.Add(new PackageFileIntegrity(
+                        PathSafety.NormalizeRelativePath(entry.FullName),
+                        entry.Length,
+                        await ArtifactHash.ComputeSha256Async(stream)));
+                }
+            }
+
+            var managedFiles = archiveFiles
+                .Select(file => file.Path)
+                .Where(path => !path.StartsWith("profiles/", StringComparison.OrdinalIgnoreCase)
+                               && !path.StartsWith("downloads/", StringComparison.OrdinalIgnoreCase)
+                               && !path.StartsWith("overwrite/", StringComparison.OrdinalIgnoreCase)
+                               && !path.Equals("ModOrganizer.ini", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            artifacts.Add(new PackageArtifactIntegrity(
+                $"artifact-legacy-selected-modpack-{index}",
+                package.Id,
+                package.Version,
+                package.Version,
+                package.Kind,
+                package.InstallRoot,
+                package.ArchiveFormat,
+                package.Size,
+                package.Sha256,
+                package.Mirrors,
+                archiveFiles,
+                managedFiles));
+        }
+
+        var signed = ManifestSecurity.Sign(
+            new PackageIntegrityCatalog(
+                1,
+                "next",
+                packages[0].Version,
+                DateTimeOffset.UtcNow,
+                artifacts),
+            key,
+            "test-key-01");
+        await File.WriteAllTextAsync(
+            Path.Combine(releaseRoot, "package-integrity.json"),
+            JsonSerializer.Serialize(signed, ManifestJson.Options));
     }
 
     private static async Task<SignedPackageIntegrityCatalog> ReadCatalogAsync(string path)
