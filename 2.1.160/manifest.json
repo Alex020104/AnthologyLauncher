@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.160",
-    "publishedAt": "2026-09-02T20:04:06.1448097+00:00",
+    "publishedAt": "2026-09-02T20:21:15.759819+00:00",
     "packages": [
       {
         "id": "anthology-files-modpack",
@@ -102,8 +102,8 @@
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 5091145,
-        "sha256": "ddee30713dbc051078faae241b686304fc8f3a8bc2e393b8f33d304aee71f7d7",
+        "size": 5091163,
+        "sha256": "2b828ea25812ef868df7fc1c93c3975932850bab7f3ed1e2efc917066265ac67",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -128,21 +128,21 @@
       {
         "id": "anthology-integrity",
         "displayName": "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0446\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u0438 Anthology",
-        "version": "6f75f53b3dee18408d8bbe8bf6b0badafea6a7c8412103623ad92133f1e544c0",
+        "version": "aabfe3087f3419229736dc4365c20c57e01f920610a4f0c486dde9ec0fdc2008",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 4915,
-        "sha256": "f29a9e449af2b4481a8849f508b524939b1be869bdb7d5e5060df6ece66ca31c",
+        "size": 4901,
+        "sha256": "12ca185bbfa99c374b96992c867441a0e3d025d277d7c069a8269c50d8876aab",
         "mirrors": [
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-6f75f53b3dee1840.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-aabfe3087f341922.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-6f75f53b3dee1840.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-aabfe3087f341922.zip",
             "priority": 20
           }
         ],
@@ -156,7 +156,7 @@
     "content": {
       "schemaVersion": 4,
       "version": "2.1.160",
-      "publishedAt": "2026-09-02T20:04:05.1625989+00:00",
+      "publishedAt": "2026-09-02T20:21:15.7085657+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -674,6 +674,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "Zg/MS13qyPzVydSPMb\u002BcPJw6TWrNgpHrxUrLqn9/GOMGFITFWsFXCh9X0gGqnGt9DLdkeQkd\u002B2KBGRSphB71Ug=="
+    "value": "TtKusXSiiHuX3mIdIWU7PoKOl1m1/Hj/exeGmg6a5KfSv0xaFEoQ2y32HNVIfwRf\u002BzqUnoTUneT4xSOeaD6uOA=="
   }
 }
