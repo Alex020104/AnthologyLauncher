@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.160",
-    "publishedAt": "2026-09-02T20:21:15.759819+00:00",
+    "publishedAt": "2026-09-02T20:38:33.4527933+00:00",
     "packages": [
       {
         "id": "anthology-files-modpack",
@@ -102,17 +102,17 @@
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 5091163,
-        "sha256": "2b828ea25812ef868df7fc1c93c3975932850bab7f3ed1e2efc917066265ac67",
+        "size": 5093739,
+        "sha256": "432c3637177957069a854ba4fe22d02998ac93d27231cd781df24f382b566001",
         "mirrors": [
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-launcher-2.1.160.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-launcher-0.7.0-alpha.15-432c363717795706.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-launcher-2.1.160.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-launcher-0.7.0-alpha.15-432c363717795706.zip",
             "priority": 20
           }
         ],
@@ -128,21 +128,21 @@
       {
         "id": "anthology-integrity",
         "displayName": "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0446\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u0438 Anthology",
-        "version": "aabfe3087f3419229736dc4365c20c57e01f920610a4f0c486dde9ec0fdc2008",
+        "version": "2c60c69ff8a92607bda78e533017a99a9a53642c3be642d5de35c7b4aec13fcb",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
         "size": 4901,
-        "sha256": "12ca185bbfa99c374b96992c867441a0e3d025d277d7c069a8269c50d8876aab",
+        "sha256": "8a1287aaa915748f6f45083f3809e66feb9b7d867d3cb0d0628c2c03d4ef498b",
         "mirrors": [
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-aabfe3087f341922.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-2c60c69ff8a92607.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-aabfe3087f341922.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-2c60c69ff8a92607.zip",
             "priority": 20
           }
         ],
@@ -156,7 +156,7 @@
     "content": {
       "schemaVersion": 4,
       "version": "2.1.160",
-      "publishedAt": "2026-09-02T20:21:15.7085657+00:00",
+      "publishedAt": "2026-09-02T20:38:33.4051074+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -674,6 +674,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "TtKusXSiiHuX3mIdIWU7PoKOl1m1/Hj/exeGmg6a5KfSv0xaFEoQ2y32HNVIfwRf\u002BzqUnoTUneT4xSOeaD6uOA=="
+    "value": "uupuVWZNSE8NWFYyHb5JLiKEunFvhpHtogszd5A99cPa14MDxgkKcwZAVoUDRApUiirCqVotYsRmt40NNC4tkA=="
   }
 }
