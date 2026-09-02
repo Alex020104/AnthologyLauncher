@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.160",
-    "publishedAt": "2026-09-02T18:17:48.9877984+00:00",
+    "publishedAt": "2026-09-02T20:04:06.1448097+00:00",
     "packages": [
       {
         "id": "anthology-files-modpack",
@@ -94,12 +94,69 @@
         "deletedDirectories": [
           "[WPN][1][SCP][R.A.K Weapon Pack Adaptation Global Anomaly 3DSS (OBT)]"
         ]
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.15",
+        "version": "0.7.0-alpha.15",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 5091145,
+        "sha256": "ddee30713dbc051078faae241b686304fc8f3a8bc2e393b8f33d304aee71f7d7",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-launcher-2.1.160.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-launcher-2.1.160.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.15.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false
+      },
+      {
+        "id": "anthology-integrity",
+        "displayName": "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0446\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u0438 Anthology",
+        "version": "6f75f53b3dee18408d8bbe8bf6b0badafea6a7c8412103623ad92133f1e544c0",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 4915,
+        "sha256": "f29a9e449af2b4481a8849f508b524939b1be869bdb7d5e5060df6ece66ca31c",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-6f75f53b3dee1840.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-6f75f53b3dee1840.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnthologyLauncher/Update/Integrity/package-integrity.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false
       }
     ],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.160",
-      "publishedAt": "2026-09-02T18:17:48.9877388+00:00",
+      "publishedAt": "2026-09-02T20:04:05.1625989+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -617,6 +674,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "XILsZqma8R6uoZeMFaBARmU0Wi16tlK9\u002Brt6BYJqQ4ULbX8i7mSLhRZWzchLuxTJ\u002BCOsw6FsHa3RSK9XKXP2gg=="
+    "value": "Zg/MS13qyPzVydSPMb\u002BcPJw6TWrNgpHrxUrLqn9/GOMGFITFWsFXCh9X0gGqnGt9DLdkeQkd\u002B2KBGRSphB71Ug=="
   }
 }
