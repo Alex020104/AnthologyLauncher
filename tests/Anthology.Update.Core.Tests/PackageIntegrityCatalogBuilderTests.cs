@@ -102,6 +102,71 @@ public sealed class PackageIntegrityCatalogBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task CanonicalMo2MapperDropsLegacyRootAndUserOwnedRepairTargets()
+    {
+        var releasesRoot = Path.Combine(_root, "relocated-releases");
+        var legacyRoot = Path.Combine(releasesRoot, "2.1.157");
+        var currentRoot = Path.Combine(releasesRoot, "2.1.160");
+        Directory.CreateDirectory(legacyRoot);
+        Directory.CreateDirectory(currentRoot);
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
+        var legacy = await CreatePackageAsync(
+            legacyRoot,
+            "anthology-files-modpack",
+            "2.1.157",
+            "modpack",
+            ("Legacy Addon/gamedata/configs/legacy.ltx", "legacy"),
+            ("profiles/Player/saves/player.scop", "save"),
+            ("downloads/private-addon.zip", "download"),
+            ("overwrite/gamedata/configs/generated.ltx", "overwrite"),
+            ("ModOrganizer.ini", "settings"));
+        await WriteManifestAsync(legacyRoot, "2.1.157", [legacy], key);
+
+        // First produce the same kind of signed legacy baseline that existed in
+        // production, then prove a later correctly mapped publication purges it.
+        Assert.NotNull(await PackageIntegrityCatalogBuilder.BuildAsync(
+            [legacy],
+            legacyRoot,
+            new ReleaserWorkspace { Version = "2.1.157", Channel = "next" },
+            key,
+            "test-key-01"));
+
+        var current = await CreatePackageAsync(
+            currentRoot,
+            "anthology-files-modpack",
+            "2.1.160",
+            "modpack",
+            ("mods/Legacy Addon/gamedata/configs/legacy.ltx", "current"),
+            ("profiles/Player/saves/player.scop", "must-not-be-repaired"),
+            ("downloads/private-addon.zip", "must-not-be-repaired"),
+            ("overwrite/gamedata/configs/generated.ltx", "must-not-be-repaired"),
+            ("ModOrganizer.ini", "must-not-be-repaired"));
+        var result = await PackageIntegrityCatalogBuilder.BuildAsync(
+            [current],
+            currentRoot,
+            new ReleaserWorkspace { Version = "2.1.160", Channel = "next" },
+            key,
+            "test-key-01");
+
+        Assert.NotNull(result);
+        var catalog = await ReadCatalogAsync(result.CatalogPath);
+        PackageIntegrityCatalogValidator.ValidateAndThrow(catalog);
+        var repairTargets = catalog.Payload.Artifacts
+            .SelectMany(artifact => artifact.ManagedFiles)
+            .ToArray();
+        Assert.Equal(["mods/Legacy Addon/gamedata/configs/legacy.ltx"], repairTargets);
+        Assert.DoesNotContain(catalog.Payload.Artifacts, artifact => artifact.PackageVersion == "2.1.157");
+        Assert.DoesNotContain(repairTargets, path =>
+            !path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(repairTargets, path =>
+            path.StartsWith("profiles/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("downloads/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("overwrite/", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("ModOrganizer.ini", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task GameOnlyQuickReleasePreservesModpackPackageAndItsIntegrityOwnership()
     {
         var outputRoot = Path.Combine(_root, "quick-output");

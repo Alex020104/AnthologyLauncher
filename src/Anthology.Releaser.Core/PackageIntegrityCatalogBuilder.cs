@@ -14,6 +14,17 @@ public static class PackageIntegrityCatalogBuilder
     public const string PackageId = "anthology-integrity";
     public const string CatalogRelativePath = "AnthologyLauncher/Update/Integrity/package-integrity.json";
 
+    private const string QuickModpackPackageId = "anthology-files-modpack";
+    private static readonly string[] ModpackUserOwnedRoots =
+    [
+        "profiles",
+        "downloads",
+        "overwrite",
+        "logs",
+        "crash_dumps",
+        "webcache",
+    ];
+
     public static async Task<PackageIntegrityBuildResult?> BuildAsync(
         IReadOnlyList<PackageManifest> currentPackages,
         string versionRoot,
@@ -76,6 +87,7 @@ public static class PackageIntegrityCatalogBuilder
                 cancellationToken));
         }
         ApplyManagedView(managed, sources.OrderBy(source => source.PublishedAt));
+        ApplyManagedPathPolicy(managed, currentPackages);
         var activePackageIds = currentPackages
             .Where(IsProtectedPackage)
             .Select(package => package.Id)
@@ -374,6 +386,59 @@ public static class PackageIntegrityCatalogBuilder
             }
         }
     }
+
+    private static void ApplyManagedPathPolicy(
+        Dictionary<string, ManagedFile> managed,
+        IReadOnlyList<PackageManifest> currentPackages)
+    {
+        // ManagedFiles are automatic repair targets. MO2 user state is allowed to
+        // exist in an origin archive, but must never be restored over player data.
+        var correctlyMappedQuickModpackPackages = currentPackages
+            .Where(UsesCanonicalQuickModpackLayout)
+            .Select(package => package.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var pair in managed.ToArray())
+        {
+            var item = pair.Value;
+            var installRoot = item.Source.Package.InstallRoot;
+            var path = PathSafety.NormalizeRelativePath(item.File.Path);
+            if (IsModpackUserOwnedPath(installRoot, path)
+                || correctlyMappedQuickModpackPackages.Contains(item.OwnerPackageId)
+                   && installRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase)
+                   && !path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase))
+            {
+                managed.Remove(pair.Key);
+            }
+        }
+    }
+
+    private static bool UsesCanonicalQuickModpackLayout(PackageManifest package)
+    {
+        if (!package.Id.Equals(QuickModpackPackageId, StringComparison.OrdinalIgnoreCase)
+            || !package.InstallRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var managedCandidates = package.Files
+            .Concat(package.DeletedFiles ?? [])
+            .Concat(package.DeletedDirectories ?? [])
+            .Select(PathSafety.NormalizeRelativePath)
+            .Where(path => !IsModpackUserOwnedPath(package.InstallRoot, path))
+            .ToArray();
+        return managedCandidates.Length > 0
+               && managedCandidates.All(path => path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsModpackUserOwnedPath(string installRoot, string path) =>
+        installRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase)
+        && (path.Equals("ModOrganizer.ini", StringComparison.OrdinalIgnoreCase)
+            || ModpackUserOwnedRoots.Any(root => IsAtOrBelow(path, root)));
+
+    private static bool IsAtOrBelow(string path, string root) =>
+        path.Equals(root, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsProtectedPackage(PackageManifest package) =>
         package.Kind != PackageKind.Launcher
