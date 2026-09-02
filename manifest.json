@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.159",
-    "publishedAt": "2026-09-02T15:09:52.5542675+00:00",
+    "publishedAt": "2026-09-02T15:18:28.6518575+00:00",
     "packages": [
       {
         "id": "anthology-files-modpack",
@@ -158,12 +158,42 @@
         "deletedDirectories": [
           "[WPN][1][SCP][R.A.K Weapon Pack Adaptation Global Anomaly 3DSS (OBT)]"
         ]
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.14",
+        "version": "0.7.0-alpha.14",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 5027428,
+        "sha256": "5dfd7e5aca33bc79b7fbdc73703270b3d9b556a138c45e88d82988182c9a7d83",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.159/anthology-launcher-2.1.159.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.159/anthology-launcher-2.1.159.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.14.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false
       }
     ],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.159",
-      "publishedAt": "2026-09-02T15:09:52.5541819+00:00",
+      "publishedAt": "2026-09-02T15:18:28.6517884+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -681,6 +711,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "pD/AN7gYnoPasyGDMOCJ55UNWuPjokBflrMB0WzCA/zvfDRZ7gCJw8D8blVWv69CY\u002B2eIy10V7ruJPItNI10SQ=="
+    "value": "CuZmxUHTydmqWzYoAEr3wAvqpNFqKyPCV7Ntbrlkln47sKtPbdrZNDCN1FSTE4ad6FCKFJgGEBcSur\u002BG2YgJhw=="
   }
 }
