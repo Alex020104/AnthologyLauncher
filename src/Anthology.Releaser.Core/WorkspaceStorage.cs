@@ -18,8 +18,34 @@ public static class WorkspaceStorage
             return create();
         }
 
-        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.Asynchronous);
-        return await JsonSerializer.DeserializeAsync<T>(stream, ManifestJson.Options, cancellationToken) ?? create();
+        try
+        {
+            return await DeserializeAsync(path, create, cancellationToken);
+        }
+        catch (JsonException)
+        {
+            // Cloud sync clients and interrupted writes can leave a correctly named file
+            // filled with zero bytes. Keep the damaged bytes for diagnostics and recover
+            // the last complete version instead of crashing the whole releaser at startup.
+            PreserveCorruptedFile(path);
+            var backupPath = path + ".bak";
+            if (!File.Exists(backupPath))
+            {
+                return create();
+            }
+
+            try
+            {
+                var recovered = await DeserializeAsync(backupPath, create, cancellationToken);
+                File.Copy(backupPath, path, true);
+                return recovered;
+            }
+            catch (JsonException)
+            {
+                PreserveCorruptedFile(backupPath);
+                return create();
+            }
+        }
     }
 
     public static async Task SaveAsync<T>(
@@ -36,7 +62,60 @@ public static class WorkspaceStorage
             await stream.FlushAsync(cancellationToken);
         }
 
+        if (File.Exists(fullPath) && await ContainsValidJsonAsync(fullPath, cancellationToken))
+        {
+            File.Copy(fullPath, fullPath + ".bak", true);
+        }
         File.Move(temporary, fullPath, true);
+    }
+
+    private static async Task<T> DeserializeAsync<T>(
+        string path,
+        Func<T> create,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            64 * 1024,
+            FileOptions.Asynchronous);
+        return await JsonSerializer.DeserializeAsync<T>(stream, ManifestJson.Options, cancellationToken) ?? create();
+    }
+
+    private static async Task<bool> ContainsValidJsonAsync(string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                64 * 1024,
+                FileOptions.Asynchronous);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            return document.RootElement.ValueKind is not JsonValueKind.Undefined;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static void PreserveCorruptedFile(string path)
+    {
+        try
+        {
+            var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmssfff", CultureInfo.InvariantCulture);
+            File.Copy(path, $"{path}.corrupt-{stamp}", false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Recovery must still continue if the directory is read-only or a sync client
+            // briefly owns the source file.
+        }
     }
 
     public static string ComputeHash(ReleaserWorkspace workspace)

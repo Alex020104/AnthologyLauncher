@@ -1,6 +1,9 @@
 using Anthology.Update.Core;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Text.Json;
+using System.Windows.Threading;
 using Anthology.Contracts;
 using System.IO;
 
@@ -8,8 +11,12 @@ namespace Anthology.Launcher;
 
 public sealed class LauncherUpdateService(
     HttpClient httpClient,
-    LauncherSettingsStore settingsStore)
+    LauncherSettingsStore settingsStore,
+    LauncherOperationGate operationGate)
 {
+    public const string LauncherPackageId = "anthology-launcher";
+    public const string IntegrityPackageId = "anthology-integrity";
+
     private readonly UpdateCoordinator _coordinator = new(httpClient);
 
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken cancellationToken = default)
@@ -21,6 +28,7 @@ public sealed class LauncherUpdateService(
             settings.PublicKeyPath,
             settings.UpdateChannel,
             settingsStore.UpdaterStateRoot,
+            CreateInstallRoots(settings),
             cancellationToken);
         ProductionTrustAnchor.ValidateManifest(result.SignedManifest);
         await CacheVerifiedManifestAsync(result.SignedManifest, cancellationToken);
@@ -106,12 +114,9 @@ public sealed class LauncherUpdateService(
         CancellationToken cancellationToken = default)
     {
         var settings = settingsStore.Current;
-        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        AddRoots(roots, settings.GameRoot, "game", "engine", "database");
-        AddRoots(roots, settings.ModpackRoot, "modpack", "mods", "tools");
         return _coordinator.ApplyAsync(
             check,
-            roots,
+            CreateInstallRoots(settings),
             settingsStore.UpdaterStateRoot,
             progress,
             settings.PreferredMirrorProvider,
@@ -125,7 +130,9 @@ public sealed class LauncherUpdateService(
     {
         ArgumentNullException.ThrowIfNull(check);
         var launcherPackages = check.Packages
-            .Where(update => update.UpdateAvailable && update.Package.Kind == PackageKind.Launcher)
+            .Where(update => update.UpdateAvailable
+                             && update.Package.Kind == PackageKind.Launcher
+                             && string.Equals(update.Package.Id, LauncherPackageId, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         if (launcherPackages.Length == 0)
         {
@@ -138,6 +145,91 @@ public sealed class LauncherUpdateService(
             cancellationToken);
     }
 
+    public Task<UpdateApplyResult> ApplyStartupPrerequisitesAsync(
+        UpdateCheckResult check,
+        IProgress<UpdateProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        var prerequisites = check.Packages
+            .Where(update => update.UpdateAvailable
+                             && (string.Equals(update.Package.Id, LauncherPackageId, StringComparison.OrdinalIgnoreCase)
+                                 || string.Equals(update.Package.Id, IntegrityPackageId, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+        return ApplySelectedAsync(check, prerequisites, progress, cancellationToken);
+    }
+
+    public Task<UpdateApplyResult> ApplyRepairsOnlyAsync(
+        UpdateCheckResult check,
+        IProgress<UpdateProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        var repairs = check.Packages
+            .Where(update => update.UpdateAvailable && update.RepairRequired)
+            .ToArray();
+        return ApplySelectedAsync(check, repairs, progress, cancellationToken);
+    }
+
+    private Task<UpdateApplyResult> ApplySelectedAsync(
+        UpdateCheckResult check,
+        PackageUpdate[] packages,
+        IProgress<UpdateProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        if (packages.Length == 0)
+        {
+            return Task.FromResult(new UpdateApplyResult(0, 0, 0));
+        }
+
+        return ApplyAsync(
+            new UpdateCheckResult(check.SignedManifest, packages, check.TrustedKeyId),
+            progress,
+            cancellationToken);
+    }
+
+    public LauncherActionResult RestartToApplyPendingUpdate()
+    {
+        var launcherRoot = FindPendingLauncherRoot();
+        if (launcherRoot is null)
+        {
+            return new LauncherActionResult(
+                false,
+                "Обновление лаунчера загружено, но его файл запуска не найден. Запустите лаунчер через AnomalyLauncher.exe.");
+        }
+
+        var application = System.Windows.Application.Current;
+        if (application is null)
+        {
+            return new LauncherActionResult(false, "Не удалось получить процесс лаунчера для автоматического перезапуска.");
+        }
+
+        try
+        {
+            if (!IsManagedByBootstrap(launcherRoot))
+            {
+                StartBootstrapAfterCurrentProcess(launcherRoot);
+            }
+
+            // Shutdown must happen only after the fallback bootstrap was started.
+            // When the launcher was already started by the bootstrap, that parent
+            // process is waiting for this process and will apply the pending payload.
+            operationGate.AuthorizeRestartShutdown();
+            _ = application.Dispatcher.BeginInvoke(
+                DispatcherPriority.Send,
+                new Action(application.Shutdown));
+            return new LauncherActionResult(true, "Лаунчер автоматически перезапускается для применения обновления.");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or Win32Exception)
+        {
+            operationGate.RevokeRestartShutdownAuthorization();
+            return new LauncherActionResult(false, $"Не удалось автоматически перезапустить лаунчер: {exception.Message}");
+        }
+    }
+
     public Task<UpdateRollbackCandidate?> GetLatestRollbackAsync(CancellationToken cancellationToken = default) =>
         UpdateCoordinator.GetLatestRollbackAsync(settingsStore.UpdaterStateRoot, cancellationToken);
 
@@ -146,14 +238,19 @@ public sealed class LauncherUpdateService(
         CancellationToken cancellationToken = default)
     {
         var settings = settingsStore.Current;
-        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        AddRoots(roots, settings.GameRoot, "game", "engine", "database");
-        AddRoots(roots, settings.ModpackRoot, "modpack", "mods", "tools");
         return UpdateCoordinator.RollbackLatestAsync(
-            roots,
+            CreateInstallRoots(settings),
             settingsStore.UpdaterStateRoot,
             progress,
             cancellationToken);
+    }
+
+    private static Dictionary<string, string> CreateInstallRoots(LauncherSettings settings)
+    {
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        AddRoots(roots, settings.GameRoot, "game", "engine", "database");
+        AddRoots(roots, settings.ModpackRoot, "modpack", "mods", "tools");
+        return roots;
     }
 
     private static void AddRoots(
@@ -171,6 +268,192 @@ public sealed class LauncherUpdateService(
             roots[name] = path;
         }
     }
+
+    private string? FindPendingLauncherRoot()
+    {
+        string currentExecutablePath;
+        try
+        {
+            currentExecutablePath = GetCurrentProcessPath();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return null;
+        }
+        var candidates = new List<string?>
+        {
+            Environment.GetEnvironmentVariable("ANTHOLOGY_LAUNCHER_ROOT"),
+            !string.IsNullOrWhiteSpace(settingsStore.Current.GameRoot)
+                ? Path.Combine(settingsStore.Current.GameRoot, "AnthologyLauncher")
+                : null,
+            Directory.GetParent(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory))?.FullName,
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                continue;
+            }
+
+            string root;
+            try
+            {
+                root = Path.GetFullPath(candidate);
+            }
+            catch (Exception exception) when (exception is ArgumentException
+                                               or IOException
+                                               or NotSupportedException)
+            {
+                continue;
+            }
+
+            if (PathsEqual(
+                    currentExecutablePath,
+                    Path.Combine(root, "App", "AnthologyLauncher.Next.exe"))
+                && File.Exists(Path.Combine(root, "Start-AnthologyLauncherNext.ps1"))
+                && File.Exists(Path.Combine(root, "Update", "LauncherPending", "launcher-update.json")))
+            {
+                return root;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsManagedByBootstrap(string launcherRoot)
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("ANTHOLOGY_LAUNCHER_BOOTSTRAPPED"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(
+                Environment.GetEnvironmentVariable("ANTHOLOGY_LAUNCHER_BOOTSTRAP_PID"),
+                out var processId)
+            || !long.TryParse(
+                Environment.GetEnvironmentVariable("ANTHOLOGY_LAUNCHER_BOOTSTRAP_STARTED_AT_UTC_TICKS"),
+                out var expectedStartTimeUtcTicks)
+            || expectedStartTimeUtcTicks <= 0)
+        {
+            return false;
+        }
+
+        var expectedProcessPath = Environment.GetEnvironmentVariable("ANTHOLOGY_LAUNCHER_BOOTSTRAP_PROCESS_PATH");
+        var lockPath = Environment.GetEnvironmentVariable("ANTHOLOGY_LAUNCHER_BOOTSTRAP_LOCK_PATH");
+        var expectedLockPath = Path.Combine(launcherRoot, "Update", "launcher-bootstrap.lock");
+        if (string.IsNullOrWhiteSpace(expectedProcessPath)
+            || string.IsNullOrWhiteSpace(lockPath)
+            || !PathsEqual(lockPath, expectedLockPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            var actualProcessPath = process.MainModule?.FileName;
+            var processFileName = Path.GetFileName(actualProcessPath);
+            if (process.HasExited
+                || process.StartTime.ToUniversalTime().Ticks != expectedStartTimeUtcTicks
+                || string.IsNullOrWhiteSpace(actualProcessPath)
+                || !PathsEqual(actualProcessPath, expectedProcessPath)
+                || (!string.Equals(processFileName, "powershell.exe", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(processFileName, "pwsh.exe", StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            if (!File.Exists(lockPath))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var unlocked = new FileStream(
+                    lockPath,
+                    FileMode.Open,
+                    FileAccess.ReadWrite,
+                    FileShare.None);
+                return false;
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or IOException
+                                           or NotSupportedException
+                                           or System.Security.SecurityException
+                                           or UnauthorizedAccessException
+                                           or Win32Exception)
+        {
+            return false;
+        }
+    }
+
+    private static void StartBootstrapAfterCurrentProcess(string launcherRoot)
+    {
+        var scriptPath = Path.Combine(launcherRoot, "Start-AnthologyLauncherNext.ps1");
+        using var currentProcess = Process.GetCurrentProcess();
+        var currentProcessPath = GetCurrentProcessPath(currentProcess);
+        var currentProcessStartTimeUtcTicks = currentProcess.StartTime.ToUniversalTime().Ticks;
+        var startInfo = new ProcessStartInfo("powershell.exe")
+        {
+            WorkingDirectory = launcherRoot,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+        };
+        startInfo.ArgumentList.Add("-NoLogo");
+        startInfo.ArgumentList.Add("-NoProfile");
+        startInfo.ArgumentList.Add("-ExecutionPolicy");
+        startInfo.ArgumentList.Add("Bypass");
+        startInfo.ArgumentList.Add("-WindowStyle");
+        startInfo.ArgumentList.Add("Hidden");
+        startInfo.ArgumentList.Add("-File");
+        startInfo.ArgumentList.Add(scriptPath);
+        startInfo.ArgumentList.Add("-RestartAfterProcessId");
+        startInfo.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        startInfo.ArgumentList.Add("-RestartAfterProcessStartTimeUtcTicks");
+        startInfo.ArgumentList.Add(currentProcessStartTimeUtcTicks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        startInfo.ArgumentList.Add("-RestartAfterProcessPath");
+        startInfo.ArgumentList.Add(currentProcessPath);
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Не удалось запустить служебный процесс обновления лаунчера.");
+        if (process.WaitForExit(250))
+        {
+            throw new InvalidOperationException(
+                $"Служебный процесс обновления завершился раньше времени (код {process.ExitCode}).");
+        }
+    }
+
+    private static string GetCurrentProcessPath()
+    {
+        using var process = Process.GetCurrentProcess();
+        return GetCurrentProcessPath(process);
+    }
+
+    private static string GetCurrentProcessPath(Process process)
+    {
+        var processPath = Environment.ProcessPath ?? process.MainModule?.FileName;
+        return string.IsNullOrWhiteSpace(processPath)
+            ? throw new InvalidOperationException("Не удалось определить путь процесса лаунчера.")
+            : Path.GetFullPath(processPath);
+    }
+
+    private static bool PathsEqual(string left, string right) =>
+        Path.GetFullPath(left)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Equals(
+                Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase);
 
     private async Task CacheVerifiedManifestAsync(
         SignedUpdateManifest manifest,

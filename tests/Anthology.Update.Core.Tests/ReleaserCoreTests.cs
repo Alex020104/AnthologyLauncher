@@ -43,12 +43,17 @@ public sealed class ReleaserCoreTests : IDisposable
         Directory.CreateDirectory(Path.Combine(game, "appdata"));
         Directory.CreateDirectory(Path.Combine(mo2, "mods", "example"));
         Directory.CreateDirectory(Path.Combine(mo2, "overwrite"));
+        Directory.CreateDirectory(Path.Combine(mo2, "downloads"));
+        Directory.CreateDirectory(Path.Combine(mo2, "profiles", "Anthology"));
         await File.WriteAllTextAsync(Path.Combine(game, "fsgame.ltx"), "game");
         await File.WriteAllTextAsync(Path.Combine(game, "bin", "Anomaly.exe"), "binary");
         await File.WriteAllTextAsync(Path.Combine(game, "appdata", "user.ltx"), "private");
         await File.WriteAllTextAsync(Path.Combine(mo2, "ModOrganizer.exe"), "mo2");
         await File.WriteAllTextAsync(Path.Combine(mo2, "mods", "example", "mod.txt"), "mod");
         await File.WriteAllTextAsync(Path.Combine(mo2, "overwrite", "transient.txt"), "transient");
+        await File.WriteAllTextAsync(Path.Combine(mo2, "downloads", "private-download.zip"), "private");
+        await File.WriteAllTextAsync(Path.Combine(mo2, "ModOrganizer.ini"), "private-settings");
+        await File.WriteAllTextAsync(Path.Combine(mo2, "profiles", "Anthology", "modlist.txt"), "+example");
         Directory.CreateDirectory(keys);
         var privateKey = Path.Combine(keys, "private.pem");
         var publicKey = Path.Combine(keys, "public.pem");
@@ -87,21 +92,33 @@ public sealed class ReleaserCoreTests : IDisposable
 
         var result = await UnifiedReleaseBuilder.BuildAsync(new UnifiedReleaseRequest(workspace, machine));
 
-        Assert.Equal(2, result.Artifacts.Count);
+        Assert.Equal(3, result.Artifacts.Count);
         Assert.Equal(1, result.ContentItems);
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
         Assert.NotNull(manifest);
         Assert.Equal(4, manifest.Payload.SchemaVersion);
-        Assert.All(manifest.Payload.Packages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
-        Assert.All(manifest.Payload.Packages, package => Assert.True(package.PruneInstallRoot));
+        var payloadPackages = manifest.Payload.Packages
+            .Where(package => package.Kind != PackageKind.Launcher)
+            .ToArray();
+        Assert.Equal(2, payloadPackages.Length);
+        Assert.All(payloadPackages, package => Assert.Equal(PackageUpdateMode.ManagedExact, package.UpdateMode));
+        Assert.All(payloadPackages, package => Assert.True(package.PruneInstallRoot));
         var localizedNews = Assert.Single(manifest.Payload.Content!.Items);
         Assert.Equal(4, manifest.Payload.Content.SchemaVersion);
         Assert.Equal("Full text", ContentLocalization.Resolve(localizedNews, "en").Body);
         Assert.Equal("Vollständiger Text", ContentLocalization.Resolve(localizedNews, "de").Body);
         Assert.Equal("Полный текст", ContentLocalization.Resolve(localizedNews, "fr").Body);
-        Assert.DoesNotContain(manifest.Payload.Packages.Single(package => package.InstallRoot == "game").Files, file => file.StartsWith("appdata/", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(manifest.Payload.Packages.Single(package => package.InstallRoot == "modpack").Files, file => file.StartsWith("overwrite/", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(payloadPackages.Single(package => package.InstallRoot == "game").Files, file => file.StartsWith("appdata/", StringComparison.OrdinalIgnoreCase));
+        var modpackPackage = payloadPackages.Single(package => package.InstallRoot == "modpack");
+        Assert.DoesNotContain(modpackPackage.Files, file => file.StartsWith("overwrite/", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(modpackPackage.Files, file => file.StartsWith("downloads/", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(modpackPackage.Files, file => file.Equals("ModOrganizer.ini", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("profiles/Anthology/modlist.txt", modpackPackage.Files);
+        Assert.Contains("profiles", modpackPackage.PreservedPaths!, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("downloads", modpackPackage.PreservedPaths!, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("overwrite", modpackPackage.PreservedPaths!, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("ModOrganizer.ini", modpackPackage.PreservedPaths!, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -137,6 +154,24 @@ public sealed class ReleaserCoreTests : IDisposable
             () => new ReleaserWorkspace());
         Assert.Equal("2.1.142", synchronized.Version);
         Assert.Single(Directory.GetFiles(Path.Combine(sharedRoot, "Conflicts"), "superseded-shared-r80-*.json"));
+    }
+
+    [Fact]
+    public async Task WorkspaceStorageRestoresTheLastValidCopyWhenCloudSyncCorruptsJson()
+    {
+        var path = Path.Combine(_root, "resilient-storage", "release-workspace.json");
+        await WorkspaceStorage.SaveAsync(path, new ReleaserWorkspace { Revision = 41, Version = "2.1.140" });
+        await WorkspaceStorage.SaveAsync(path, new ReleaserWorkspace { Revision = 42, Version = "2.1.141" });
+        Assert.True(File.Exists(path + ".bak"));
+
+        await File.WriteAllBytesAsync(path, new byte[256]);
+        var recovered = await WorkspaceStorage.LoadAsync(path, () => new ReleaserWorkspace());
+
+        Assert.Equal(41, recovered.Revision);
+        Assert.Equal("2.1.140", recovered.Version);
+        Assert.NotEmpty(Directory.GetFiles(Path.GetDirectoryName(path)!, "release-workspace.json.corrupt-*"));
+        var restoredPrimary = await WorkspaceStorage.LoadAsync(path, () => new ReleaserWorkspace());
+        Assert.Equal(41, restoredPrimary.Revision);
     }
 
     [Fact]
@@ -848,12 +883,16 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.Equal(2, result.Publication.Targets);
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
-        var package = Assert.Single(manifest!.Payload.Packages);
+        var package = Assert.Single(
+            manifest!.Payload.Packages,
+            item => item.Id.Equals("anthology-files-game", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(4, manifest.Payload.SchemaVersion);
         Assert.Equal(["addons/example/gamedata/scripts/addon.script", "gamedata/configs/new-config.ltx"], package.Files);
         Assert.Equal(["gamedata/configs/obsolete.ltx"], package.DeletedFiles);
         Assert.Equal(["gamedata/scripts/old-addon"], package.DeletedDirectories);
-        var artifactName = Path.GetFileName(Assert.Single(result.Artifacts));
+        var artifactName = Path.GetFileName(Assert.Single(
+            result.Artifacts,
+            path => Path.GetFileName(path).StartsWith("anthology-files-game-", StringComparison.OrdinalIgnoreCase)));
         Assert.True(File.Exists(Path.Combine(firstTarget, workspace.Version, artifactName)));
         Assert.True(File.Exists(Path.Combine(secondTarget, workspace.Version, artifactName)));
         Assert.True(File.Exists(Path.Combine(firstTarget, workspace.Version, "manifest.json")));
@@ -917,7 +956,19 @@ public sealed class ReleaserCoreTests : IDisposable
             },
         };
 
-        await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
+        var firstResult = await ReleasePublicationService.PublishLauncherAsync(workspace, machine);
+        var firstArtifactName = Path.GetFileName(firstResult.ArtifactPath);
+        var firstArtifactHash = await ArtifactHash.ComputeSha256Async(firstResult.ArtifactPath);
+        PackageManifest firstPackage;
+        await using (var firstStream = File.OpenRead(firstResult.ManifestPath))
+        {
+            var firstManifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(firstStream, ManifestJson.Options);
+            firstPackage = Assert.Single(
+                firstManifest!.Payload.Packages,
+                item => item.Id.Equals("anthology-launcher", StringComparison.OrdinalIgnoreCase));
+        }
+
+        await File.WriteAllTextAsync(Path.Combine(web, "app.css"), "body{color:red}");
         workspace.Content.Clear();
         workspace.Changelog = new ReleaseChangelogDraft
         {
@@ -932,7 +983,9 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.True(File.Exists(result.ArtifactPath));
         await using var stream = File.OpenRead(result.ManifestPath);
         var manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options);
-        var package = Assert.Single(manifest!.Payload.Packages);
+        var package = Assert.Single(
+            manifest!.Payload.Packages,
+            item => item.Id.Equals("anthology-launcher", StringComparison.OrdinalIgnoreCase));
         Assert.Equal("launcher-publication-news", Assert.Single(manifest.Payload.Content!.Items).Id);
         Assert.Equal(workspace.Version, manifest.Payload.Content.Version);
         Assert.Equal("Launcher 0.7.0 alpha", manifest.Payload.Content.Changelog!.Title);
@@ -941,6 +994,16 @@ public sealed class ReleaserCoreTests : IDisposable
         Assert.Equal(PackageKind.Launcher, package.Kind);
         Assert.Equal("game", package.InstallRoot);
         Assert.Contains(package.Files, path => path.EndsWith("launcher-update.json", StringComparison.Ordinal));
+        var artifactName = Path.GetFileName(result.ArtifactPath);
+        Assert.Matches("^anthology-launcher-[a-zA-Z0-9._-]+-[0-9a-f]{16}\\.zip$", artifactName);
+        Assert.NotEqual(firstArtifactName, artifactName);
+        Assert.True(File.Exists(firstResult.ArtifactPath));
+        Assert.Equal(firstArtifactHash, await ArtifactHash.ComputeSha256Async(firstResult.ArtifactPath));
+        Assert.Equal(firstArtifactHash, firstPackage.Sha256);
+        Assert.Equal(await ArtifactHash.ComputeSha256Async(result.ArtifactPath), package.Sha256);
+        Assert.EndsWith(firstArtifactName, Assert.Single(firstPackage.Mirrors).Url, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith(artifactName, Assert.Single(package.Mirrors).Url, StringComparison.OrdinalIgnoreCase);
+        Assert.True(File.Exists(Path.Combine(publication, workspace.Version, firstArtifactName)));
         Assert.True(File.Exists(Path.Combine(publication, workspace.Version, Path.GetFileName(result.ArtifactPath))));
         Assert.True(File.Exists(Path.Combine(publication, "manifest.json")));
         Assert.True(File.Exists(Path.Combine(output, "manifest.json")));

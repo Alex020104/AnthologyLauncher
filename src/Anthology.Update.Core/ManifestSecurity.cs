@@ -47,6 +47,49 @@ public static class ManifestSecurity
         }
     }
 
+    public static SignedPackageIntegrityCatalog Sign(
+        PackageIntegrityCatalog catalog,
+        ECDsa privateKey,
+        string keyId)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyId);
+        var signature = privateKey.SignData(
+            GetCanonicalBytes(catalog),
+            HashAlgorithmName.SHA256,
+            DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        return new SignedPackageIntegrityCatalog(
+            catalog,
+            new ManifestSignature(Algorithm, keyId, Convert.ToBase64String(signature)));
+    }
+
+    public static bool Verify(SignedPackageIntegrityCatalog catalog, ECDsa publicKey)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(publicKey);
+        if (!string.Equals(catalog.Signature.Algorithm, Algorithm, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            var signature = Convert.FromBase64String(catalog.Signature.Value);
+            return publicKey.VerifyData(
+                GetCanonicalBytes(catalog.Payload),
+                signature,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        }
+        catch (Exception exception) when (exception is FormatException or CryptographicException)
+        {
+            return false;
+        }
+    }
+
     public static byte[] GetCanonicalBytes(UpdateManifest manifest)
         => JsonSerializer.SerializeToUtf8Bytes(manifest, CanonicalJsonOptions);
+
+    public static byte[] GetCanonicalBytes(PackageIntegrityCatalog catalog)
+        => JsonSerializer.SerializeToUtf8Bytes(catalog, CanonicalJsonOptions);
 }

@@ -34,6 +34,7 @@ public static class UnifiedReleaseBuilder
 
     private static readonly string[] Mo2ExcludedRoots =
     [
+        "downloads",
         "overwrite",
         "logs",
         "crash_dumps",
@@ -63,7 +64,11 @@ public static class UnifiedReleaseBuilder
         var packages = (await LoadPreservedPackagesAsync(
                 Path.Combine(outputRoot, "manifest.json"),
                 cancellationToken))
-            .Where(package => package.Kind == PackageKind.Launcher)
+            .Where(package => package.Kind == PackageKind.Launcher
+                              && !string.Equals(
+                                  package.Id,
+                                  PackageIntegrityCatalogBuilder.PackageId,
+                                  StringComparison.OrdinalIgnoreCase))
             .ToList();
         var artifactPaths = new List<string>();
 
@@ -116,6 +121,23 @@ public static class UnifiedReleaseBuilder
             outputRoot,
             progress,
             cancellationToken);
+        progress?.Report("Подпись единого манифеста…");
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
+        var integrity = await PackageIntegrityCatalogBuilder.BuildAsync(
+            packages,
+            outputRoot,
+            workspace,
+            privateKey,
+            machine.KeyId.Trim(),
+            progress,
+            cancellationToken);
+        if (integrity is not null)
+        {
+            packages.Add(integrity.Package);
+            artifactPaths.Add(integrity.ArtifactPath);
+        }
+
         var catalog = CreateContentCatalog(workspace, media);
         var payload = new UpdateManifest(
             4,
@@ -125,10 +147,6 @@ public static class UnifiedReleaseBuilder
             null,
             packages,
             catalog);
-
-        progress?.Report("Подпись единого манифеста…");
-        using var privateKey = ECDsa.Create();
-        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
         var signed = ManifestSecurity.Sign(payload, privateKey, machine.KeyId.Trim());
         ManifestValidator.ValidateAndThrow(signed);
 
@@ -235,7 +253,16 @@ public static class UnifiedReleaseBuilder
             files,
             PackageUpdateMode.ManagedExact,
             true,
-            CommonExcludedRoots.Concat(specificExcludedRoots).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()), artifactPath);
+            CommonExcludedRoots
+                .Concat(specificExcludedRoots)
+                // Profiles are shipped and updated, but player-created profiles,
+                // saves and other unknown files below this root must never be
+                // removed by exact-prune updates.
+                .Concat(installRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase)
+                    ? ["profiles"]
+                    : Array.Empty<string>())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray()), artifactPath);
     }
 
     public static bool SupportsArtifact(string provider, long size) =>
@@ -623,6 +650,8 @@ public static class UnifiedReleaseBuilder
 
     public static void ValidateMachine(ReleaserMachineSettings machine)
     {
+        ArgumentNullException.ThrowIfNull(machine);
+        _ = ReleaserMachinePathNormalizer.Normalize(machine);
         if (string.IsNullOrWhiteSpace(machine.OutputRoot))
         {
             throw new ArgumentException("Выберите папку для готовых релизов.");

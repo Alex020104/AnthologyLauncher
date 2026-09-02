@@ -1,9 +1,10 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @implements IDisposable
+@inject LauncherOperationGate OperationGate
 
-<div class="app-shell @(ShowTransferDock ? "transfer-active" : null)">
-    <aside class="sidebar">
+<div class="app-shell @(ShowTransferDock ? "transfer-active" : null) @(IsInterfaceLocked ? "interface-locked" : null)" aria-busy="@IsInterfaceLocked">
+    <aside class="sidebar" inert="@IsInterfaceLocked">
         <div class="brand">
             <div class="brand-mark"><img src="assets/anthology-logo.png" alt="A.N.T.H.O.L.O.G.Y" /></div>
             <div>
@@ -72,7 +73,7 @@
         <div class="version-line">LAUNCHER NEXT 0.7.0 ALPHA · LOCAL DEV</div>
     </aside>
 
-    <main class="workspace">
+    <main class="workspace" inert="@IsInterfaceLocked">
         <header class="workspace-header">
             <div>
                 <span class="eyebrow">@CurrentNavigation.Eyebrow</span>
@@ -808,7 +809,7 @@
                             else
                             {
                                 <button class="secondary-button" @onclick="CheckForUpdatesAsync">ПРОВЕРИТЬ</button>
-                                <button class="primary-button" disabled="@(_updateCheck?.HasUpdates != true)" @onclick="InstallUpdatesAsync">СКАЧАТЬ И УСТАНОВИТЬ</button>
+                                <button class="primary-button" disabled="@(_updateCheck?.HasUpdates != true)" @onclick="InstallUpdatesAsync">@UpdatePrimaryActionLabel</button>
                                 <button class="secondary-button rollback-button" disabled="@(_rollbackCandidate is null)" @onclick="RollbackLatestUpdateAsync">ОТКАТИТЬ</button>
                             }
                         </div>
@@ -822,10 +823,29 @@
                         <div class="package-list">
                             @foreach (var package in _updateCheck.Packages)
                             {
-                                <article class="package-row @(package.UpdateAvailable ? "available" : "current")">
-                                    <span class="package-state">@(package.UpdateAvailable ? "⇣" : "✓")</span>
-                                    <div><strong>@package.Package.DisplayName</strong><small>@package.Package.Id · @package.Package.InstallRoot · @FormatBytes(package.Package.Size)</small></div>
-                                    <div class="package-version"><span>@(package.InstalledVersion ?? "не установлен")</span><b>→</b><strong>@package.Package.Version</strong></div>
+                                <article class="package-row @(package.RepairRequired ? "repair" : package.UpdateAvailable ? "available" : "current")">
+                                    <span class="package-state">@(package.RepairRequired ? "↻" : package.UpdateAvailable ? "⇣" : "✓")</span>
+                                    <div>
+                                        <strong>@package.Package.DisplayName</strong>
+                                        <small>
+                                            @if (package.RepairRequired)
+                                            {
+                                                <text>ВОССТАНОВЛЕНИЕ · @(package.RepairFiles?.Count ?? 0) ФАЙЛОВ · @FormatBytes(package.Package.Size)</text>
+                                            }
+                                            else
+                                            {
+                                                <text>@package.Package.Id · @package.Package.InstallRoot · @FormatBytes(package.Package.Size)</text>
+                                            }
+                                        </small>
+                                    </div>
+                                    @if (package.RepairRequired)
+                                    {
+                                        <div class="package-version repair-label"><strong>ВОССТАНОВИТЬ</strong></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="package-version"><span>@(package.InstalledVersion ?? "не установлен")</span><b>→</b><strong>@package.Package.Version</strong></div>
+                                    }
                                 </article>
                             }
                         </div>
@@ -1263,7 +1283,7 @@
                         else
                         {
                             <div class="native-options-topbar">
-                                <label class="game-settings-search native-global-search"><span>⌕</span><input placeholder="Поиск по настройкам…" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
+                                <label class="game-settings-search native-global-search"><span>⌕</span><input placeholder="@(_configurationKind == AnomalyConfigurationKind.Mcm ? "Поиск по параметрам MCM…" : "Поиск по настройкам Anomaly…")" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
                                 <div class="native-kind-switch" role="tablist" aria-label="Источник настроек">
                                     <button class="@(_configurationKind == AnomalyConfigurationKind.Anomaly ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Anomaly)" disabled="@(!_gameConfiguration.AnomalyAvailable)"><span>ANOMALY</span><strong>@_gameConfiguration.AnomalySettings.Count</strong></button>
                                     <button class="@(_configurationKind == AnomalyConfigurationKind.Mcm ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Mcm)" disabled="@(!_gameConfiguration.McmAvailable)"><span>MCM</span><strong>@_gameConfiguration.McmSettings.Count</strong></button>
@@ -1277,6 +1297,21 @@
                             <div class="native-options-shell">
                                 <aside class="native-options-navigation native-options-primary">
                                     <header><span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "МОДУЛИ MCM" : "РАЗДЕЛЫ ANOMALY")</span><strong>@ConfigurationPrimaryPages.Count</strong></header>
+                                    @if (_configurationKind == AnomalyConfigurationKind.Mcm)
+                                    {
+                                        <div class="mcm-module-search" role="search">
+                                            <label>
+                                                <span>⌕</span>
+                                                <input placeholder="Поиск аддона MCM…" aria-label="Поиск аддона MCM" @bind="ConfigurationModuleSearch" @bind:event="oninput" />
+                                            </label>
+                                            <button type="button" title="Очистить поиск MCM" aria-label="Очистить поиск MCM" @onclick="ClearConfigurationModuleSearch" disabled="@(string.IsNullOrWhiteSpace(_configurationModuleSearch))">×</button>
+                                            <small>Название аддона, страницы или параметра</small>
+                                        </div>
+                                    }
+                                    @if (ConfigurationPrimaryPages.Count == 0)
+                                    {
+                                        <div class="native-options-no-children mcm-search-empty"><span>⌕</span><strong>Аддоны не найдены</strong><small>Попробуйте изменить запрос или очистить поиск.</small></div>
+                                    }
                                     @foreach (var node in ConfigurationPrimaryPages)
                                     {
                                         var currentNode = node;
@@ -1465,12 +1500,32 @@
             <button class="toast @(_toastError ? "error" : null)" @onclick="DismissToast"><span>@(_toastError ? "!" : "✓")</span>@_toast</button>
         }
     </main>
+
+    @if (IsInterfaceLocked)
+    {
+        <section class="transfer-lock-overlay" role="dialog" aria-modal="true" aria-live="assertive" aria-label="Выполняется загрузка и установка">
+            <div class="transfer-lock-card">
+                <span class="transfer-lock-kicker">ОБНОВЛЕНИЕ ANTHOLOGY</span>
+                <div class="transfer-lock-spinner" aria-hidden="true"><i></i><i></i><i></i></div>
+                <strong>@TransferTitle</strong>
+                <small>@TransferSource</small>
+                <div class="transfer-lock-progress"><span style="width:@TransferPercentage%"></span></div>
+                <p>@TransferDetails</p>
+                <em>Лаунчер временно заблокирован, чтобы файлы сборки не изменялись во время установки.</em>
+                @if (CanCancelLockedUpdate)
+                {
+                    <button type="button" @onclick="CancelUpdate">ОТМЕНИТЬ ЗАГРУЗКУ</button>
+                }
+            </div>
+        </section>
+    }
 </div>
 
 @code {
     private static readonly NavItem[] Navigation =
     [
         new("home", "⌂", "Главная", "ИГРАТЬ", "КОМАНДНЫЙ ЦЕНТР", "Добро пожаловать в Зону"),
+        new("updates", "⇣", "Обновление игры", "ИГРАТЬ", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
         new("saves", "▣", "Сохранения", "ИГРАТЬ", "АРХИВ СЕССИЙ", "Сохранения Anomaly"),
         new("mo2", "≡", "Моды и профили", "ИГРАТЬ", "СБОРКА", "Профили и моды"),
 
@@ -1482,7 +1537,6 @@
         new("community", "◉", "Сообщество", "ОБЩЕНИЕ", "СВЯЗЬ", "Чат и обратная связь"),
         new("support", "◇", "Сообщить о проблеме", "ОБЩЕНИЕ", "ПОДДЕРЖКА", "Обращение разработчику"),
 
-        new("updates", "⇣", "Обновление игры", "ОБСЛУЖИВАНИЕ", "СИНХРОНИЗАЦИЯ", "Центр обновлений", "4"),
         new("installation", "⬡", "Пути и установка", "ОБСЛУЖИВАНИЕ", "РАЗВЁРТЫВАНИЕ", "Установка и подключение игры"),
         new("settings", "⚙", "Настройки", "ОБСЛУЖИВАНИЕ", "КОНФИГУРАЦИЯ", "Параметры Anomaly"),
         new("project-support", "♡", "Поддержать проект", string.Empty, "ПОДДЕРЖКА ПРОЕКТА", "Помочь Anthology", Bottom: true),
@@ -1570,6 +1624,7 @@
     private AnomalyConfigurationSnapshot _gameConfiguration = AnomalyConfigurationSnapshot.Empty;
     private AnomalyConfigurationKind _configurationKind = AnomalyConfigurationKind.Anomaly;
     private string _configurationSearch = string.Empty;
+    private string _configurationModuleSearch = string.Empty;
     private string _configurationPrimary = string.Empty;
     private string _configurationSecondary = string.Empty;
     private string _configurationCategory = string.Empty;
@@ -1578,7 +1633,9 @@
     private UpdateCheckResult? _updateCheck;
     private UpdateProgress? _updateProgress;
     private bool _updateBusy;
+    private bool _updateInteractionLocked;
     private CancellationTokenSource? _updateCancellation;
+    private IDisposable? _restartTransferLease;
     private string _selectedChannelId = "general";
     private List<ChatMessage> _chatMessages = [];
     private string _chatText = string.Empty;
@@ -1750,7 +1807,24 @@
             ? _gameConfiguration.McmSettings
             : _gameConfiguration.AnomalySettings;
     private IEnumerable<AnomalyConfigurationEntry> FriendlyConfigurationSettings => CurrentConfigurationSettings;
-    private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => FriendlyConfigurationSettings
+    private IEnumerable<AnomalyConfigurationEntry> ConfigurationModuleSettings
+    {
+        get
+        {
+            if (_configurationKind != AnomalyConfigurationKind.Mcm
+                || string.IsNullOrWhiteSpace(_configurationModuleSearch))
+            {
+                return FriendlyConfigurationSettings;
+            }
+
+            var query = _configurationModuleSearch.Trim();
+            return FriendlyConfigurationSettings
+                .GroupBy(item => ConfigurationSegments(item)[0], StringComparer.OrdinalIgnoreCase)
+                .Where(group => McmModuleMatchesSearch(group, query))
+                .SelectMany(group => group);
+        }
+    }
+    private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => ConfigurationModuleSettings
         .Where(item => !string.IsNullOrWhiteSpace(_configurationSearch)
                        || ConfigurationPath(item).Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
         .Where(item =>
@@ -1780,7 +1854,7 @@
     private IReadOnlyList<AnomalyConfigurationEntry> ActionConfigurationSettings => string.IsNullOrWhiteSpace(_configurationSearch)
         ? SelectedConfigurationSettings
         : VisibleConfigurationSettings;
-    private IReadOnlyList<ConfigurationMenuNode> ConfigurationPrimaryPages => FriendlyConfigurationSettings
+    private IReadOnlyList<ConfigurationMenuNode> ConfigurationPrimaryPages => ConfigurationModuleSettings
         .GroupBy(item => ConfigurationSegments(item)[0], StringComparer.OrdinalIgnoreCase)
         .Select(group =>
         {
@@ -1878,6 +1952,30 @@
     private static string[] ConfigurationSegments(AnomalyConfigurationEntry item) =>
         ConfigurationPath(item).Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+    private static bool McmModuleMatchesSearch(
+        IEnumerable<AnomalyConfigurationEntry> settings,
+        string query)
+    {
+        foreach (var setting in settings)
+        {
+            var view = GameSettingsPresentation.For(setting);
+            if (ConfigurationSegments(setting)[0].Contains(query, StringComparison.OrdinalIgnoreCase)
+                || setting.Category.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || setting.Key.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || setting.MenuPath?.Contains(query, StringComparison.OrdinalIgnoreCase) == true
+                || setting.MenuDisplayName?.Contains(query, StringComparison.OrdinalIgnoreCase) == true
+                || setting.CategoryDisplayName?.Contains(query, StringComparison.OrdinalIgnoreCase) == true
+                || view.CategoryTitle.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || view.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || view.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool IsConfigurationPathWithin(string path, string parent) =>
         !string.IsNullOrWhiteSpace(parent)
         && (path.Equals(parent, StringComparison.OrdinalIgnoreCase)
@@ -1888,6 +1986,16 @@
         set
         {
             _configurationSearch = value ?? string.Empty;
+        }
+    }
+
+    private string ConfigurationModuleSearch
+    {
+        get => _configurationModuleSearch;
+        set
+        {
+            _configurationModuleSearch = value ?? string.Empty;
+            EnsureConfigurationModuleSelection();
         }
     }
 
@@ -2246,6 +2354,31 @@
         _configurationCategory = category;
     }
 
+    private void ClearConfigurationModuleSearch()
+    {
+        ConfigurationModuleSearch = string.Empty;
+    }
+
+    private void EnsureConfigurationModuleSelection()
+    {
+        var primaryPages = ConfigurationPrimaryPages;
+        if (primaryPages.Any(node => node.Path.Equals(_configurationPrimary, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        var first = primaryPages.FirstOrDefault();
+        if (first is null)
+        {
+            _configurationPrimary = string.Empty;
+            _configurationSecondary = string.Empty;
+            _configurationCategory = string.Empty;
+            return;
+        }
+
+        SelectConfigurationPrimary(first.Path);
+    }
+
     private void ToggleAdvancedConfiguration()
     {
         _configurationAdvanced = !_configurationAdvanced;
@@ -2318,6 +2451,7 @@
     private void ResetConfigurationFilters()
     {
         _configurationSearch = string.Empty;
+        _configurationModuleSearch = string.Empty;
         _configurationPrimary = ConfigurationPrimaryPages.FirstOrDefault()?.Path ?? string.Empty;
         _configurationSecondary = ConfigurationSecondaryPages.FirstOrDefault()?.Path ?? _configurationPrimary;
         _configurationCategory = ConfigurationTertiaryPages.FirstOrDefault()?.Path ?? _configurationSecondary;
@@ -2371,14 +2505,20 @@
 
     private async Task InstallBundledGameAsync()
     {
-        if (_installBusy)
+        if (IsTransferOperationActive)
         {
             return;
         }
 
+        using var transferLease = OperationGate.EnterTransfer();
+        _installProgress = new UpdateProgress(
+            UpdateStage.Checking,
+            "Подготовка локального комплекта",
+            Provider: "InstallMedia");
         _installBusy = true;
         try
         {
+            await InvokeAsync(StateHasChanged);
             var progress = new Progress<UpdateProgress>(value =>
             {
                 _installProgress = value;
@@ -2401,6 +2541,7 @@
         finally
         {
             _installBusy = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -3329,54 +3470,117 @@
 
     private async Task InstallUpdatesAsync()
     {
-        if (_updateCheck?.HasUpdates != true)
+        if (_updateCheck?.HasUpdates != true || IsTransferOperationActive)
         {
             return;
         }
 
-        await RunUpdateOperationAsync(async cancellationToken =>
+        var includesLauncherUpdate = _updateCheck.Packages.Any(update =>
+            update.UpdateAvailable
+            && update.Package.Kind == PackageKind.Launcher
+            && string.Equals(
+                update.Package.Id,
+                LauncherUpdateService.LauncherPackageId,
+                StringComparison.OrdinalIgnoreCase));
+        var launcherUpdateInstalled = false;
+        IDisposable? transferLease = OperationGate.EnterTransfer();
+        var restartScheduled = false;
+        _updateInteractionLocked = true;
+
+        _updateProgress = new UpdateProgress(
+            UpdateStage.Downloading,
+            "Подготовка загрузки обновления",
+            TotalBytes: _updateCheck.Packages.Where(item => item.UpdateAvailable).Sum(item => item.Package.Size));
+        try
         {
-            var progress = new Progress<UpdateProgress>(value =>
+            await RunUpdateOperationAsync(async cancellationToken =>
             {
-                _updateProgress = value;
-                _ = InvokeAsync(StateHasChanged);
+                var progress = new Progress<UpdateProgress>(value =>
+                {
+                    _updateProgress = value;
+                    _ = InvokeAsync(StateHasChanged);
+                });
+                var result = await Updater.ApplyAsync(_updateCheck, progress, cancellationToken);
+                launcherUpdateInstalled = includesLauncherUpdate && result.InstalledPackages > 0;
+                _updateCheck = await Updater.CheckAsync(cancellationToken);
+                _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
+                if (!launcherUpdateInstalled)
+                {
+                    ShowToast($"Установлено пакетов: {result.InstalledPackages}, файлов: {result.InstalledFiles}");
+                }
             });
-            var result = await Updater.ApplyAsync(_updateCheck, progress, cancellationToken);
-            _updateCheck = await Updater.CheckAsync(cancellationToken);
-            _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
-            ShowToast($"Установлено пакетов: {result.InstalledPackages}, файлов: {result.InstalledFiles}");
-        });
+
+            if (launcherUpdateInstalled)
+            {
+                restartScheduled = await RestartLauncherAfterUpdateAsync();
+                if (restartScheduled)
+                {
+                    _restartTransferLease = transferLease;
+                    transferLease = null;
+                }
+            }
+        }
+        finally
+        {
+            if (!restartScheduled)
+            {
+                _updateInteractionLocked = false;
+                _updateBusy = false;
+            }
+            transferLease?.Dispose();
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task RollbackLatestUpdateAsync()
     {
-        if (_rollbackCandidate is null)
+        if (_rollbackCandidate is null || IsTransferOperationActive)
         {
             return;
         }
 
-        await RunUpdateOperationAsync(async cancellationToken =>
+        _updateProgress = new UpdateProgress(
+            UpdateStage.RollingBack,
+            $"Подготовка отката {_rollbackCandidate.DisplayName}");
+        using var transferLease = OperationGate.EnterTransfer();
+        _updateInteractionLocked = true;
+        try
         {
-            var progress = new Progress<UpdateProgress>(value =>
+            await RunUpdateOperationAsync(async cancellationToken =>
             {
-                _updateProgress = value;
-                _ = InvokeAsync(StateHasChanged);
+                var progress = new Progress<UpdateProgress>(value =>
+                {
+                    _updateProgress = value;
+                    _ = InvokeAsync(StateHasChanged);
+                });
+                var result = await Updater.RollbackLatestAsync(progress, cancellationToken);
+                _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
+                _updateCheck = UpdateConfigurationReady ? await Updater.CheckAsync(cancellationToken) : null;
+                ShowToast($"Восстановлено файлов: {result.RestoredFiles}. Версия: {result.RestoredVersion ?? "исходная"}");
             });
-            var result = await Updater.RollbackLatestAsync(progress, cancellationToken);
-            _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
-            _updateCheck = UpdateConfigurationReady ? await Updater.CheckAsync(cancellationToken) : null;
-            ShowToast($"Восстановлено файлов: {result.RestoredFiles}. Версия: {result.RestoredVersion ?? "исходная"}");
-        });
+        }
+        finally
+        {
+            _updateInteractionLocked = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task RunUpdateOperationAsync(Func<CancellationToken, Task> operation)
     {
+        if (IsTransferOperationActive)
+        {
+            return;
+        }
+
         _updateCancellation?.Dispose();
-        _updateCancellation = new CancellationTokenSource();
+        var cancellation = new CancellationTokenSource();
+        _updateCancellation = cancellation;
         _updateBusy = true;
         try
         {
-            await operation(_updateCancellation.Token);
+            await InvokeAsync(StateHasChanged);
+            await operation(cancellation.Token);
         }
         catch (OperationCanceledException)
         {
@@ -3395,6 +3599,11 @@
         finally
         {
             _updateBusy = false;
+            if (ReferenceEquals(_updateCancellation, cancellation))
+            {
+                _updateCancellation = null;
+            }
+            cancellation.Dispose();
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -3417,11 +3626,21 @@
         ? "Публичный ключ встроен и готов к проверке подписи"
         : "Встроенный публичный ключ не найден — переустановите лаунчер";
 
+    private bool HasRepairRequired => _updateCheck?.Packages.Any(item => item.UpdateAvailable && item.RepairRequired) == true;
+
+    private bool HasOrdinaryUpdate => _updateCheck?.Packages.Any(item => item.UpdateAvailable && !item.RepairRequired) == true;
+
+    private string UpdatePrimaryActionLabel => HasRepairRequired && !HasOrdinaryUpdate
+        ? "ВОССТАНОВИТЬ ФАЙЛЫ"
+        : "СКАЧАТЬ И УСТАНОВИТЬ";
+
     private string UpdateHeadline => _updateBusy
         ? _updateProgress?.Message ?? "Выполняется операция"
         : _updateCheck is null
             ? "Готов к безопасной проверке"
-            : _updateCheck.HasUpdates ? "Обновление доступно" : "Версия актуальна";
+            : HasRepairRequired && !HasOrdinaryUpdate
+                ? "Требуется восстановление файлов"
+                : _updateCheck.HasUpdates ? "Обновление доступно" : "Версия актуальна";
 
     private string UpdateDescription => _updateCheck is null
         ? "Лаунчер начнёт работу только после ручной проверки manifest и доверенного ключа."
@@ -3439,7 +3658,9 @@
 
     private string UpdateDockTitle => _updateProgress?.Message
         ?? (_updateCheck?.HasUpdates == true
-            ? $"Готово к загрузке: {_updateCheck.Packages.Count(item => item.UpdateAvailable)} пакетов"
+            ? HasRepairRequired && !HasOrdinaryUpdate
+                ? $"Найдено повреждённых или удалённых файлов: {_updateCheck.Packages.Where(item => item.RepairRequired).Sum(item => item.RepairFiles?.Count ?? 0)}"
+                : $"Готово к загрузке: {_updateCheck.Packages.Count(item => item.UpdateAvailable)} пакетов"
             : _updateCheck is not null
                 ? "Загрузка не требуется — установлена актуальная версия"
                 : UpdateConfigurationReady
@@ -3480,6 +3701,9 @@
             return;
         }
 
+        IDisposable? transferLease = null;
+        CancellationTokenSource? startupCancellation = null;
+        var restartScheduled = false;
         _updateBusy = true;
         try
         {
@@ -3488,21 +3712,78 @@
             _updateCheck = await Updater.CheckAsync();
             _publishedContent = _updateCheck.SignedManifest.Payload.Content;
             EnsurePublishedContentSelection();
-            if (_updateCheck.Packages.Any(update =>
-                    update.UpdateAvailable && update.Package.Kind == PackageKind.Launcher))
+            var hasLauncherUpdate = _updateCheck.Packages.Any(update =>
+                update.UpdateAvailable
+                && update.Package.Kind == PackageKind.Launcher
+                && string.Equals(
+                    update.Package.Id,
+                    LauncherUpdateService.LauncherPackageId,
+                    StringComparison.OrdinalIgnoreCase));
+            var hasIntegrityBootstrap = _updateCheck.Packages.Any(update =>
+                update.UpdateAvailable
+                && string.Equals(
+                    update.Package.Id,
+                    LauncherUpdateService.IntegrityPackageId,
+                    StringComparison.OrdinalIgnoreCase));
+            if (hasLauncherUpdate || hasIntegrityBootstrap)
             {
                 var progress = new Progress<UpdateProgress>(value =>
                 {
                     _updateProgress = value;
                     _ = InvokeAsync(StateHasChanged);
                 });
-                var result = await Updater.ApplyLauncherOnlyAsync(_updateCheck, progress);
-                _updateCheck = await Updater.CheckAsync();
-                if (result.InstalledPackages > 0)
+                transferLease = OperationGate.EnterTransfer();
+                startupCancellation = new CancellationTokenSource();
+                _updateCancellation = startupCancellation;
+                _updateInteractionLocked = true;
+                await InvokeAsync(StateHasChanged);
+                var result = await Updater.ApplyStartupPrerequisitesAsync(
+                    _updateCheck,
+                    progress,
+                    startupCancellation.Token);
+                if (hasLauncherUpdate && result.InstalledPackages > 0)
                 {
-                    ShowToast("Новая версия лаунчера загружена и применится при следующем запуске");
+                    restartScheduled = await RestartLauncherAfterUpdateAsync();
+                    if (restartScheduled)
+                    {
+                        _restartTransferLease = transferLease;
+                        transferLease = null;
+                    }
+                    return;
                 }
+
+                _updateProgress = new UpdateProgress(UpdateStage.Checking, "Повторная проверка после обновления контроля целостности");
+                _updateCheck = await Updater.CheckAsync(startupCancellation.Token);
+                _publishedContent = _updateCheck.SignedManifest.Payload.Content;
+                EnsurePublishedContentSelection();
             }
+
+            if (_updateCheck.Packages.Any(update => update.UpdateAvailable && update.RepairRequired))
+            {
+                transferLease ??= OperationGate.EnterTransfer();
+                startupCancellation ??= new CancellationTokenSource();
+                _updateCancellation = startupCancellation;
+                _updateInteractionLocked = true;
+                await InvokeAsync(StateHasChanged);
+                var progress = new Progress<UpdateProgress>(value =>
+                {
+                    _updateProgress = value;
+                    _ = InvokeAsync(StateHasChanged);
+                });
+                var repairResult = await Updater.ApplyRepairsOnlyAsync(
+                    _updateCheck,
+                    progress,
+                    startupCancellation.Token);
+                _updateProgress = new UpdateProgress(UpdateStage.Checking, "Проверка файлов после автоматического восстановления");
+                _updateCheck = await Updater.CheckAsync(startupCancellation.Token);
+                _publishedContent = _updateCheck.SignedManifest.Payload.Content;
+                EnsurePublishedContentSelection();
+                ShowToast($"Автоматически восстановлено файлов: {repairResult.InstalledFiles}");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            ShowToast("Автоматическое обновление отменено", true);
         }
         catch (Exception exception) when (exception is HttpRequestException
                                            or IOException
@@ -3513,12 +3794,46 @@
                                            or AggregateException)
         {
             // An unavailable update channel must never prevent offline launch.
+            if (transferLease is not null)
+            {
+                ShowToast(exception.Message, true);
+            }
         }
         finally
         {
-            _updateBusy = false;
+            if (!restartScheduled)
+            {
+                _updateInteractionLocked = false;
+                _updateBusy = false;
+            }
+            if (startupCancellation is not null
+                && ReferenceEquals(_updateCancellation, startupCancellation))
+            {
+                _updateCancellation = null;
+            }
+            startupCancellation?.Dispose();
+            transferLease?.Dispose();
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task<bool> RestartLauncherAfterUpdateAsync()
+    {
+        _updateInteractionLocked = true;
+        _updateBusy = true;
+        _updateProgress = new UpdateProgress(
+            UpdateStage.Installing,
+            "Применяем новую версию и перезапускаем лаунчер");
+        await InvokeAsync(StateHasChanged);
+
+        var restart = Updater.RestartToApplyPendingUpdate();
+        if (restart.Success)
+        {
+            return true;
+        }
+
+        ShowToast(restart.Message, true);
+        return false;
     }
 
     private int ContentDownloadPercentage => _contentDownloadProgress is { TotalBytes: > 0 }
@@ -3530,9 +3845,24 @@
         || (_installBusy && _installProgress is not null)
         || (_contentDownloadId is not null && _contentDownloadProgress is not null);
 
+    private bool IsInterfaceLocked =>
+        _updateInteractionLocked
+        || _installBusy
+        || _contentDownloadId is not null;
+
+    private bool IsTransferOperationActive =>
+        _updateBusy
+        || _installBusy
+        || _contentDownloadId is not null;
+
+    private bool CanCancelLockedUpdate =>
+        _updateInteractionLocked
+        && _updateCancellation is { IsCancellationRequested: false }
+        && _updateProgress?.Stage != UpdateStage.RollingBack;
+
     private int TransferPercentage => _updateBusy && _updateProgress is not null
         ? UpdateProgressPercentage
-        : _installBusy && _installProgress is not null
+        : _installBusy
             ? InstallProgressPercentage
             : ContentDownloadPercentage;
 
@@ -3547,9 +3877,9 @@
                 return package is null ? _updateProgress.Message : $"{_updateProgress.Message} · {package.Package.Version}";
             }
 
-            if (_installBusy && _installProgress is not null)
+            if (_installBusy)
             {
-                return _installProgress.Message;
+                return _installProgress?.Message ?? "Подготовка установки игры";
             }
 
             var content = (_publishedContent?.Items ?? []).FirstOrDefault(item =>
@@ -3636,15 +3966,17 @@
 
     private async Task DownloadPublishedContentAsync(ContentDocument content)
     {
-        if (_contentDownloadId is not null)
+        if (IsTransferOperationActive)
         {
             return;
         }
 
+        using var transferLease = OperationGate.EnterTransfer();
         _contentDownloadId = content.Id;
         _contentDownloadProgress = null;
         try
         {
+            await InvokeAsync(StateHasChanged);
             var progress = new Progress<DownloadProgress>(value =>
             {
                 _contentDownloadProgress = value;
@@ -3677,6 +4009,7 @@
         finally
         {
             _contentDownloadId = null;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -3995,7 +4328,10 @@
         Community.MessageReceived -= OnChatMessageReceived;
         RelayChat.MessageReceived -= OnRelayChatMessageReceived;
         RelayChat.StatusChanged -= OnRelayChatStatusChanged;
+        _updateCancellation?.Cancel();
         _updateCancellation?.Dispose();
+        _restartTransferLease?.Dispose();
+        _restartTransferLease = null;
         _mo2ContentCancellation?.Cancel();
         _mo2ContentCancellation?.Dispose();
         _mo2RuntimeMonitorCancellation.Cancel();

@@ -43,6 +43,12 @@ public static class ReleaserApplication
                 return 0;
             }
 
+            if (args is ["quick", "publish", .. var quickArgs])
+            {
+                await PublishQuickAsync(Arguments.Parse(quickArgs));
+                return 0;
+            }
+
             PrintHelp();
             return args.Length == 0 ? 0 : 2;
         }
@@ -103,6 +109,31 @@ public static class ReleaserApplication
         Console.WriteLine($"Content: {content.Id}");
         Console.WriteLine($"Version: {workspace.Version}");
         Console.WriteLine($"Files: {publication.Files}; targets: {publication.Targets}");
+    }
+
+    private static async Task PublishQuickAsync(Arguments arguments)
+    {
+        var (workspace, machine) = await LoadReleaseSettingsAsync(arguments);
+        var progress = new Progress<string>(Console.WriteLine);
+        var result = await ReleasePublicationService.PublishQuickFilesAsync(
+            workspace,
+            machine,
+            progress);
+
+        Console.WriteLine($"Quick release: {workspace.Version}");
+        Console.WriteLine($"Manifest: {result.ManifestPath}");
+        Console.WriteLine(
+            $"Added files: {result.AddedFiles}; added folders: {result.AddedFolders}; " +
+            $"deleted files: {result.DeletedFiles}; deleted folders: {result.DeletedFolders}");
+        Console.WriteLine($"Published files: {result.Publication.Files}; targets: {result.Publication.Targets}");
+        foreach (var artifact in result.Artifacts)
+        {
+            Console.WriteLine($"Artifact: {artifact}");
+        }
+        foreach (var destination in result.Publication.Destinations)
+        {
+            Console.WriteLine($"Destination: {destination}");
+        }
     }
 
     private static async Task<(ReleaserWorkspace Workspace, ReleaserMachineSettings Machine)> LoadReleaseSettingsAsync(
@@ -293,6 +324,8 @@ public static class ReleaserApplication
         Console.WriteLine("  launcher publish --workspace release-workspace.json --machine machine-settings.json");
         Console.WriteLine("  release publish --workspace release-workspace.json --machine machine-settings.json");
         Console.WriteLine("  content publish --id CONTENT_ID --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("  quick publish --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("    Publishes the files/folders and deletions saved in the Releaser quick-release list.");
     }
 
     private sealed class Arguments

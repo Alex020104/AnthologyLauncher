@@ -137,17 +137,17 @@ public static partial class GameSettingsPresentation
         if (entry.Kind == AnomalyConfigurationKind.Anomaly)
         {
             var leafKey = entry.Key.Split('/').Last();
-            return Anomaly.TryGetValue(leafKey, out var definition)
-                ? definition
-                : new GameSettingView(
-                    entry.DisplayName ?? Humanize(leafKey),
-                    entry.Description ?? "Параметр оригинального меню Anomaly.",
-                    entry.CategoryDisplayName ?? Humanize(entry.Category),
-                    InferControl(entry),
-                    true,
-                    entry.Minimum,
-                    entry.Maximum,
-                    entry.Step);
+            Anomaly.TryGetValue(leafKey, out var known);
+            return new GameSettingView(
+                entry.DisplayName ?? known?.Title ?? Humanize(leafKey),
+                entry.Description ?? known?.Description ?? "Параметр оригинального меню Anomaly.",
+                entry.CategoryDisplayName ?? known?.CategoryTitle ?? Humanize(entry.Category),
+                ControlFromMetadata(entry, known) ?? known?.Control ?? InferControl(entry),
+                true,
+                entry.Minimum ?? known?.Minimum,
+                entry.Maximum ?? known?.Maximum,
+                entry.Step ?? known?.Step,
+                known?.Choices);
         }
 
         var slash = entry.Key.IndexOf('/');
@@ -156,14 +156,7 @@ public static partial class GameSettingsPresentation
         var moduleTitle = entry.CategoryDisplayName
                           ?? (McmModules.TryGetValue(module, out var knownTitle) ? knownTitle : Humanize(module));
         var optionTitle = entry.DisplayName ?? Humanize(option.Replace('/', ' '));
-        var control = entry.ControlType?.ToLowerInvariant() switch
-        {
-            "check" => GameSettingControl.Toggle,
-            "track" when entry.Minimum.HasValue && entry.Maximum.HasValue => GameSettingControl.Slider,
-            "track" => GameSettingControl.Number,
-            "list" or "radio" => GameSettingControl.Text,
-            _ => InferControl(entry),
-        };
+        var control = ControlFromMetadata(entry) ?? InferControl(entry);
         return new GameSettingView(
             optionTitle,
             entry.Description ?? $"Настройка модуля «{moduleTitle}». MCM применит её при следующем запуске игры.",
@@ -173,6 +166,44 @@ public static partial class GameSettingsPresentation
             entry.Minimum,
             entry.Maximum,
             entry.Step ?? InferStep(entry.Value));
+    }
+
+    private static GameSettingControl? ControlFromMetadata(
+        AnomalyConfigurationEntry entry,
+        GameSettingView? known = null)
+    {
+        var type = entry.ControlType?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return null;
+        }
+
+        if (type == "check" || type.EndsWith(".check", StringComparison.Ordinal))
+        {
+            return GameSettingControl.Toggle;
+        }
+
+        if (type == "track" || type.EndsWith(".track", StringComparison.Ordinal))
+        {
+            return entry.Minimum.HasValue && entry.Maximum.HasValue
+                ? GameSettingControl.Slider
+                : GameSettingControl.Number;
+        }
+
+        if (type is "list" or "radio" or "radio_h" or "radio_v"
+            || type.Contains("radio", StringComparison.Ordinal))
+        {
+            // Keep authored choices where the launcher knows them. Dynamic MCM
+            // list contents are not safe to evaluate outside the game, so they
+            // remain directly editable instead of presenting an empty select.
+            return known?.Choices is { Count: > 0 }
+                ? GameSettingControl.Select
+                : GameSettingControl.Text;
+        }
+
+        return type is "input" or "key_bind" or "keybind"
+            ? GameSettingControl.Text
+            : null;
     }
 
     public static string CategoryTitle(AnomalyConfigurationKind kind, string category) =>

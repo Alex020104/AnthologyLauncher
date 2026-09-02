@@ -69,6 +69,59 @@ public sealed class UpdateCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public async Task RawGitHubManifestBypassesSharedCacheWithoutDroppingExistingQuery()
+    {
+        var archiveBytes = CreateArchive(("gamedata/test.txt", "test"));
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var signed = CreateSignedManifest(key, archiveBytes, ["gamedata/test.txt"]);
+        await WriteTrustFilesAsync(key, signed);
+        var manifestBytes = JsonSerializer.SerializeToUtf8Bytes(signed, ManifestJson.Options);
+        using var handler = new ManifestHandler(manifestBytes);
+        using var client = new HttpClient(handler);
+        var coordinator = new UpdateCoordinator(client);
+        const string source = "https://raw.githubusercontent.com/owner/repository/alpha15/manifest.json?channel=next";
+
+        await coordinator.CheckAsync(source, GetPublicKeyPath(), "next", Path.Combine(_root, "github-state-1"));
+        await coordinator.CheckAsync(source, GetPublicKeyPath(), "next", Path.Combine(_root, "github-state-2"));
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.All(handler.Requests, request =>
+        {
+            Assert.Equal("raw.githubusercontent.com", request.RequestUri.Host);
+            Assert.Equal("/owner/repository/alpha15/manifest.json", request.RequestUri.AbsolutePath);
+            Assert.Contains("channel=next", request.RequestUri.Query, StringComparison.Ordinal);
+            Assert.Matches("(?:^|[?&])anthology_cb=[0-9a-f]{32}(?:&|$)", request.RequestUri.Query);
+            Assert.True(request.NoCache);
+            Assert.True(request.NoStore);
+            Assert.True(request.ZeroMaxAge);
+            Assert.True(request.PragmaNoCache);
+        });
+        Assert.NotEqual(handler.Requests[0].RequestUri, handler.Requests[1].RequestUri);
+    }
+
+    [Fact]
+    public async Task NonGitHubManifestUrlIsNotRewrittenOrGivenGitHubCacheHeaders()
+    {
+        var archiveBytes = CreateArchive(("gamedata/test.txt", "test"));
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var signed = CreateSignedManifest(key, archiveBytes, ["gamedata/test.txt"]);
+        await WriteTrustFilesAsync(key, signed);
+        using var handler = new ManifestHandler(JsonSerializer.SerializeToUtf8Bytes(signed, ManifestJson.Options));
+        using var client = new HttpClient(handler);
+        var coordinator = new UpdateCoordinator(client);
+        const string source = "https://cdn.example/anthology/manifest.json?channel=next";
+
+        await coordinator.CheckAsync(source, GetPublicKeyPath(), "next", Path.Combine(_root, "cdn-state"));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(source, request.RequestUri.AbsoluteUri);
+        Assert.False(request.NoCache);
+        Assert.False(request.NoStore);
+        Assert.False(request.ZeroMaxAge);
+        Assert.False(request.PragmaNoCache);
+    }
+
+    [Fact]
     public async Task ArchiveWithUndeclaredFileIsRejectedBeforeInstallation()
     {
         var archiveBytes = CreateArchive(
@@ -307,4 +360,34 @@ public sealed class UpdateCoordinatorTests : IDisposable
                 RequestMessage = request,
             });
     }
+
+    private sealed class ManifestHandler(byte[] manifest) : HttpMessageHandler
+    {
+        public List<ManifestRequestSnapshot> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            Requests.Add(new ManifestRequestSnapshot(
+                request.RequestUri ?? throw new InvalidOperationException("Manifest request has no URI."),
+                request.Headers.CacheControl?.NoCache == true,
+                request.Headers.CacheControl?.NoStore == true,
+                request.Headers.CacheControl?.MaxAge == TimeSpan.Zero,
+                request.Headers.Pragma.Any(value =>
+                    string.Equals(value.Name, "no-cache", StringComparison.OrdinalIgnoreCase))));
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(manifest),
+                RequestMessage = request,
+            });
+        }
+    }
+
+    private sealed record ManifestRequestSnapshot(
+        Uri RequestUri,
+        bool NoCache,
+        bool NoStore,
+        bool ZeroMaxAge,
+        bool PragmaNoCache);
 }

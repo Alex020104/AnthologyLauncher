@@ -216,6 +216,17 @@ public sealed class ReleaserStateStore : IDisposable
         machine.QuickDeleteFiles ??= [];
         machine.QuickDeleteFolders ??= [];
         machine.PublicationRoots = new Dictionary<string, string>(machine.PublicationRoots ?? [], StringComparer.OrdinalIgnoreCase);
+        var sharedWorkspaceRootBeforeRepair = machine.SharedWorkspaceRoot;
+        changed |= ReleaserMachinePathNormalizer.Normalize(machine);
+        if (!string.Equals(sharedWorkspaceRootBeforeRepair, machine.SharedWorkspaceRoot, StringComparison.Ordinal))
+        {
+            // The previous hash belongs to the old (mojibake) shared directory. Reusing it
+            // against the repaired directory can make an older shared draft look newer and
+            // overwrite the current local workspace during the next automatic sync.
+            machine.LastSyncedHash = string.Empty;
+            changed = true;
+        }
+        changed |= NormalizeQuickReleaseDestinations(machine);
         machine.DeveloperName = string.IsNullOrWhiteSpace(machine.DeveloperName) ? Environment.UserName : machine.DeveloperName.Trim();
         machine.CommunityApiUrl = string.IsNullOrWhiteSpace(machine.CommunityApiUrl)
             ? Environment.GetEnvironmentVariable("ANTHOLOGY_COMMUNITY_API") ?? "http://127.0.0.1:5249"
@@ -263,6 +274,64 @@ public sealed class ReleaserStateStore : IDisposable
         if (previousSchemaVersion < 3 || seedEditorialContent)
         {
             EditorialContentSeed.AddMissing(workspace.Content);
+        }
+
+        return changed;
+    }
+
+    private static bool NormalizeQuickReleaseDestinations(ReleaserMachineSettings machine)
+    {
+        var changed = false;
+        foreach (var file in machine.QuickReleaseFiles)
+        {
+            if (string.IsNullOrWhiteSpace(file.SourcePath) || string.IsNullOrWhiteSpace(file.RelativePath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var destination = QuickReleaseDestinationMapper.NormalizeFileDestination(
+                    file.InstallRoot,
+                    machine.Mo2SourceRoot,
+                    file.SourcePath,
+                    file.RelativePath);
+                if (!string.Equals(destination, file.RelativePath, StringComparison.Ordinal))
+                {
+                    file.RelativePath = destination;
+                    changed = true;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+            {
+                // Keep manually entered invalid values visible so the editor can correct them.
+            }
+        }
+
+        foreach (var folder in machine.QuickReleaseFolders)
+        {
+            if (string.IsNullOrWhiteSpace(folder.SourcePath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var destination = QuickReleaseDestinationMapper.NormalizeFolderDestination(
+                    folder.InstallRoot,
+                    machine.Mo2SourceRoot,
+                    folder.SourcePath,
+                    folder.RelativePath);
+                if (!string.Equals(destination, folder.RelativePath, StringComparison.Ordinal))
+                {
+                    folder.RelativePath = destination;
+                    changed = true;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+            {
+                // Keep manually entered invalid values visible so the editor can correct them.
+            }
         }
 
         return changed;

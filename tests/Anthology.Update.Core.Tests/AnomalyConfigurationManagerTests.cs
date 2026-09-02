@@ -138,6 +138,416 @@ public sealed class AnomalyConfigurationManagerTests
         Assert.Equal("1.5", entry.DefaultValue);
     }
 
+    [Fact]
+    public void LoadUsesExactAnomalyMenuDefinitionFromUiOptionsScript()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "vid_mode 1920x1080\r\nrs_c_gamma 1.0\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/ui_options.script",
+            """
+            options = {}
+            function init_opt_base()
+            options = {
+                { id="video", gr={
+                    { id="basic", sh=true, gr={
+                        { id="slide", type="slide", text="ui_mm_title_video_basic" },
+                        { id="resolution", type="list", cmd="vid_mode" },
+                        { id="gamma", type="track", cmd="rs_c_gamma", min=0.5, max=1.5, step=0.1 }
+                    },},
+                },},
+            }
+            end
+            """);
+        environment.WriteGame(
+            "gamedata/configs/text/rus/ui_options.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?><string_table>"
+            + "<string id=\"ui_mm_menu_video\"><text>Видео</text></string>"
+            + "<string id=\"ui_mm_title_video_basic\"><text>Основные настройки видео</text></string>"
+            + "<string id=\"ui_mm_video_basic_resolution\"><text>Разрешение экрана</text></string>"
+            + "<string id=\"ui_mm_video_basic_gamma\"><text>Гамма</text></string>"
+            + "</string_table>");
+
+        var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
+        var resolution = Assert.Single(snapshot.AnomalySettings, item => item.Key == "vid_mode");
+        var gamma = Assert.Single(snapshot.AnomalySettings, item => item.Key == "rs_c_gamma");
+
+        Assert.Equal("video/basic", resolution.MenuPath);
+        Assert.Equal("Разрешение экрана", resolution.DisplayName);
+        Assert.Equal("Основные настройки видео", resolution.MenuDisplayName);
+        Assert.Equal("list", resolution.ControlType);
+        Assert.Equal("video/basic", gamma.MenuPath);
+        Assert.Equal("Гамма", gamma.DisplayName);
+        Assert.Equal("track", gamma.ControlType);
+        Assert.Equal(0.5, gamma.Minimum);
+        Assert.Equal(1.5, gamma.Maximum);
+        Assert.Equal(0.1, gamma.Step);
+    }
+
+    [Fact]
+    public void LoadUsesMcmHintBeforeGeneratedOrTextLabels()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\ntest_module/raw_option = true\r\n");
+        environment.WriteMo2(
+            "mods/Test/gamedata/scripts/test_module_mcm.script",
+            "local op={id='test_module',gr={{id='raw_option',type='check',text='wrong_label',hint='friendly_option'}}} return op");
+        environment.WriteMo2(
+            "mods/Test/gamedata/configs/text/rus/test.xml",
+            "<string_table>"
+            + "<string id=\"wrong_label\"><text>Неверная подпись</text></string>"
+            + "<string id=\"friendly_option\"><text>Неверная подпись без префикса</text></string>"
+            + "<string id=\"friendly_option_desc\"><text>Неверное описание без префикса</text></string>"
+            + "<string id=\"ui_mcm_friendly_option\"><text>Понятная подпись</text></string>"
+            + "<string id=\"ui_mcm_friendly_option_desc\"><text>Понятное описание параметра.</text></string>"
+            + "</string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("Понятная подпись", entry.DisplayName);
+        Assert.Equal("Понятное описание параметра.", entry.Description);
+        Assert.Equal("check", entry.ControlType);
+    }
+
+    [Fact]
+    public void LoadAcceptsStringTableWithCommentBeforeXmlDeclaration()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\ncommented/enabled = true\r\n");
+        environment.WriteMo2(
+            "mods/Commented/gamedata/scripts/commented_mcm.script",
+            "local op={id='commented',gr={{id='enabled',type='check',hint='commented_enabled'}}} return op");
+        environment.WriteMo2(
+            "mods/Commented/gamedata/configs/text/rus/commented.xml",
+            "<!-- Addon localization -->\r\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+            + "<string_table><string id=\"ui_mcm_commented_enabled\"><text>Включить дополнение</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("Включить дополнение", entry.DisplayName);
+    }
+
+    [Fact]
+    public void LoadDecodesQtByteArrayProfileAndUsesMo2PriorityOrder()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\npriority/value = true\r\n");
+        environment.WriteMo2(
+            "ModOrganizer.ini",
+            "selected_profile=@ByteArray(\\xd0\\x9f\\xd1\\x80\\xd0\\xbe\\xd1\\x84\\xd0\\xb8\\xd0\\xbb\\xd1\\x8c)\r\n");
+        environment.WriteMo2("profiles/Профиль/modlist.txt", "+02 High\r\n+01 Low\r\n-99 Disabled\r\n");
+        foreach (var (mod, label) in new[]
+                 {
+                     ("01 Low", "Низкий приоритет"),
+                     ("02 High", "Высокий приоритет"),
+                     ("99 Disabled", "Отключённый мод"),
+                 })
+        {
+            environment.WriteMo2(
+                $"mods/{mod}/gamedata/scripts/priority_mcm.script",
+                "local op={id='priority',gr={{id='value',type='check',hint='priority_value'}}} return op");
+            environment.WriteMo2(
+                $"mods/{mod}/gamedata/configs/text/rus/priority.xml",
+                $"<string_table><string id=\"ui_mcm_priority_value\"><text>{label}</text></string></string_table>");
+        }
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("Высокий приоритет", entry.DisplayName);
+    }
+
+    [Fact]
+    public void LoadUsesReturnedModuleAndRootIdAsNestedMcmPath()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\nssfx_module/ao/intensity = 0.5\r\n");
+        environment.WriteMo2(
+            "mods/SSFX/gamedata/scripts/ssfx_ao_mcm.script",
+            "local op={id='ao',gr={{id='title',type='slide',text='ssfx_ao_title'},{id='intensity',type='track',hint='ssfx_ao_intensity',min=0,max=1,step=0.1}}} return op, 'ssfx_module'");
+        environment.WriteMo2(
+            "mods/SSFX/gamedata/configs/text/rus/ssfx.xml",
+            "<string_table>"
+            + "<string id=\"ssfx_ao_title\"><text>Затенение окружения</text></string>"
+            + "<string id=\"ui_mcm_ssfx_ao_intensity\"><text>Интенсивность эффекта</text></string>"
+            + "</string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("ssfx_module", entry.Category);
+        Assert.Equal("ssfx_module/ao", entry.MenuPath);
+        Assert.Equal("Затенение окружения", entry.MenuDisplayName);
+        Assert.Equal("Интенсивность эффекта", entry.DisplayName);
+    }
+
+    [Fact]
+    public void LoadResolvesVariableModuleAndStringFormatHint()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\ndii/scale = 1.1\r\n");
+        environment.WriteMo2(
+            "mods/DII/gamedata/scripts/icon_overlayer_mcm.script",
+            "local mcm_id='dii'\r\nlocal op={id=mcm_id,gr={{id='scale',type='track',hint=string_format('%s_scale',mcm_id),min=0.5,max=2,step=0.1}}} return op");
+        environment.WriteMo2(
+            "mods/DII/gamedata/configs/text/rus/dii.xml",
+            "<string_table><string id=\"ui_mcm_dii_scale\"><text>Масштаб значков</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("dii", entry.Category);
+        Assert.Equal("Масштаб значков", entry.DisplayName);
+        Assert.Equal(0.5, entry.Minimum);
+        Assert.Equal(2, entry.Maximum);
+    }
+
+    [Fact]
+    public void LoadReadsDynamicMcmSchemaDefinitionsAndPanelPaths()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\nzhopa2/tasks/explore_enabled = true\r\nzhopa2/tasks/task_weight = 40\r\n");
+        environment.WriteMo2(
+            "mods/Zhopa/gamedata/scripts/zhopa2_mcm_schema.script",
+            """
+            local OPTION_DEFS = {
+                explore_enabled = { type = "check", val = 1, def = true },
+                task_weight = { type = "track", val = 2, min = 0, max = 100, step = 1, def = 40 },
+            }
+            local PANELS = {
+                { id = "tasks", text = "ui_mcm_zhopa2_panel_tasks", ["groups"] = {
+                    { id = "roam", text = "ui_mcm_zhopa2_group_roam", options = { "explore_enabled", "task_weight" } },
+                },},
+            }
+            """);
+        environment.WriteMo2(
+            "mods/Zhopa/gamedata/configs/text/rus/zhopa2.xml",
+            "<string_table>"
+            + "<string id=\"ui_mcm_zhopa2_title\"><text>Z.H.O.P.A. ALIFE 2</text></string>"
+            + "<string id=\"ui_mcm_zhopa2_panel_tasks\"><text>Задачи сталкеров</text></string>"
+            + "<string id=\"ui_mcm_zhopa2_tasks_explore_enabled\"><text>Разрешить исследование</text></string>"
+            + "<string id=\"ui_mcm_zhopa2_tasks_task_weight\"><text>Вес задачи</text></string>"
+            + "</string_table>");
+
+        var settings = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings;
+        var enabled = Assert.Single(settings, item => item.Key == "zhopa2/tasks/explore_enabled");
+        var weight = Assert.Single(settings, item => item.Key == "zhopa2/tasks/task_weight");
+
+        Assert.Equal("Z.H.O.P.A. ALIFE 2", enabled.CategoryDisplayName);
+        Assert.Equal("Задачи сталкеров", enabled.MenuDisplayName);
+        Assert.Equal("Разрешить исследование", enabled.DisplayName);
+        Assert.Equal("check", enabled.ControlType);
+        Assert.Equal("track", weight.ControlType);
+        Assert.Equal(0, weight.Minimum);
+        Assert.Equal(100, weight.Maximum);
+        Assert.Equal(1, weight.Step);
+        Assert.Equal("40", weight.DefaultValue);
+    }
+
+    [Fact]
+    public void LoadDoesNotBorrowAmbiguousLeafMetadataFromAnotherMcmSubmenu()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\nambiguous/unknown/enabled = true\r\n");
+        environment.WriteMo2(
+            "mods/Ambiguous/gamedata/scripts/ambiguous_mcm.script",
+            """
+            local op={id='ambiguous',gr={
+              {id='first',gr={{id='enabled',type='track',hint='first_enabled',min=0,max=10}}},
+              {id='second',gr={{id='enabled',type='list',hint='second_enabled'}}}
+            }} return op
+            """);
+        environment.WriteMo2(
+            "mods/Ambiguous/gamedata/configs/text/rus/ambiguous.xml",
+            "<string_table>"
+            + "<string id=\"ui_mcm_first_enabled\"><text>Чужой первый параметр</text></string>"
+            + "<string id=\"ui_mcm_second_enabled\"><text>Чужой второй параметр</text></string>"
+            + "</string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("Включено", entry.DisplayName);
+        Assert.Null(entry.ControlType);
+        Assert.Null(entry.Minimum);
+        Assert.Null(entry.Maximum);
+    }
+
+    [Fact]
+    public void LoadUsesUniqueLeafMetadataWhenOnlyOneSubmenuDefinesIt()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[mcm]\r\nunique/renamed/strength = 3\r\n");
+        environment.WriteMo2(
+            "mods/Unique/gamedata/scripts/unique_mcm.script",
+            "local op={id='unique',gr={{id='actual',gr={{id='strength',type='track',hint='unique_strength',min=1,max=5,step=1}}}}} return op");
+        environment.WriteMo2(
+            "mods/Unique/gamedata/configs/text/rus/unique.xml",
+            "<string_table><string id=\"ui_mcm_unique_strength\"><text>Сила эффекта</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("Сила эффекта", entry.DisplayName);
+        Assert.Equal("track", entry.ControlType);
+        Assert.Equal(1, entry.Minimum);
+        Assert.Equal(5, entry.Maximum);
+    }
+
+    [Fact]
+    public void LoadRecoversCompleteStringsFromMalformedXrayLocalizationAndUsesDirectLevelId()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[options]\r\nalife/warfare/army/lvl_l99_testzone_priority = 1\r\n");
+        environment.WriteGame(
+            "gamedata/configs/text/rus/st_levels.xml",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <string_table>
+              <! -- malformed decorative pseudo-comment -- >
+              <string id="unrelated"><text>Соседняя строка</text></string>
+              <string id="l99_testzone"><text>Испытательный полигон</text></string>
+            </string_table>
+            """);
+
+        var entry = Assert.Single(
+            AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings,
+            item => item.Key.EndsWith("lvl_l99_testzone_priority", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Equal("Приоритет локации «Испытательный полигон»", entry.DisplayName);
+    }
+
+    [Fact]
+    public void LoadDoesNotScanDisabledModsWhenSelectedProfileIsBroken()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[mcm]\r\nbroken/value = true\r\n");
+        environment.WriteMo2("ModOrganizer.ini", "selected_profile=Missing profile\r\n");
+        environment.WriteMo2(
+            "mods/Disabled/gamedata/scripts/broken_mcm.script",
+            "local op={id='broken',gr={{id='value',type='check',hint='disabled_value'}}} return op");
+        environment.WriteMo2(
+            "mods/Disabled/gamedata/configs/text/rus/disabled.xml",
+            "<string_table><string id=\"ui_mcm_disabled_value\"><text>Текст отключённого мода</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.NotEqual("Текст отключённого мода", entry.DisplayName);
+        Assert.Null(entry.ControlType);
+    }
+
+    [Fact]
+    public void LoadSafelyMatchesNormalizedProfileAndModNamesAndRejectsTraversal()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_sun on\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[mcm]\r\nsafe/value = true\r\n");
+        environment.WriteMo2("ModOrganizer.ini", "selected_profile=Test Profile\r\n");
+        environment.WriteMo2("profiles/Test   Profile/modlist.txt", "+Actual Mod-Name\r\n+../Outside\r\n");
+        environment.WriteMo2(
+            "mods/Actual   Mod—Name/gamedata/scripts/safe_mcm.script",
+            "local op={id='safe',gr={{id='value',type='check',hint='safe_value'}}} return op");
+        environment.WriteMo2(
+            "mods/Actual   Mod—Name/gamedata/configs/text/rus/safe.xml",
+            "<string_table><string id=\"ui_mcm_safe_value\"><text>Безопасно найденный мод</text></string></string_table>");
+        environment.WriteMo2(
+            "Outside/gamedata/scripts/safe_mcm.script",
+            "local op={id='safe',gr={{id='value',type='track',hint='outside_value',min=0,max=99}}} return op");
+        environment.WriteMo2(
+            "Outside/gamedata/configs/text/rus/outside.xml",
+            "<string_table><string id=\"ui_mcm_outside_value\"><text>Выход за каталог</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).McmSettings);
+
+        Assert.Equal("Безопасно найденный мод", entry.DisplayName);
+        Assert.Equal("check", entry.ControlType);
+    }
+
+    [Fact]
+    public void LoadUsesExactMetadataMenuPathForUserLtxCommand()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "custom_console 1\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/ui_options.script",
+            """
+            options={{id="video",gr={{id="advanced",gr={
+              {id="custom",type="track",cmd="custom_console",text="custom_console_title",min=0,max=2,step=1}
+            }}}}}
+            """);
+        environment.WriteGame(
+            "gamedata/configs/text/rus/custom.xml",
+            "<string_table><string id=\"custom_console_title\"><text>Особый параметр</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings);
+
+        Assert.Equal("video", entry.Category);
+        Assert.Equal("video/advanced", entry.MenuPath);
+        Assert.Equal("track", entry.ControlType);
+    }
+
+    [Fact]
+    public void LoadUsesExactMetadataMenuPathForAxrOptionCommand()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", string.Empty);
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[options]\r\nlegacy/custom_console = 1\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/ui_options.script",
+            "options={{id='video',gr={{id='advanced',gr={{id='custom',type='track',cmd='custom_console',min=0,max=2,step=1}}}}}}");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings);
+
+        Assert.Equal("video", entry.Category);
+        Assert.Equal("video/advanced", entry.MenuPath);
+        Assert.Equal("track", entry.ControlType);
+    }
+
+    [Fact]
+    public void LoadPreservesAuthoredEnglishLocalizationForKnownAnomalyCommand()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "r2_steep_parallax on\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/ui_options.script",
+            "options={{id='video',gr={{id='advanced',gr={{id='parallax',type='check',cmd='r2_steep_parallax',text='authored_parallax'}}}}}}");
+        environment.WriteGame(
+            "gamedata/configs/text/rus/authored.xml",
+            "<string_table><string id=\"authored_parallax\"><text>Authored English Label</text></string></string_table>");
+
+        var entry = Assert.Single(AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings);
+
+        Assert.Equal("Authored English Label", entry.DisplayName);
+    }
+
     private sealed class TestEnvironment : IDisposable
     {
         private TestEnvironment(string root)

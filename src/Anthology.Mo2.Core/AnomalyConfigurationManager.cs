@@ -345,13 +345,17 @@ public static class AnomalyConfigurationManager
                 continue;
             }
 
-            var slash = key.IndexOf('/');
             var metadata = metadataCatalog.ResolveAnomaly(key, index);
+            var resolvedCategory = metadata.MenuPath.Split(
+                    '/',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault()
+                ?? (key.Contains('/') ? key[..key.IndexOf('/')] : "other");
 
             result.Add(new AnomalyConfigurationEntry
             {
                 Kind = AnomalyConfigurationKind.Anomaly,
-                Category = slash > 0 ? key[..slash] : "other",
+                Category = resolvedCategory,
                 Key = key,
                 Value = value,
                 OriginalValue = value,
@@ -366,6 +370,11 @@ public static class AnomalyConfigurationManager
                 MenuDisplayName = metadata.MenuDisplayName,
                 MenuOrder = metadata.MenuOrder,
                 DisplayOrder = metadata.DisplayOrder,
+                ControlType = metadata.ControlType,
+                Minimum = metadata.Minimum,
+                Maximum = metadata.Maximum,
+                Step = metadata.Step,
+                DefaultValue = metadata.DefaultValue,
             });
         }
 
@@ -392,10 +401,17 @@ public static class AnomalyConfigurationManager
             var (category, menuPath) = ResolveConsoleMenuPath(command);
             var metadataKey = $"{menuPath}/{key.Replace('/', '_')}";
             var metadata = metadataCatalog.ResolveAnomaly(metadataKey, index);
+            var resolvedMenuPath = string.IsNullOrWhiteSpace(metadata.MenuPath)
+                ? menuPath
+                : metadata.MenuPath;
+            var resolvedCategory = resolvedMenuPath.Split(
+                    '/',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault() ?? category;
             result.Add(new AnomalyConfigurationEntry
             {
                 Kind = AnomalyConfigurationKind.Anomaly,
-                Category = category,
+                Category = resolvedCategory,
                 Key = key,
                 Value = value,
                 OriginalValue = value,
@@ -407,10 +423,15 @@ public static class AnomalyConfigurationManager
                 DisplayName = metadata.DisplayName,
                 Description = metadata.Description,
                 CategoryDisplayName = metadata.CategoryDisplayName,
-                MenuPath = menuPath,
+                MenuPath = resolvedMenuPath,
                 MenuDisplayName = metadata.MenuDisplayName,
                 MenuOrder = metadata.MenuOrder,
-                DisplayOrder = index,
+                DisplayOrder = metadata.DisplayOrder,
+                ControlType = metadata.ControlType,
+                Minimum = metadata.Minimum,
+                Maximum = metadata.Maximum,
+                Step = metadata.Step,
+                DefaultValue = metadata.DefaultValue,
             });
         }
 

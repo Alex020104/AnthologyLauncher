@@ -16,4 +16,13 @@ public static class ArtifactHash
         var hash = await SHA256.HashDataAsync(stream, cancellationToken);
         return Convert.ToHexStringLower(hash);
     }
+
+    public static async Task<string> ComputeSha256Async(
+        Stream stream,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        var hash = await SHA256.HashDataAsync(stream, cancellationToken);
+        return Convert.ToHexStringLower(hash);
+    }
 }

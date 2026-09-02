@@ -49,7 +49,7 @@
                     <article class="panel field-card"><span>КОРЕНЬ MO2</span><h3>Полный Mod Organizer 2</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>Публикуются профили, mods, downloads и tools. Временный overwrite и кэши не входят в релиз.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ MO2</button></article>
                 </section>
                 <section class="panel quick-release">
-                    <div class="quick-release-head"><div><span class="eyebrow">ПРОСТОЙ ВЫПУСК ФАЙЛОВ И ПАПОК</span><h3>Добавить или удалить сколько угодно файлов и аддонов</h3><p>Выберите отдельные файлы или целые папки, проверьте путь назначения и нажмите одну кнопку. Вложенная структура папки сохраняется. Релизер создаст подписанное обновление и скопирует его во все настроенные источники.</p></div><div class="quick-release-count"><strong>@QuickAddCount</strong><span>ЗАГРУЗИТЬ</span><strong>@QuickDeleteCount</strong><span>УДАЛИТЬ</span></div></div>
+                    <div class="quick-release-head"><div><span class="eyebrow">ПРОСТОЙ ВЫПУСК ФАЙЛОВ И ПАПОК</span><h3>Добавить или удалить сколько угодно файлов и аддонов</h3><p>Выберите отдельные файлы или целые папки, проверьте путь назначения и нажмите одну кнопку. Вложенная структура папки сохраняется; выбранные из MO2\mods аддоны автоматически устанавливаются обратно в MO2\mods. Релизер создаст подписанное обновление и скопирует его во все настроенные источники.</p></div><div class="quick-release-count"><strong>@QuickAddCount</strong><span>ЗАГРУЗИТЬ</span><strong>@QuickDeleteCount</strong><span>УДАЛИТЬ</span></div></div>
                     <div class="quick-release-tools"><button class="secondary" @onclick="SelectQuickGameFiles">＋ ФАЙЛЫ В ИГРУ</button><button class="secondary" @onclick="SelectQuickGameFolder">＋ ПАПКУ В ИГРУ</button><button class="secondary" @onclick="SelectQuickMo2Files">＋ ФАЙЛЫ В MO2</button><button class="secondary" @onclick="SelectQuickMo2Folder">＋ ПАПКУ В MO2</button></div>
                     <div class="quick-release-ready"><span><b>ВЫХОД</b>@_machine.OutputRoot</span><span><b>ПОДПИСЬ</b>@(File.Exists(_machine.PrivateKeyPath) ? "КЛЮЧ ГОТОВ" : "НЕТ КЛЮЧА")</span><span><b>ИСТОЧНИКИ</b>@ConfiguredPublicationRootsCount</span>@if (ConfiguredPublicationRootsCount == 0) { <button class="text" @onclick="OpenSourcesAsync">НАСТРОИТЬ ИСТОЧНИКИ →</button> }</div>
                     @if (QuickAddCount == 0)
@@ -569,7 +569,7 @@
             root);
         foreach (var file in files)
         {
-            var relativePath = RelativePathOrFileName(root, file);
+            var relativePath = QuickReleaseDestinationMapper.CreateFileDestination(installRoot, root, file);
             if (_machine.QuickReleaseFiles.Any(item =>
                     item.InstallRoot.Equals(installRoot, StringComparison.OrdinalIgnoreCase)
                     && item.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)))
@@ -609,7 +609,7 @@
             return;
         }
 
-        var targetPath = RelativeFolderOrName(root, selected);
+        var targetPath = QuickReleaseDestinationMapper.CreateFolderDestination(installRoot, root, selected);
         if (_machine.QuickReleaseFolders.Any(item =>
                 item.InstallRoot.Equals(installRoot, StringComparison.OrdinalIgnoreCase)
                 && item.RelativePath.Equals(targetPath, StringComparison.OrdinalIgnoreCase)))
@@ -756,40 +756,6 @@
         _machine.QuickDeleteFiles.Clear();
         _machine.QuickDeleteFolders.Clear();
         Toast("Список быстрого выпуска очищен.");
-    }
-
-    private static string RelativePathOrFileName(string root, string file)
-    {
-        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
-        {
-            return Path.GetFileName(file);
-        }
-        var relative = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(file));
-        return relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-               || relative == ".."
-               || Path.IsPathRooted(relative)
-            ? Path.GetFileName(file)
-            : PathSafety.NormalizeRelativePath(relative);
-    }
-
-    private static string RelativeFolderOrName(string root, string folder)
-    {
-        var fullFolder = Path.GetFullPath(folder);
-        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
-        {
-            return FolderName(fullFolder);
-        }
-
-        var relative = Path.GetRelativePath(Path.GetFullPath(root), fullFolder);
-        if (relative == ".")
-        {
-            return string.Empty;
-        }
-        return relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-               || relative == ".."
-               || Path.IsPathRooted(relative)
-            ? FolderName(fullFolder)
-            : PathSafety.NormalizeRelativePath(relative);
     }
 
     private static string FolderName(string path) =>

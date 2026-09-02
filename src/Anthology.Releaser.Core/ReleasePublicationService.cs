@@ -94,8 +94,6 @@ public static partial class ReleasePublicationService
             new LauncherPendingUpdate(1, launcherVersion, workspace.Version.Trim(), payloadName, payloadHash),
             cancellationToken);
 
-        var deliveryName = $"anthology-launcher-{workspace.Version.Trim()}.zip";
-        var deliveryPath = Path.Combine(versionRoot, deliveryName);
         var pendingBase = "AnthologyLauncher/Update/LauncherPending";
         var deliveredFiles = new List<QuickReleaseFileDraft>
         {
@@ -128,7 +126,46 @@ public static partial class ReleasePublicationService
                 RelativePath = "AnthologyLauncher/Update/channel.json",
             });
         }
-        await CreateMappedArchiveAsync(deliveryPath, deliveredFiles, cancellationToken);
+        var provisionalDeliveryPath = Path.Combine(
+            versionRoot,
+            $".anthology-launcher-{safeLauncherVersion}-{Guid.NewGuid():N}.zip");
+        string deliveryHash;
+        string deliveryName;
+        string deliveryPath;
+        try
+        {
+            await CreateMappedArchiveAsync(provisionalDeliveryPath, deliveredFiles, cancellationToken);
+            deliveryHash = await ArtifactHash.ComputeSha256Async(provisionalDeliveryPath, cancellationToken);
+            deliveryName = $"anthology-launcher-{safeLauncherVersion}-{deliveryHash[..16]}.zip";
+            deliveryPath = Path.Combine(versionRoot, deliveryName);
+            if (File.Exists(deliveryPath))
+            {
+                var existingHash = await ArtifactHash.ComputeSha256Async(deliveryPath, cancellationToken);
+                if (!string.Equals(existingHash, deliveryHash, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        $"Launcher artifact hash-prefix collision for '{deliveryName}'. Existing immutable artifact was preserved.");
+                }
+
+                File.Delete(provisionalDeliveryPath);
+            }
+            else
+            {
+                File.Move(provisionalDeliveryPath, deliveryPath);
+            }
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(provisionalDeliveryPath);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Best-effort cleanup must not hide the publication failure.
+            }
+            throw;
+        }
 
         var mirrors = workspace.Mirrors
             .Where(mirror => !string.IsNullOrWhiteSpace(mirror.GameUrl))
@@ -146,7 +183,11 @@ public static partial class ReleasePublicationService
         var manifestPath = Path.Combine(versionRoot, "manifest.json");
         var existingManifest = await LoadExistingManifestAsync(manifestPath, cancellationToken);
         var packages = (existingManifest?.Payload.Packages ?? [])
-            .Where(package => !string.Equals(package.Id, "anthology-launcher", StringComparison.OrdinalIgnoreCase))
+            .Where(package => !string.Equals(package.Id, "anthology-launcher", StringComparison.OrdinalIgnoreCase)
+                              && !string.Equals(
+                                  package.Id,
+                                  PackageIntegrityCatalogBuilder.PackageId,
+                                  StringComparison.OrdinalIgnoreCase))
             .ToList();
         packages.Add(new PackageManifest(
             "anthology-launcher",
@@ -156,7 +197,7 @@ public static partial class ReleasePublicationService
             "game",
             "zip",
             new FileInfo(deliveryPath).Length,
-            await ArtifactHash.ComputeSha256Async(deliveryPath, cancellationToken),
+            deliveryHash,
             mirrors,
             deliveredFiles.Select(file => file.RelativePath).Order(StringComparer.Ordinal).ToArray(),
             PackageUpdateMode.Merge));
@@ -183,6 +224,21 @@ public static partial class ReleasePublicationService
                 Changelog = releaseNotes ?? catalog.Changelog,
             };
         }
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
+        var integrity = await PackageIntegrityCatalogBuilder.BuildAsync(
+            packages,
+            versionRoot,
+            workspace,
+            privateKey,
+            machine.KeyId.Trim(),
+            progress,
+            cancellationToken);
+        if (integrity is not null)
+        {
+            packages.Add(integrity.Package);
+        }
+
         var updateManifest = new UpdateManifest(
             4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
@@ -191,14 +247,16 @@ public static partial class ReleasePublicationService
             null,
             packages,
             catalog);
-        using var privateKey = ECDsa.Create();
-        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
         var signed = ManifestSecurity.Sign(updateManifest, privateKey, machine.KeyId.Trim());
         ManifestValidator.ValidateAndThrow(signed);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(Path.Combine(versionRoot, "content.json"), catalog, cancellationToken);
 
         var relativeFiles = new List<string> { deliveryName, "manifest.json", "content.json" };
+        if (integrity is not null)
+        {
+            relativeFiles.Add(Path.GetFileName(integrity.ArtifactPath));
+        }
         relativeFiles.AddRange(media.RelativeFiles);
         var publication = await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
         progress?.Report($"Launcher Next {launcherVersion} опубликован. Он применится до следующего запуска приложения.");
@@ -509,7 +567,11 @@ public static partial class ReleasePublicationService
                 Id = item.Id,
                 SourcePath = Path.GetFullPath(item.SourcePath),
                 InstallRoot = NormalizeInstallRoot(item.InstallRoot),
-                RelativePath = PathSafety.NormalizeRelativePath(item.RelativePath),
+                RelativePath = QuickReleaseDestinationMapper.NormalizeFileDestination(
+                    item.InstallRoot,
+                    machine.Mo2SourceRoot,
+                    item.SourcePath,
+                    item.RelativePath),
             })
             .ToArray();
         foreach (var addition in selectedFiles)
@@ -526,7 +588,11 @@ public static partial class ReleasePublicationService
                 Id = item.Id,
                 SourcePath = Path.GetFullPath(item.SourcePath),
                 InstallRoot = NormalizeInstallRoot(item.InstallRoot),
-                RelativePath = NormalizeFolderBase(item.RelativePath),
+                RelativePath = QuickReleaseDestinationMapper.NormalizeFolderDestination(
+                    item.InstallRoot,
+                    machine.Mo2SourceRoot,
+                    item.SourcePath,
+                    item.RelativePath),
             })
             .ToArray();
         foreach (var folder in selectedFolders)
@@ -574,8 +640,17 @@ public static partial class ReleasePublicationService
         Directory.CreateDirectory(versionRoot);
         var manifestPath = Path.Combine(versionRoot, "manifest.json");
         var existingPackages = await LoadExistingPackagesAsync(manifestPath, cancellationToken);
+        var changedInstallRoots = additions.Select(item => item.InstallRoot)
+            .Concat(deletions.Select(item => item.InstallRoot))
+            .Concat(directoryDeletions.Select(item => item.InstallRoot))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var packages = existingPackages
-            .Where(package => !package.Id.StartsWith("anthology-files-", StringComparison.OrdinalIgnoreCase))
+            .Where(package => !package.Id.StartsWith("anthology-files-", StringComparison.OrdinalIgnoreCase)
+                              || !changedInstallRoots.Contains(package.InstallRoot))
+            .Where(package => !string.Equals(
+                package.Id,
+                PackageIntegrityCatalogBuilder.PackageId,
+                StringComparison.OrdinalIgnoreCase))
             .ToList();
         var artifacts = new List<string>();
         foreach (var installRoot in new[] { "game", "modpack" })
@@ -647,6 +722,21 @@ public static partial class ReleasePublicationService
 
         var media = await ContentMediaPublisher.PrepareAsync(workspace, machine, versionRoot, progress, cancellationToken);
         var catalog = UnifiedReleaseBuilder.CreateContentCatalog(workspace, media);
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
+        var integrity = await PackageIntegrityCatalogBuilder.BuildAsync(
+            packages,
+            versionRoot,
+            workspace,
+            privateKey,
+            machine.KeyId.Trim(),
+            progress,
+            cancellationToken);
+        if (integrity is not null)
+        {
+            packages.Add(integrity.Package);
+            artifacts.Add(integrity.ArtifactPath);
+        }
         var payload = new UpdateManifest(
             4,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
@@ -655,8 +745,6 @@ public static partial class ReleasePublicationService
             null,
             packages,
             catalog);
-        using var privateKey = ECDsa.Create();
-        privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
         var signed = ManifestSecurity.Sign(payload, privateKey, machine.KeyId.Trim());
         ManifestValidator.ValidateAndThrow(signed);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
@@ -684,6 +772,8 @@ public static partial class ReleasePublicationService
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(machine);
+        _ = ReleaserMachinePathNormalizer.Normalize(machine);
         ReleaseVersionRules.Validate(workspace.Version);
         if (string.IsNullOrWhiteSpace(machine.OutputRoot))
         {
@@ -1013,6 +1103,7 @@ public static partial class ReleasePublicationService
         ReleaserWorkspace workspace,
         ReleaserMachineSettings machine)
     {
+        _ = ReleaserMachinePathNormalizer.Normalize(machine);
         var outputRoot = string.IsNullOrWhiteSpace(machine.OutputRoot) ? null : Path.GetFullPath(machine.OutputRoot);
         return workspace.Mirrors
             .Where(mirror => machine.PublicationRoots.TryGetValue(mirror.Id, out var root) && !string.IsNullOrWhiteSpace(root))
@@ -1147,7 +1238,9 @@ public static partial class ReleasePublicationService
             foreach (var file in files.OrderBy(item => item.RelativePath, StringComparer.Ordinal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var entry = archive.CreateEntry(file.RelativePath.Replace('\\', '/'), CompressionLevel.SmallestSize);
+                var entry = archive.CreateEntry(
+                    file.RelativePath.Replace('\\', '/'),
+                    SelectQuickArchiveCompression(file.SourcePath));
                 entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
                 await using var entryStream = entry.Open();
                 await using var sourceStream = new FileStream(
@@ -1169,6 +1262,34 @@ public static partial class ReleasePublicationService
             throw;
         }
         File.Move(temporary, artifactPath, true);
+    }
+
+    private static CompressionLevel SelectQuickArchiveCompression(string sourcePath)
+    {
+        var extension = Path.GetExtension(sourcePath);
+        if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".7z", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".webp", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".webm", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".ogg", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".flac", StringComparison.OrdinalIgnoreCase))
+        {
+            return CompressionLevel.NoCompression;
+        }
+
+        // XRay DB volumes are already packed and are commonly several gigabytes each.
+        // Deflate's SmallestSize mode spends minutes per volume for only a marginal
+        // reduction, so large payloads and .xdb* volumes use the fast deterministic path.
+        var isXrayDatabase = extension.StartsWith(".xdb", StringComparison.OrdinalIgnoreCase);
+        return isXrayDatabase || new FileInfo(sourcePath).Length >= 128L * 1024 * 1024
+            ? CompressionLevel.Fastest
+            : CompressionLevel.SmallestSize;
     }
 
     private static IEnumerable<QuickReleaseFileDraft> ExpandQuickFolder(QuickReleaseFolderDraft folder)

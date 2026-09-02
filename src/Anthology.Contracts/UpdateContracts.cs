@@ -18,6 +18,39 @@ public sealed record ManifestSignature(
     string KeyId,
     string Value);
 
+// The integrity catalog is delivered as a small ordinary launcher package. This
+// keeps the main manifest compatible with already installed launchers while the
+// catalog itself is still authenticated with the production signing key.
+public sealed record SignedPackageIntegrityCatalog(
+    PackageIntegrityCatalog Payload,
+    ManifestSignature Signature);
+
+public sealed record PackageIntegrityCatalog(
+    int SchemaVersion,
+    string Channel,
+    string ReleaseVersion,
+    DateTimeOffset PublishedAt,
+    IReadOnlyList<PackageArtifactIntegrity> Artifacts);
+
+public sealed record PackageArtifactIntegrity(
+    string ArtifactId,
+    string PackageId,
+    string PackageVersion,
+    string RequiredPackageVersion,
+    PackageKind Kind,
+    string InstallRoot,
+    string ArchiveFormat,
+    long ArchiveSize,
+    string ArchiveSha256,
+    IReadOnlyList<MirrorManifest> Mirrors,
+    IReadOnlyList<PackageFileIntegrity> ArchiveFiles,
+    IReadOnlyList<string> ManagedFiles);
+
+public sealed record PackageFileIntegrity(
+    string Path,
+    long Size,
+    string Sha256);
+
 public sealed record PackageManifest(
     string Id,
     string DisplayName,

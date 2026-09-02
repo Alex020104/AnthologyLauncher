@@ -21,9 +21,11 @@ public partial class MainWindow : Window
         "LauncherNext",
         "WebView2");
     private CoreWebView2? _webViewCore;
+    private readonly LauncherOperationGate _operationGate;
 
-    public MainWindow()
+    public MainWindow(LauncherOperationGate operationGate)
     {
+        _operationGate = operationGate;
         InitializeComponent();
         UpdateWindowStateVisuals();
     }
@@ -212,6 +214,15 @@ public partial class MainWindow : Window
     }
 
     private void Close_OnClick(object sender, RoutedEventArgs e) => Close();
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_operationGate.ShouldBlockWindowClose)
+        {
+            e.Cancel = true;
+        }
+    }
 
     protected override void OnClosed(EventArgs e)
     {
