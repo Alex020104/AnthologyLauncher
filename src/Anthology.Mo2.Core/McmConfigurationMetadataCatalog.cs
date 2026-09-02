@@ -52,19 +52,29 @@ public sealed class McmConfigurationMetadataCatalog
         IReadOnlyDictionary<string, OptionDefinition> options,
         IReadOnlyDictionary<string, string> translations,
         IReadOnlyDictionary<string, string> moduleTitleIds,
-        IReadOnlyDictionary<string, int> nodeOrder)
+        IReadOnlyDictionary<string, int> nodeOrder,
+        int databaseArchiveCount,
+        int databaseAssetCount)
     {
         _options = options;
         _translations = translations;
         _moduleTitleIds = moduleTitleIds;
         _nodeOrder = nodeOrder;
+        DatabaseArchiveCount = databaseArchiveCount;
+        DatabaseAssetCount = databaseAssetCount;
     }
+
+    public int DatabaseArchiveCount { get; }
+
+    public int DatabaseAssetCount { get; }
 
     public static McmConfigurationMetadataCatalog Empty { get; } = new(
         new Dictionary<string, OptionDefinition>(StringComparer.OrdinalIgnoreCase),
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+        0,
+        0);
 
     public static McmConfigurationMetadataCatalog Load(string? mo2Root, string? gameRoot = null)
     {
@@ -72,22 +82,48 @@ public sealed class McmConfigurationMetadataCatalog
         var translations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var moduleTitleIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var nodeOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var databaseArchiveCount = 0;
+        var databaseAssetCount = 0;
         if (!string.IsNullOrWhiteSpace(gameRoot) && Directory.Exists(gameRoot))
         {
-            var gameTextRoot = Path.Combine(Path.GetFullPath(gameRoot), "gamedata", "configs", "text");
+            var fullGameRoot = Path.GetFullPath(gameRoot);
+            LoadDatabaseMetadata(
+                fullGameRoot,
+                options,
+                translations,
+                moduleTitleIds,
+                nodeOrder,
+                ref databaseArchiveCount,
+                ref databaseAssetCount);
+
+            var gameDataRoot = Path.Combine(fullGameRoot, "gamedata");
+            LoadScripts(Path.Combine(gameDataRoot, "scripts"), options, moduleTitleIds, nodeOrder);
+            var gameTextRoot = Path.Combine(gameDataRoot, "configs", "text");
             LoadTranslations(Path.Combine(gameTextRoot, "eng"), translations, overwrite: true);
             LoadTranslations(Path.Combine(gameTextRoot, "rus"), translations, overwrite: true);
         }
 
         if (string.IsNullOrWhiteSpace(mo2Root) || !Directory.Exists(mo2Root))
         {
-            return new McmConfigurationMetadataCatalog(options, translations, moduleTitleIds, nodeOrder);
+            return new McmConfigurationMetadataCatalog(
+                options,
+                translations,
+                moduleTitleIds,
+                nodeOrder,
+                databaseArchiveCount,
+                databaseAssetCount);
         }
 
         var modsRoot = Path.Combine(Path.GetFullPath(mo2Root), "mods");
         if (!Directory.Exists(modsRoot))
         {
-            return new McmConfigurationMetadataCatalog(options, translations, moduleTitleIds, nodeOrder);
+            return new McmConfigurationMetadataCatalog(
+                options,
+                translations,
+                moduleTitleIds,
+                nodeOrder,
+                databaseArchiveCount,
+                databaseAssetCount);
         }
         var modRoots = ResolveActiveModRoots(Path.GetFullPath(mo2Root), modsRoot);
 
@@ -95,63 +131,7 @@ public sealed class McmConfigurationMetadataCatalog
         {
             foreach (var modRoot in modRoots)
             {
-                foreach (var scriptPath in Directory.EnumerateFiles(modRoot, "*_mcm.script", SearchOption.AllDirectories))
-                {
-                    var text = ReadText(scriptPath);
-                    var module = ModulePattern.Match(text).Groups["id"].Value;
-                    if (string.IsNullOrWhiteSpace(module))
-                    {
-                        module = Path.GetFileNameWithoutExtension(scriptPath).Replace("_mcm", string.Empty, StringComparison.OrdinalIgnoreCase);
-                    }
-
-                    var titleMatch = SlideTextPattern.Match(text);
-                    if (titleMatch.Success)
-                    {
-                        moduleTitleIds[module] = titleMatch.Groups["id"].Value;
-                    }
-
-                    var order = 0;
-                    foreach (Match idMatch in Regex.Matches(
-                                 text,
-                                 "\\bid\\s*=\\s*['\"](?<id>[^'\"]+)['\"]",
-                                 RegexOptions.IgnoreCase))
-                    {
-                        nodeOrder.TryAdd($"{module}/{idMatch.Groups["id"].Value}", order++);
-                    }
-
-                    foreach (Match tableMatch in SimpleTablePattern.Matches(text))
-                    {
-                        var properties = StringPropertyPattern.Matches(tableMatch.Groups["body"].Value)
-                            .Cast<Match>()
-                            .GroupBy(match => match.Groups["name"].Value, StringComparer.OrdinalIgnoreCase)
-                            .ToDictionary(
-                                group => group.Key,
-                                group => group.First().Groups["value"].Value,
-                                StringComparer.OrdinalIgnoreCase);
-                        if (!properties.TryGetValue("id", out var optionId)
-                            || !properties.TryGetValue("type", out var type)
-                            || type is "title" or "line" or "slide" or "desc" or "image")
-                        {
-                            continue;
-                        }
-
-                        var numbers = NumberPropertyPattern.Matches(tableMatch.Groups["body"].Value)
-                            .Cast<Match>()
-                            .GroupBy(match => match.Groups["name"].Value, StringComparer.OrdinalIgnoreCase)
-                            .ToDictionary(
-                                group => group.Key,
-                                group => ParseNumber(group.First().Groups["value"].Value),
-                                StringComparer.OrdinalIgnoreCase);
-                        options[$"{module}/{optionId}"] = new OptionDefinition(
-                            properties.GetValueOrDefault("text"),
-                            type,
-                            numbers.GetValueOrDefault("min"),
-                            numbers.GetValueOrDefault("max"),
-                            numbers.GetValueOrDefault("step"),
-                            ParseDefaultValue(tableMatch.Groups["body"].Value),
-                            nodeOrder.GetValueOrDefault($"{module}/{optionId}", int.MaxValue));
-                    }
-                }
+                LoadScripts(modRoot, options, moduleTitleIds, nodeOrder);
             }
 
             // Localization-only mods are valid MO2 overrides too. Load every enabled mod
@@ -164,10 +144,226 @@ public sealed class McmConfigurationMetadataCatalog
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return new McmConfigurationMetadataCatalog(options, translations, moduleTitleIds, nodeOrder);
+            return new McmConfigurationMetadataCatalog(
+                options,
+                translations,
+                moduleTitleIds,
+                nodeOrder,
+                databaseArchiveCount,
+                databaseAssetCount);
         }
 
-        return new McmConfigurationMetadataCatalog(options, translations, moduleTitleIds, nodeOrder);
+        return new McmConfigurationMetadataCatalog(
+            options,
+            translations,
+            moduleTitleIds,
+            nodeOrder,
+            databaseArchiveCount,
+            databaseAssetCount);
+    }
+
+    private static void LoadDatabaseMetadata(
+        string gameRoot,
+        Dictionary<string, OptionDefinition> options,
+        Dictionary<string, string> translations,
+        Dictionary<string, string> moduleTitleIds,
+        Dictionary<string, int> nodeOrder,
+        ref int archiveCount,
+        ref int assetCount)
+    {
+        foreach (var archivePath in EnumerateDatabaseArchives(gameRoot))
+        {
+            try
+            {
+                using var reader = new XRayDatabaseReader(archivePath);
+                archiveCount++;
+
+                foreach (var entry in reader.Entries.Where(IsMcmScriptEntry))
+                {
+                    try
+                    {
+                        ProcessMcmScript(
+                            DecodeText(reader.Read(entry)),
+                            Path.GetFileNameWithoutExtension(entry.Name),
+                            options,
+                            moduleTitleIds,
+                            nodeOrder);
+                        assetCount++;
+                    }
+                    catch (Exception exception) when (exception is IOException or InvalidDataException)
+                    {
+                        // Continue with the other metadata entries from the same archive.
+                    }
+                }
+
+                foreach (var language in new[] { "eng", "rus" })
+                {
+                    var prefix = $"configs\\text\\{language}\\";
+                    foreach (var entry in reader.Entries.Where(item =>
+                                 item.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                                 && item.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        try
+                        {
+                            LoadTranslationDocument(DecodeText(reader.Read(entry)), translations, overwrite: true);
+                            assetCount++;
+                        }
+                        catch (Exception exception) when (exception is IOException
+                                                           or InvalidDataException
+                                                           or System.Xml.XmlException)
+                        {
+                            // Continue with the other localization entries from the same archive.
+                        }
+                    }
+                }
+            }
+            catch (Exception exception) when (exception is IOException
+                                               or UnauthorizedAccessException
+                                               or InvalidDataException
+                                               or System.Xml.XmlException)
+            {
+                // A damaged or unsupported optional archive must not hide metadata from
+                // the remaining game databases, loose gamedata, or enabled MO2 mods.
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateDatabaseArchives(string gameRoot)
+    {
+        var databaseRoot = Path.Combine(gameRoot, "db");
+        if (!Directory.Exists(databaseRoot))
+        {
+            yield break;
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var directory in new[]
+                 {
+                     Path.Combine(databaseRoot, "configs"),
+                     databaseRoot,
+                     Path.Combine(databaseRoot, "mods"),
+                 })
+        {
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
+
+            foreach (var archive in Directory.EnumerateFiles(directory, "*.xdb*", SearchOption.TopDirectoryOnly)
+                         .OrderBy(GetDatabaseOrder)
+                         .ThenBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
+            {
+                var fullPath = Path.GetFullPath(archive);
+                if (seen.Add(fullPath))
+                {
+                    yield return fullPath;
+                }
+            }
+        }
+    }
+
+    private static int GetDatabaseOrder(string path)
+    {
+        var name = Path.GetFileName(path);
+        if (name.StartsWith("configs.xdb", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("scripts.xdb", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        return name.Contains("anthology", StringComparison.OrdinalIgnoreCase) ? 1 : 2;
+    }
+
+    private static bool IsMcmScriptEntry(XRayDatabaseEntry entry) =>
+        entry.Name.StartsWith("scripts\\", StringComparison.OrdinalIgnoreCase)
+        && entry.Name.EndsWith("_mcm.script", StringComparison.OrdinalIgnoreCase);
+
+    private static void LoadScripts(
+        string root,
+        Dictionary<string, OptionDefinition> options,
+        Dictionary<string, string> moduleTitleIds,
+        Dictionary<string, int> nodeOrder)
+    {
+        if (!Directory.Exists(root))
+        {
+            return;
+        }
+
+        foreach (var scriptPath in Directory.EnumerateFiles(root, "*_mcm.script", SearchOption.AllDirectories))
+        {
+            ProcessMcmScript(
+                ReadText(scriptPath),
+                Path.GetFileNameWithoutExtension(scriptPath),
+                options,
+                moduleTitleIds,
+                nodeOrder);
+        }
+    }
+
+    private static void ProcessMcmScript(
+        string text,
+        string sourceName,
+        Dictionary<string, OptionDefinition> options,
+        Dictionary<string, string> moduleTitleIds,
+        Dictionary<string, int> nodeOrder)
+    {
+        var module = ModulePattern.Match(text).Groups["id"].Value;
+        if (string.IsNullOrWhiteSpace(module))
+        {
+            module = sourceName.Replace("_mcm", string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var titleMatch = SlideTextPattern.Match(text);
+        if (titleMatch.Success)
+        {
+            moduleTitleIds[module] = titleMatch.Groups["id"].Value;
+        }
+
+        var order = 0;
+        foreach (Match idMatch in Regex.Matches(
+                     text,
+                     "\\bid\\s*=\\s*['\"](?<id>[^'\"]+)['\"]",
+                     RegexOptions.IgnoreCase))
+        {
+            nodeOrder[$"{module}/{idMatch.Groups["id"].Value}"] = order++;
+        }
+
+        foreach (Match tableMatch in SimpleTablePattern.Matches(text))
+        {
+            var properties = StringPropertyPattern.Matches(tableMatch.Groups["body"].Value)
+                .Cast<Match>()
+                .GroupBy(match => match.Groups["name"].Value, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.First().Groups["value"].Value,
+                    StringComparer.OrdinalIgnoreCase);
+            if (!properties.TryGetValue("id", out var optionId)
+                || !properties.TryGetValue("type", out var type)
+                || type.Equals("title", StringComparison.OrdinalIgnoreCase)
+                || type.Equals("line", StringComparison.OrdinalIgnoreCase)
+                || type.Equals("slide", StringComparison.OrdinalIgnoreCase)
+                || type.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                || type.Equals("image", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var numbers = NumberPropertyPattern.Matches(tableMatch.Groups["body"].Value)
+                .Cast<Match>()
+                .GroupBy(match => match.Groups["name"].Value, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => ParseNumber(group.First().Groups["value"].Value),
+                    StringComparer.OrdinalIgnoreCase);
+            options[$"{module}/{optionId}"] = new OptionDefinition(
+                properties.GetValueOrDefault("text"),
+                type,
+                numbers.GetValueOrDefault("min"),
+                numbers.GetValueOrDefault("max"),
+                numbers.GetValueOrDefault("step"),
+                ParseDefaultValue(tableMatch.Groups["body"].Value),
+                nodeOrder.GetValueOrDefault($"{module}/{optionId}", int.MaxValue));
+        }
     }
 
     public McmConfigurationMetadata? Resolve(string key)
@@ -329,21 +525,7 @@ public sealed class McmConfigurationMetadataCatalog
         {
             try
             {
-                var document = XDocument.Parse(ReadText(path), LoadOptions.None);
-                foreach (var element in document.Descendants().Where(item => item.Name.LocalName == "string"))
-                {
-                    var id = element.Attribute("id")?.Value;
-                    var value = element.Descendants().FirstOrDefault(item => item.Name.LocalName == "text")?.Value;
-                    if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(value))
-                    {
-                        continue;
-                    }
-
-                    if (overwrite || !translations.ContainsKey(id))
-                    {
-                        translations[id] = value.Trim();
-                    }
-                }
+                LoadTranslationDocument(ReadText(path), translations, overwrite);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Xml.XmlException)
             {
@@ -352,9 +534,32 @@ public sealed class McmConfigurationMetadataCatalog
         }
     }
 
-    private static string ReadText(string path)
+    private static void LoadTranslationDocument(
+        string text,
+        Dictionary<string, string> translations,
+        bool overwrite)
     {
-        var bytes = File.ReadAllBytes(path);
+        var document = XDocument.Parse(text, LoadOptions.None);
+        foreach (var element in document.Descendants().Where(item => item.Name.LocalName == "string"))
+        {
+            var id = element.Attribute("id")?.Value;
+            var value = element.Descendants().FirstOrDefault(item => item.Name.LocalName == "text")?.Value;
+            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (overwrite || !translations.ContainsKey(id))
+            {
+                translations[id] = value.Trim();
+            }
+        }
+    }
+
+    private static string ReadText(string path) => DecodeText(File.ReadAllBytes(path));
+
+    private static string DecodeText(byte[] bytes)
+    {
         if (bytes.AsSpan().StartsWith(Encoding.UTF8.GetPreamble()))
         {
             return Encoding.UTF8.GetString(bytes, Encoding.UTF8.GetPreamble().Length, bytes.Length - Encoding.UTF8.GetPreamble().Length);

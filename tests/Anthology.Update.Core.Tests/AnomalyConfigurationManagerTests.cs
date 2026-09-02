@@ -53,6 +53,41 @@ public sealed class AnomalyConfigurationManagerTests
     }
 
     [Fact]
+    public void LoadAndSaveUseOriginalUserLtxWithoutDuplicatingAxrOptions()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame(
+            "appdata/user.ltx",
+            "r2_sun legacy-value\r\nvid_mode 1920x1080\r\nbind jump kSPACE\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[options]\r\nvideo/basic/r2_sun = on\r\n");
+
+        var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
+
+        Assert.Equal(3, snapshot.AnomalySettings.Count);
+        Assert.Single(snapshot.AnomalySettings, item => item.Key.EndsWith("r2_sun", StringComparison.OrdinalIgnoreCase));
+        var videoMode = Assert.Single(snapshot.AnomalySettings, item => item.Key == "vid_mode");
+        var jump = Assert.Single(snapshot.AnomalySettings, item => item.Key == "bind/jump");
+        Assert.Equal("video/basic", videoMode.MenuPath);
+        Assert.Equal("control/keybind", jump.MenuPath);
+        Assert.Equal(AnomalyConfigurationStorageFormat.ConsoleCommand, videoMode.StorageFormat);
+
+        videoMode.Value = "2560x1440";
+        jump.Value = "kJ";
+        snapshot.AnomalySettings.Single(item => item.Key.EndsWith("r2_sun", StringComparison.OrdinalIgnoreCase)).Value = "off";
+        var result = AnomalyConfigurationManager.Save(snapshot);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(3, result.ChangedValues);
+        Assert.Equal(2, result.BackupPaths!.Count);
+        Assert.Equal(
+            "r2_sun legacy-value\r\nvid_mode 2560x1440\r\nbind jump kJ\r\n",
+            File.ReadAllText(Path.Combine(environment.GameRoot, "appdata", "user.ltx")));
+        Assert.Contains("video/basic/r2_sun = off", File.ReadAllText(snapshot.AnomalyPath!));
+    }
+
+    [Fact]
     public void SaveAndRestoreOnlyTouchOriginalGameMcm()
     {
         using var environment = TestEnvironment.Create();

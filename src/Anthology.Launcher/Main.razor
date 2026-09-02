@@ -1245,7 +1245,7 @@
                         <div class="game-settings-intro">
                             <div>
                                 <strong>Знакомое меню Anomaly и Mod Configuration Menu</strong>
-                                <p>Структура повторяет разделы оригинальной Anomaly и вложенные страницы MCM. Оба меню записываются в оригинальный <code>gamedata\configs\axr_options.ltx</code>: Anomaly — в <code>[options]</code>, MCM — в <code>[mcm]</code>.</p>
+                                <p>Структура и названия читаются из игровых <code>.xdb</code>, распакованного <code>gamedata</code> и активных модов MO2. Значения Anomaly сохраняются в оригинальные <code>appdata\user.ltx</code> и <code>gamedata\configs\axr_options.ltx</code>, MCM — в раздел <code>[mcm]</code> оригинального <code>axr_options.ltx</code>.</p>
                             </div>
                             <div class="game-settings-actions">
                                 <button class="secondary-button" @onclick="() => RefreshGameConfigurationAsync()" disabled="@_gameConfigurationBusy">↻ ОБНОВИТЬ СПИСОК</button>
@@ -1271,7 +1271,7 @@
                                 <button class="advanced-settings-toggle @(_configurationAdvanced ? "active" : null)" @onclick="ToggleAdvancedConfiguration"><i></i><span>ТЕХНИЧЕСКИЕ ИМЕНА</span></button>
                             </div>
                             <div class="game-settings-source">
-                                <span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ОРИГИНАЛЬНЫЙ ФАЙЛ MCM" : "ОРИГИНАЛЬНЫЙ ФАЙЛ ANOMALY")</span><code>@CurrentConfigurationPath</code>
+                                <span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ОРИГИНАЛЬНЫЙ ФАЙЛ MCM" : "ОРИГИНАЛЬНЫЕ ФАЙЛЫ ANOMALY")</span><code>@CurrentConfigurationPath</code>
                                 <button @onclick="RestoreGameConfigurationAsync" disabled="@_gameConfigurationBusy">ВОССТАНОВИТЬ КОПИЮ</button>
                             </div>
                             <div class="native-options-shell">
@@ -1361,7 +1361,7 @@
                                     <button @onclick="CancelGameConfigurationChanges" disabled="@(_gameConfigurationBusy || _gameConfiguration.DirtyCount == 0)">ОТМЕНИТЬ</button>
                                     <button @onclick="SetSelectedConfigurationDefaults" disabled="@(_gameConfigurationBusy || !CanSetSelectedConfigurationDefaults)" title="Установить значения по умолчанию, объявленные установленным модулем MCM">ПО УМОЛЧ.</button>
                                 </div>
-                                <div class="native-options-state"><span class="@(_gameConfiguration.DirtyCount > 0 ? "changed" : null)"></span><div>@if (_gameConfiguration.DirtyCount > 0) { <strong><span>ИЗМЕНЕНО</span>: @_gameConfiguration.DirtyCount</strong> } else { <strong>ИЗМЕНЕНИЙ НЕТ</strong> }<small>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "Запись в [mcm]" : "Запись в [options]")</small></div></div>
+                                <div class="native-options-state"><span class="@(_gameConfiguration.DirtyCount > 0 ? "changed" : null)"></span><div>@if (_gameConfiguration.DirtyCount > 0) { <strong><span>ИЗМЕНЕНО</span>: @_gameConfiguration.DirtyCount</strong> } else { <strong>ИЗМЕНЕНИЙ НЕТ</strong> }<small>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "Запись в [mcm]" : "Запись в user.ltx и [options]")</small></div></div>
                             </footer>
                             <div class="game-settings-warning"><span>!</span><p><strong>Игра и MO2 должны быть закрыты.</strong> Перед записью создаётся резервная копия. MCM сохраняется непосредственно в оригинальный файл игры и применяется после следующего запуска.</p></div>
                         }
@@ -1825,9 +1825,19 @@
     private bool CanSetSelectedConfigurationDefaults => ActionConfigurationSettings.Any(setting =>
         setting.DefaultValue is not null
         && !setting.Value.Equals(setting.DefaultValue, StringComparison.Ordinal));
-    private string CurrentConfigurationPath => _configurationKind == AnomalyConfigurationKind.Mcm
-        ? _gameConfiguration.McmPath ?? "MCM не найден"
-        : _gameConfiguration.AnomalyPath ?? "axr_options.ltx не найден";
+    private string CurrentConfigurationPath
+    {
+        get
+        {
+            var paths = CurrentConfigurationSettings
+                .Select(item => item.TargetPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            return paths.Length == 0
+                ? (_configurationKind == AnomalyConfigurationKind.Mcm ? "MCM не найден" : "user.ltx и axr_options.ltx не найдены")
+                : string.Join(" · ", paths);
+        }
+    }
     private string SelectedConfigurationCategoryTitle => !string.IsNullOrWhiteSpace(_configurationSearch)
         ? $"Результаты поиска «{_configurationSearch}»"
         : ConfigurationTertiaryPages.FirstOrDefault(node => node.Path.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))?.Title
@@ -1838,7 +1848,7 @@
         ? "Поиск выполняется сразу по всем разделам, названиям, описаниям, значениям и техническим ключам."
         : _configurationKind == AnomalyConfigurationKind.Mcm
             ? "Структура модулей и вложенных страниц повторяет установленный MCM выбранного профиля MO2."
-            : "Разделы и вложенные страницы следуют структуре штатного меню Anomaly; значения сохраняются в [options].";
+            : "Разделы следуют штатному меню Anomaly; движковые параметры сохраняются в user.ltx, скриптовые — в [options].";
 
     private static ConfigurationMenuNode CreateConfigurationNode(
         IGrouping<string, AnomalyConfigurationEntry> group,

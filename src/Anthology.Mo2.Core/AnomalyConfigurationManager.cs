@@ -9,6 +9,12 @@ public enum AnomalyConfigurationKind
     Mcm,
 }
 
+public enum AnomalyConfigurationStorageFormat
+{
+    SectionKeyValue,
+    ConsoleCommand,
+}
+
 public sealed class AnomalyConfigurationEntry
 {
     public required AnomalyConfigurationKind Kind { get; init; }
@@ -28,6 +34,8 @@ public sealed class AnomalyConfigurationEntry
     public required string StorageSection { get; init; }
 
     public required int LineIndex { get; init; }
+
+    public AnomalyConfigurationStorageFormat StorageFormat { get; init; }
 
     public string? DisplayName { get; init; }
 
@@ -113,21 +121,29 @@ public static class AnomalyConfigurationManager
     public static AnomalyConfigurationSnapshot Load(string? gameRoot, string? mo2Root)
     {
         var (mcmSource, mcmTarget) = ResolveMcm(gameRoot);
+        var userPath = ResolveUserLtx(gameRoot);
         var metadataCatalog = McmConfigurationMetadataCatalog.Load(mo2Root, gameRoot);
 
         var anomalySettings = mcmSource is null || mcmTarget is null
             ? []
             : ParseAnomaly(mcmSource, mcmTarget, metadataCatalog);
+        if (userPath is not null)
+        {
+            var representedCommands = anomalySettings
+                .Select(item => item.Key.Split('/').Last())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            anomalySettings.AddRange(ParseUserLtx(userPath, metadataCatalog, representedCommands));
+        }
         var mcmSettings = mcmSource is null || mcmTarget is null
             ? []
             : ParseMcm(mcmSource, mcmTarget, metadataCatalog);
 
         var status = anomalySettings.Count == 0 && mcmSettings.Count == 0
-            ? "Оригинальный axr_options.ltx с разделами [options] и [mcm] не найден. Проверьте установленную игру."
-            : $"Anomaly: {anomalySettings.Count} параметров · MCM: {mcmSettings.Count} параметров";
+            ? "Оригинальные user.ltx и axr_options.ltx не найдены. Проверьте установленную игру."
+            : $"Anomaly: {anomalySettings.Count} параметров · MCM: {mcmSettings.Count} параметров · DB: {metadataCatalog.DatabaseAssetCount} файлов из {metadataCatalog.DatabaseArchiveCount} архивов";
 
         return new AnomalyConfigurationSnapshot(
-            mcmTarget,
+            mcmTarget ?? userPath,
             mcmTarget,
             anomalySettings,
             mcmSettings,
@@ -181,7 +197,7 @@ public static class AnomalyConfigurationManager
                         throw new InvalidDataException($"Параметр {entry.Key} изменился на диске. Обновите список и повторите.");
                     }
 
-                    document.Lines[lineIndex] = ReplaceMcmValue(document.Lines[lineIndex], entry.Value);
+                    document.Lines[lineIndex] = ReplaceValue(document.Lines[lineIndex], entry);
                 }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
@@ -263,6 +279,49 @@ public static class AnomalyConfigurationManager
         return (null, null);
     }
 
+    private static string? ResolveUserLtx(string? gameRoot)
+    {
+        if (string.IsNullOrWhiteSpace(gameRoot))
+        {
+            return null;
+        }
+
+        var fullGameRoot = Path.GetFullPath(gameRoot);
+        var defaultPath = Path.Combine(fullGameRoot, "appdata", "user.ltx");
+        var fsgamePath = Path.Combine(fullGameRoot, "fsgame.ltx");
+        if (File.Exists(fsgamePath))
+        {
+            foreach (var rawLine in File.ReadLines(fsgamePath))
+            {
+                var line = rawLine.Trim();
+                if (!line.StartsWith("$app_data_root$", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var parts = line.Split('|', StringSplitOptions.TrimEntries);
+                var configured = parts.LastOrDefault();
+                if (string.IsNullOrWhiteSpace(configured))
+                {
+                    break;
+                }
+
+                var appDataRoot = Path.IsPathRooted(configured)
+                    ? Path.GetFullPath(configured)
+                    : Path.GetFullPath(Path.Combine(fullGameRoot, configured));
+                var configuredPath = Path.Combine(appDataRoot, "user.ltx");
+                if (File.Exists(configuredPath))
+                {
+                    return configuredPath;
+                }
+
+                break;
+            }
+        }
+
+        return File.Exists(defaultPath) ? defaultPath : null;
+    }
+
     private static List<AnomalyConfigurationEntry> ParseAnomaly(
         string sourcePath,
         string targetPath,
@@ -311,6 +370,106 @@ public static class AnomalyConfigurationManager
         }
 
         return result;
+    }
+
+    private static List<AnomalyConfigurationEntry> ParseUserLtx(
+        string path,
+        McmConfigurationMetadataCatalog metadataCatalog,
+        HashSet<string> representedCommands)
+    {
+        var document = TextFileDocument.Read(path);
+        var result = new List<AnomalyConfigurationEntry>();
+        for (var index = 0; index < document.Lines.Count; index++)
+        {
+            if (!TryParseConsoleLine(document.Lines[index], out var key, out var command, out var value)
+                || (!command.Equals("bind", StringComparison.OrdinalIgnoreCase)
+                    && !command.Equals("bind_sec", StringComparison.OrdinalIgnoreCase)
+                    && representedCommands.Contains(command)))
+            {
+                continue;
+            }
+
+            var (category, menuPath) = ResolveConsoleMenuPath(command);
+            var metadataKey = $"{menuPath}/{key.Replace('/', '_')}";
+            var metadata = metadataCatalog.ResolveAnomaly(metadataKey, index);
+            result.Add(new AnomalyConfigurationEntry
+            {
+                Kind = AnomalyConfigurationKind.Anomaly,
+                Category = category,
+                Key = key,
+                Value = value,
+                OriginalValue = value,
+                SourcePath = path,
+                TargetPath = path,
+                StorageSection = string.Empty,
+                StorageFormat = AnomalyConfigurationStorageFormat.ConsoleCommand,
+                LineIndex = index,
+                DisplayName = metadata.DisplayName,
+                Description = metadata.Description,
+                CategoryDisplayName = metadata.CategoryDisplayName,
+                MenuPath = menuPath,
+                MenuDisplayName = metadata.MenuDisplayName,
+                MenuOrder = metadata.MenuOrder,
+                DisplayOrder = index,
+            });
+        }
+
+        return result;
+    }
+
+    private static (string Category, string MenuPath) ResolveConsoleMenuPath(string command)
+    {
+        if (command.Equals("bind", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("bind_sec", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("control", "control/keybind");
+        }
+
+        if (command.StartsWith("snd_", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("sound", "sound/general");
+        }
+
+        if (command.StartsWith("hud_", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("video", "video/hud");
+        }
+
+        if (command.Equals("renderer", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("vid_mode", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("fov", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("hud_fov", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("rs_", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("video", "video/basic");
+        }
+
+        if (command.StartsWith("r1_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("r2_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("r3_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("r4_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("r__", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("texture_", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("video", "video/advanced");
+        }
+
+        if (command.StartsWith("mouse_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("cam_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("con_", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("control", "control/general");
+        }
+
+        if (command.StartsWith("ai_", StringComparison.OrdinalIgnoreCase)
+            || command.StartsWith("alife_", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("alife", "alife/general");
+        }
+
+        return command.StartsWith("g_", StringComparison.OrdinalIgnoreCase)
+            ? ("gameplay", "gameplay/general")
+            : ("other", "other/general");
     }
 
     private static List<AnomalyConfigurationEntry> ParseMcm(
@@ -375,6 +534,19 @@ public static class AnomalyConfigurationManager
             return entry.LineIndex;
         }
 
+        if (entry.StorageFormat == AnomalyConfigurationStorageFormat.ConsoleCommand)
+        {
+            for (var index = 0; index < lines.Count; index++)
+            {
+                if (LineMatches(lines[index], entry))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
         var currentSection = string.Empty;
         for (var index = 0; index < lines.Count; index++)
         {
@@ -401,8 +573,60 @@ public static class AnomalyConfigurationManager
 
     private static bool LineMatches(string line, AnomalyConfigurationEntry entry)
     {
-        var parsed = TryParseMcmLine(line, out var key, out _);
+        var parsed = entry.StorageFormat == AnomalyConfigurationStorageFormat.ConsoleCommand
+            ? TryParseConsoleLine(line, out var key, out _, out _)
+            : TryParseMcmLine(line, out key, out _);
         return parsed && key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryParseConsoleLine(
+        string line,
+        out string key,
+        out string command,
+        out string value)
+    {
+        key = string.Empty;
+        command = string.Empty;
+        value = string.Empty;
+        var trimmed = line.Trim();
+        if (trimmed.Length == 0
+            || IsComment(trimmed)
+            || (trimmed.StartsWith('[') && trimmed.EndsWith(']')))
+        {
+            return false;
+        }
+
+        var separator = trimmed.IndexOfAny([' ', '\t']);
+        if (separator <= 0)
+        {
+            return false;
+        }
+
+        command = trimmed[..separator].Trim();
+        var remainder = trimmed[separator..].Trim();
+        if (remainder.Length == 0)
+        {
+            return false;
+        }
+
+        if (command.Equals("bind", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("bind_sec", StringComparison.OrdinalIgnoreCase))
+        {
+            separator = remainder.IndexOfAny([' ', '\t']);
+            if (separator <= 0)
+            {
+                return false;
+            }
+
+            var action = remainder[..separator].Trim();
+            value = remainder[separator..].Trim();
+            key = $"{command}/{action}";
+            return value.Length > 0;
+        }
+
+        key = command;
+        value = remainder;
+        return true;
     }
 
     private static bool TryParseMcmLine(string line, out string key, out string value)
@@ -426,7 +650,12 @@ public static class AnomalyConfigurationManager
         return key.Length > 0 && value.Length > 0;
     }
 
-    private static string ReplaceMcmValue(string line, string value)
+    private static string ReplaceValue(string line, AnomalyConfigurationEntry entry) =>
+        entry.StorageFormat == AnomalyConfigurationStorageFormat.ConsoleCommand
+            ? ReplaceConsoleValue(line, entry.Value)
+            : ReplaceSectionValue(line, entry.Value);
+
+    private static string ReplaceSectionValue(string line, string value)
     {
         var equals = line.IndexOf('=');
         if (equals < 0)
@@ -441,6 +670,36 @@ public static class AnomalyConfigurationManager
         }
 
         return line[..valueStart] + value;
+    }
+
+    private static string ReplaceConsoleValue(string line, string value)
+    {
+        var trimmedStart = line.Length - line.TrimStart().Length;
+        var position = trimmedStart;
+        var fieldCount = line.AsSpan(trimmedStart).StartsWith("bind ", StringComparison.OrdinalIgnoreCase)
+                         || line.AsSpan(trimmedStart).StartsWith("bind_sec ", StringComparison.OrdinalIgnoreCase)
+            ? 2
+            : 1;
+
+        for (var field = 0; field < fieldCount; field++)
+        {
+            while (position < line.Length && !char.IsWhiteSpace(line[position]))
+            {
+                position++;
+            }
+
+            while (position < line.Length && char.IsWhiteSpace(line[position]))
+            {
+                position++;
+            }
+        }
+
+        if (position >= line.Length)
+        {
+            throw new InvalidDataException("Строка user.ltx имеет неизвестный формат");
+        }
+
+        return line[..position] + value;
     }
 
     private static bool IsComment(string trimmed) =>
