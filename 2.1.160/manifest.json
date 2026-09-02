@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.160",
-    "publishedAt": "2026-09-02T20:38:33.4527933+00:00",
+    "publishedAt": "2026-09-02T21:05:17.4617865+00:00",
     "packages": [
       {
         "id": "anthology-files-modpack",
@@ -128,21 +128,21 @@
       {
         "id": "anthology-integrity",
         "displayName": "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0446\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u0438 Anthology",
-        "version": "2c60c69ff8a92607bda78e533017a99a9a53642c3be642d5de35c7b4aec13fcb",
+        "version": "15351ee857865e4bd511a84980068a0b85bc202826f64035fe87162e40934ec6",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 4901,
-        "sha256": "8a1287aaa915748f6f45083f3809e66feb9b7d867d3cb0d0628c2c03d4ef498b",
+        "size": 4556,
+        "sha256": "ddf76565f65d5e34f0cd64d6ddc7fec277d3e42cfbc59797f95ecfdbf0bc3454",
         "mirrors": [
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-2c60c69ff8a92607.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.160/anthology-integrity-15351ee857865e4b.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-2c60c69ff8a92607.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.160/anthology-integrity-15351ee857865e4b.zip",
             "priority": 20
           }
         ],
@@ -156,7 +156,7 @@
     "content": {
       "schemaVersion": 4,
       "version": "2.1.160",
-      "publishedAt": "2026-09-02T20:38:33.4051074+00:00",
+      "publishedAt": "2026-09-02T21:05:17.4095542+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -674,6 +674,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "uupuVWZNSE8NWFYyHb5JLiKEunFvhpHtogszd5A99cPa14MDxgkKcwZAVoUDRApUiirCqVotYsRmt40NNC4tkA=="
+    "value": "30Xo1p7JLFzSy8a7BKQO/S7I4KQ2TSp7dKNYkNz/PHOmpWvG49aFyg\u002BfKlAeUptU4GL1hTEwuUQD89ClscMt4A=="
   }
 }
