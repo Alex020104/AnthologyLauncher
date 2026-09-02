@@ -84,7 +84,7 @@ public sealed class AnomalyConfigurationManagerTests
         environment.WriteGame("gamedata/configs/axr_options.ltx", "[mcm]\r\nexo/drain = 1.0\r\n");
         environment.WriteMo2(
             "mods/Exo/gamedata/scripts/exo_mcm.script",
-            "function on_mcm_load() op = { id='exo', sh=true, gr={ { id='title', type='slide', text='ui_mcm_exo_title', size={512,50} }, { id='drain', type='track', min=0.1, max=3, step=0.1 } } } return op end");
+            "function on_mcm_load() op = { id='exo', sh=true, gr={ { id='title', type='slide', text='ui_mcm_exo_title', size={512,50} }, { id='drain', type='track', min=0.1, max=3, step=0.1, def=1.5 } } } return op end");
         environment.WriteMo2(
             "mods/Exo/gamedata/configs/text/rus/st_exo.xml",
             "<?xml version=\"1.0\" encoding=\"utf-8\"?><string_table><string id=\"ui_mcm_exo_title\"><text>Экзоскелеты</text></string><string id=\"ui_mcm_exo_drain\"><text>Расход энергии</text></string><string id=\"ui_mcm_exo_drain_desc\"><text>Расход заряда при движении.</text></string></string_table>");
@@ -100,6 +100,7 @@ public sealed class AnomalyConfigurationManagerTests
         Assert.Equal(0.1, entry.Minimum);
         Assert.Equal(3, entry.Maximum);
         Assert.Equal(0.1, entry.Step);
+        Assert.Equal("1.5", entry.DefaultValue);
     }
 
     private sealed class TestEnvironment : IDisposable

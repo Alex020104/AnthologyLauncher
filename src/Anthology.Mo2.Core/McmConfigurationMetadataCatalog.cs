@@ -16,7 +16,8 @@ public sealed record McmConfigurationMetadata(
     string? ControlType,
     double? Minimum,
     double? Maximum,
-    double? Step);
+    double? Step,
+    string? DefaultValue);
 
 public sealed class McmConfigurationMetadataCatalog
 {
@@ -31,6 +32,12 @@ public sealed class McmConfigurationMetadataCatalog
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex NumberPropertyPattern = new(
         @"\b(?<name>min|max|step)\s*=\s*(?<value>-?(?:\d+(?:\.\d*)?|\.\d+))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex DefaultStringPropertyPattern = new(
+        "\\bdef\\s*=\\s*['\"](?<value>[^'\"]*)['\"]",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex DefaultLiteralPropertyPattern = new(
+        @"\bdef\s*=\s*(?<value>true|false|-?(?:\d+(?:\.\d*)?|\.\d+))",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex SlideTextPattern = new(
         "type\\s*=\\s*['\"]slide['\"][^{}]{0,600}?text\\s*=\\s*['\"](?<id>[^'\"]+)['\"]",
@@ -141,6 +148,7 @@ public sealed class McmConfigurationMetadataCatalog
                             numbers.GetValueOrDefault("min"),
                             numbers.GetValueOrDefault("max"),
                             numbers.GetValueOrDefault("step"),
+                            ParseDefaultValue(tableMatch.Groups["body"].Value),
                             nodeOrder.GetValueOrDefault($"{module}/{optionId}", int.MaxValue));
                     }
                 }
@@ -209,7 +217,8 @@ public sealed class McmConfigurationMetadataCatalog
                 definition?.ControlType,
                 definition?.Minimum,
                 definition?.Maximum,
-                definition?.Step);
+                definition?.Step,
+                definition?.DefaultValue);
     }
 
     public McmConfigurationMetadata ResolveAnomaly(string key, int displayOrder)
@@ -232,6 +241,7 @@ public sealed class McmConfigurationMetadataCatalog
             Clean(menuTitle),
             AnomalyMenuOrder(menuPath),
             displayOrder,
+            null,
             null,
             null,
             null,
@@ -364,6 +374,27 @@ public sealed class McmConfigurationMetadataCatalog
     private static double? ParseNumber(string value) =>
         double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : null;
 
+    private static string? ParseDefaultValue(string tableBody)
+    {
+        var stringMatch = DefaultStringPropertyPattern.Match(tableBody);
+        if (stringMatch.Success)
+        {
+            return stringMatch.Groups["value"].Value.Trim();
+        }
+
+        var literalMatch = DefaultLiteralPropertyPattern.Match(tableBody);
+        if (!literalMatch.Success)
+        {
+            return null;
+        }
+
+        var value = literalMatch.Groups["value"].Value.Trim();
+        return value.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("false", StringComparison.OrdinalIgnoreCase)
+                ? value.ToLowerInvariant()
+                : value;
+    }
+
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value)
         ? null
         : value.Replace("\\n", " ", StringComparison.Ordinal).Trim();
@@ -374,5 +405,6 @@ public sealed class McmConfigurationMetadataCatalog
         double? Minimum,
         double? Maximum,
         double? Step,
+        string? DefaultValue,
         int Order);
 }

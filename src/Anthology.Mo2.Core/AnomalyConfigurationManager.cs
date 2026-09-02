@@ -51,6 +51,8 @@ public sealed class AnomalyConfigurationEntry
 
     public double? Step { get; init; }
 
+    public string? DefaultValue { get; init; }
+
     public bool IsDirty => !string.Equals(Value, OriginalValue, StringComparison.Ordinal);
 
     public bool IsBoolean => Value.Equals("true", StringComparison.OrdinalIgnoreCase)
@@ -359,6 +361,7 @@ public static class AnomalyConfigurationManager
                 Minimum = metadata?.Minimum,
                 Maximum = metadata?.Maximum,
                 Step = metadata?.Step,
+                DefaultValue = metadata?.DefaultValue,
             });
         }
 

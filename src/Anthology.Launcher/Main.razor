@@ -1249,7 +1249,6 @@
                             </div>
                             <div class="game-settings-actions">
                                 <button class="secondary-button" @onclick="() => RefreshGameConfigurationAsync()" disabled="@_gameConfigurationBusy">↻ ОБНОВИТЬ СПИСОК</button>
-                                <button class="primary-button" @onclick="SaveGameConfigurationAsync" disabled="@(_gameConfigurationBusy || _gameConfiguration.DirtyCount == 0)">СОХРАНИТЬ ИЗМЕНЕНИЯ @(_gameConfiguration.DirtyCount > 0 ? $"({_gameConfiguration.DirtyCount})" : null)</button>
                             </div>
                         </div>
 
@@ -1263,32 +1262,45 @@
                         }
                         else
                         {
-                            <div class="game-settings-tabs">
-                                <button class="@(_configurationKind == AnomalyConfigurationKind.Anomaly ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Anomaly)" disabled="@(!_gameConfiguration.AnomalyAvailable)">
-                                    <span>ORIGINAL ANOMALY</span><strong>@_gameConfiguration.AnomalySettings.Count</strong><small>axr_options.ltx · [options]</small>
-                                </button>
-                                <button class="@(_configurationKind == AnomalyConfigurationKind.Mcm ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Mcm)" disabled="@(!_gameConfiguration.McmAvailable)">
-                                    <span>MOD CONFIGURATION MENU</span><strong>@_gameConfiguration.McmSettings.Count</strong><small>axr_options.ltx · [mcm]</small>
-                                </button>
+                            <div class="native-options-topbar">
+                                <label class="game-settings-search native-global-search"><span>⌕</span><input placeholder="Поиск по настройкам…" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
+                                <div class="native-kind-switch" role="tablist" aria-label="Источник настроек">
+                                    <button class="@(_configurationKind == AnomalyConfigurationKind.Anomaly ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Anomaly)" disabled="@(!_gameConfiguration.AnomalyAvailable)"><span>ANOMALY</span><strong>@_gameConfiguration.AnomalySettings.Count</strong></button>
+                                    <button class="@(_configurationKind == AnomalyConfigurationKind.Mcm ? "active" : null)" @onclick="() => SelectConfigurationKind(AnomalyConfigurationKind.Mcm)" disabled="@(!_gameConfiguration.McmAvailable)"><span>MCM</span><strong>@_gameConfiguration.McmSettings.Count</strong></button>
+                                </div>
+                                <button class="advanced-settings-toggle @(_configurationAdvanced ? "active" : null)" @onclick="ToggleAdvancedConfiguration"><i></i><span>ТЕХНИЧЕСКИЕ ИМЕНА</span></button>
                             </div>
                             <div class="game-settings-source">
                                 <span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ОРИГИНАЛЬНЫЙ ФАЙЛ MCM" : "ОРИГИНАЛЬНЫЙ ФАЙЛ ANOMALY")</span><code>@CurrentConfigurationPath</code>
                                 <button @onclick="RestoreGameConfigurationAsync" disabled="@_gameConfigurationBusy">ВОССТАНОВИТЬ КОПИЮ</button>
                             </div>
                             <div class="native-options-shell">
-                                <aside class="native-options-navigation">
-                                    <header><span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "ДЕРЕВО MCM" : "МЕНЮ ANOMALY")</span><strong>@ConfigurationMenuPages.Count</strong></header>
-                                    @foreach (var group in ConfigurationMenuGroups)
+                                <aside class="native-options-navigation native-options-primary">
+                                    <header><span>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "МОДУЛИ MCM" : "РАЗДЕЛЫ ANOMALY")</span><strong>@ConfigurationPrimaryPages.Count</strong></header>
+                                    @foreach (var node in ConfigurationPrimaryPages)
                                     {
-                                        var currentGroup = group;
-                                        <div class="native-options-group"><span>@currentGroup.Title</span><small>@currentGroup.Count</small></div>
-                                        @foreach (var page in currentGroup.Pages)
-                                        {
-                                            var currentPage = page;
-                                            <button class="depth-@currentPage.Depth @(_configurationCategory.Equals(currentPage.Path, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationCategory(currentPage.Path)">
-                                                <span>@currentPage.Title</span><small>@currentPage.Count</small>
-                                            </button>
-                                        }
+                                        var currentNode = node;
+                                        <button class="@(_configurationPrimary.Equals(currentNode.Path, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationPrimary(currentNode.Path)"><i></i><span>@currentNode.Title</span><small>@currentNode.Count</small></button>
+                                    }
+                                </aside>
+                                <aside class="native-options-navigation native-options-secondary">
+                                    <header><span>ПОДРАЗДЕЛЫ</span><strong>@ConfigurationSecondaryPages.Count</strong></header>
+                                    @foreach (var node in ConfigurationSecondaryPages)
+                                    {
+                                        var currentNode = node;
+                                        <button class="@(_configurationSecondary.Equals(currentNode.Path, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationSecondary(currentNode.Path)"><i></i><span>@currentNode.Title</span><small>@currentNode.Count</small></button>
+                                    }
+                                </aside>
+                                <aside class="native-options-navigation native-options-tertiary">
+                                    <header><span>СТРАНИЦЫ</span><strong>@ConfigurationTertiaryPages.Count</strong></header>
+                                    @if (ConfigurationTertiaryPages.Count == 0)
+                                    {
+                                        <div class="native-options-no-children"><span>—</span><small>Вложенных страниц нет</small></div>
+                                    }
+                                    @foreach (var node in ConfigurationTertiaryPages)
+                                    {
+                                        var currentNode = node;
+                                        <button class="@(_configurationCategory.Equals(currentNode.Path, StringComparison.OrdinalIgnoreCase) ? "active" : null)" @onclick="() => SelectConfigurationCategory(currentNode.Path)"><i></i><span>@currentNode.Title</span><small>@currentNode.Count</small></button>
                                     }
                                 </aside>
                                 <section class="native-options-panel">
@@ -1296,10 +1308,6 @@
                                         <div><span class="eyebrow">@(_configurationKind == AnomalyConfigurationKind.Mcm ? "MOD CONFIGURATION MENU" : "ORIGINAL ANOMALY")</span><h3>@SelectedConfigurationCategoryTitle</h3><p>@SelectedConfigurationCategoryDescription</p></div>
                                         <div class="game-settings-counter"><strong>@FilteredConfigurationCount</strong><small>ПАРАМЕТРОВ</small></div>
                                     </header>
-                                    <div class="native-options-tools">
-                                        <label class="game-settings-search"><span>⌕</span><input placeholder="Найти настройку" @bind="ConfigurationSearch" @bind:event="oninput" /></label>
-                                        <button class="advanced-settings-toggle @(_configurationAdvanced ? "active" : null)" @onclick="ToggleAdvancedConfiguration"><i></i><span>ТЕХНИЧЕСКИЕ ИМЕНА</span></button>
-                                    </div>
                                     <div class="game-settings-list native-settings-list">
                                         @foreach (var setting in VisibleConfigurationSettings)
                                         {
@@ -1346,6 +1354,15 @@
                                     }
                                 </section>
                             </div>
+                            <footer class="native-options-footer">
+                                <div class="native-options-footer-actions">
+                                    <button class="apply" @onclick="SaveGameConfigurationAsync" disabled="@(_gameConfigurationBusy || _gameConfiguration.DirtyCount == 0)">ПРИМЕНИТЬ</button>
+                                    <button @onclick="ResetSelectedConfigurationPage" disabled="@(_gameConfigurationBusy || !ActionConfigurationSettings.Any(setting => setting.IsDirty))">СБРОСИТЬ</button>
+                                    <button @onclick="CancelGameConfigurationChanges" disabled="@(_gameConfigurationBusy || _gameConfiguration.DirtyCount == 0)">ОТМЕНИТЬ</button>
+                                    <button @onclick="SetSelectedConfigurationDefaults" disabled="@(_gameConfigurationBusy || !CanSetSelectedConfigurationDefaults)" title="Установить значения по умолчанию, объявленные установленным модулем MCM">ПО УМОЛЧ.</button>
+                                </div>
+                                <div class="native-options-state"><span class="@(_gameConfiguration.DirtyCount > 0 ? "changed" : null)"></span><div>@if (_gameConfiguration.DirtyCount > 0) { <strong><span>ИЗМЕНЕНО</span>: @_gameConfiguration.DirtyCount</strong> } else { <strong>ИЗМЕНЕНИЙ НЕТ</strong> }<small>@(_configurationKind == AnomalyConfigurationKind.Mcm ? "Запись в [mcm]" : "Запись в [options]")</small></div></div>
+                            </footer>
                             <div class="game-settings-warning"><span>!</span><p><strong>Игра и MO2 должны быть закрыты.</strong> Перед записью создаётся резервная копия. MCM сохраняется непосредственно в оригинальный файл игры и применяется после следующего запуска.</p></div>
                         }
                     </article>
@@ -1553,6 +1570,8 @@
     private AnomalyConfigurationSnapshot _gameConfiguration = AnomalyConfigurationSnapshot.Empty;
     private AnomalyConfigurationKind _configurationKind = AnomalyConfigurationKind.Anomaly;
     private string _configurationSearch = string.Empty;
+    private string _configurationPrimary = string.Empty;
+    private string _configurationSecondary = string.Empty;
     private string _configurationCategory = string.Empty;
     private bool _configurationAdvanced;
     private bool _gameConfigurationBusy;
@@ -1733,7 +1752,7 @@
     private IEnumerable<AnomalyConfigurationEntry> FriendlyConfigurationSettings => CurrentConfigurationSettings;
     private IEnumerable<AnomalyConfigurationEntry> FilteredConfigurationSettings => FriendlyConfigurationSettings
         .Where(item => !string.IsNullOrWhiteSpace(_configurationSearch)
-                       || item.MenuPath.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
+                       || ConfigurationPath(item).Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
         .Where(item =>
         {
             if (string.IsNullOrWhiteSpace(_configurationSearch))
@@ -1753,54 +1772,106 @@
         .OrderBy(item => item.DisplayOrder)
         .ThenBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
         .ToArray();
-    private IReadOnlyList<ConfigurationMenuPage> ConfigurationMenuPages => FriendlyConfigurationSettings
-        .GroupBy(item => string.IsNullOrWhiteSpace(item.MenuPath) ? item.Category : item.MenuPath, StringComparer.OrdinalIgnoreCase)
+    private IReadOnlyList<AnomalyConfigurationEntry> SelectedConfigurationSettings => FriendlyConfigurationSettings
+        .Where(item => ConfigurationPath(item).Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(item => item.DisplayOrder)
+        .ThenBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    private IReadOnlyList<AnomalyConfigurationEntry> ActionConfigurationSettings => string.IsNullOrWhiteSpace(_configurationSearch)
+        ? SelectedConfigurationSettings
+        : VisibleConfigurationSettings;
+    private IReadOnlyList<ConfigurationMenuNode> ConfigurationPrimaryPages => FriendlyConfigurationSettings
+        .GroupBy(item => ConfigurationSegments(item)[0], StringComparer.OrdinalIgnoreCase)
         .Select(group =>
         {
             var first = group.OrderBy(item => item.DisplayOrder).First();
-            var categoryKey = first.Category;
-            var categoryTitle = first.CategoryDisplayName ?? GameSettingsPresentation.Humanize(categoryKey);
-            var path = group.Key;
-            var leaf = path.Split('/').Last();
-            var pageTitle = first.MenuDisplayName
-                            ?? (path.Equals(categoryKey, StringComparison.OrdinalIgnoreCase) ? categoryTitle : null)
-                            ?? GameSettingsPresentation.Humanize(leaf);
-            var menuOrder = group.Min(item => item.MenuOrder);
-            if (menuOrder == int.MaxValue)
-            {
-                menuOrder = group.Min(item => item.DisplayOrder);
-            }
-            return new ConfigurationMenuPage(
-                path,
-                pageTitle,
-                categoryKey,
-                categoryTitle,
-                Math.Max(0, path.Count(character => character == '/')),
-                menuOrder,
+            return new ConfigurationMenuNode(
+                group.Key,
+                first.CategoryDisplayName ?? GameSettingsPresentation.For(first).CategoryTitle ?? GameSettingsPresentation.Humanize(group.Key),
+                ConfigurationOrder(group),
                 group.Count());
         })
-        .OrderBy(page => page.Order)
-        .ThenBy(page => page.CategoryTitle, StringComparer.OrdinalIgnoreCase)
-        .ThenBy(page => page.Title, StringComparer.OrdinalIgnoreCase)
+        .OrderBy(node => node.Order)
+        .ThenBy(node => node.Title, StringComparer.OrdinalIgnoreCase)
         .ToArray();
-    private IReadOnlyList<ConfigurationMenuGroup> ConfigurationMenuGroups => ConfigurationMenuPages
-        .GroupBy(page => page.CategoryKey, StringComparer.OrdinalIgnoreCase)
-        .Select(group => new ConfigurationMenuGroup(
-            group.Key,
-            group.First().CategoryTitle,
-            group.Sum(page => page.Count),
-            group.OrderBy(page => page.Depth).ThenBy(page => page.Order).ToArray()))
+    private IReadOnlyList<ConfigurationMenuNode> ConfigurationSecondaryPages => FriendlyConfigurationSettings
+        .Where(item => IsConfigurationPathWithin(ConfigurationPath(item), _configurationPrimary))
+        .GroupBy(item =>
+        {
+            var segments = ConfigurationSegments(item);
+            return segments.Length > 1 ? string.Join('/', segments.Take(2)) : _configurationPrimary;
+        }, StringComparer.OrdinalIgnoreCase)
+        .Select(group => CreateConfigurationNode(group, _configurationPrimary, "Основные"))
+        .OrderBy(node => node.Order)
+        .ThenBy(node => node.Title, StringComparer.OrdinalIgnoreCase)
         .ToArray();
+    private IReadOnlyList<ConfigurationMenuNode> ConfigurationTertiaryPages
+    {
+        get
+        {
+            var nodes = FriendlyConfigurationSettings
+                .Where(item => IsConfigurationPathWithin(ConfigurationPath(item), _configurationSecondary))
+                .GroupBy(ConfigurationPath, StringComparer.OrdinalIgnoreCase)
+                .Select(group => CreateConfigurationNode(group, _configurationSecondary, "Основные"))
+                .OrderBy(node => node.Order)
+                .ThenBy(node => node.Title, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            return nodes.Length == 1 && nodes[0].Path.Equals(_configurationSecondary, StringComparison.OrdinalIgnoreCase)
+                ? []
+                : nodes;
+        }
+    }
     private int FilteredConfigurationCount => FilteredConfigurationSettings.Count();
+    private bool CanSetSelectedConfigurationDefaults => ActionConfigurationSettings.Any(setting =>
+        setting.DefaultValue is not null
+        && !setting.Value.Equals(setting.DefaultValue, StringComparison.Ordinal));
     private string CurrentConfigurationPath => _configurationKind == AnomalyConfigurationKind.Mcm
         ? _gameConfiguration.McmPath ?? "MCM не найден"
         : _gameConfiguration.AnomalyPath ?? "axr_options.ltx не найден";
-    private string SelectedConfigurationCategoryTitle => ConfigurationMenuPages
-        .FirstOrDefault(page => page.Path.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))?.Title
-        ?? (_configurationKind == AnomalyConfigurationKind.Mcm ? "Mod Configuration Menu" : "Настройки Anomaly");
-    private string SelectedConfigurationCategoryDescription => _configurationKind == AnomalyConfigurationKind.Mcm
-        ? "Вложенность модулей и подменю повторяет установленный MCM выбранного профиля MO2."
-        : "Разделы и страницы следуют структуре штатного меню Anomaly; значения сохраняются в [options].";
+    private string SelectedConfigurationCategoryTitle => !string.IsNullOrWhiteSpace(_configurationSearch)
+        ? $"Результаты поиска «{_configurationSearch}»"
+        : ConfigurationTertiaryPages.FirstOrDefault(node => node.Path.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))?.Title
+          ?? ConfigurationSecondaryPages.FirstOrDefault(node => node.Path.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))?.Title
+          ?? ConfigurationPrimaryPages.FirstOrDefault(node => node.Path.Equals(_configurationCategory, StringComparison.OrdinalIgnoreCase))?.Title
+          ?? (_configurationKind == AnomalyConfigurationKind.Mcm ? "Mod Configuration Menu" : "Настройки Anomaly");
+    private string SelectedConfigurationCategoryDescription => !string.IsNullOrWhiteSpace(_configurationSearch)
+        ? "Поиск выполняется сразу по всем разделам, названиям, описаниям, значениям и техническим ключам."
+        : _configurationKind == AnomalyConfigurationKind.Mcm
+            ? "Структура модулей и вложенных страниц повторяет установленный MCM выбранного профиля MO2."
+            : "Разделы и вложенные страницы следуют структуре штатного меню Anomaly; значения сохраняются в [options].";
+
+    private static ConfigurationMenuNode CreateConfigurationNode(
+        IGrouping<string, AnomalyConfigurationEntry> group,
+        string basePath,
+        string baseTitle)
+    {
+        var first = group.OrderBy(item => item.DisplayOrder).First();
+        var title = group.Key.Equals(basePath, StringComparison.OrdinalIgnoreCase)
+            ? baseTitle
+            : first.MenuDisplayName ?? GameSettingsPresentation.Humanize(group.Key.Split('/').Last());
+        return new ConfigurationMenuNode(group.Key, title, ConfigurationOrder(group), group.Count());
+    }
+
+    private static long ConfigurationOrder(IEnumerable<AnomalyConfigurationEntry> settings)
+    {
+        var entries = settings.ToArray();
+        var order = entries.Min(item => item.MenuOrder);
+        var displayOrder = entries.Min(item => item.DisplayOrder);
+        return order == int.MaxValue
+            ? (long)int.MaxValue * 1_000_000L + displayOrder
+            : (long)order * 1_000_000L + displayOrder;
+    }
+
+    private static string ConfigurationPath(AnomalyConfigurationEntry item) =>
+        string.IsNullOrWhiteSpace(item.MenuPath) ? item.Category : item.MenuPath;
+
+    private static string[] ConfigurationSegments(AnomalyConfigurationEntry item) =>
+        ConfigurationPath(item).Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool IsConfigurationPathWithin(string path, string parent) =>
+        !string.IsNullOrWhiteSpace(parent)
+        && (path.Equals(parent, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(parent + "/", StringComparison.OrdinalIgnoreCase));
     private string ConfigurationSearch
     {
         get => _configurationSearch;
@@ -2147,6 +2218,19 @@
         ResetConfigurationFilters();
     }
 
+    private void SelectConfigurationPrimary(string path)
+    {
+        _configurationPrimary = path;
+        _configurationSecondary = ConfigurationSecondaryPages.FirstOrDefault()?.Path ?? path;
+        _configurationCategory = ConfigurationTertiaryPages.FirstOrDefault()?.Path ?? _configurationSecondary;
+    }
+
+    private void SelectConfigurationSecondary(string path)
+    {
+        _configurationSecondary = path;
+        _configurationCategory = ConfigurationTertiaryPages.FirstOrDefault()?.Path ?? path;
+    }
+
     private void SelectConfigurationCategory(string category)
     {
         _configurationCategory = category;
@@ -2175,10 +2259,58 @@
     private static void ResetConfigurationValue(AnomalyConfigurationEntry setting) =>
         setting.Value = setting.OriginalValue;
 
+    private void ResetSelectedConfigurationPage()
+    {
+        var changed = ActionConfigurationSettings.Where(setting => setting.IsDirty).ToArray();
+        foreach (var setting in changed)
+        {
+            setting.Value = setting.OriginalValue;
+        }
+
+        ShowToast(changed.Length == 0
+            ? "На этой странице нет несохранённых изменений"
+            : $"Сброшено изменений на странице: {changed.Length}");
+    }
+
+    private void CancelGameConfigurationChanges()
+    {
+        var changed = _gameConfiguration.AnomalySettings
+            .Concat(_gameConfiguration.McmSettings)
+            .Where(setting => setting.IsDirty)
+            .ToArray();
+        foreach (var setting in changed)
+        {
+            setting.Value = setting.OriginalValue;
+        }
+
+        ShowToast(changed.Length == 0
+            ? "Несохранённых изменений нет"
+            : $"Отменено несохранённых изменений: {changed.Length}");
+    }
+
+    private void SetSelectedConfigurationDefaults()
+    {
+        var changed = ActionConfigurationSettings
+            .Where(setting => setting.DefaultValue is not null
+                              && !setting.Value.Equals(setting.DefaultValue, StringComparison.Ordinal))
+            .ToArray();
+        foreach (var setting in changed)
+        {
+            setting.Value = setting.DefaultValue!;
+        }
+
+        ShowToast(changed.Length == 0
+            ? "Установленный модуль не объявил значения по умолчанию для этой страницы"
+            : $"Установлены значения по умолчанию: {changed.Length}",
+            changed.Length == 0);
+    }
+
     private void ResetConfigurationFilters()
     {
         _configurationSearch = string.Empty;
-        _configurationCategory = ConfigurationMenuPages.FirstOrDefault()?.Path ?? string.Empty;
+        _configurationPrimary = ConfigurationPrimaryPages.FirstOrDefault()?.Path ?? string.Empty;
+        _configurationSecondary = ConfigurationSecondaryPages.FirstOrDefault()?.Path ?? _configurationPrimary;
+        _configurationCategory = ConfigurationTertiaryPages.FirstOrDefault()?.Path ?? _configurationSecondary;
     }
 
     private static string ToggleClass(bool enabled) => enabled ? "active" : string.Empty;
@@ -3873,20 +4005,7 @@
 
     private sealed record Mo2ModGroup(Mo2ModEntry? Separator, IReadOnlyList<Mo2ModEntry> Mods);
 
-    private sealed record ConfigurationMenuPage(
-        string Path,
-        string Title,
-        string CategoryKey,
-        string CategoryTitle,
-        int Depth,
-        int Order,
-        int Count);
-
-    private sealed record ConfigurationMenuGroup(
-        string Key,
-        string Title,
-        int Count,
-        IReadOnlyList<ConfigurationMenuPage> Pages);
+    private sealed record ConfigurationMenuNode(string Path, string Title, long Order, int Count);
 
     private sealed class BugReportForm
     {
