@@ -1,5 +1,7 @@
+using System.IO.Compression;
 using Anthology.Community.Api;
 using Anthology.Contracts;
+using Anthology.Mo2.Core;
 using Microsoft.AspNetCore.Http;
 
 namespace Anthology.Update.Core.Tests;
@@ -68,6 +70,63 @@ public sealed class CommunityStateTests : IDisposable
             "attachments",
             receipt.Id,
             "test-config.ltx")));
+    }
+
+    [Fact]
+    public async Task AutomaticDiagnosticsContainEveryMo2ProfileAndReachDeveloper()
+    {
+        Environment.SetEnvironmentVariable("ANTHOLOGY_DATA_ROOT", _root);
+        var game = Path.Combine(_root, "game");
+        var mo2 = Path.Combine(_root, "mo2");
+        var firstProfile = Path.Combine(mo2, "profiles", "HARD — Шура");
+        var secondProfile = Path.Combine(mo2, "profiles", "Normal");
+        Directory.CreateDirectory(Path.Combine(game, "appdata", "logs"));
+        Directory.CreateDirectory(Path.Combine(game, "gamedata", "configs"));
+        Directory.CreateDirectory(firstProfile);
+        Directory.CreateDirectory(secondProfile);
+        await File.WriteAllTextAsync(Path.Combine(game, "appdata", "user.ltx"), "bind jump kSPACE");
+        await File.WriteAllTextAsync(Path.Combine(game, "appdata", "logs", "xray_test.log"), "FATAL ERROR: test");
+        await File.WriteAllTextAsync(
+            Path.Combine(game, "gamedata", "configs", "axr_options.ltx"),
+            "[options]\nrspec_default = true");
+        await File.WriteAllTextAsync(Path.Combine(firstProfile, "modlist.txt"), "+HARD addon\n-HARD disabled");
+        await File.WriteAllTextAsync(Path.Combine(firstProfile, "user.ltx"), "renderer renderer_r4");
+        await File.WriteAllTextAsync(Path.Combine(secondProfile, "modlist.txt"), "+Normal addon");
+
+        var bundle = AnomalyDiagnosticBundleBuilder.Create(
+            Path.Combine(_root, "diagnostics"),
+            game,
+            mo2);
+
+        Assert.True(new FileInfo(bundle.Path).Length is > 0 and < 5 * 1024 * 1024);
+        using (var archive = ZipFile.OpenRead(bundle.Path))
+        {
+            var entries = archive.Entries.Select(entry => entry.FullName).ToArray();
+            Assert.Contains("game/xray_latest.log", entries);
+            Assert.Contains("game/user.ltx", entries);
+            Assert.Contains("game/axr_options.ltx", entries);
+            Assert.Contains("mo2-profiles/HARD — Шура/modlist.txt", entries);
+            Assert.Contains("mo2-profiles/HARD — Шура/user.ltx", entries);
+            Assert.Contains("mo2-profiles/Normal/modlist.txt", entries);
+            Assert.Contains("diagnostics-manifest.txt", entries);
+        }
+
+        var state = new CommunityState();
+        var receipt = state.CreateReport(CreateValidReport());
+        await using var stream = File.OpenRead(bundle.Path);
+        var files = new FormFileCollection
+        {
+            new FormFile(stream, 0, stream.Length, "files", Path.GetFileName(bundle.Path)),
+        };
+        var attachments = await state.SaveAttachmentsAsync(receipt.Id, files);
+
+        var attachment = Assert.Single(attachments);
+        Assert.Equal(Path.GetFileName(bundle.Path), attachment.FileName);
+        var developerPath = state.GetAttachmentPath(receipt.Id, attachment.FileName);
+        Assert.NotNull(developerPath);
+        using var receivedArchive = ZipFile.OpenRead(developerPath!);
+        Assert.Contains(receivedArchive.Entries, entry =>
+            entry.FullName == "mo2-profiles/Normal/modlist.txt");
     }
 
     [Fact]
