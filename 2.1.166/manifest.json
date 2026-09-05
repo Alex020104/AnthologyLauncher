@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "channel": "next",
     "version": "2.1.166",
-    "publishedAt": "2026-09-03T19:29:19.9505252+00:00",
+    "publishedAt": "2026-09-05T05:42:37.7319202+00:00",
     "packages": [
       {
         "id": "anthology-files-modpack",
@@ -158,36 +158,6 @@
         "deletedDirectories": []
       },
       {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.17",
-        "version": "0.7.0-alpha.17",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 5123889,
-        "sha256": "af1aeb9b47c3c7c9577e48268a310ebdd70e25c2eeae05dc8bb73cb4ad79443b",
-        "mirrors": [
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.166/anthology-launcher-0.7.0-alpha.17-af1aeb9b47c3c7c9.zip",
-            "priority": 10
-          },
-          {
-            "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.166/anthology-launcher-0.7.0-alpha.17-af1aeb9b47c3c7c9.zip",
-            "priority": 20
-          }
-        ],
-        "files": [
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.17.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false
-      },
-      {
         "id": "anthology-integrity",
         "displayName": "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0446\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u0438 Anthology",
         "version": "5522d356a3c365dc7c87ae5a644360d939e5dac8df8393e2621b6396d91e91fc",
@@ -213,12 +183,42 @@
         ],
         "updateMode": "merge",
         "pruneInstallRoot": false
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.18",
+        "version": "0.7.0-alpha.18",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 5294650,
+        "sha256": "2139eaa9175fbdfca4ec8d341ee9679f059ef179ac0aa35da877d2308d3ead76",
+        "mirrors": [
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/2.1.166/anthology-launcher-0.7.0-alpha.18-2139eaa9175fbdfc.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.166/anthology-launcher-0.7.0-alpha.18-2139eaa9175fbdfc.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.18.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false
       }
     ],
     "content": {
       "schemaVersion": 4,
       "version": "2.1.166",
-      "publishedAt": "2026-09-03T19:29:19.7986712+00:00",
+      "publishedAt": "2026-09-05T05:42:37.7303964+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -740,6 +740,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "TkYda7e1T\u002BI0Qe2ORDPvI/omMEdvEC1WThmgTN1bLw29KzZ8Yc9kSKNoBI6bkF7G7725RykTFP6zATJnXZjfyA=="
+    "value": "UBGJKyFKLLi1mWgfMdTe0gpYpSjdgt5uadTfw668LdLrZVC7o3mpyxweXH4gIVf90/rOHVHE0KO23LMLJccYuA=="
   }
 }
