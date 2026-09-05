@@ -34,50 +34,66 @@ internal static class PublicationManifestBaseline
                 .Where(mirror => machine.PublicationRoots.TryGetValue(mirror.Id, out var root)
                                  && !string.IsNullOrWhiteSpace(root))
                 .Select(mirror => machine.PublicationRoots[mirror.Id]);
-        var stableCandidates = new[] { Path.Combine(outputRoot, "manifest.json") }
-            .Concat(workspacePublicationRoots
-                .Concat(machine.PublicationRoots.Values)
-                .Where(root => !string.IsNullOrWhiteSpace(root))
-                .Select(Path.GetFullPath)
-                .Where(root => !PathsEqual(root, outputRoot))
-                .Select(root => Path.Combine(root, "manifest.json")))
+        var publicationRoots = new[] { outputRoot }
+            .Concat(workspacePublicationRoots)
+            .Concat(machine.PublicationRoots.Values)
+            .Where(root => !string.IsNullOrWhiteSpace(root))
+            .Select(Path.GetFullPath)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        var invalidCandidates = new List<Exception>();
-        foreach (var candidatePath in stableCandidates)
+        var configuredStableManifest = ReleaseChannelLayout.GetStableManifestRelativePath(workspace);
+        var stableRelativePaths = new[] { configuredStableManifest }
+            // During the one-time transition the dedicated channel does not exist
+            // yet. The signed schema 4 root manifest is a valid bootstrap baseline.
+            .Concat(configuredStableManifest.Equals(
+                ReleaseChannelLayout.ManifestFileName,
+                StringComparison.OrdinalIgnoreCase)
+                ? []
+                : [ReleaseChannelLayout.ManifestFileName])
+            .ToArray();
+        foreach (var stableRelativePath in stableRelativePaths)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
+            var invalidCandidates = new List<Exception>();
+            foreach (var candidatePath in publicationRoots
+                         .Select(root => PathSafety.ResolveUnderRoot(root, stableRelativePath))
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                var candidate = await LoadExistingAsync(candidatePath, cancellationToken);
-                if (candidate is null)
+                cancellationToken.ThrowIfCancellationRequested();
+                try
                 {
-                    continue;
+                    var candidate = await LoadExistingAsync(candidatePath, cancellationToken);
+                    if (candidate is null)
+                    {
+                        continue;
+                    }
+
+                    await ValidateAsync(
+                        candidate,
+                        workspace,
+                        machine,
+                        requireCurrentVersion: false,
+                        cancellationToken);
+                    return candidate;
                 }
-
-                await ValidateAsync(
-                    candidate,
-                    workspace,
-                    machine,
-                    requireCurrentVersion: false,
-                    cancellationToken);
-                return candidate;
+                catch (Exception exception) when (exception is JsonException
+                                                   or InvalidDataException
+                                                   or CryptographicException)
+                {
+                    invalidCandidates.Add(new InvalidDataException(
+                        $"Invalid signed publication baseline: {candidatePath}",
+                        exception));
+                }
             }
-            catch (Exception exception) when (exception is JsonException
-                                               or InvalidDataException
-                                               or CryptographicException)
+
+            // The root manifest is only a bootstrap fallback while a dedicated
+            // channel does not exist yet. If a dedicated manifest exists but is
+            // corrupt, never silently downgrade the next publication to schema 4.
+            if (invalidCandidates.Count > 0)
             {
-                invalidCandidates.Add(new InvalidDataException(
-                    $"Invalid signed publication baseline: {candidatePath}",
-                    exception));
+                throw new InvalidDataException(
+                    "No valid signed publication baseline was found. Existing manifests were left untouched.",
+                    new AggregateException(invalidCandidates));
             }
-        }
-
-        if (invalidCandidates.Count > 0)
-        {
-            throw new InvalidDataException(
-                "No valid signed publication baseline was found. Existing manifests were left untouched.",
-                new AggregateException(invalidCandidates));
         }
 
         return null;

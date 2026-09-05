@@ -20,6 +20,91 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
         $"anthology-publication-baseline-{Guid.NewGuid():N}");
 
     [Theory]
+    [InlineData(
+        "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/modern/manifest.json",
+        "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}")]
+    [InlineData(
+        "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/modern/manifest.json",
+        "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/{file}")]
+    public void DedicatedStableChannelDerivesArtifactsFromVersionRoot(
+        string manifestUrl,
+        string expectedArtifactUrl)
+    {
+        var workspace = new ReleaserWorkspace
+        {
+            StableChannelDirectory = "modern",
+        };
+        var mirror = new ReleaseMirrorSet
+        {
+            ManifestUrl = manifestUrl,
+            GameUrl = "https://example.test/already-uploaded-game/{path}",
+        };
+
+        Assert.Equal(
+            expectedArtifactUrl,
+            UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror, workspace));
+    }
+
+    [Fact]
+    public void DedicatedStableChannelRejectsLauncherDescriptorThatStillPointsAtBootstrap()
+    {
+        var workspace = new ReleaserWorkspace
+        {
+            StableChannelDirectory = "modern",
+            Mirrors =
+            [
+                new ReleaseMirrorSet
+                {
+                    Provider = "github",
+                    ManifestUrl = "https://example.test/channel/manifest.json",
+                },
+            ],
+        };
+
+        var exception = Assert.Throws<InvalidDataException>(() =>
+            LauncherUpdateConfigurationPublisher.ResolveStableManifestSource(workspace));
+        Assert.Contains("modern/manifest.json", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DedicatedStableChannelNeverFallsBackToBootstrapWhenModernManifestIsCorrupt()
+    {
+        var outputRoot = Path.Combine(_root, "corrupt-modern", "output");
+        var keysRoot = Path.Combine(_root, "corrupt-modern", "keys");
+        Directory.CreateDirectory(Path.Combine(outputRoot, "modern"));
+        Directory.CreateDirectory(keysRoot);
+        var (privateKeyPath, publicKeyPath) = CreateKeys(keysRoot);
+        await WriteSchemaFourLegacyBaselineAsync(
+            Path.Combine(outputRoot, "manifest.json"),
+            privateKeyPath);
+        await File.WriteAllTextAsync(
+            Path.Combine(outputRoot, "modern", "manifest.json"),
+            "{ corrupt-modern-manifest");
+        var workspace = new ReleaserWorkspace
+        {
+            Version = NewVersion,
+            Channel = "next",
+            StableChannelDirectory = "modern",
+            Mirrors =
+            [
+                new ReleaseMirrorSet
+                {
+                    Provider = "http",
+                    ManifestUrl = "https://example.test/channel/modern/manifest.json",
+                },
+            ],
+        };
+        var machine = CreateMachine(outputRoot, privateKeyPath, publicKeyPath);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            ReleasePublicationService.PublishSocialLinksAsync(workspace, machine));
+
+        var rootBootstrap = await ReadManifestAsync(Path.Combine(outputRoot, "manifest.json"));
+        Assert.Equal(4, rootBootstrap.Payload.SchemaVersion);
+        Assert.Equal(BaselineVersion, rootBootstrap.Payload.Version);
+    }
+
+    [Theory]
     [InlineData("content")]
     [InlineData("social")]
     [InlineData("addon")]
@@ -301,6 +386,182 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
     }
 
     [Fact]
+    public async Task DedicatedStableChannelKeepsLauncherOnlySchemaFourBootstrapAndSchemaFiveModernChannel()
+    {
+        const string modernDirectory = "modern";
+        const string followingVersion = "2.1.402";
+        const string modernManifestUrl = "https://example.test/channel/modern/manifest.json";
+        var outputRoot = Path.Combine(_root, "dedicated-channel", "output");
+        var targetRoot = Path.Combine(_root, "dedicated-channel", "target");
+        var keysRoot = Path.Combine(_root, "dedicated-channel", "keys");
+        var gameRoot = Path.Combine(_root, "dedicated-channel", "game");
+        var launcherRoot = Path.Combine(gameRoot, "AnthologyLauncher");
+        var launcherAppRoot = Path.Combine(launcherRoot, "App");
+        Directory.CreateDirectory(outputRoot);
+        Directory.CreateDirectory(targetRoot);
+        Directory.CreateDirectory(keysRoot);
+        Directory.CreateDirectory(Path.Combine(launcherAppRoot, "TrustedKeys"));
+        File.Copy(
+            typeof(GoogleDrivePublisher).Assembly.Location,
+            Path.Combine(launcherAppRoot, "AnthologyLauncher.Next.dll"));
+        await File.WriteAllTextAsync(
+            Path.Combine(launcherRoot, "Start-AnthologyLauncherNext.ps1"),
+            "Write-Output 'launcher'");
+        var (privateKeyPath, publicKeyPath) = CreateKeys(keysRoot);
+        var baselinePackages = await WriteSchemaFiveBaselineAsync(
+            Path.Combine(outputRoot, modernDirectory, "manifest.json"),
+            privateKeyPath,
+            includeLauncher: true);
+        await WriteSchemaFourLegacyBaselineAsync(
+            Path.Combine(outputRoot, "manifest.json"),
+            privateKeyPath);
+        File.Copy(
+            Path.Combine(outputRoot, "manifest.json"),
+            Path.Combine(targetRoot, "manifest.json"));
+
+        var mirror = new ReleaseMirrorSet
+        {
+            Id = "dedicated-http",
+            Provider = "http",
+            Priority = 10,
+            ManifestUrl = modernManifestUrl,
+        };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = NewVersion,
+            Channel = "next",
+            StableChannelDirectory = modernDirectory,
+            Mirrors = [mirror],
+        };
+        var machine = CreateMachine(outputRoot, privateKeyPath, publicKeyPath);
+        machine.GameSourceRoot = gameRoot;
+        machine.PublicationRoots[mirror.Id] = targetRoot;
+
+        var launcherPublication = await ReleasePublicationService.PublishLauncherAsync(
+            workspace,
+            machine);
+
+        var rootBootstrap = await ReadManifestAsync(Path.Combine(outputRoot, "manifest.json"));
+        ManifestValidator.ValidateAndThrow(rootBootstrap);
+        Assert.Equal(4, rootBootstrap.Payload.SchemaVersion);
+        Assert.Null(rootBootstrap.Payload.MinimumLauncherVersion);
+        var bootstrapLauncher = Assert.Single(rootBootstrap.Payload.Packages);
+        Assert.Equal("anthology-launcher", bootstrapLauncher.Id);
+        Assert.Null(bootstrapLauncher.LooseFiles);
+        Assert.Equal(
+            $"https://example.test/channel/{NewVersion}/{Path.GetFileName(launcherPublication.ArtifactPath)}",
+            Assert.Single(bootstrapLauncher.Mirrors).Url);
+        Assert.DoesNotContain(rootBootstrap.Payload.Packages, package => package.Kind == PackageKind.Game);
+        Assert.DoesNotContain(rootBootstrap.Payload.Packages, package => package.Kind == PackageKind.Modpack);
+
+        var modernManifest = await AssertPreservedSchemaFiveBaselineAsync(
+            Path.Combine(outputRoot, modernDirectory, "manifest.json"),
+            publicKeyPath,
+            baselinePackages.Where(package => package.Id != "anthology-launcher").ToArray());
+        Assert.Single(modernManifest.Payload.Packages, package => package.Id == "anthology-launcher");
+        Assert.True(File.Exists(Path.Combine(outputRoot, modernDirectory, ReleaseHistoryCatalogBuilder.FileName)));
+        Assert.True(File.Exists(Path.Combine(targetRoot, modernDirectory, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(targetRoot, modernDirectory, ReleaseHistoryCatalogBuilder.FileName)));
+        Assert.True(File.Exists(Path.Combine(targetRoot, NewVersion, "manifest.json")));
+        Assert.False(Directory.Exists(Path.Combine(targetRoot, modernDirectory, NewVersion)));
+        Assert.Empty(Directory.EnumerateFiles(
+            Path.Combine(outputRoot, NewVersion),
+            ".schema4-launcher-bootstrap-*.json"));
+
+        using (var archive = ZipFile.OpenRead(launcherPublication.ArtifactPath))
+        {
+            var channelEntry = archive.GetEntry("AnthologyLauncher/Update/channel.json");
+            Assert.NotNull(channelEntry);
+            await using var channelStream = channelEntry.Open();
+            using var channelDocument = await JsonDocument.ParseAsync(channelStream);
+            Assert.Equal(
+                modernManifestUrl,
+                channelDocument.RootElement.GetProperty("manifestSource").GetString());
+        }
+
+        var bootstrapBytes = await File.ReadAllBytesAsync(Path.Combine(outputRoot, "manifest.json"));
+        workspace.Version = followingVersion;
+        workspace.SocialLinks =
+        [
+            new SocialLinkDraft
+            {
+                Id = "community",
+                Title = "Community",
+                Url = "https://example.test/community",
+                IsVisible = true,
+            },
+        ];
+
+        await ReleasePublicationService.PublishSocialLinksAsync(workspace, machine);
+
+        Assert.Equal(
+            bootstrapBytes,
+            await File.ReadAllBytesAsync(Path.Combine(outputRoot, "manifest.json")));
+        Assert.Equal(
+            bootstrapBytes,
+            await File.ReadAllBytesAsync(Path.Combine(targetRoot, "manifest.json")));
+        var followingModernManifest = await ReadManifestAsync(
+            Path.Combine(outputRoot, modernDirectory, "manifest.json"));
+        Assert.Equal(5, followingModernManifest.Payload.SchemaVersion);
+        Assert.Equal(followingVersion, followingModernManifest.Payload.Version);
+        Assert.True(File.Exists(Path.Combine(targetRoot, followingVersion, "manifest.json")));
+        Assert.False(Directory.Exists(Path.Combine(targetRoot, modernDirectory, followingVersion)));
+    }
+
+    [Fact]
+    public async Task DedicatedStableChannelRefusesToUnpublishPinnedBootstrapVersion()
+    {
+        const string modernDirectory = "modern";
+        var outputRoot = Path.Combine(_root, "pinned-bootstrap", "output");
+        var targetRoot = Path.Combine(_root, "pinned-bootstrap", "target");
+        var keysRoot = Path.Combine(_root, "pinned-bootstrap", "keys");
+        var versionRoot = Path.Combine(outputRoot, NewVersion);
+        var targetVersionRoot = Path.Combine(targetRoot, NewVersion);
+        Directory.CreateDirectory(versionRoot);
+        Directory.CreateDirectory(targetVersionRoot);
+        Directory.CreateDirectory(keysRoot);
+        var (privateKeyPath, publicKeyPath) = CreateKeys(keysRoot);
+        await WriteSchemaFourLauncherBootstrapAsync(
+            Path.Combine(outputRoot, "manifest.json"),
+            privateKeyPath,
+            NewVersion);
+        File.Copy(
+            Path.Combine(outputRoot, "manifest.json"),
+            Path.Combine(targetRoot, "manifest.json"));
+        await WriteSchemaFiveBaselineAsync(
+            Path.Combine(outputRoot, modernDirectory, "manifest.json"),
+            privateKeyPath,
+            includeLauncher: true);
+        await File.WriteAllTextAsync(Path.Combine(versionRoot, "launcher.zip"), "local launcher");
+        await File.WriteAllTextAsync(Path.Combine(targetVersionRoot, "launcher.zip"), "published launcher");
+        var mirror = new ReleaseMirrorSet
+        {
+            Id = "pinned-target",
+            Provider = "http",
+            ManifestUrl = "https://example.test/channel/modern/manifest.json",
+        };
+        var workspace = new ReleaserWorkspace
+        {
+            Version = NewVersion,
+            Channel = "next",
+            StableChannelDirectory = modernDirectory,
+            Mirrors = [mirror],
+        };
+        var machine = CreateMachine(outputRoot, privateKeyPath, publicKeyPath);
+        machine.PublicationRoots[mirror.Id] = targetRoot;
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            ReleasePublicationService.UnpublishVersionAsync(workspace, machine));
+
+        Assert.Contains("schema 4 bootstrap", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(File.Exists(Path.Combine(outputRoot, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(targetRoot, "manifest.json")));
+        Assert.True(File.Exists(Path.Combine(outputRoot, modernDirectory, "manifest.json")));
+        Assert.True(Directory.Exists(versionRoot));
+        Assert.True(Directory.Exists(targetVersionRoot));
+    }
+
+    [Fact]
     public async Task PublicationCanRecoverBaselineFromConfiguredLocalMirror()
     {
         var outputRoot = Path.Combine(_root, "mirror-fallback", "output");
@@ -490,6 +751,81 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed);
         return packages;
+    }
+
+    private static async Task WriteSchemaFourLegacyBaselineAsync(
+        string manifestPath,
+        string privateKeyPath)
+    {
+        var legacyGame = new PackageManifest(
+            "anthology-game",
+            "Legacy archive",
+            BaselineVersion,
+            PackageKind.Game,
+            "game",
+            "zip",
+            24_500_000_000,
+            new string('e', 64),
+            [new MirrorManifest("https", "https://example.test/legacy-game.zip", 10)],
+            ["bin/xrEngine.exe"],
+            PackageUpdateMode.ManagedExact,
+            true);
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(privateKeyPath));
+        var signed = ManifestSecurity.Sign(
+            new UpdateManifest(
+                4,
+                "next",
+                BaselineVersion,
+                DateTimeOffset.UtcNow,
+                null,
+                [legacyGame],
+                new ContentCatalog(4, BaselineVersion, DateTimeOffset.UtcNow, [])),
+            privateKey,
+            KeyId);
+        Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed);
+    }
+
+    private static async Task WriteSchemaFourLauncherBootstrapAsync(
+        string manifestPath,
+        string privateKeyPath,
+        string version)
+    {
+        var launcher = new PackageManifest(
+            "anthology-launcher",
+            "Compatibility launcher",
+            MinimumLauncherVersion,
+            PackageKind.Launcher,
+            "game",
+            "zip",
+            15,
+            new string('d', 64),
+            [new MirrorManifest("https", $"https://example.test/{version}/launcher.zip", 10)],
+            ["AnthologyLauncher/Update/channel.json"],
+            PackageUpdateMode.Merge);
+        using var privateKey = ECDsa.Create();
+        privateKey.ImportFromPem(await File.ReadAllTextAsync(privateKeyPath));
+        var signed = ManifestSecurity.Sign(
+            new UpdateManifest(
+                4,
+                "next",
+                version,
+                DateTimeOffset.UtcNow,
+                null,
+                [launcher],
+                new ContentCatalog(4, version, DateTimeOffset.UtcNow, [])),
+            privateKey,
+            KeyId);
+        Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
+        await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed);
+    }
+
+    private static async Task<SignedUpdateManifest> ReadManifestAsync(string manifestPath)
+    {
+        await using var stream = File.OpenRead(manifestPath);
+        return await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options)
+               ?? throw new InvalidDataException($"Manifest is empty: {manifestPath}");
     }
 
     private static PackageManifest CreateLoosePackage(

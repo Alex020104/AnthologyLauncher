@@ -6,8 +6,8 @@
 IDI_ANTHOLOGY_ICON ICON "../../assets/A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,7,0,18
- PRODUCTVERSION 0,7,0,18
+ FILEVERSION 0,7,0,19
+ PRODUCTVERSION 0,7,0,19
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -24,11 +24,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "A.N.T.H.O.L.O.G.Y Team"
             VALUE "FileDescription", "A.N.T.H.O.L.O.G.Y Launcher"
-            VALUE "FileVersion", "0.7.0-alpha.18"
+            VALUE "FileVersion", "0.7.0-alpha.19"
             VALUE "InternalName", "AnomalyLauncher"
             VALUE "OriginalFilename", "AnomalyLauncher.exe"
             VALUE "ProductName", "A.N.T.H.O.L.O.G.Y"
-            VALUE "ProductVersion", "0.7.0-alpha.18"
+            VALUE "ProductVersion", "0.7.0-alpha.19"
         END
     END
     BLOCK "VarFileInfo"

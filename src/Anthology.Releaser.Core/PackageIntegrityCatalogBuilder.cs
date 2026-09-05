@@ -156,7 +156,7 @@ public static class PackageIntegrityCatalogBuilder
             .Select(mirror => new
             {
                 Mirror = mirror,
-                Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror),
+                Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror, workspace),
             })
             .Where(item => !string.IsNullOrWhiteSpace(item.Url))
             .Where(item => UnifiedReleaseBuilder.SupportsArtifact(item.Mirror.Provider, artifactSize))

@@ -17,11 +17,11 @@ try {
     $integratedInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $integratedOutput "AnomalyLauncher.exe"))
     $releaserInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $releaserOutput "AnthologyReleaser.Next.exe"))
 
-    if ($integratedInfo.FileVersion -ne "0.7.0-alpha.18" -or $integratedInfo.ProductVersion -ne "0.7.0-alpha.18") {
+    if ($integratedInfo.FileVersion -ne "0.7.0-alpha.19" -or $integratedInfo.ProductVersion -ne "0.7.0-alpha.19") {
         throw "Unexpected integrated launcher string version: file='$($integratedInfo.FileVersion)', product='$($integratedInfo.ProductVersion)'"
     }
     if ($integratedInfo.FileMajorPart -ne 0 -or $integratedInfo.FileMinorPart -ne 7 -or
-        $integratedInfo.FileBuildPart -ne 0 -or $integratedInfo.FilePrivatePart -ne 18) {
+        $integratedInfo.FileBuildPart -ne 0 -or $integratedInfo.FilePrivatePart -ne 19) {
         throw "Unexpected integrated launcher numeric version: $($integratedInfo.FileMajorPart).$($integratedInfo.FileMinorPart).$($integratedInfo.FileBuildPart).$($integratedInfo.FilePrivatePart)"
     }
 

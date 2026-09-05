@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 10;
+    public int SchemaVersion { get; set; } = 11;
 
     public int Revision { get; set; }
 
@@ -15,6 +15,14 @@ public sealed class ReleaserWorkspace
     public string Version { get; set; } = "2.1.131";
 
     public string Channel { get; set; } = "next";
+
+    /// <summary>
+    /// Optional version-independent subdirectory for the current launcher channel.
+    /// When set, manifest.json and history.json are published below this directory,
+    /// while immutable version artifacts remain directly below {version}. The root
+    /// manifest.json is then reserved for the schema 4 launcher bootstrap.
+    /// </summary>
+    public string StableChannelDirectory { get; set; } = string.Empty;
 
     public List<ReleaseMirrorSet> Mirrors { get; set; } =
     [

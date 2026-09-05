@@ -12,8 +12,9 @@ public static class LauncherUpdateConfigurationPublisher
 {
     private const string LauncherDirectoryName = "AnthologyLauncher";
 
-    public static string? ResolveStableManifestSource(ReleaserWorkspace workspace) =>
-        workspace.Mirrors
+    public static string? ResolveStableManifestSource(ReleaserWorkspace workspace)
+    {
+        var source = workspace.Mirrors
             // The manifest is tiny and GitHub raw is more responsive than a
             // public Yandex.Disk download. Large artifacts still use their own
             // ordered mirror lists from the signed manifest.
@@ -21,6 +22,9 @@ public static class LauncherUpdateConfigurationPublisher
             .ThenBy(mirror => mirror.Priority)
             .Select(mirror => mirror.ManifestUrl?.Trim())
             .FirstOrDefault(IsHttpAddress);
+        ReleaseChannelLayout.ValidateLauncherManifestSource(workspace, source);
+        return source;
+    }
 
     public static string? ResolveStableHistorySource(ReleaserWorkspace workspace)
     {

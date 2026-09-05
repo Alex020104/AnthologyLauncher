@@ -122,7 +122,7 @@ public static class UnifiedReleaseBuilder
                     machine.GameSourceRoot,
                     outputRoot,
                     workspace,
-                    ResolveArtifactUrlTemplate,
+                    mirror => ResolveArtifactUrlTemplate(mirror, workspace),
                     GameExcludedRoots,
                     progress,
                     cancellationToken);
@@ -159,7 +159,7 @@ public static class UnifiedReleaseBuilder
                     mo2SourceRoot,
                     outputRoot,
                     workspace,
-                    ResolveArtifactUrlTemplate,
+                    mirror => ResolveArtifactUrlTemplate(mirror, workspace),
                     Mo2ExcludedRoots,
                     progress,
                     cancellationToken);
@@ -913,6 +913,19 @@ public static class UnifiedReleaseBuilder
     /// otherwise the channel path is derived from the stable manifest sibling.
     /// </summary>
     public static string ResolveArtifactUrlTemplate(ReleaseMirrorSet mirror)
+        => ResolveArtifactUrlTemplate(mirror, stableChannelDirectory: null);
+
+    public static string ResolveArtifactUrlTemplate(
+        ReleaseMirrorSet mirror,
+        ReleaserWorkspace workspace)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        return ResolveArtifactUrlTemplate(mirror, workspace.StableChannelDirectory);
+    }
+
+    private static string ResolveArtifactUrlTemplate(
+        ReleaseMirrorSet mirror,
+        string? stableChannelDirectory)
     {
         ArgumentNullException.ThrowIfNull(mirror);
         var configured = mirror.ArtifactUrl?.Trim() ?? string.Empty;
@@ -944,8 +957,18 @@ public static class UnifiedReleaseBuilder
             return string.Empty;
         }
 
-        return RequireArtifactTemplate(
-            manifest[..marker] + "{version}/{file}" + manifest[afterMarker..]);
+        var prefix = manifest[..marker];
+        var stableDirectory = ReleaseChannelLayout.NormalizeStableChannelDirectory(stableChannelDirectory);
+        if (stableDirectory.Length > 0)
+        {
+            var stableSuffix = stableDirectory + "/";
+            if (prefix.EndsWith(stableSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                prefix = prefix[..^stableSuffix.Length];
+            }
+        }
+
+        return RequireArtifactTemplate(prefix + "{version}/{file}" + manifest[afterMarker..]);
     }
 
     private static string RequireArtifactTemplate(string template)

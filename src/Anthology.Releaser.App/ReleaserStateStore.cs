@@ -160,7 +160,13 @@ public sealed class ReleaserStateStore : IDisposable
             stream.Url = stream.Url?.Trim() ?? string.Empty;
             stream.Translations = new Dictionary<string, LiveStreamTranslationDraft>(stream.Translations ?? [], StringComparer.OrdinalIgnoreCase);
         }
-        var normalizedSchemaVersion = Math.Max(workspace.SchemaVersion, 10);
+        var normalizedStableChannelDirectory = workspace.StableChannelDirectory?.Trim().TrimEnd('/', '\\') ?? string.Empty;
+        if (!string.Equals(workspace.StableChannelDirectory, normalizedStableChannelDirectory, StringComparison.Ordinal))
+        {
+            workspace.StableChannelDirectory = normalizedStableChannelDirectory;
+            changed = true;
+        }
+        var normalizedSchemaVersion = Math.Max(workspace.SchemaVersion, 11);
         if (workspace.SchemaVersion != normalizedSchemaVersion)
         {
             workspace.SchemaVersion = normalizedSchemaVersion;

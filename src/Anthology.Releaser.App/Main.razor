@@ -87,6 +87,7 @@
             else if (_section == "sources")
             {
                 <section class="hero panel compact"><div><span class="eyebrow">ТЕХНИЧЕСКИЕ ПУТИ И ШАБЛОНЫ</span><h2>Источники настраивает<br /><em>только команда.</em></h2><p>Все URL, папки публикации и шаблоны находятся здесь, в Releaser Next. Игрок получает готовую конфигурацию и в лаунчере ничего не копирует. Поддерживаются шаблоны <code>{version}</code>, <code>{id}</code>, <code>{file}</code> и <code>{path}</code> для файлов уже загруженного проекта.</p></div></section>
+                <section class="panel destination"><div><span class="eyebrow">БЕЗОПАСНЫЙ ПЕРЕХОД СХЕМЫ 4 → 5</span><h3>Подпапка современного канала</h3><p>Укажите, например, <code>modern</code>. Тогда schema 5 manifest/history публикуются в <code>modern/</code>, артефакты остаются в <code>{version}/</code>, а корневой manifest сохраняется как маленький launcher-only bootstrap для старых клиентов. URL manifest у зеркал должен оканчиваться на <code>/modern/manifest.json</code>. Пустое поле сохраняет старую корневую схему.</p></div><label>Подпапка<input @bind="_workspace.StableChannelDirectory" placeholder="modern" /></label></section>
                 <section class="mirror-list">
                     @foreach (var mirror in _workspace.Mirrors.OrderBy(item => item.Priority))
                     {

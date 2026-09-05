@@ -217,6 +217,49 @@ public sealed class GoogleDrivePublisherTests : IDisposable
     }
 
     [Fact]
+    public void DedicatedStableChannelKeepsVersionArtifactsAtRootAndMovesOnlyStableManifest()
+    {
+        var machine = CreateMachine();
+        machine.GoogleDriveManifestPath = "AnthologyUpdateChannel/manifest.json";
+        var workspace = new ReleaserWorkspace
+        {
+            StableChannelDirectory = "modern",
+        };
+
+        Assert.Equal(
+            "AnthologyUpdateChannel/modern/manifest.json",
+            GoogleDrivePublisher.ResolveStableManifestRelativePath(machine, workspace));
+        Assert.Equal(
+            "AnthologyUpdateChannel/manifest.json",
+            GoogleDrivePublisher.ResolveStableManifestRelativePath(machine));
+        Assert.Equal("modern/manifest.json", ReleaseChannelLayout.GetStableManifestRelativePath(workspace));
+        Assert.Equal("modern/history.json", ReleaseChannelLayout.GetStableHistoryRelativePath(workspace));
+        Assert.Throws<ArgumentException>(() =>
+            ReleaseChannelLayout.GetStableManifestRelativePath(new ReleaserWorkspace
+            {
+                StableChannelDirectory = "../escape",
+            }));
+    }
+
+    [Theory]
+    [InlineData("AnthologyUpdateChannel/modern/manifest.json")]
+    [InlineData("another-channel/manifest.json")]
+    public void DedicatedStableChannelRejectsNonLegacyGoogleManifestLocation(string configuredPath)
+    {
+        var machine = CreateMachine();
+        machine.GoogleDriveManifestPath = configuredPath;
+        var workspace = new ReleaserWorkspace
+        {
+            StableChannelDirectory = "modern",
+        };
+
+        var exception = Assert.Throws<InvalidDataException>(() =>
+            GoogleDrivePublisher.ResolveStableManifestRelativePath(machine, workspace));
+
+        Assert.Contains("legacy root manifest", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task RejectsAccountHomeAsProjectLinkAndHonorsCancellation()
     {
         var machine = CreateMachine();

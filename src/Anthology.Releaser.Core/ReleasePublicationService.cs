@@ -201,7 +201,7 @@ public static partial class ReleasePublicationService
             .Select(mirror => new
             {
                 Mirror = mirror,
-                Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror),
+                Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror, workspace),
             })
             .Where(item => !string.IsNullOrWhiteSpace(item.Url))
             .Select(mirror => new MirrorManifest(
@@ -226,7 +226,7 @@ public static partial class ReleasePublicationService
                 "anthology-launcher",
                 StringComparison.OrdinalIgnoreCase))
             .ToList();
-        packages.Add(new PackageManifest(
+        var launcherPackage = new PackageManifest(
             "anthology-launcher",
             $"A.N.T.H.O.L.O.G.Y Launcher {launcherVersion}",
             launcherVersion,
@@ -237,7 +237,8 @@ public static partial class ReleasePublicationService
             deliveryHash,
             mirrors,
             deliveredFiles.Select(file => file.RelativePath).Order(StringComparer.Ordinal).ToArray(),
-            PackageUpdateMode.Merge));
+            PackageUpdateMode.Merge);
+        packages.Add(launcherPackage);
 
         // A launcher-only publication must never erase or rewrite the already
         // published news/library/information catalog. Reuse the signed catalog
@@ -270,11 +271,15 @@ public static partial class ReleasePublicationService
         // unrelated package; content/quick/full publication owns its rebuild.
 
         var manifestShape = PublicationManifestBaseline.ResolveShape(baselineManifest, packages);
+        var publishedAt = DateTimeOffset.UtcNow;
+        var channel = string.IsNullOrWhiteSpace(workspace.Channel)
+            ? "next"
+            : workspace.Channel.Trim().ToLowerInvariant();
         var updateManifest = new UpdateManifest(
             manifestShape.SchemaVersion,
-            string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
+            channel,
             workspace.Version.Trim(),
-            DateTimeOffset.UtcNow,
+            publishedAt,
             manifestShape.MinimumLauncherVersion,
             packages,
             catalog);
@@ -283,9 +288,56 @@ public static partial class ReleasePublicationService
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(Path.Combine(versionRoot, "content.json"), catalog, cancellationToken);
 
+        string? compatibilityBootstrapManifestPath = null;
+        if (ReleaseChannelLayout.UsesDedicatedStableChannel(workspace))
+        {
+            // Old launchers only understand schema 4. Keep the root channel tiny:
+            // it delivers the modern launcher (whose embedded channel.json points
+            // at the dedicated schema 5 channel) and never advertises huge legacy
+            // game/MO2 archives that an alpha-17 client could otherwise download.
+            var compatibilityBootstrap = ManifestSecurity.Sign(
+                new UpdateManifest(
+                    4,
+                    channel,
+                    workspace.Version.Trim(),
+                    publishedAt,
+                    null,
+                    [launcherPackage],
+                    catalog),
+                privateKey,
+                machine.KeyId.Trim());
+            ManifestValidator.ValidateAndThrow(compatibilityBootstrap);
+            compatibilityBootstrapManifestPath = Path.Combine(
+                versionRoot,
+                $".schema4-launcher-bootstrap-{Guid.NewGuid():N}.json");
+            await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(
+                compatibilityBootstrapManifestPath,
+                compatibilityBootstrap,
+                cancellationToken);
+        }
+
         var relativeFiles = new List<string> { deliveryName, "manifest.json", "content.json" };
         relativeFiles.AddRange(media.RelativeFiles);
-        var publication = await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
+        PublicationResult publication;
+        try
+        {
+            publication = await PublishFilesAsync(
+                versionRoot,
+                relativeFiles,
+                workspace,
+                machine,
+                progress: progress,
+                googleDrivePublisher: null,
+                cancellationToken: cancellationToken,
+                compatibilityBootstrapManifestPath: compatibilityBootstrapManifestPath);
+        }
+        finally
+        {
+            if (compatibilityBootstrapManifestPath is not null)
+            {
+                DeleteFileBestEffort(compatibilityBootstrapManifestPath);
+            }
+        }
         progress?.Report($"Launcher Next {launcherVersion} опубликован. Он применится до следующего запуска приложения.");
         return new LauncherPublicationResult(launcherVersion, deliveryPath, manifestPath, launcherFiles.Length, publication);
     }
@@ -568,7 +620,7 @@ public static partial class ReleasePublicationService
                 .Select(mirror => new
                 {
                     Mirror = mirror,
-                    Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror),
+                    Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror, workspace),
                 })
                 .Where(item => !string.IsNullOrWhiteSpace(item.Url))
                 .Where(item => UnifiedReleaseBuilder.SupportsArtifact(item.Mirror.Provider, artifactSize))
@@ -1022,7 +1074,7 @@ public static partial class ReleasePublicationService
                 .Select(mirror => new
                 {
                     Mirror = mirror,
-                    Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror),
+                    Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror, workspace),
                 })
                 .Where(item => !string.IsNullOrWhiteSpace(item.Url))
                 .Where(item => UnifiedReleaseBuilder.SupportsArtifact(item.Mirror.Provider, artifactSize))
@@ -1176,14 +1228,30 @@ public static partial class ReleasePublicationService
     {
         var version = workspace.Version.Trim();
         var outputRoot = Path.GetFullPath(machine.OutputRoot);
+        var stableManifestRelativePath = ReleaseChannelLayout.GetStableManifestRelativePath(workspace);
         var googleDriveConfigured = GoogleDrivePublisher.IsConfigured(machine);
         var publisher = googleDriveConfigured
             ? googleDrivePublisher ?? new GoogleDrivePublisher()
             : null;
+        var googleStableManifestRelativePath = publisher is null
+            ? null
+            : GoogleDrivePublisher.ResolveStableManifestRelativePath(machine, workspace);
+        await EnsureVersionIsNotPinnedByCompatibilityBootstrapAsync(
+            workspace,
+            machine,
+            version,
+            outputRoot,
+            targets,
+            publisher,
+            cancellationToken);
         var removeGoogleStableManifest = false;
         if (publisher is not null)
         {
-            var remoteManifest = await publisher.ReadManifestAsync(machine, progress, cancellationToken);
+            var remoteManifest = await publisher.ReadManifestAsync(
+                machine,
+                workspace,
+                progress,
+                cancellationToken);
             if (remoteManifest is not null)
             {
                 await PublicationManifestBaseline.ValidateAsync(
@@ -1201,7 +1269,7 @@ public static partial class ReleasePublicationService
         var targetStableManifestsToRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var target in targets)
         {
-            var stableManifest = Path.Combine(target.Root, "manifest.json");
+            var stableManifest = PathSafety.ResolveUnderRoot(target.Root, stableManifestRelativePath);
             if (await StableManifestReferencesVersionAsync(
                     stableManifest,
                     version,
@@ -1213,7 +1281,7 @@ public static partial class ReleasePublicationService
             }
         }
 
-        var outputStableManifest = Path.Combine(outputRoot, "manifest.json");
+        var outputStableManifest = PathSafety.ResolveUnderRoot(outputRoot, stableManifestRelativePath);
         var removeOutputStableManifest = await StableManifestReferencesVersionAsync(
             outputStableManifest,
             version,
@@ -1232,14 +1300,90 @@ public static partial class ReleasePublicationService
         return new StableManifestRemovalPlan(
             version,
             outputRoot,
+            stableManifestRelativePath,
             targets,
             targetStableManifestsToRemove,
             outputStableManifest,
             removeOutputStableManifest,
             removeLauncherStableManifest,
             publisher,
+            googleStableManifestRelativePath,
             removeGoogleStableManifest,
             targets.Length + (googleDriveConfigured ? 1 : 0));
+    }
+
+    private static async Task EnsureVersionIsNotPinnedByCompatibilityBootstrapAsync(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine,
+        string version,
+        string outputRoot,
+        IReadOnlyCollection<PublicationTarget> targets,
+        GoogleDrivePublisher? googleDrivePublisher,
+        CancellationToken cancellationToken)
+    {
+        if (!ReleaseChannelLayout.UsesDedicatedStableChannel(workspace))
+        {
+            return;
+        }
+
+        var rootManifestPaths = new[] { outputRoot }
+            .Concat(targets.Select(target => target.Root))
+            .Select(root => Path.Combine(root, ReleaseChannelLayout.ManifestFileName))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        foreach (var rootManifestPath in rootManifestPaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var bootstrap = await LoadExistingManifestAsync(rootManifestPath, cancellationToken);
+            if (bootstrap is null)
+            {
+                continue;
+            }
+
+            await PublicationManifestBaseline.ValidateAsync(
+                bootstrap,
+                workspace,
+                machine,
+                requireCurrentVersion: false,
+                cancellationToken);
+            ThrowIfCompatibilityBootstrapPinsVersion(bootstrap, version, rootManifestPath);
+        }
+
+        if (googleDrivePublisher is not null)
+        {
+            var remoteBootstrap = await googleDrivePublisher.ReadManifestAsync(
+                machine,
+                progress: null,
+                cancellationToken);
+            if (remoteBootstrap is not null)
+            {
+                await PublicationManifestBaseline.ValidateAsync(
+                    remoteBootstrap,
+                    workspace,
+                    machine,
+                    requireCurrentVersion: false,
+                    cancellationToken);
+                ThrowIfCompatibilityBootstrapPinsVersion(
+                    remoteBootstrap,
+                    version,
+                    $"google-drive:/{GoogleDrivePublisher.ResolveStableManifestRelativePath(machine)}");
+            }
+        }
+    }
+
+    private static void ThrowIfCompatibilityBootstrapPinsVersion(
+        SignedUpdateManifest manifest,
+        string version,
+        string source)
+    {
+        if (manifest.Payload.SchemaVersion != 4
+            || !manifest.Payload.Version.Equals(version, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Нельзя снять версию {version}: корневой schema 4 bootstrap ({source}) всё ещё выдаёт её старым лаунчерам. " +
+            "Сначала опубликуйте и закрепите другой совместимый launcher bootstrap либо оставьте эту версию доступной.");
     }
 
     private static async Task RemoveStableManifestPointersAsync(
@@ -1253,7 +1397,9 @@ public static partial class ReleasePublicationService
         if (plan.GoogleDrivePublisher is not null && plan.RemoveGoogleStableManifest)
         {
             progress?.Report("Google Drive: снимаем стабильный manifest.json перед удалением версии…");
-            var stableManifestPath = GoogleDrivePublisher.ResolveStableManifestRelativePath(machine);
+            var stableManifestPath = plan.GoogleStableManifestRelativePath
+                                     ?? throw new InvalidOperationException(
+                                         "Google Drive stable manifest path is missing from the removal plan.");
             await plan.GoogleDrivePublisher.DeleteFileAsync(
                 machine,
                 stableManifestPath,
@@ -1264,7 +1410,9 @@ public static partial class ReleasePublicationService
 
         foreach (var target in plan.Targets)
         {
-            var stableManifest = Path.Combine(target.Root, "manifest.json");
+            var stableManifest = PathSafety.ResolveUnderRoot(
+                target.Root,
+                plan.StableManifestRelativePath);
             if (!plan.TargetStableManifestsToRemove.Contains(stableManifest))
             {
                 continue;
@@ -1272,7 +1420,9 @@ public static partial class ReleasePublicationService
 
             await MoveFileToTrashAsync(
                 stableManifest,
-                Path.Combine(trash, "published", target.Id, "manifest.json"),
+                PathSafety.ResolveUnderRoot(
+                    Path.Combine(trash, "published", target.Id),
+                    plan.StableManifestRelativePath),
                 cancellationToken);
             moved.Add(stableManifest);
         }
@@ -1281,7 +1431,9 @@ public static partial class ReleasePublicationService
         {
             await MoveFileToTrashAsync(
                 plan.OutputStableManifest,
-                Path.Combine(trash, "local", "manifest.json"),
+                PathSafety.ResolveUnderRoot(
+                    Path.Combine(trash, "local"),
+                    plan.StableManifestRelativePath),
                 cancellationToken);
             moved.Add(plan.OutputStableManifest);
         }
@@ -1465,9 +1617,21 @@ public static partial class ReleasePublicationService
         ReleaserMachineSettings machine,
         IProgress<string>? progress,
         GoogleDrivePublisher? googleDrivePublisher,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? compatibilityBootstrapManifestPath = null)
     {
         var normalizedVersionRoot = Path.GetFullPath(versionRoot);
+        var stableManifestRelativePath = ReleaseChannelLayout.GetStableManifestRelativePath(workspace);
+        var stableHistoryRelativePath = ReleaseChannelLayout.GetStableHistoryRelativePath(workspace);
+        var normalizedCompatibilityBootstrap = string.IsNullOrWhiteSpace(compatibilityBootstrapManifestPath)
+            ? null
+            : Path.GetFullPath(compatibilityBootstrapManifestPath);
+        if (normalizedCompatibilityBootstrap is not null
+            && !ReleaseChannelLayout.UsesDedicatedStableChannel(workspace))
+        {
+            throw new InvalidOperationException(
+                "The schema 4 compatibility bootstrap requires a dedicated stable channel directory.");
+        }
         var normalizedRelativeFiles = relativeFiles
             .Select(relative => PathSafety.NormalizeRelativePath(relative.Replace('\\', '/')))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -1496,6 +1660,7 @@ public static partial class ReleasePublicationService
             machine,
             googleDrivePublisher,
             progress,
+            normalizedCompatibilityBootstrap,
             cancellationToken);
         var destinations = new List<string>();
         long bytes = 0;
@@ -1542,23 +1707,39 @@ public static partial class ReleasePublicationService
                 {
                     await CopyFileAtomicallyAsync(
                         historyPath,
-                        Path.Combine(target.Root, ReleaseHistoryCatalogBuilder.FileName),
+                        PathSafety.ResolveUnderRoot(target.Root, stableHistoryRelativePath),
                         cancellationToken);
                     files++;
                     bytes += new FileInfo(historyPath).Length;
                 }
                 await CopyFileAtomicallyAsync(
                     manifestPath,
-                    Path.Combine(target.Root, "manifest.json"),
+                    PathSafety.ResolveUnderRoot(target.Root, stableManifestRelativePath),
                     cancellationToken);
                 files++;
                 bytes += new FileInfo(manifestPath).Length;
             }
 
+            if (normalizedCompatibilityBootstrap is not null
+                && File.Exists(normalizedCompatibilityBootstrap))
+            {
+                await CopyFileAtomicallyAsync(
+                    normalizedCompatibilityBootstrap,
+                    Path.Combine(target.Root, ReleaseChannelLayout.ManifestFileName),
+                    cancellationToken);
+                files++;
+                bytes += new FileInfo(normalizedCompatibilityBootstrap).Length;
+            }
+
             destinations.Add(Path.Combine(target.Root, workspace.Version.Trim()));
         }
 
-        await SynchronizeGitTargetsAsync(workspace, machine, progress, cancellationToken);
+        await SynchronizeGitTargetsAsync(
+            workspace,
+            machine,
+            progress,
+            cancellationToken,
+            includeCompatibilityBootstrap: normalizedCompatibilityBootstrap is not null);
 
         // OutputRoot is the source for sync-folder mirrors such as Yandex.Disk.
         // Publish history first and manifest last so a watcher can never observe
@@ -1570,12 +1751,21 @@ public static partial class ReleasePublicationService
             {
                 await CopyFileAtomicallyAsync(
                     historyPath,
-                    Path.Combine(outputRoot, ReleaseHistoryCatalogBuilder.FileName),
+                    PathSafety.ResolveUnderRoot(outputRoot, stableHistoryRelativePath),
                     cancellationToken);
             }
             await CopyFileAtomicallyAsync(
                 manifestPath,
-                Path.Combine(outputRoot, "manifest.json"),
+                PathSafety.ResolveUnderRoot(outputRoot, stableManifestRelativePath),
+                cancellationToken);
+        }
+
+        if (normalizedCompatibilityBootstrap is not null
+            && File.Exists(normalizedCompatibilityBootstrap))
+        {
+            await CopyFileAtomicallyAsync(
+                normalizedCompatibilityBootstrap,
+                Path.Combine(Path.GetFullPath(machine.OutputRoot), ReleaseChannelLayout.ManifestFileName),
                 cancellationToken);
         }
 
@@ -1624,11 +1814,20 @@ public static partial class ReleasePublicationService
         privateKey.ImportFromPem(await File.ReadAllTextAsync(
             Path.GetFullPath(machine.PrivateKeyPath),
             cancellationToken));
-        var trustedRoots = GetPublicationTargets(workspace, machine)
+        var publicationRoots = GetPublicationTargets(workspace, machine)
             .Select(target => target.Root)
             .Prepend(machine.OutputRoot)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var stableDirectory = ReleaseChannelLayout.NormalizeStableChannelDirectory(
+            workspace.StableChannelDirectory);
+        var trustedRoots = stableDirectory.Length == 0
+            ? publicationRoots
+            : publicationRoots
+                .Concat(publicationRoots.Select(root =>
+                    PathSafety.ResolveUnderRoot(root, stableDirectory)))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
         var signedHistory = await ReleaseHistoryCatalogBuilder.BuildAsync(
             trustedRoots,
             signedManifest,
@@ -1650,6 +1849,7 @@ public static partial class ReleasePublicationService
         ReleaserMachineSettings machine,
         GoogleDrivePublisher? googleDrivePublisher,
         IProgress<string>? progress,
+        string? compatibilityBootstrapManifestPath,
         CancellationToken cancellationToken)
     {
         if (!GoogleDrivePublisher.IsConfigured(machine))
@@ -1658,6 +1858,12 @@ public static partial class ReleasePublicationService
         }
 
         var publisher = googleDrivePublisher ?? new GoogleDrivePublisher();
+        // Validate the split before creating folders or uploading payloads. The
+        // machine path is permanently reserved for the legacy schema 4 bootstrap;
+        // the workspace-aware path must resolve to a distinct modern manifest.
+        var stableManifestRelativePath = GoogleDrivePublisher.ResolveStableManifestRelativePath(
+            machine,
+            workspace);
         _ = await publisher.EnsureProjectAsync(machine, progress, cancellationToken);
         var version = workspace.Version.Trim();
         var manifestRelativePath = relativeFiles.FirstOrDefault(path =>
@@ -1733,6 +1939,8 @@ public static partial class ReleasePublicationService
             manifestRelativePath,
             contentRelativePath,
             historyRelativePath,
+            stableManifestRelativePath,
+            compatibilityBootstrapManifestPath,
             uploadedFiles,
             uploadedBytes,
             $"google-drive:/{CombineGoogleDrivePath(machine.GoogleDriveReleasePath, version)}");
@@ -1810,7 +2018,7 @@ public static partial class ReleasePublicationService
                             machine,
                             historyPath,
                             CombineGoogleDrivePath(
-                                Path.GetDirectoryName(GoogleDrivePublisher.ResolveStableManifestRelativePath(machine))
+                                Path.GetDirectoryName(plan.StableManifestRelativePath)
                                     ?.Replace('\\', '/') ?? string.Empty,
                                 ReleaseHistoryCatalogBuilder.FileName),
                             progress,
@@ -1824,15 +2032,29 @@ public static partial class ReleasePublicationService
                 // remains the final upload after payloads, content, versioned
                 // manifest, local mirrors, and the Git push have all succeeded.
                 progress?.Report("Google Drive: публикуем стабильный manifest.json последним…");
-                var stableManifestPath = GoogleDrivePublisher.ResolveStableManifestRelativePath(machine);
                 _ = await plan.Publisher.UploadFileAsync(
                     machine,
                     manifestPath,
-                    stableManifestPath,
+                    plan.StableManifestRelativePath,
                     progress,
                     cancellationToken);
                 files++;
                 bytes += new FileInfo(manifestPath).Length;
+
+                if (!string.IsNullOrWhiteSpace(plan.CompatibilityBootstrapManifestPath)
+                    && File.Exists(plan.CompatibilityBootstrapManifestPath))
+                {
+                    // The legacy address is the final activation point for old
+                    // schema 4 clients. It contains only the launcher package.
+                    _ = await plan.Publisher.UploadFileAsync(
+                        machine,
+                        plan.CompatibilityBootstrapManifestPath,
+                        GoogleDrivePublisher.ResolveStableManifestRelativePath(machine),
+                        progress,
+                        cancellationToken);
+                    files++;
+                    bytes += new FileInfo(plan.CompatibilityBootstrapManifestPath).Length;
+                }
             }
         }
 
@@ -2088,6 +2310,8 @@ public static partial class ReleasePublicationService
         string? ManifestRelativePath,
         string? ContentRelativePath,
         string? HistoryRelativePath,
+        string StableManifestRelativePath,
+        string? CompatibilityBootstrapManifestPath,
         int UploadedFiles,
         long UploadedBytes,
         string Destination);
@@ -2098,25 +2322,29 @@ public static partial class ReleasePublicationService
         ReleaserWorkspace workspace,
         ReleaserMachineSettings machine,
         IProgress<string>? progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeCompatibilityBootstrap = false)
     {
         foreach (var target in GetPublicationTargets(workspace, machine)
                      .Where(target => target.Provider.Equals("github", StringComparison.OrdinalIgnoreCase)))
         {
             await SynchronizeGitTargetAsync(
                 target,
-                workspace.Version.Trim(),
+                workspace,
                 progress,
+                includeCompatibilityBootstrap,
                 cancellationToken);
         }
     }
 
     private static async Task SynchronizeGitTargetAsync(
         PublicationTarget target,
-        string version,
+        ReleaserWorkspace workspace,
         IProgress<string>? progress,
+        bool includeCompatibilityBootstrap,
         CancellationToken cancellationToken)
     {
+        var version = workspace.Version.Trim();
         Directory.CreateDirectory(target.Root);
         var repositoryCheck = await RunGitAsync(target.Root, ["rev-parse", "--is-inside-work-tree"], cancellationToken);
         if (repositoryCheck.ExitCode != 0 ||
@@ -2136,11 +2364,21 @@ public static partial class ReleasePublicationService
         }
 
         progress?.Report($"GitHub: подготовка версии {version} в ветке {branchName}…");
-        var publicationPaths = new List<string> { version, "manifest.json" };
-        if (File.Exists(Path.Combine(target.Root, ReleaseHistoryCatalogBuilder.FileName)))
+        var stableManifestRelativePath = ReleaseChannelLayout.GetStableManifestRelativePath(workspace);
+        var stableHistoryRelativePath = ReleaseChannelLayout.GetStableHistoryRelativePath(workspace);
+        var publicationPaths = new List<string> { version, stableManifestRelativePath };
+        if (File.Exists(PathSafety.ResolveUnderRoot(target.Root, stableHistoryRelativePath)))
         {
-            publicationPaths.Add(ReleaseHistoryCatalogBuilder.FileName);
+            publicationPaths.Add(stableHistoryRelativePath);
         }
+        if (includeCompatibilityBootstrap
+            && !stableManifestRelativePath.Equals(
+                ReleaseChannelLayout.ManifestFileName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            publicationPaths.Add(ReleaseChannelLayout.ManifestFileName);
+        }
+        publicationPaths = publicationPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var addArguments = new List<string> { "add", "-A", "--" };
         addArguments.AddRange(publicationPaths);
         var add = await RunGitAsync(
@@ -2793,12 +3031,14 @@ public static partial class ReleasePublicationService
     private sealed record StableManifestRemovalPlan(
         string Version,
         string OutputRoot,
+        string StableManifestRelativePath,
         PublicationTarget[] Targets,
         HashSet<string> TargetStableManifestsToRemove,
         string OutputStableManifest,
         bool RemoveOutputStableManifest,
         bool RemoveLauncherStableManifest,
         GoogleDrivePublisher? GoogleDrivePublisher,
+        string? GoogleStableManifestRelativePath,
         bool RemoveGoogleStableManifest,
         int TargetCount);
 

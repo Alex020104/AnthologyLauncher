@@ -14,16 +14,6 @@
                     <img src="assets/anthology-logo.png" alt="" />
                     <div><strong>ANTHOLOGY</strong><span>LAUNCHER · @LauncherVersion</span></div>
                 </div>
-                <nav class="compact-resources" aria-label="Ресурсы проекта">
-                    @foreach (var socialLink in HomeSocialLinks)
-                    {
-                        var currentSocialLink = socialLink;
-                        @if (GetSafeExternalUrl(currentSocialLink.Url) is string socialUrl)
-                        {
-                            <a class="@currentSocialLink.Id" href="@socialUrl" target="_blank" rel="noopener noreferrer" title="@currentSocialLink.Subtitle">@currentSocialLink.Title</a>
-                        }
-                    }
-                </nav>
                 <button class="compact-mode-switch" @onclick='() => OpenDetailedSectionAsync("home")'>ПОДРОБНАЯ ВЕРСИЯ <span>↗</span></button>
             </header>
 
@@ -31,10 +21,8 @@
                 <article class="compact-news-panel compact-panel">
                     <header>
                         <div><span>ПОСЛЕДНИЕ ИЗМЕНЕНИЯ</span><strong>Новости проекта</strong></div>
-                        <div class="compact-news-tools">
-                            <small>LAUNCHER @LauncherVersion</small>
-                            <button @onclick='() => OpenDetailedSectionAsync("information")'>ОБ ИГРЕ</button>
-                        </div>
+                        <button class="compact-about-game" @onclick='() => OpenDetailedSectionAsync("information")'>ОБ ИГРЕ</button>
+                        <small class="compact-news-version">ANTHOLOGY @HomeReleaseVersion · LAUNCHER @LauncherVersion</small>
                     </header>
                     <div class="compact-news-scroll">
                         @if (LatestPublishedNews is { } latestNews)
@@ -43,15 +31,6 @@
                             <time>@NewsDate(latestNews).ToString("dd.MM.yyyy HH:mm") · @latestNews.Section</time>
                             <h2>@localizedLatestNews.Title</h2>
                             <p class="compact-news-summary"><AutoLinkText Text="@localizedLatestNews.Summary" /></p>
-                            @if (!string.IsNullOrWhiteSpace(localizedLatestNews.Body))
-                            {
-                                <div class="compact-news-body"><AutoLinkText Text="@localizedLatestNews.Body" /></div>
-                            }
-                            @foreach (var block in (latestNews.Blocks ?? []).Where(block => block.Kind is ContentBlockKind.Section or ContentBlockKind.Article))
-                            {
-                                var localizedBlock = Localized(block);
-                                <section><strong>@localizedBlock.Title</strong><AutoLinkText Text="@localizedBlock.Body" /></section>
-                            }
                         }
                         else
                         {
@@ -60,31 +39,44 @@
                     </div>
                 </article>
 
-                <aside class="compact-command-panel compact-panel">
-                    <div class="compact-play-stack">
-                        <button class="launch-button launch-online" @onclick="LaunchOnlineAsync" disabled="@(!_installation.OnlineModeFound)"><span class="launch-button-icon"><i></i>◎</span><span class="launch-button-copy"><strong>ИГРАТЬ ОНЛАЙН</strong><small>Сетевой режим Anthology</small></span></button>
-                        <button class="launch-button launch-modpack" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)"><span class="launch-button-icon">▶</span><span class="launch-button-copy"><strong>ИГРАТЬ С МОДПАКОМ</strong><small>@(_mo2Workspace.SelectedProfile ?? "Профиль MO2 не выбран")</small></span></button>
-                        <button class="launch-button launch-original" @onclick="LaunchOriginalAsync" disabled="@(!_installation.OriginalGameFound)"><span class="launch-button-icon">A</span><span class="launch-button-copy"><strong>ИГРАТЬ В ОРИГИНАЛ</strong><small>Чистая Anomaly</small></span></button>
-                    </div>
-                    <nav class="compact-project-links" aria-label="Разделы и ресурсы проекта">
+                <aside class="compact-project-panel compact-panel">
+                    <header><span>РАЗДЕЛЫ ПРОЕКТА</span><strong>Подробный лаунчер</strong></header>
+                    <nav class="compact-project-links" aria-label="Разделы проекта">
                         <button class="support" @onclick='() => OpenDetailedSectionAsync("project-support")'><span>♡</span><strong>ПОДДЕРЖАТЬ ПРОЕКТ</strong><i>↗</i></button>
                         <button class="chat" @onclick='() => OpenDetailedSectionAsync("community")'><span>◉</span><strong>РЕАЛЬНЫЙ ЧАТ</strong><i>↗</i></button>
                         <button class="library" @onclick='() => OpenDetailedSectionAsync("library")'><span>▦</span><strong>БИБЛИОТЕКА МОДОВ</strong><i>↗</i></button>
                         <button class="information" @onclick='() => OpenDetailedSectionAsync("information")'><span>i</span><strong>ИНФОРМАЦИЯ</strong><i>↗</i></button>
                     </nav>
-                    <div class="compact-update-stack">
-                        <button class="compact-update-banner" @onclick='() => OpenDetailedSectionAsync("updates")'><span>ЦЕНТР ОБНОВЛЕНИЙ</span><strong>@UpdateHeadline</strong><i>↗</i></button>
-                        <div class="compact-update-progress"><span style="width:@UpdateDockPercentage%"></span></div>
-                        <small>@UpdateDockTitle</small>
-                        <button class="compact-update-action check" @onclick="CheckForUpdatesAsync" disabled="@_updateBusy">ПРОВЕРИТЬ</button>
-                        <button class="compact-update-action download" @onclick="InstallUpdatesAsync" disabled="@(_updateCheck?.HasUpdates != true || _updateBusy)">@UpdatePrimaryActionLabel</button>
-                        <button class="compact-update-action rollback" @onclick="RollbackLatestUpdateAsync" disabled="@(_rollbackCandidate is null || _updateBusy)">ОТКАТИТЬ</button>
-                    </div>
                 </aside>
+
+                <aside class="compact-social-panel compact-panel">
+                    <header><span>СОЦИАЛЬНЫЕ СЕТИ</span><strong>Anthology online</strong></header>
+                    <nav class="compact-resources" aria-label="Ресурсы проекта">
+                        @foreach (var socialLink in HomeSocialLinks)
+                        {
+                            var currentSocialLink = socialLink;
+                            @if (GetSafeExternalUrl(currentSocialLink.Url) is string socialUrl)
+                            {
+                                <a class="@currentSocialLink.Id" href="@socialUrl" target="_blank" rel="noopener noreferrer" title="@currentSocialLink.Subtitle">
+                                    <span><img src="@SocialIconPath(currentSocialLink.Id)" alt="" /></span>
+                                    <strong>@currentSocialLink.Title</strong>
+                                </a>
+                            }
+                        }
+                    </nav>
+                </aside>
+
+                <div class="compact-lower-divider" aria-hidden="true"></div>
+
+                <div class="compact-play-stack compact-panel">
+                    <button class="launch-button launch-online" @onclick="LaunchOnlineAsync" disabled="@(!_installation.OnlineModeFound)"><span class="launch-button-icon"><i></i>◎</span><span class="launch-button-copy"><strong>ИГРАТЬ ОНЛАЙН</strong><small>Сетевой режим Anthology</small></span></button>
+                    <button class="launch-button launch-modpack" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)"><span class="launch-button-icon">▶</span><span class="launch-button-copy"><strong>ИГРАТЬ С МОДПАКОМ</strong><small>@(_mo2Workspace.SelectedProfile ?? "Профиль MO2 не выбран")</small></span></button>
+                    <button class="launch-button launch-original" @onclick="LaunchOriginalAsync" disabled="@(!_installation.OriginalGameFound)"><span class="launch-button-icon">A</span><span class="launch-button-copy"><strong>ИГРАТЬ В ОРИГИНАЛ</strong><small>Чистая Anomaly</small></span></button>
+                </div>
 
                 <section class="compact-settings-panel compact-panel">
                     <header>
-                        <div><span>ПАРАМЕТРЫ ЗАПУСКА</span><strong>Всё нужное — на главном экране</strong></div>
+                        <span>ПАРАМЕТРЫ ЗАПУСКА</span>
                         <label>ПРОФИЛЬ MO2
                             <select value="@_mo2Workspace.SelectedProfile" @onchange="ChangeCompactMo2ProfileAsync" disabled="@(!_mo2Workspace.Instance.Available || _mo2Workspace.RuntimeBusy)">
                                 @foreach (var profile in _mo2Workspace.Instance.Profiles) { <option value="@profile">@profile</option> }
@@ -112,6 +104,19 @@
                         <button class="compact-latest-save" @onclick="LaunchLatestSaveAsync" disabled="@(!CanLaunchLatestSave)"><span>↻</span><div><strong>ЗАГРУЗИТЬ ПОСЛЕДНЕЕ СОХРАНЕНИЕ</strong><small>@(_latestSave is null ? "Сохранения не найдены" : Path.GetFileNameWithoutExtension(_latestSave.Save.Name))</small></div></button>
                         <button class="compact-save-catalog" @onclick='() => OpenDetailedSectionAsync("saves")'><span>▣</span><div><strong>КАТАЛОГ СОХРАНЕНИЙ</strong><small>Открыть в подробной версии</small></div><i>↗</i></button>
                     </footer>
+                </section>
+
+                <aside class="compact-update-actions compact-panel">
+                    <button class="compact-update-action check" @onclick="CheckForUpdatesAsync" disabled="@_updateBusy">ПРОВЕРИТЬ</button>
+                    <button class="compact-update-action download" @onclick="InstallUpdatesAsync" disabled="@(_updateCheck?.HasUpdates != true || _updateBusy)">@UpdatePrimaryActionLabel</button>
+                    <button class="compact-update-action rollback" @onclick="RollbackLatestUpdateAsync" disabled="@(_rollbackCandidate is null || _updateBusy)">ОТКАТИТЬ</button>
+                </aside>
+
+                <section class="compact-status-band compact-panel" aria-live="polite">
+                    <button class="compact-update-banner" @onclick='() => OpenDetailedSectionAsync("updates")'><span>ЦЕНТР ОБНОВЛЕНИЙ</span><strong>@UpdateHeadline</strong><i>↗</i></button>
+                    <div class="compact-update-status"><span>СТАТУС ОБНОВЛЕНИЯ</span><strong>@UpdateDockTitle</strong><small>@UpdateDockDetails</small></div>
+                    <div class="compact-update-progress"><span style="width:@UpdateDockPercentage%"></span></div>
+                    <strong class="compact-update-percentage">@UpdateDockPercentage%</strong>
                 </section>
             </div>
         </section>
@@ -218,7 +223,7 @@
                     <div class="hero-copy">
                         <div class="hero-topline">
                             <div class="hero-kicker"><span></span> НОВАЯ ПЛАТФОРМА ANTHOLOGY</div>
-                            <div class="hero-version-chip"><span>ВЕРСИЯ ОБНОВЛЕНИЯ</span><strong>@HomeGameVersion</strong></div>
+                            <div class="hero-version-chip"><span>ВЕРСИЯ ОБНОВЛЕНИЯ</span><strong>ANTHOLOGY @HomeReleaseVersion · LAUNCHER @LauncherVersion</strong></div>
                         </div>
                         <h2>Зона становится<br /><em>больше лаунчера.</em></h2>
                         <p>Обновления из нескольких источников, библиотека модов, видео, голосования и прямая связь с командой — в одном приложении.</p>
@@ -318,7 +323,7 @@
                     <div class="section-block news-block">
                         <div class="section-heading">
                             <div><span>ПОСЛЕДНИЕ СОБЫТИЯ</span><h3>Новости разработки</h3></div>
-                            <div class="news-heading-actions"><span class="news-launcher-version">LAUNCHER @LauncherVersion</span><button class="text-button" @onclick='() => SelectSection("information")'>ОБ ИГРЕ →</button><button class="text-button" @onclick="ShowNews">ВСЕ НОВОСТИ →</button></div>
+                            <div class="news-heading-actions"><span class="news-launcher-version">ANTHOLOGY @HomeReleaseVersion · LAUNCHER @LauncherVersion</span><button class="text-button" @onclick='() => SelectSection("information")'>ОБ ИГРЕ →</button><button class="text-button" @onclick="ShowNews">ВСЕ НОВОСТИ →</button></div>
                         </div>
                         <div class="news-list">
                             @if (PublishedNews.Any())
@@ -2082,7 +2087,7 @@
     }
     private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
         .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
-    private string HomeGameVersion =>
+    private string HomeInstalledVersion =>
         _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Game)?.InstalledVersion
         ?? _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Modpack)?.InstalledVersion
         ?? _updateCheck?.Packages.FirstOrDefault(item => item.Package.Kind == PackageKind.Database)?.InstalledVersion
@@ -2090,6 +2095,11 @@
         ?? _publishedContent?.Version
         ?? _updateCheck?.SignedManifest.Payload.Version
         ?? "НЕ ОПРЕДЕЛЕНА";
+
+    private string HomeReleaseVersion =>
+        _updateCheck?.SignedManifest.Payload.Version
+        ?? _publishedContent?.Version
+        ?? HomeInstalledVersion;
     private string DetectedBugReportGameVersion
     {
         get
@@ -2098,7 +2108,7 @@
             var profile = _mo2Workspace.SelectedProfile is null
                 ? "MO2-профиль не выбран"
                 : $"MO2-профиль: {_mo2Workspace.SelectedProfile}";
-            return $"Anomaly 1.5.3 · Anthology {HomeGameVersion} · {profile} · последний запуск: {SaveCatalog.LastSessionLabel(gameRoot)}";
+            return $"Anomaly 1.5.3 · Anthology {HomeInstalledVersion} · {profile} · последний запуск: {SaveCatalog.LastSessionLabel(gameRoot)}";
         }
     }
     private IReadOnlyList<Mo2ModGroup> FilteredMo2Groups => BuildMo2Groups(

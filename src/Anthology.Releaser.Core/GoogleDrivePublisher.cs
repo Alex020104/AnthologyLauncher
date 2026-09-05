@@ -514,13 +514,38 @@ public sealed partial class GoogleDrivePublisher(IRcloneCommandRunner? commandRu
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        if (await DiscoverManifestAsync(machine, progress, cancellationToken) is null)
+        return await ReadManifestAsync(
+            machine,
+            ResolveStableManifestRelativePath(machine),
+            progress,
+            cancellationToken);
+    }
+
+    public async Task<SignedUpdateManifest?> ReadManifestAsync(
+        ReleaserMachineSettings machine,
+        ReleaserWorkspace workspace,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ReadManifestAsync(
+            machine,
+            ResolveStableManifestRelativePath(machine, workspace),
+            progress,
+            cancellationToken);
+    }
+
+    private async Task<SignedUpdateManifest?> ReadManifestAsync(
+        ReleaserMachineSettings machine,
+        string manifestPath,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        if (await DiscoverFileAsync(machine, manifestPath, progress, cancellationToken) is null)
         {
             return null;
         }
 
         var configuration = ResolveConfiguration(machine);
-        var manifestPath = ResolveStableManifestRelativePath(machine);
         var target = CombineRemoteTarget(configuration, manifestPath);
         var result = await RunRequiredAsync(
             configuration,
@@ -551,6 +576,42 @@ public sealed partial class GoogleDrivePublisher(IRcloneCommandRunner? commandRu
             : NormalizeRequiredRemotePath(
                 machine.GoogleDriveManifestPath,
                 nameof(machine.GoogleDriveManifestPath));
+    }
+
+    public static string ResolveStableManifestRelativePath(
+        ReleaserMachineSettings machine,
+        ReleaserWorkspace workspace)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        var legacyPath = ResolveStableManifestRelativePath(machine);
+        var stableRelativePath = ReleaseChannelLayout.GetStableManifestRelativePath(workspace);
+        if (stableRelativePath.Equals(
+                ReleaseChannelLayout.ManifestFileName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return legacyPath;
+        }
+
+        var configuration = ResolveConfiguration(machine);
+        var expectedLegacyPath = CombineRemotePaths(
+            configuration.ReleaseRelativePath,
+            ReleaseChannelLayout.ManifestFileName);
+        if (!legacyPath.Equals(expectedLegacyPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                $"GoogleDriveManifestPath must remain the legacy root manifest '{expectedLegacyPath}' " +
+                $"when a dedicated stable channel is enabled. The modern path '{stableRelativePath}' is derived automatically.");
+        }
+
+        var separator = legacyPath.LastIndexOf('/');
+        var parent = separator < 0 ? string.Empty : legacyPath[..separator];
+        var modernPath = CombineRemotePaths(parent, stableRelativePath);
+        if (modernPath.Equals(legacyPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                "The Google Drive compatibility bootstrap and modern stable manifest must use different paths.");
+        }
+        return modernPath;
     }
 
     /// <summary>
