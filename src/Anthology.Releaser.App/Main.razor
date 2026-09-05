@@ -46,7 +46,7 @@
                 <section class="grid three">
                     <article class="panel field-card"><span>ВЕРСИЯ</span><h3>Номер обновления</h3><label>Версия<input @bind="_workspace.Version" placeholder="2.1.131" /></label><label>Канал<input @bind="_workspace.Channel" placeholder="next" /></label><p>Допустимы версии 2.1.131 и выше. Дата больше не используется как номер сборки.</p></article>
                     <article class="panel field-card"><span>КОРЕНЬ ИГРЫ</span><h3>Полная Anthology</h3><code>@PathOrEmpty(_machine.GameSourceRoot)</code><p>Выберите подготовленную папку сборки. Личные appdata, логи и скриншоты автоматически исключаются.</p><button class="secondary" @onclick="SelectGameRoot">ВЫБРАТЬ КОРЕНЬ</button></article>
-                    <article class="panel field-card"><span>КОРЕНЬ MO2</span><h3>Полный Mod Organizer 2</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>Публикуются профили, mods, downloads и tools. Временный overwrite и кэши не входят в релиз.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ MO2</button></article>
+                    <article class="panel field-card"><span>КОРЕНЬ MO2</span><h3>Полный Mod Organizer 2</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>Публикуются профили, mods и tools. Личные downloads, временный overwrite и кэши не входят в релиз.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ MO2</button></article>
                 </section>
                 <section class="panel quick-release">
                     <div class="quick-release-head"><div><span class="eyebrow">ПРОСТОЙ ВЫПУСК ФАЙЛОВ И ПАПОК</span><h3>Добавить или удалить сколько угодно файлов и аддонов</h3><p>Выберите отдельные файлы или целые папки, проверьте путь назначения и нажмите одну кнопку. Вложенная структура папки сохраняется; выбранные из MO2\mods аддоны автоматически устанавливаются обратно в MO2\mods. Релизер создаст подписанное обновление и скопирует его во все настроенные источники.</p></div><div class="quick-release-count"><strong>@QuickAddCount</strong><span>ЗАГРУЗИТЬ</span><strong>@QuickDeleteCount</strong><span>УДАЛИТЬ</span></div></div>
@@ -79,25 +79,82 @@
                     }
                     <div class="quick-release-actions"><button class="secondary" @onclick="ClearQuickRelease" disabled="@(_busy || QuickSelectionCount == 0)">ОЧИСТИТЬ СПИСОК</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">УДАЛИТЬ ЭТОТ ВЫПУСК ИЗ ИСТОЧНИКОВ</button><button class="primary" @onclick="PublishQuickFilesAsync" disabled="@(_busy || QuickSelectionCount == 0)">@(_busy ? "ПУБЛИКАЦИЯ…" : "ОПУБЛИКОВАТЬ ВЫБРАННОЕ")</button></div>
                 </section>
+                <section class="panel content-bundle-dock"><div><span class="eyebrow">ОДНА ВЕРСИЯ · БЕЗ ПОЛНОЙ СБОРКИ</span><h3>Новости, библиотека модов, информация и выбранные файлы</h3><p>Публикует все изменения контента одним подписанным выпуском и сохраняет пакеты текущей сборки. Корни Game и MO2 заново не упаковываются и не загружаются.</p></div><button class="primary" @onclick="PublishContentBundleAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ КОНТЕНТ ОДНОЙ ВЕРСИЕЙ")</button></section>
                 <section class="panel destination"><div><span class="eyebrow">ВЫХОД</span><h3>Папка готовых релизов</h3><code>@PathOrEmpty(_machine.OutputRoot)</code></div><button class="secondary" @onclick="SelectOutputRoot">ВЫБРАТЬ</button><button class="text" @onclick="() => Bridge.OpenFolder(_machine.OutputRoot)">ОТКРЫТЬ ↗</button></section>
                 <section class="panel signing"><div><span class="eyebrow">ПОДПИСЬ · ЗАФИКСИРОВАНА</span><h3>Все выпуски подписываются одним production-ключом</h3><p>Релизер больше не создаёт ключи автоматически и не примет другую пару. Если закрытый ключ потерян, публикация остановится до восстановления текущего ключа из резервной копии.</p></div><label>ID ключа<input value="@ProductionSigningKeyPolicy.KeyId" readonly /></label><label>Отпечаток ключа<input value="@ProductionSigningKeyPolicy.PublicKeyFingerprint" readonly /></label><label>Закрытый ключ<div class="inline"><input @bind="_machine.PrivateKeyPath" /><button @onclick="SelectPrivateKey">…</button></div></label><label>Публичный ключ<div class="inline"><input @bind="_machine.PublicKeyPath" /><button @onclick="SelectPublicKey">…</button></div></label><button class="secondary" @onclick="RestoreProductionPublicKeyAsync">ВОССТАНОВИТЬ ПУБЛИЧНЫЙ КЛЮЧ</button></section>
                 <section class="panel build-dock"><div><span class="eyebrow">ПУБЛИКАЦИЯ ВСЕЙ СБОРКИ</span><h3>@_status</h3><p>@(_lastBuild is null ? "Полный слепок добавит новые файлы и пометит отсутствующие для безопасного удаления у игрока." : $"{_lastBuild.Files:N0} файлов · {FormatBytes(_lastBuild.Bytes)} · {_lastBuild.ContentItems} материалов")</p></div><button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПРОЕКТ</button><button class="secondary" @onclick="PublishLauncherAsync" disabled="@_busy">ВЫПУСТИТЬ ЛАУНЧЕР</button><button class="danger" @onclick="UnpublishVersionAsync" disabled="@_busy">СНЯТЬ ВЕРСИЮ</button><button class="primary" @onclick="BuildReleaseAsync" disabled="@_busy">@(_busy ? "ПУБЛИКАЦИЯ…" : "ВЫПУСТИТЬ ВСЮ СБОРКУ")</button></section>
             }
             else if (_section == "sources")
             {
-                <section class="hero panel compact"><div><span class="eyebrow">ТЕХНИЧЕСКИЕ ПУТИ И ШАБЛОНЫ</span><h2>Источники настраивает<br /><em>только команда.</em></h2><p>Все URL, папки публикации и шаблоны находятся здесь, в Releaser Next. Игрок получает готовую конфигурацию и в лаунчере ничего не копирует. Поддерживаются шаблоны <code>{version}</code>, <code>{id}</code> и <code>{file}</code>.</p></div></section>
+                <section class="hero panel compact"><div><span class="eyebrow">ТЕХНИЧЕСКИЕ ПУТИ И ШАБЛОНЫ</span><h2>Источники настраивает<br /><em>только команда.</em></h2><p>Все URL, папки публикации и шаблоны находятся здесь, в Releaser Next. Игрок получает готовую конфигурацию и в лаунчере ничего не копирует. Поддерживаются шаблоны <code>{version}</code>, <code>{id}</code>, <code>{file}</code> и <code>{path}</code> для файлов уже загруженного проекта.</p></div></section>
                 <section class="mirror-list">
                     @foreach (var mirror in _workspace.Mirrors.OrderBy(item => item.Priority))
                     {
-                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Архив игры<input @bind="mirror.GameUrl" placeholder="https://.../{version}/{file}" /></label><label>Архив MO2<input @bind="mirror.Mo2Url" placeholder="https://.../{version}/{file}" /></label><label>Аддоны и фотографии<input @bind="mirror.ContentUrl" placeholder="https://.../{version}/addons/{id}/{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button><div class="manifest-source"><label>Постоянный адрес manifest.json для лаунчера<input @bind="mirror.ManifestUrl" placeholder="https://.../manifest.json — без {version}" /><small>Настраивается один раз. Лаунчер получит этот адрес и встроенный публичный ключ автоматически.</small></label></div><div class="publish-root"><label>Папка автоматической выгрузки на этой машине<input value="@GetPublicationRoot(mirror)" @onchange="eventArgs => SetPublicationRoot(mirror, eventArgs.Value?.ToString())" placeholder="Локальная папка GitHub-репозитория, Яндекс.Диска, Google Drive или HTTP-сервера" /></label><button class="secondary" @onclick="() => SelectPublicationRoot(mirror)">ВЫБРАТЬ ПАПКУ</button></div></article>
+                        <article class="panel mirror-row"><div class="provider"><span>@mirror.Priority.ToString("00")</span><select @bind="mirror.Provider"><option value="github">GitHub</option><option value="yandex-disk">Яндекс.Диск</option><option value="google-drive">Google Drive</option><option value="http">Другой HTTPS</option><option value="local-file">Локальный файл</option></select></div><label>Файлы игры (loose)<input @bind="mirror.GameUrl" placeholder="https://.../{path}" /></label><label>Файлы MO2 (loose)<input @bind="mirror.Mo2Url" placeholder="https://.../{path}" /></label><label>Артефакты канала<input @bind="mirror.ArtifactUrl" placeholder="https://.../{version}/{file}" /></label><label>Аддоны и фотографии<input @bind="mirror.ContentUrl" placeholder="https://.../{version}/addons/{id}/{file}" /></label><label class="priority">Приоритет<input type="number" @bind="mirror.Priority" /></label><button class="remove" @onclick="() => RemoveMirror(mirror)">×</button><div class="manifest-source"><label>Постоянный адрес manifest.json для лаунчера<input @bind="mirror.ManifestUrl" placeholder="https://.../manifest.json — без {version}" /><small>Настраивается один раз. Лаунчер получит этот адрес и встроенный публичный ключ автоматически.</small></label></div>@if (string.Equals(mirror.Provider, GoogleDrivePublisher.Provider, StringComparison.OrdinalIgnoreCase)) { <div class="publish-root cloud-managed-note"><div><strong>ПРЯМАЯ ВЫГРУЗКА</strong><small>Google Drive управляется карточкой ниже через rclone. Локальная копия Диска не нужна.</small></div></div> } else { <div class="publish-root"><label>Папка автоматической выгрузки на этой машине<input value="@GetPublicationRoot(mirror)" @onchange="eventArgs => SetPublicationRoot(mirror, eventArgs.Value?.ToString())" placeholder="Локальная папка GitHub-репозитория, Яндекс.Диска или HTTP-сервера" /></label><button class="secondary" @onclick="() => SelectPublicationRoot(mirror)">ВЫБРАТЬ ПАПКУ</button></div> }</article>
                     }
+                </section>
+                <section class="panel google-drive-card">
+                    <div class="google-drive-heading">
+                        <div><span class="eyebrow">GOOGLE DRIVE · ПРЯМАЯ ПУБЛИКАЦИЯ</span><h3>Проект загружается без локального дубля</h3><p>rclone читает существующие корни игры и MO2 напрямую. При синхронизации удаление ограничено только отдельными папками Game и MO2 внутри проекта; корень проекта и чужие подпапки не затрагиваются.</p></div>
+                        <div class="google-drive-links"><button class="text" @onclick="OpenGoogleDriveAccount">ОТКРЫТЬ GOOGLE DRIVE ↗</button>@if (!string.IsNullOrWhiteSpace(_machine.GoogleDriveProjectPublicUrl)) { <button class="text" @onclick="OpenGoogleDriveProject">ОТКРЫТЬ ПУБЛИЧНЫЙ ПРОЕКТ ↗</button> }</div>
+                    </div>
+                    <div class="google-drive-grid">
+                        <label>rclone.exe · только на этом компьютере<div class="inline"><input @bind="_machine.GoogleDriveRclonePath" /><button @onclick="SelectGoogleDriveRclone">…</button></div><small class="@ToolStatusClass(_machine.GoogleDriveRclonePath)">@ToolStatus(_machine.GoogleDriveRclonePath, "rclone.exe")</small></label>
+                        <label>rclone.conf · только на этом компьютере<div class="inline"><input @bind="_machine.GoogleDriveRcloneConfigPath" /><button @onclick="SelectGoogleDriveConfig">…</button></div><small>@GoogleDriveConfigStatus</small></label>
+                        <label>Имя remote в rclone<input @bind="_machine.GoogleDriveRemoteName" placeholder="Например: anthology-drive" /><small>Один раз выполните <code>rclone config</code> и авторизуйте Google Drive. В 2026 общий Client ID может упираться в квоты: при запросе rclone используйте собственные Google OAuth Client ID и Client Secret.</small></label>
+                        <label>Папка проекта на Google Drive<input @bind="_machine.GoogleDriveProjectPath" placeholder="ANTHOLOGY" /><small>Будет создана при первой проверке, если её ещё нет.</small></label>
+                        <label>Папка игры внутри проекта<input @bind="_machine.GoogleDriveGamePath" placeholder="Автоматически: имя корня игры" /></label>
+                        <label>Папка MO2 внутри проекта<input @bind="_machine.GoogleDriveMo2Path" placeholder="Автоматически: имя корня MO2" /></label>
+                        <label class="wide">Справочная ссылка аккаунта<input value="@_machine.GoogleDriveAccountUrl" readonly /><small>Это HTML-страница аккаунта. Она никогда не используется лаунчером как зеркало загрузки.</small></label>
+                        <label class="wide">Публичная ссылка проекта<input value="@_machine.GoogleDriveProjectPublicUrl" readonly placeholder="Появится после создания / проверки проекта" /></label>
+                    </div>
+                    <div class="google-drive-source-map"><span>ИСТОЧНИКИ БЕЗ КОПИРОВАНИЯ</span><code>GAME · @PathOrEmpty(_machine.GameSourceRoot)</code><code>MO2 · @PathOrEmpty(_machine.Mo2SourceRoot)</code></div>
+                    <div class="google-drive-status @(_googleDriveBusy ? "working" : null)"><span></span><p>@_googleDriveStatus</p></div>
+                    <div class="google-drive-actions">
+                        @if (_googleDriveBusy)
+                        {
+                            <button class="danger" @onclick="CancelGoogleDriveOperation">ОТМЕНИТЬ ОПЕРАЦИЮ</button>
+                        }
+                        else
+                        {
+                            <button class="secondary" @onclick="ConfigureGoogleDriveAsync" disabled="@_busy">НАСТРОИТЬ RCLONE / GOOGLE</button>
+                            <button class="secondary" @onclick="EnsureGoogleDriveProjectAsync" disabled="@_busy">СОЗДАТЬ / ПРОВЕРИТЬ ПРОЕКТ</button>
+                            <button class="primary" @onclick="SyncGoogleDriveSourcesAsync" disabled="@_busy">СИНХРОНИЗИРОВАТЬ GAME + MO2</button>
+                        }
+                    </div>
                 </section>
                 <section class="panel source-examples">
                     <div><span class="eyebrow">ГОТОВЫЕ ОБРАЗЦЫ</span><h3>Один GitHub-репозиторий и одна папка Яндекс.Диска</h3><p>Скопируйте строки в одноимённые поля выше. Фигурные скобки оставляйте как есть: релизер сам подставит версию, ID и имя файла.</p></div>
-                    <article><strong>GITHUB · ВЕТКА addons-unified-library</strong><label>Рабочий каталог аддонов<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/addon-catalog.json</code></label><label>Опубликованные архивы аддонов<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/library/{category}/addon-NNN.7z</code></label><label>Manifest будущего релиза<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code></label><label>Архив игры и MO2<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code></label><label>Аддоны и фотографии релиза<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/addons/{id}/{file}</code></label></article>
-                    <article><strong>ЯНДЕКС.ДИСК · РАБОЧИЙ КАНАЛ ANTHOLOGY</strong><label>Публичная корневая папка<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel</code></label><label>Manifest<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/manifest.json</code></label><label>Архив игры и MO2<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/{file}</code></label><label>Аддоны и фотографии<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/addons/{id}/{file}</code></label><label>Локальная папка публикации<code>A:\YandexDisk\S.T.A.L.K.E.R Anomaly — A.N.T.H.O.L.O.G.Y\AnthologyUpdateChannel</code></label></article>
+                    <article><strong>GITHUB · ВЕТКА addons-unified-library</strong><label>Рабочий каталог аддонов<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/addon-catalog.json</code></label><label>Опубликованные архивы аддонов<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/library/{category}/addon-NNN.7z</code></label><label>Постоянный manifest канала<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/manifest.json</code></label><label>Небольшие артефакты версии<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/{file}</code></label><label>Аддоны и фотографии релиза<code>https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/{version}/addons/{id}/{file}</code></label></article>
+                    <article><strong>ЯНДЕКС.ДИСК · УЖЕ ЗАГРУЖЕННЫЙ ПРОЕКТ</strong><label>Файлы игры без второго архива<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly-1.5.3-Anthology%202.1/{path}</code></label><label>Файлы MO2 без второго архива<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack-1.5.3-%20Anthology%202.1/{path}</code></label><label>Постоянный manifest<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/manifest.json</code></label><label>Только небольшие файлы релиза<code>https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/AnthologyUpdateChannel/{version}/{file}</code></label><label>Локальная папка manifest/контента<code>A:\YandexDisk\S.T.A.L.K.E.R Anomaly — A.N.T.H.O.L.O.G.Y\AnthologyUpdateChannel</code></label></article>
                 </section>
                 <section class="panel action-line"><button class="secondary" @onclick="AddMirror">＋ ДОБАВИТЬ ИСТОЧНИК</button><button class="primary" @onclick="SaveAsync">СОХРАНИТЬ ИСТОЧНИКИ</button></section>
+            }
+            else if (_section == "repack")
+            {
+                <section class="hero panel compact"><div><span class="eyebrow">SETUP + ДВА BIN</span><h2>Репак собирается<br /><em>одной кнопкой.</em></h2><p>Игра и MO2 упаковываются как обычные solid LZMA2-архивы 7-Zip с теми же корневыми папками, что у эталона на C:. Рабочие файлы создаются только во временной папке на B: и удаляются при успехе, отмене или ошибке.</p></div><div class="version-orbit"><small>ВЕРСИЯ РЕПАКА</small><strong>@_workspace.Version</strong><span>SETUP · BIN · LZMA2</span></div></section>
+                <section class="grid two">
+                    <article class="panel field-card"><span>ИСТОЧНИК ИГРЫ</span><h3>@FolderName(_machine.GameSourceRoot)</h3><code>@PathOrEmpty(_machine.GameSourceRoot)</code><p>Личные appdata, логи, скриншоты, crashdumps, webcache и конфигурация лаунчера не попадут в репак.</p><button class="secondary" @onclick="SelectGameRoot">ВЫБРАТЬ КОРЕНЬ ИГРЫ</button></article>
+                    <article class="panel field-card"><span>ИСТОЧНИК MO2</span><h3>@FolderName(_machine.Mo2SourceRoot)</h3><code>@PathOrEmpty(_machine.Mo2SourceRoot)</code><p>downloads, overwrite, логи, crash_dumps, webcache и локальный ModOrganizer.ini исключаются.</p><button class="secondary" @onclick="SelectMo2Root">ВЫБРАТЬ КОРЕНЬ MO2</button></article>
+                </section>
+                <section class="panel repack-settings">
+                    <div class="repack-heading"><div><span class="eyebrow">ПАРАМЕТРЫ УСТАНОВЩИКА</span><h3>Ярлык на рабочем столе получает название проекта</h3></div><label class="toggle-line"><input type="checkbox" @bind="_machine.RepackIncludeMo2" />Добавить отдельный bin с MO2</label></div>
+                    <div class="form-grid">
+                        <label>Название проекта<input @bind="_machine.RepackProjectName" /></label>
+                        <label>Версия<input value="@_workspace.Version" readonly /></label>
+                        <label class="wide">Готовые Setup и bin<div class="inline"><input @bind="_machine.RepackOutputRoot" /><button @onclick="SelectRepackOutputRoot">…</button></div><small>После успешной проверки здесь остаются только готовые файлы репака.</small></label>
+                        <label class="wide">Временная среда<div class="inline"><input @bind="_machine.RepackTemporaryRoot" /><button @onclick="SelectRepackTemporaryRoot">…</button></div><small>Рекомендуется B:. Удаляется автоматически; проект на Яндекс.Диске не дублируется.</small></label>
+                        <label>7-Zip<div class="inline"><input @bind="_machine.SevenZipPath" /><button @onclick="SelectSevenZip">…</button></div><small class="@ToolStatusClass(_machine.SevenZipPath)">@ToolStatus(_machine.SevenZipPath, "7z.exe")</small></label>
+                        <label>Inno Setup Compiler<div class="inline"><input @bind="_machine.InnoSetupCompilerPath" /><button @onclick="SelectInnoCompiler">…</button></div><small class="@ToolStatusClass(_machine.InnoSetupCompilerPath)">@ToolStatus(_machine.InnoSetupCompilerPath, "ISCC.exe")</small></label>
+                        <label class="wide">Оформление Setup<div class="inline"><input @bind="_machine.InstallerTemplateRoot" /><button @onclick="SelectInstallerTemplateRoot">…</button></div><small>Встроенная папка уже содержит иконку проекта. Необязательные assets\wizard-image.bmp и wizard-background.bmp позволяют заменить фон мастера.</small></label>
+                    </div>
+                    <label class="toggle-line overwrite"><input type="checkbox" @bind="_machine.RepackOverwriteExisting" />Заменить существующие Setup/bin после успешной проверки новых файлов</label>
+                </section>
+                @if (_lastRepack is not null)
+                {
+                    <section class="panel repack-result"><div><span class="eyebrow">ГОТОВО</span><h3>@_lastRepack.Outputs.Count файла(ов) · @FormatBytes(_lastRepack.SourceBytes) исходных данных</h3><code>@_lastRepack.SetupPath</code></div><button class="text" @onclick="() => Bridge.OpenFolder(_machine.RepackOutputRoot)">ОТКРЫТЬ ПАПКУ ↗</button></section>
+                }
+                <section class="panel build-dock repack-dock"><div><span class="eyebrow">БЕЗ ПОСТОЯННОГО ДУБЛЯ</span><h3>@_status</h3><p>Сначала 7-Zip полностью тестирует оба bin, затем Inno Setup создаёт установщик. В готовом Setup варианты «игра» и «игра + MO2», проверка места и автоматический ярлык проекта.</p></div>@if (_repackCancellation is not null) { <button class="danger" @onclick="CancelRepack">ОТМЕНИТЬ И ОЧИСТИТЬ</button> } else { <button class="secondary" @onclick="SaveAsync" disabled="@_busy">СОХРАНИТЬ ПАРАМЕТРЫ</button><button class="primary" @onclick="BuildRepackAsync" disabled="@_busy">СОЗДАТЬ SETUP + BIN</button> }</section>
             }
             else if (IsContentSection)
             {
@@ -386,6 +443,7 @@
     [
         new("release", "◇", "Релиз", "СБОРКА", "Единый релиз Anthology"),
         new("sources", "⇣", "Источники", "ЗЕРКАЛА", "Маршруты загрузки"),
+        new("repack", "▣", "Конструктор репака", "УСТАНОВЩИК", "Setup и bin без ручной сборки"),
         new("library", "▦", "Библиотека модов", "МОДЫ", "Публикация модов в MO2"),
         new("news", "▤", "Новости", "НОВОСТИ", "Лента новостей Anthology"),
         new("information", "i", "Информация", "СПРАВОЧНИК", "Вкладки и материалы"),
@@ -409,19 +467,25 @@
     private bool _loading = true;
     private bool _busy;
     private bool _syncBusy;
+    private bool _googleDriveBusy;
     private string _status = "Настройте источники и соберите релиз";
     private string _syncMessage = "Общая папка ещё не подключена";
+    private string _googleDriveStatus = "Укажите rclone и один раз авторизуйте Google Drive через rclone config";
     private string? _toast;
     private bool _toastError;
     private DateTimeOffset? _lastSyncAt;
     private DateTimeOffset _lastEditorInteractionAt = DateTimeOffset.UtcNow;
     private UnifiedReleaseResult? _lastBuild;
+    private RepackBuildResult? _lastRepack;
+    private CancellationTokenSource? _repackCancellation;
+    private CancellationTokenSource? _googleDriveCancellation;
     private PublicationResult? _lastPublication;
     private string _lastSavedWorkspaceHash = string.Empty;
     private CancellationTokenSource? _lifetime;
     private Task? _autoSyncTask;
     private Task? _bugReportRefreshTask;
     private readonly LibreTranslationClient _translator = new();
+    private readonly GoogleDrivePublisher _googleDrivePublisher = new();
     private string _selectedContentLanguage = "source";
     private string _selectedChangelogLanguage = "source";
     private string _selectedPeopleLanguage = "source";
@@ -475,7 +539,9 @@
         ? []
         : GetVideoPaths(ContentMediaPublisher.ContentKey(SelectedContent.Id));
     private int ConfiguredPublicationRootsCount => _workspace.Mirrors.Count(mirror =>
-        _machine.PublicationRoots.TryGetValue(mirror.Id, out var root) && !string.IsNullOrWhiteSpace(root));
+        (_machine.PublicationRoots.TryGetValue(mirror.Id, out var root) && !string.IsNullOrWhiteSpace(root))
+        || (string.Equals(mirror.Provider, GoogleDrivePublisher.Provider, StringComparison.OrdinalIgnoreCase)
+            && GoogleDrivePublisher.IsConfigured(_machine)));
     private int QuickAddCount => _machine.QuickReleaseFiles.Count + _machine.QuickReleaseFolders.Count;
     private int QuickDeleteCount => _machine.QuickDeleteFiles.Count + _machine.QuickDeleteFolders.Count;
     private int QuickSelectionCount => QuickAddCount + QuickDeleteCount;
@@ -557,8 +623,242 @@
     private void SelectMo2Root() => _machine.Mo2SourceRoot = Bridge.SelectFolder("Выберите подготовленный полный корень Mod Organizer 2", _machine.Mo2SourceRoot, false) ?? _machine.Mo2SourceRoot;
     private void SelectOutputRoot() => _machine.OutputRoot = Bridge.SelectFolder("Выберите отдельную папку готовых релизов", _machine.OutputRoot) ?? _machine.OutputRoot;
     private void SelectSharedRoot() => _machine.SharedWorkspaceRoot = Bridge.SelectFolder("Выберите общую синхронизируемую папку двух разработчиков", _machine.SharedWorkspaceRoot) ?? _machine.SharedWorkspaceRoot;
+    private void SelectRepackOutputRoot() => _machine.RepackOutputRoot = Bridge.SelectFolder("Выберите папку готовых Setup и bin", _machine.RepackOutputRoot) ?? _machine.RepackOutputRoot;
+    private void SelectRepackTemporaryRoot() => _machine.RepackTemporaryRoot = Bridge.SelectFolder("Выберите временную папку репака на диске с большим запасом места", _machine.RepackTemporaryRoot) ?? _machine.RepackTemporaryRoot;
+    private void SelectInstallerTemplateRoot() => _machine.InstallerTemplateRoot = Bridge.SelectFolder("Выберите папку шаблона установщика", _machine.InstallerTemplateRoot, false) ?? _machine.InstallerTemplateRoot;
+    private void SelectSevenZip() => _machine.SevenZipPath = Bridge.SelectFile("Выберите 7z.exe", "7-Zip (7z.exe)|7z.exe|Программы (*.exe)|*.exe", _machine.SevenZipPath) ?? _machine.SevenZipPath;
+    private void SelectInnoCompiler() => _machine.InnoSetupCompilerPath = Bridge.SelectFile("Выберите Inno Setup Compiler — ISCC.exe", "Inno Setup Compiler (ISCC.exe)|ISCC.exe|Программы (*.exe)|*.exe", _machine.InnoSetupCompilerPath) ?? _machine.InnoSetupCompilerPath;
+    private void SelectGoogleDriveRclone() => _machine.GoogleDriveRclonePath = Bridge.SelectFile("Выберите rclone.exe", "rclone (rclone.exe)|rclone.exe|Программы (*.exe)|*.exe", _machine.GoogleDriveRclonePath) ?? _machine.GoogleDriveRclonePath;
+    private void SelectGoogleDriveConfig() => _machine.GoogleDriveRcloneConfigPath = Bridge.SelectFile("Выберите rclone.conf", "Конфигурация rclone (rclone.conf)|rclone.conf|Файлы CONF (*.conf)|*.conf|Все файлы (*.*)|*.*", _machine.GoogleDriveRcloneConfigPath) ?? _machine.GoogleDriveRcloneConfigPath;
     private void SelectPrivateKey() => _machine.PrivateKeyPath = Bridge.SelectFile("Выберите закрытый PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PrivateKeyPath) ?? _machine.PrivateKeyPath;
     private void SelectPublicKey() => _machine.PublicKeyPath = Bridge.SelectFile("Выберите публичный PEM-ключ", "PEM (*.pem)|*.pem|Все файлы (*.*)|*.*", _machine.PublicKeyPath) ?? _machine.PublicKeyPath;
+
+    private string GoogleDriveConfigStatus => string.IsNullOrWhiteSpace(_machine.GoogleDriveRcloneConfigPath)
+        ? "Будет использован стандартный rclone.conf текущего пользователя"
+        : File.Exists(_machine.GoogleDriveRcloneConfigPath)
+            ? "Конфигурация найдена"
+            : "Файл конфигурации не найден";
+
+    private void OpenGoogleDriveAccount() => Bridge.OpenUrl(GoogleDrivePublisher.AccountHomeUrl);
+
+    private void OpenGoogleDriveProject()
+    {
+        if (string.IsNullOrWhiteSpace(_machine.GoogleDriveProjectPublicUrl)
+            || string.Equals(
+                _machine.GoogleDriveProjectPublicUrl,
+                GoogleDrivePublisher.AccountHomeUrl,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Toast("Сначала создайте или проверьте проект Google Drive.", true);
+            return;
+        }
+        Bridge.OpenUrl(_machine.GoogleDriveProjectPublicUrl);
+    }
+
+    private async Task ConfigureGoogleDriveAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        var cancellation = BeginGoogleDriveOperation("Открываем интерактивную настройку rclone…");
+        try
+        {
+            await State.SaveMachineAsync(_workspace, _machine, cancellation.Token);
+            var exitCode = await Bridge.ConfigureRcloneAsync(
+                _machine.GoogleDriveRclonePath,
+                _machine.GoogleDriveRcloneConfigPath,
+                cancellation.Token);
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException($"Интерактивная настройка rclone завершилась с кодом {exitCode}.");
+            }
+
+            var remotes = await _googleDrivePublisher.ListRemoteNamesAsync(
+                _machine,
+                CreateGoogleDriveProgress(),
+                cancellation.Token);
+            if (remotes.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "rclone.conf создан, но Google Drive remote не найден. Снова откройте настройку и создайте remote типа Google Drive.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_machine.GoogleDriveRemoteName) && remotes.Count == 1)
+            {
+                _machine.GoogleDriveRemoteName = remotes[0];
+            }
+            await State.SaveMachineAsync(_workspace, _machine, cancellation.Token);
+
+            var selectedExists = remotes.Any(remote =>
+                string.Equals(remote, _machine.GoogleDriveRemoteName, StringComparison.OrdinalIgnoreCase));
+            _googleDriveStatus = selectedExists
+                ? $"Remote «{_machine.GoogleDriveRemoteName}» найден и готов к проверке проекта"
+                : $"Найдено remote: {string.Join(", ", remotes)}. Укажите нужное имя в поле выше.";
+            _status = "Настройка rclone завершена";
+            Toast(_googleDriveStatus, !selectedExists);
+        }
+        catch (OperationCanceledException)
+        {
+            _googleDriveStatus = "Интерактивная настройка rclone отменена";
+            _status = _googleDriveStatus;
+        }
+        catch (Exception exception) when (IsGoogleDriveOperationError(exception))
+        {
+            _googleDriveStatus = ExplainGoogleDriveFailure(exception);
+            _status = "Google Drive требует настройки";
+            Toast(_googleDriveStatus, true);
+        }
+        finally
+        {
+            EndGoogleDriveOperation(cancellation);
+        }
+    }
+
+    private async Task EnsureGoogleDriveProjectAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        var cancellation = BeginGoogleDriveOperation("Проверяем проект Google Drive…");
+        try
+        {
+            await State.SaveMachineAsync(_workspace, _machine, cancellation.Token);
+            var result = await _googleDrivePublisher.EnsureProjectAsync(
+                _machine,
+                CreateGoogleDriveProgress(),
+                cancellation.Token);
+            await State.SaveMachineAsync(_workspace, _machine, cancellation.Token);
+            _googleDriveStatus = $"Проект готов: {result.RemoteTarget}";
+            _status = "Google Drive подключён";
+            Toast("Проект Google Drive создан или проверен. Публичная ссылка сохранена локально.");
+        }
+        catch (OperationCanceledException)
+        {
+            _googleDriveStatus = "Операция Google Drive отменена";
+            _status = _googleDriveStatus;
+        }
+        catch (Exception exception) when (IsGoogleDriveOperationError(exception))
+        {
+            _googleDriveStatus = ExplainGoogleDriveFailure(exception);
+            _status = "Google Drive требует настройки";
+            Toast(_googleDriveStatus, true);
+        }
+        finally
+        {
+            EndGoogleDriveOperation(cancellation);
+        }
+    }
+
+    private async Task SyncGoogleDriveSourcesAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+        if (!Bridge.Confirm(
+                "Google Drive будет синхронизирован напрямую с выбранными корнями Game и MO2. "
+                + "Удаление применяется только внутри двух настроенных подпапок проекта: удалённые файлы, которых нет локально, будут удалены. Продолжить?",
+                "Синхронизация Google Drive"))
+        {
+            return;
+        }
+
+        var cancellation = BeginGoogleDriveOperation("Синхронизируем Game и MO2 напрямую…");
+        try
+        {
+            await State.SaveMachineAsync(_workspace, _machine, cancellation.Token);
+            var result = await _googleDrivePublisher.SyncSourcesAsync(
+                _machine,
+                CreateGoogleDriveProgress(),
+                cancellation.Token);
+            _googleDriveStatus = $"Синхронизация завершена: {string.Join(" · ", result.RemoteTargets)}";
+            _status = "Google Drive синхронизирован";
+            Toast("Game и MO2 синхронизированы с Google Drive без локального дубля.");
+        }
+        catch (OperationCanceledException)
+        {
+            _googleDriveStatus = "Синхронизация Google Drive отменена";
+            _status = _googleDriveStatus;
+        }
+        catch (Exception exception) when (IsGoogleDriveOperationError(exception))
+        {
+            _googleDriveStatus = ExplainGoogleDriveFailure(exception);
+            _status = "Ошибка Google Drive";
+            Toast(_googleDriveStatus, true);
+        }
+        finally
+        {
+            EndGoogleDriveOperation(cancellation);
+        }
+    }
+
+    private CancellationTokenSource BeginGoogleDriveOperation(string status)
+    {
+        _googleDriveCancellation?.Dispose();
+        _googleDriveCancellation = _lifetime is null
+            ? new CancellationTokenSource()
+            : CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _googleDriveBusy = true;
+        _busy = true;
+        _googleDriveStatus = status;
+        _status = status;
+        return _googleDriveCancellation;
+    }
+
+    private IProgress<string> CreateGoogleDriveProgress() => new Progress<string>(message =>
+    {
+        var visible = message.Length <= 360 ? message : message[^360..];
+        _googleDriveStatus = visible;
+        _status = visible;
+        _ = InvokeAsync(StateHasChanged);
+    });
+
+    private void CancelGoogleDriveOperation() => _googleDriveCancellation?.Cancel();
+
+    private void EndGoogleDriveOperation(CancellationTokenSource cancellation)
+    {
+        if (ReferenceEquals(_googleDriveCancellation, cancellation))
+        {
+            _googleDriveCancellation = null;
+        }
+        cancellation.Dispose();
+        _googleDriveBusy = false;
+        _busy = false;
+    }
+
+    private string ExplainGoogleDriveFailure(Exception exception)
+    {
+        if (string.IsNullOrWhiteSpace(_machine.GoogleDriveRclonePath)
+            || !File.Exists(_machine.GoogleDriveRclonePath))
+        {
+            return "Выберите существующий rclone.exe. Releaser не скачивает и не устанавливает его автоматически.";
+        }
+        if (string.IsNullOrWhiteSpace(_machine.GoogleDriveRemoteName))
+        {
+            return "Google Drive ещё не авторизован: один раз выполните «rclone config», создайте remote типа Google Drive и укажите его имя здесь.";
+        }
+
+        var message = exception.Message;
+        var lower = message.ToLowerInvariant();
+        if (lower.Contains("oauth", StringComparison.Ordinal)
+            || lower.Contains("token", StringComparison.Ordinal)
+            || lower.Contains("unauthorized", StringComparison.Ordinal)
+            || lower.Contains("access denied", StringComparison.Ordinal)
+            || lower.Contains("invalid_grant", StringComparison.Ordinal)
+            || lower.Contains("didn't find section", StringComparison.Ordinal)
+            || lower.Contains("not found in config", StringComparison.Ordinal))
+        {
+            return "Google Drive требует разовой OAuth-настройки: выполните «rclone config», авторизуйте нужный аккаунт и проверьте имя remote. " + message;
+        }
+        return message;
+    }
+
+    private static bool IsGoogleDriveOperationError(Exception exception) => exception is
+        ArgumentException or IOException or InvalidOperationException or NotSupportedException or UnauthorizedAccessException;
 
     private void SelectQuickFiles(string installRoot)
     {
@@ -767,6 +1067,13 @@
     private static string FolderName(string path) =>
         Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
 
+    private static string ToolStatus(string path, string expectedName) =>
+        File.Exists(path)
+            ? $"Готово · {Path.GetFileName(path)}"
+            : $"Не найден {expectedName}";
+
+    private static string ToolStatusClass(string path) => File.Exists(path) ? "tool-ready" : "tool-missing";
+
     private async Task SelectSectionAsync(string section)
     {
         MarkEditorInteraction();
@@ -938,6 +1245,48 @@
         if (!string.IsNullOrWhiteSpace(text)) segments.Add((text.Trim(), apply));
     }
 
+    private async Task PublishContentBundleAsync()
+    {
+        _busy = true;
+        try
+        {
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            var progress = new Progress<string>(message =>
+            {
+                _status = message;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            var result = await ReleasePublicationService.PublishContentBundleAsync(
+                _workspace,
+                _machine,
+                progress);
+            _lastPublication = result.Publication;
+            await State.SaveWorkspaceAsync(_workspace, _machine, true);
+            _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
+            _status = result.Publication.Targets == 0
+                ? $"Контент версии {result.Version} готов локально"
+                : $"Контент версии {result.Version} опубликован в {result.Publication.Targets} источник(а)";
+            Toast(result.Publication.Targets == 0
+                ? $"Готово: {result.ManifestPath}. Настройте источник, чтобы отправить выпуск."
+                : $"Одним выпуском: {result.ContentItems} материалов, {result.PublishedAddonIds.Count} новых пакетов модов, {result.AddedFiles} файлов и {result.DeletedFiles} удалений.");
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or IOException
+                                           or UnauthorizedAccessException
+                                           or CryptographicException)
+        {
+            _status = "Единый выпуск контента остановлен";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
     private async Task PublishQuickFilesAsync()
     {
         _busy = true;
@@ -975,7 +1324,21 @@
             _lastSavedWorkspaceHash = WorkspaceStorage.ComputeHash(_workspace);
             var progress = new Progress<string>(message => { _status = message; _ = InvokeAsync(StateHasChanged); });
             await LauncherUpdateConfigurationPublisher.PrepareAsync(_workspace, _machine, progress);
-            _lastBuild = await UnifiedReleaseBuilder.BuildAsync(new UnifiedReleaseRequest(_workspace, _machine), progress);
+            IReadOnlyList<LooseFileMirrorOverride>? googleDriveMirrors = null;
+            if (GoogleDrivePublisher.IsConfigured(_machine))
+            {
+                await _googleDrivePublisher.EnsureProjectAsync(_machine, progress);
+                await _googleDrivePublisher.SyncSourcesAsync(_machine, progress);
+                googleDriveMirrors = await _googleDrivePublisher.BuildLooseFileMirrorOverridesAsync(_machine, progress);
+                await State.SaveMachineAsync(_workspace, _machine);
+            }
+            _lastBuild = await UnifiedReleaseBuilder.BuildLooseAsync(
+                new UnifiedReleaseRequest(
+                    _workspace,
+                    _machine,
+                    LooseFileMirrors: googleDriveMirrors,
+                    MinimumLauncherVersion: "0.7.0-alpha.18"),
+                progress);
             _lastPublication = await ReleasePublicationService.PublishReleaseAsync(_lastBuild, _workspace, _machine, progress);
             _status = _lastPublication.Targets == 0
                 ? $"Релиз {_lastBuild.Version} готов локально"
@@ -1036,6 +1399,69 @@
         }
 
         SelectedContent.AuthorLinks.Add(CreateCustomSocialLink(SelectedContent.AuthorLinks));
+    }
+
+    private async Task BuildRepackAsync()
+    {
+        _busy = true;
+        _lastRepack = null;
+        var cancellation = new CancellationTokenSource();
+        _repackCancellation = cancellation;
+        try
+        {
+            await State.SaveMachineAsync(_workspace, _machine, cancellation.Token);
+            var progress = new Progress<string>(message =>
+            {
+                _status = message;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            var request = new RepackBuildRequest
+            {
+                ProjectName = _machine.RepackProjectName,
+                Version = _workspace.Version,
+                GameSourceRoot = _machine.GameSourceRoot,
+                Mo2SourceRoot = _machine.Mo2SourceRoot,
+                IncludeMo2 = _machine.RepackIncludeMo2,
+                OutputRoot = _machine.RepackOutputRoot,
+                TemporaryRoot = _machine.RepackTemporaryRoot,
+                SevenZipPath = _machine.SevenZipPath,
+                InnoSetupCompilerPath = _machine.InnoSetupCompilerPath,
+                InstallerTemplateRoot = _machine.InstallerTemplateRoot,
+                OverwriteExisting = _machine.RepackOverwriteExisting,
+            };
+            _lastRepack = await new RepackBuilder().BuildAsync(request, progress, cancellation.Token);
+            _status = $"Репак {_workspace.Version} готов";
+            Toast($"Созданы Setup и bin: {_machine.RepackOutputRoot}");
+        }
+        catch (OperationCanceledException)
+        {
+            _status = "Сборка репака отменена; временные файлы очищены";
+            Toast(_status);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or IOException
+                                           or UnauthorizedAccessException)
+        {
+            _status = "Сборка репака остановлена; временные файлы очищены";
+            Toast(exception.Message, true);
+        }
+        finally
+        {
+            if (ReferenceEquals(_repackCancellation, cancellation))
+            {
+                _repackCancellation = null;
+            }
+            cancellation.Dispose();
+            _busy = false;
+        }
+    }
+
+    private void CancelRepack()
+    {
+        _status = "Отмена репака и очистка временных файлов…";
+        _repackCancellation?.Cancel();
     }
 
     private void RemoveAuthorLink(SocialLinkDraft link)
@@ -2009,11 +2435,17 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (_lifetime is null) { return; }
-        _lifetime.Cancel();
-        if (_autoSyncTask is not null) { try { await _autoSyncTask; } catch (OperationCanceledException) { } }
-        if (_bugReportRefreshTask is not null) { try { await _bugReportRefreshTask; } catch (OperationCanceledException) { } }
-        _lifetime.Dispose();
+        _repackCancellation?.Cancel();
+        _googleDriveCancellation?.Cancel();
+        if (_lifetime is not null)
+        {
+            _lifetime.Cancel();
+            if (_autoSyncTask is not null) { try { await _autoSyncTask; } catch (OperationCanceledException) { } }
+            if (_bugReportRefreshTask is not null) { try { await _bugReportRefreshTask; } catch (OperationCanceledException) { } }
+            _lifetime.Dispose();
+        }
+        _repackCancellation?.Dispose();
+        _googleDriveCancellation?.Dispose();
         _translator.Dispose();
     }
 

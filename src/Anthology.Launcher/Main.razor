@@ -1,9 +1,123 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
+@using System.Reflection
 @implements IDisposable
 @inject LauncherOperationGate OperationGate
+@inject LauncherReleaseHistoryStore ReleaseHistory
 
 <div class="app-shell @(ShowTransferDock ? "transfer-active" : null) @(IsInterfaceLocked ? "interface-locked" : null)" aria-busy="@IsInterfaceLocked">
+    @if (IsCompactMode)
+    {
+        <section class="compact-launcher" inert="@IsInterfaceLocked">
+            <header class="compact-header">
+                <div class="compact-brand">
+                    <img src="assets/anthology-logo.png" alt="" />
+                    <div><strong>ANTHOLOGY</strong><span>LAUNCHER · @LauncherVersion</span></div>
+                </div>
+                <nav class="compact-resources" aria-label="Ресурсы проекта">
+                    @foreach (var socialLink in HomeSocialLinks)
+                    {
+                        var currentSocialLink = socialLink;
+                        @if (GetSafeExternalUrl(currentSocialLink.Url) is string socialUrl)
+                        {
+                            <a class="@currentSocialLink.Id" href="@socialUrl" target="_blank" rel="noopener noreferrer" title="@currentSocialLink.Subtitle">@currentSocialLink.Title</a>
+                        }
+                    }
+                </nav>
+                <button class="compact-mode-switch" @onclick='() => OpenDetailedSectionAsync("home")'>ПОДРОБНАЯ ВЕРСИЯ <span>↗</span></button>
+            </header>
+
+            <div class="compact-dashboard">
+                <article class="compact-news-panel compact-panel">
+                    <header>
+                        <div><span>ПОСЛЕДНИЕ ИЗМЕНЕНИЯ</span><strong>Новости проекта</strong></div>
+                        <div class="compact-news-tools">
+                            <small>LAUNCHER @LauncherVersion</small>
+                            <button @onclick='() => OpenDetailedSectionAsync("information")'>ОБ ИГРЕ</button>
+                        </div>
+                    </header>
+                    <div class="compact-news-scroll">
+                        @if (LatestPublishedNews is { } latestNews)
+                        {
+                            var localizedLatestNews = Localized(latestNews);
+                            <time>@NewsDate(latestNews).ToString("dd.MM.yyyy HH:mm") · @latestNews.Section</time>
+                            <h2>@localizedLatestNews.Title</h2>
+                            <p class="compact-news-summary"><AutoLinkText Text="@localizedLatestNews.Summary" /></p>
+                            @if (!string.IsNullOrWhiteSpace(localizedLatestNews.Body))
+                            {
+                                <div class="compact-news-body"><AutoLinkText Text="@localizedLatestNews.Body" /></div>
+                            }
+                            @foreach (var block in (latestNews.Blocks ?? []).Where(block => block.Kind is ContentBlockKind.Section or ContentBlockKind.Article))
+                            {
+                                var localizedBlock = Localized(block);
+                                <section><strong>@localizedBlock.Title</strong><AutoLinkText Text="@localizedBlock.Body" /></section>
+                            }
+                        }
+                        else
+                        {
+                            <div class="compact-empty-news"><strong>Новостей пока нет</strong><span>Последняя публикация появится здесь автоматически.</span></div>
+                        }
+                    </div>
+                </article>
+
+                <aside class="compact-command-panel compact-panel">
+                    <div class="compact-play-stack">
+                        <button class="launch-button launch-online" @onclick="LaunchOnlineAsync" disabled="@(!_installation.OnlineModeFound)"><span class="launch-button-icon"><i></i>◎</span><span class="launch-button-copy"><strong>ИГРАТЬ ОНЛАЙН</strong><small>Сетевой режим Anthology</small></span></button>
+                        <button class="launch-button launch-modpack" @onclick="LaunchModpackAsync" disabled="@(!_installation.ModOrganizerFound)"><span class="launch-button-icon">▶</span><span class="launch-button-copy"><strong>ИГРАТЬ С МОДПАКОМ</strong><small>@(_mo2Workspace.SelectedProfile ?? "Профиль MO2 не выбран")</small></span></button>
+                        <button class="launch-button launch-original" @onclick="LaunchOriginalAsync" disabled="@(!_installation.OriginalGameFound)"><span class="launch-button-icon">A</span><span class="launch-button-copy"><strong>ИГРАТЬ В ОРИГИНАЛ</strong><small>Чистая Anomaly</small></span></button>
+                    </div>
+                    <nav class="compact-project-links" aria-label="Разделы и ресурсы проекта">
+                        <button class="support" @onclick='() => OpenDetailedSectionAsync("project-support")'><span>♡</span><strong>ПОДДЕРЖАТЬ ПРОЕКТ</strong><i>↗</i></button>
+                        <button class="chat" @onclick='() => OpenDetailedSectionAsync("community")'><span>◉</span><strong>РЕАЛЬНЫЙ ЧАТ</strong><i>↗</i></button>
+                        <button class="library" @onclick='() => OpenDetailedSectionAsync("library")'><span>▦</span><strong>БИБЛИОТЕКА МОДОВ</strong><i>↗</i></button>
+                        <button class="information" @onclick='() => OpenDetailedSectionAsync("information")'><span>i</span><strong>ИНФОРМАЦИЯ</strong><i>↗</i></button>
+                    </nav>
+                    <div class="compact-update-stack">
+                        <button class="compact-update-banner" @onclick='() => OpenDetailedSectionAsync("updates")'><span>ЦЕНТР ОБНОВЛЕНИЙ</span><strong>@UpdateHeadline</strong><i>↗</i></button>
+                        <div class="compact-update-progress"><span style="width:@UpdateDockPercentage%"></span></div>
+                        <small>@UpdateDockTitle</small>
+                        <button class="compact-update-action check" @onclick="CheckForUpdatesAsync" disabled="@_updateBusy">ПРОВЕРИТЬ</button>
+                        <button class="compact-update-action download" @onclick="InstallUpdatesAsync" disabled="@(_updateCheck?.HasUpdates != true || _updateBusy)">@UpdatePrimaryActionLabel</button>
+                        <button class="compact-update-action rollback" @onclick="RollbackLatestUpdateAsync" disabled="@(_rollbackCandidate is null || _updateBusy)">ОТКАТИТЬ</button>
+                    </div>
+                </aside>
+
+                <section class="compact-settings-panel compact-panel">
+                    <header>
+                        <div><span>ПАРАМЕТРЫ ЗАПУСКА</span><strong>Всё нужное — на главном экране</strong></div>
+                        <label>ПРОФИЛЬ MO2
+                            <select value="@_mo2Workspace.SelectedProfile" @onchange="ChangeCompactMo2ProfileAsync" disabled="@(!_mo2Workspace.Instance.Available || _mo2Workspace.RuntimeBusy)">
+                                @foreach (var profile in _mo2Workspace.Instance.Profiles) { <option value="@profile">@profile</option> }
+                            </select>
+                        </label>
+                        <button class="compact-save-settings" @onclick="SaveCompactSettingsAsync">СОХРАНИТЬ</button>
+                    </header>
+                    <div class="compact-renderers" role="group" aria-label="Рендер">
+                        @foreach (var renderer in Renderers)
+                        {
+                            var currentRenderer = renderer;
+                            <button class="@(_settings.Renderer == currentRenderer.Id ? "active" : null)" @onclick="() => _settings.Renderer = currentRenderer.Id"><strong>@currentRenderer.Label</strong><span>@currentRenderer.Code</span></button>
+                        }
+                    </div>
+                    <div class="compact-options">
+                        <button class="compact-option @ToggleClass(_settings.DebugMode)" @onclick="() => _settings.DebugMode = !_settings.DebugMode"><span></span><div><strong>Режим отладки</strong><small>-dbg</small></div></button>
+                        <button class="compact-option @ToggleClass(_settings.SoundWorkaround)" @onclick="() => _settings.SoundWorkaround = !_settings.SoundWorkaround"><span></span><div><strong>Обход проблем со звуком</strong><small>OpenAL</small></div></button>
+                        <button class="compact-option @ToggleClass(_settings.PrefetchSounds)" @onclick="() => _settings.PrefetchSounds = !_settings.PrefetchSounds"><span></span><div><strong>Предзагрузка звуков</strong><small>-prefetch_sounds</small></div></button>
+                        <button class="compact-option @ToggleClass(_settings.RelayChatAlways)" @onclick="() => _settings.RelayChatAlways = !_settings.RelayChatAlways"><span></span><div><strong>Реальный чат всегда</strong><small>Игровой мост</small></div></button>
+                        <button class="compact-option @ToggleClass(_settings.ResetUserLtx)" @onclick="() => _settings.ResetUserLtx = !_settings.ResetUserLtx"><span></span><div><strong>Стандартный user.ltx</strong><small>Однократный сброс</small></div></button>
+                        <button class="compact-option @ToggleClass(_settings.UseAvx)" @onclick="() => _settings.UseAvx = !_settings.UseAvx"><span></span><div><strong>Поддержка AVX</strong><small>Исполняемый файл</small></div></button>
+                        <div class="compact-shadow-option"><div><strong>Карта теней</strong><small>@_settings.ShadowMapSize</small></div><button @onclick="() => ChangeShadowMap(-1)">−</button><button @onclick="() => ChangeShadowMap(1)">＋</button></div>
+                    </div>
+                    <footer>
+                        <button class="compact-latest-save" @onclick="LaunchLatestSaveAsync" disabled="@(!CanLaunchLatestSave)"><span>↻</span><div><strong>ЗАГРУЗИТЬ ПОСЛЕДНЕЕ СОХРАНЕНИЕ</strong><small>@(_latestSave is null ? "Сохранения не найдены" : Path.GetFileNameWithoutExtension(_latestSave.Save.Name))</small></div></button>
+                        <button class="compact-save-catalog" @onclick='() => OpenDetailedSectionAsync("saves")'><span>▣</span><div><strong>КАТАЛОГ СОХРАНЕНИЙ</strong><small>Открыть в подробной версии</small></div><i>↗</i></button>
+                    </footer>
+                </section>
+            </div>
+        </section>
+    }
+    else
+    {
     <aside class="sidebar" inert="@IsInterfaceLocked">
         <div class="brand">
             <div class="brand-mark"><img src="assets/anthology-logo.png" alt="A.N.T.H.O.L.O.G.Y" /></div>
@@ -70,7 +184,7 @@
             <strong>@(_installation.GameFound ? "Anthology обнаружена" : "Путь не настроен")</strong>
             <small>@_installation.StatusText</small>
         </div>
-        <div class="version-line">LAUNCHER NEXT 0.7.0 ALPHA · LOCAL DEV</div>
+        <div class="version-line">LAUNCHER NEXT @LauncherVersion</div>
     </aside>
 
     <main class="workspace" inert="@IsInterfaceLocked">
@@ -84,6 +198,7 @@
                     <span></span>@(Community.IsOffline ? "OFFLINE-КЭШ" : "СЕРВЕР НА СВЯЗИ")
                 </span>
                 <button class="icon-button" title="Открыть папку игры" @onclick="OpenGameFolder">↗</button>
+                <button class="mode-switch-button" title="Переключить вид лаунчера" @onclick="SwitchToCompactModeAsync">УПРОЩЁННЫЙ ВИД</button>
             </div>
         </header>
 
@@ -162,7 +277,7 @@
                                 <span><strong>ОТКРЫТЬ КАТАЛОГ СОХРАНЕНИЙ</strong><small>Превью, описание и быстрый запуск выбранного сейва</small></span>
                                 <i>→</i>
                             </button>
-                            <button class="text-button hero-update-link" @onclick="ShowUpdates">ЦЕНТР ОБНОВЛЕНИЙ →</button>
+                            <button class="hero-update-link" @onclick="ShowUpdates"><span>ЦЕНТР ОБНОВЛЕНИЙ</span><strong>@UpdateHeadline</strong><i>→</i></button>
                         </div>
                     </div>
                     <div class="hero-radar" aria-hidden="true">
@@ -203,7 +318,7 @@
                     <div class="section-block news-block">
                         <div class="section-heading">
                             <div><span>ПОСЛЕДНИЕ СОБЫТИЯ</span><h3>Новости разработки</h3></div>
-                            <button class="text-button" @onclick="ShowNews">ВСЕ НОВОСТИ →</button>
+                            <div class="news-heading-actions"><span class="news-launcher-version">LAUNCHER @LauncherVersion</span><button class="text-button" @onclick='() => SelectSection("information")'>ОБ ИГРЕ →</button><button class="text-button" @onclick="ShowNews">ВСЕ НОВОСТИ →</button></div>
                         </div>
                         <div class="news-list">
                             @if (PublishedNews.Any())
@@ -325,7 +440,7 @@
                                 <div class="save-catalog-preview">
                                     @if (currentSave.PreviewDataUrl is not null)
                                     {
-                                        <img src="@currentSave.PreviewDataUrl" alt="Превью сохранения @currentSave.Title" />
+                                        <img src="@currentSave.PreviewDataUrl" alt="Превью сохранения @currentSave.Title" loading="lazy" decoding="async" />
                                     }
                                     else
                                     {
@@ -372,7 +487,7 @@
                         var localizedItem = Localized(currentItem);
                         <article class="mod-card published-mod-card @(_openContentId == currentItem.Id ? "open" : null)">
                             <div class="mod-cover published-cover">
-                                @if (currentItem.Images.FirstOrDefault() is { } imageUrl) { <img src="@imageUrl" alt="" /> } else { <span>@localizedItem.Title[..1]</span> }
+                                @if (currentItem.Images.FirstOrDefault() is { } imageUrl) { <img src="@imageUrl" alt="" loading="lazy" decoding="async" /> } else { <span>@localizedItem.Title[..1]</span> }
                                 <small>@(_publishedContent?.Version ?? "NEXT")</small>
                             </div>
                             <div class="mod-body">
@@ -385,7 +500,7 @@
                                         .ToArray();
                                     @if (currentItem.Images.FirstOrDefault() is { } detailImageUrl)
                                     {
-                                        <figure class="published-detail-cover"><img src="@detailImageUrl" alt="@localizedItem.Title" /></figure>
+                                        <figure class="published-detail-cover"><img src="@detailImageUrl" alt="@localizedItem.Title" loading="lazy" decoding="async" /></figure>
                                     }
                                     @if (authorLinks.Length > 0)
                                     {
@@ -594,7 +709,7 @@
                     {
                         var openNews = SelectedPublishedNews!;
                         var localizedNews = Localized(openNews);
-                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead"><AutoLinkText Text="@localizedNews.Summary" /></p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body"><AutoLinkText Text="@localizedNews.Body" /></div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div><AutoLinkText Text="@localizedBlock.Body" /></div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" /><figcaption><strong>@localizedBlock.Title</strong><span><AutoLinkText Text="@localizedBlock.Body" /></span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" /> }@foreach (var video in openNews.Videos) { <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" /> }</section>
+                        <section class="section-block published-news-article managed-news-article"><button class="text-button close-published" @onclick="() => _openContentId = null">ЗАКРЫТЬ ×</button><span class="eyebrow">@openNews.Section · @NewsDate(openNews).ToString("dd.MM.yyyy HH:mm")</span><h2>@localizedNews.Title</h2><p class="information-lead"><AutoLinkText Text="@localizedNews.Summary" /></p>@if (!string.IsNullOrWhiteSpace(localizedNews.Body)) { <div class="published-content-body"><AutoLinkText Text="@localizedNews.Body" /></div> }@foreach (var block in openNews.Blocks ?? []) { var localizedBlock = Localized(block); @if (block.Kind == ContentBlockKind.Section) { <section class="published-information-block text-block"><h3>@localizedBlock.Title</h3><div><AutoLinkText Text="@localizedBlock.Body" /></div></section> } else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl) { <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" loading="lazy" decoding="async" /><figcaption><strong>@localizedBlock.Title</strong><span><AutoLinkText Text="@localizedBlock.Body" /></span></figcaption></figure> } else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl) { <a class="published-information-block link-block" href="@linkUrl" target="_blank" rel="noopener noreferrer"><span>↗</span><div><strong>@localizedBlock.Title</strong><small>@localizedBlock.Body</small><code>@linkUrl</code></div></a> } }@foreach (var image in openNews.Images) { <img src="@image" alt="" loading="lazy" decoding="async" /> }@foreach (var video in openNews.Videos) { <SafeVideoPlayer SourceUrl="@video.Url" Title="@video.Title" /> }</section>
                     }
                 }
                 else
@@ -626,7 +741,7 @@
                         <section class="published-information-page section-block @(publishedInformation.Images.Count == 0 ? "no-cover" : null)">
                             @if (publishedInformation.Images.Count > 0)
                             {
-                                <div class="published-information-cover"><img src="@publishedInformation.Images[0]" alt="@localizedInformation.Title" /><span>ANTHOLOGY INFORMATION</span></div>
+                                <div class="published-information-cover"><img src="@publishedInformation.Images[0]" alt="@localizedInformation.Title" loading="lazy" decoding="async" /><span>ANTHOLOGY INFORMATION</span></div>
                             }
                             <article class="published-information-copy">
                                 <span class="eyebrow">СПРАВОЧНИК ANTHOLOGY · @publishedInformation.Section</span>
@@ -645,7 +760,7 @@
                                     }
                                     else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
                                     {
-                                        <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
+                                        <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" loading="lazy" decoding="async" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
                                     }
                                     else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl)
                                     {
@@ -670,7 +785,7 @@
                                             var selectedArticleCopy = Localized(selectedArticleBlock);
                                             var articleBackground = GetSafeExternalUrl(selectedArticleBlock.Url);
                                             <article class="managed-article-copy @(articleBackground is null ? null : "has-background")">
-                                                @if (articleBackground is not null) { <img src="@articleBackground" alt="" /> }
+                                                @if (articleBackground is not null) { <img src="@articleBackground" alt="" loading="lazy" decoding="async" /> }
                                                 <div><span class="eyebrow">@ArticleStatus(selectedArticleCopy.Body)</span><h3>@selectedArticleCopy.Title</h3><div class="information-body"><AutoLinkText Text="@ArticleText(selectedArticleCopy.Body)" /></div></div>
                                             </article>
                                         }
@@ -678,7 +793,7 @@
                                 }
                                 @foreach (var image in publishedInformation.Images.Skip(1))
                                 {
-                                    <figure class="published-information-block image-block"><img src="@image" alt="" /></figure>
+                                    <figure class="published-information-block image-block"><img src="@image" alt="" loading="lazy" decoding="async" /></figure>
                                 }
                                 @foreach (var video in publishedInformation.Videos)
                                 {
@@ -708,7 +823,7 @@
                         <section class="published-information-page project-support-page section-block @(currentSupport.Images.Count == 0 ? "no-cover" : null)">
                             @if (currentSupport.Images.Count > 0)
                             {
-                                <div class="published-information-cover project-support-cover"><img src="@currentSupport.Images[0]" alt="@localizedSupport.Title" /><span>ANTHOLOGY PROJECT SUPPORT</span></div>
+                                <div class="published-information-cover project-support-cover"><img src="@currentSupport.Images[0]" alt="@localizedSupport.Title" loading="lazy" decoding="async" /><span>ANTHOLOGY PROJECT SUPPORT</span></div>
                             }
                             <article class="published-information-copy">
                                 <span class="eyebrow">ПОДДЕРЖКА ПРОЕКТА · @currentSupport.Section</span>
@@ -727,7 +842,7 @@
                                     }
                                     else if (block.Kind == ContentBlockKind.Image && GetSafeExternalUrl(block.Url) is string imageUrl)
                                     {
-                                        <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
+                                        <figure class="published-information-block image-block"><img src="@imageUrl" alt="@localizedBlock.Title" loading="lazy" decoding="async" />@if (!string.IsNullOrWhiteSpace(localizedBlock.Title) || !string.IsNullOrWhiteSpace(localizedBlock.Body)) { <figcaption><strong>@localizedBlock.Title</strong><span>@localizedBlock.Body</span></figcaption> }</figure>
                                     }
                                     else if (block.Kind == ContentBlockKind.Link && GetSafeExternalUrl(block.Url) is string linkUrl)
                                     {
@@ -736,7 +851,7 @@
                                 }
                                 @foreach (var image in currentSupport.Images.Skip(1))
                                 {
-                                    <figure class="published-information-block image-block"><img src="@image" alt="" /></figure>
+                                    <figure class="published-information-block image-block"><img src="@image" alt="" loading="lazy" decoding="async" /></figure>
                                 }
                                 @foreach (var video in currentSupport.Videos)
                                 {
@@ -761,7 +876,7 @@
                             <article class="project-person-card">
                                 @if (GetSafeExternalUrl(person.ImageUrl) is string portraitUrl)
                                 {
-                                    <div class="project-person-photo"><img src="@portraitUrl" alt="@localizedPerson.Name" /></div>
+                                    <div class="project-person-photo"><img src="@portraitUrl" alt="@localizedPerson.Name" loading="lazy" decoding="async" /></div>
                                 }
                                 else
                                 {
@@ -808,9 +923,9 @@
                             }
                             else
                             {
-                                <button class="secondary-button" @onclick="CheckForUpdatesAsync">ПРОВЕРИТЬ</button>
-                                <button class="primary-button" disabled="@(_updateCheck?.HasUpdates != true)" @onclick="InstallUpdatesAsync">@UpdatePrimaryActionLabel</button>
-                                <button class="secondary-button rollback-button" disabled="@(_rollbackCandidate is null)" @onclick="RollbackLatestUpdateAsync">ОТКАТИТЬ</button>
+                                <button class="secondary-button update-check-button" @onclick="CheckForUpdatesAsync">ПРОВЕРИТЬ</button>
+                                <button class="primary-button update-download-button" disabled="@(_updateCheck?.HasUpdates != true)" @onclick="InstallUpdatesAsync">@UpdatePrimaryActionLabel</button>
+                                <button class="secondary-button rollback-button update-rollback-button" disabled="@(_rollbackCandidate is null)" @onclick="RollbackLatestUpdateAsync">ОТКАТИТЬ</button>
                             }
                         </div>
                     </div>
@@ -874,6 +989,28 @@
                     @if (_rollbackCandidate is not null)
                     {
                         <div class="rollback-summary"><span>ДОСТУПЕН ОТКАТ</span><div><strong>@_rollbackCandidate.DisplayName</strong><small>@(_rollbackCandidate.FromVersion ?? "исходные файлы") ← @_rollbackCandidate.ToVersion · @_rollbackCandidate.InstalledAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></div><button class="text-button" @onclick="RollbackLatestUpdateAsync" disabled="@_updateBusy">ВОССТАНОВИТЬ ПРОШЛУЮ ВЕРСИЮ →</button></div>
+                    }
+                </section>
+                <section class="release-history-panel section-block">
+                    <header><div><span class="eyebrow">АРХИВ ВЕРСИЙ</span><h3>История обновлений</h3><p>Подписанные выпуски канала по датам и версиям, включая версии до установки этого лаунчера.</p></div><strong>@UpdateHistoryEntries.Count</strong></header>
+                    @if (UpdateHistoryEntries.Count == 0)
+                    {
+                        <div class="release-history-empty">История появится после первой успешной проверки канала.</div>
+                    }
+                    else
+                    {
+                        var historyIndex = 0;
+                        <div class="release-history-list">
+                            @foreach (var entry in UpdateHistoryEntries)
+                            {
+                                var localizedEntry = ReleaseChangelogLocalization.Resolve(entry.Changelog, _settings.InterfaceLanguage);
+                                var newestEntry = historyIndex++ == 0;
+                                <details open="@newestEntry">
+                                    <summary><time>@entry.PublishedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time><strong>@entry.Version</strong><span>@localizedEntry.Title</span><i>⌄</i></summary>
+                                    <div><p>@localizedEntry.Summary</p>@if (!string.IsNullOrWhiteSpace(localizedEntry.Body)) { <AutoLinkText Text="@localizedEntry.Body" /> }@if (!string.IsNullOrWhiteSpace(localizedEntry.Warnings)) { <aside><strong>ВАЖНО</strong><AutoLinkText Text="@localizedEntry.Warnings" /></aside> }</div>
+                                </details>
+                            }
+                        </div>
                     }
                 </section>
                 <section class="provider-grid">
@@ -1141,6 +1278,10 @@
                                 </div>
                                 <div class="mo2-pathbar"><button disabled>⌕</button><span>@(string.IsNullOrWhiteSpace(_mo2FileSearch) ? $"ПОКАЗАНО: {_mo2FileSearchResults.Count} ИЗ {_mo2Content?.UniqueFiles ?? 0}" : $"НАЙДЕНО: {_mo2FileSearchResults.Count} · запрос «{_mo2FileSearch}»")</span></div>
                                 <div class="mo2-file-list">
+                                    @if (string.IsNullOrWhiteSpace(_mo2FileSearch))
+                                    {
+                                        <div class="mo2-search-hint"><strong>Поиск запускается после ввода запроса</strong><span>Это не блокирует интерфейс построением полного списка из тысяч файлов.</span></div>
+                                    }
                                     @foreach (var item in _mo2FileSearchResults)
                                     {
                                         var currentItem = item;
@@ -1265,7 +1406,7 @@
                         <div class="game-settings-intro">
                             <div>
                                 <strong>Знакомое меню Anomaly и Mod Configuration Menu</strong>
-                                <p>Структура и названия читаются из игровых <code>.xdb</code>, распакованного <code>gamedata</code> и активных модов MO2. Значения Anomaly сохраняются в оригинальные <code>appdata\user.ltx</code> и <code>gamedata\configs\axr_options.ltx</code>, MCM — в раздел <code>[mcm]</code> оригинального <code>axr_options.ltx</code>.</p>
+                                <p>Структура и названия читаются из игровых <code>.db/.xdb</code>, распакованного <code>gamedata</code> и активных модов MO2. Значения Anomaly сохраняются в оригинальные <code>appdata\user.ltx</code> и <code>gamedata\configs\axr_options.ltx</code>, MCM — в раздел <code>[mcm]</code> оригинального <code>axr_options.ltx</code>.</p>
                             </div>
                             <div class="game-settings-actions">
                                 <button class="secondary-button" @onclick="() => RefreshGameConfigurationAsync()" disabled="@_gameConfigurationBusy">↻ ОБНОВИТЬ СПИСОК</button>
@@ -1349,7 +1490,7 @@
                                             var view = GameSettingsPresentation.For(setting);
                                             <div class="game-setting-row native-setting-row @(setting.IsDirty ? "changed" : null)">
                                                 <div class="game-setting-key">
-                                                    <strong>@view.Title</strong>
+                                                    <strong>@ConfigurationSettingTitle(setting, view)</strong>
                                                     <p>@view.Description</p>
                                                     @if (_configurationAdvanced) { <code>@setting.Key</code> }
                                                 </div>
@@ -1500,8 +1641,135 @@
             <button class="toast @(_toastError ? "error" : null)" @onclick="DismissToast"><span>@(_toastError ? "!" : "✓")</span>@_toast</button>
         }
     </main>
+    }
 
-    @if (IsInterfaceLocked)
+    @if (_fomodWizard is { } wizard)
+    {
+        <section class="fomod-wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="fomod-wizard-title">
+            <article class="fomod-wizard-shell">
+                <header class="fomod-wizard-header">
+                    <div class="fomod-wizard-brand"><img src="assets/anthology-logo.png" alt="" /><div><span>ANTHOLOGY · УСТАНОВЩИК МОДОВ</span><strong id="fomod-wizard-title">@FomodTitle(wizard)</strong></div></div>
+                    <div class="fomod-wizard-profile"><span>ПРОФИЛЬ MO2</span><strong>@wizard.ProfileName</strong></div>
+                </header>
+
+                <div class="fomod-wizard-progress" aria-label="Этапы установки">
+                    <span class="@(wizard.StepIndex < 0 && !wizard.Reviewing ? "active" : "done")"><i>1</i>О МОДЕ</span>
+                    @for (var stepIndex = 0; stepIndex < wizard.VisibleSteps.Count; stepIndex++)
+                    {
+                        var currentIndex = stepIndex;
+                        <span class="@(wizard.Reviewing || wizard.StepIndex > currentIndex ? "done" : wizard.StepIndex == currentIndex ? "active" : null)"><i>@(currentIndex + 2)</i>@wizard.VisibleSteps[currentIndex].Step.Name</span>
+                    }
+                    <span class="@(wizard.Reviewing ? "active" : null)"><i>@(wizard.VisibleSteps.Count + 2)</i>ПРОВЕРКА</span>
+                </div>
+
+                <div class="fomod-wizard-content">
+                    <aside class="fomod-wizard-info">
+                        @if (FomodAsset(wizard, wizard.Package.Module.ImagePath) is string moduleImage)
+                        {
+                            <figure><img src="@moduleImage" alt="@FomodTitle(wizard)" decoding="async" /></figure>
+                        }
+                        else
+                        {
+                            <div class="fomod-wizard-emblem"><img src="assets/anthology-logo.png" alt="" /><span>FOMOD</span></div>
+                        }
+                        <dl>
+                            <div><dt>НАЗВАНИЕ</dt><dd>@FomodTitle(wizard)</dd></div>
+                            @if (!string.IsNullOrWhiteSpace(wizard.Package.Metadata.Author)) { <div><dt>АВТОР</dt><dd>@wizard.Package.Metadata.Author</dd></div> }
+                            @if (!string.IsNullOrWhiteSpace(wizard.Package.Metadata.Version)) { <div><dt>ВЕРСИЯ</dt><dd>@wizard.Package.Metadata.Version</dd></div> }
+                            <div><dt>АРХИВ</dt><dd title="@wizard.ArchivePath">@Path.GetFileName(wizard.ArchivePath)</dd></div>
+                        </dl>
+                        @if (GetSafeExternalUrl(wizard.Package.Metadata.Website) is string fomodWebsite)
+                        {
+                            <a href="@fomodWebsite" target="_blank" rel="noopener noreferrer">САЙТ МОДА ↗</a>
+                        }
+                    </aside>
+
+                    <main class="fomod-wizard-page">
+                        @if (wizard.Busy)
+                        {
+                            <div class="fomod-wizard-working"><div class="transfer-lock-spinner" aria-hidden="true"><i></i><i></i><i></i></div><strong>@wizard.OperationMessage</strong><p>Не закрывайте лаунчер: изменения применяются через безопасную временную папку MO2.</p></div>
+                        }
+                        else if (wizard.StepIndex < 0 && !wizard.Reviewing)
+                        {
+                            <section class="fomod-introduction">
+                                <span class="eyebrow">МЕТАДАННЫЕ FOMOD</span>
+                                <h2>@wizard.Package.Module.Name</h2>
+                                <p>@(string.IsNullOrWhiteSpace(wizard.Package.Metadata.Description) ? "Автор не добавил описание к этому установщику." : wizard.Package.Metadata.Description)</p>
+                                <div class="fomod-security-note"><strong>БЕЗОПАСНАЯ УСТАНОВКА</strong><span>Лаунчер читает только XML и локальные изображения PNG/JPEG/GIF/WebP. Скрипты, HTML и внешние ресурсы из архива не выполняются.</span></div>
+                                @if (!wizard.Evaluation.ModuleDependenciesSatisfied)
+                                {
+                                    <div class="fomod-validation"><strong>ЗАВИСИМОСТИ НЕ ВЫПОЛНЕНЫ</strong>@foreach (var error in wizard.Evaluation.Errors) { <span>@error</span> }</div>
+                                }
+                            </section>
+                        }
+                        else if (wizard.Reviewing)
+                        {
+                            <section class="fomod-review">
+                                <span class="eyebrow">ФИНАЛЬНЫЙ ПЛАН</span><h2>Готово к установке</h2>
+                                <div class="fomod-review-summary"><article><span>КОМПОНЕНТЫ</span><strong>@FomodSelectedCount(wizard)</strong><small>выбрано и обязательно</small></article><article><span>ФАЙЛЫ</span><strong>@(wizard.Plan?.Files.Count ?? 0)</strong><small>будут записаны атомарно</small></article><article><span>ПРОФИЛЬ</span><strong>@wizard.ProfileName</strong><small>мод будет сразу включён</small></article></div>
+                                @if (wizard.Plan is { Success: true } plan)
+                                {
+                                    <div class="fomod-plan-list">
+                                        @foreach (var file in plan.Files.Take(14)) { <code>@file.DestinationPath</code> }
+                                        @if (plan.Files.Count > 14) { <small>…ещё @(plan.Files.Count - 14) файлов</small> }
+                                    </div>
+                                }
+                            </section>
+                        }
+                        else if (CurrentFomodStep(wizard) is { } currentStep)
+                        {
+                            <section class="fomod-options-page">
+                                <span class="eyebrow">ШАГ @(wizard.StepIndex + 1) ИЗ @wizard.VisibleSteps.Count</span><h2>@currentStep.Step.Name</h2>
+                                @foreach (var groupEvaluation in currentStep.Groups)
+                                {
+                                    var currentGroup = groupEvaluation;
+                                    var radioGroup = IsFomodRadioGroup(currentGroup.Group);
+                                    <fieldset class="fomod-option-group">
+                                        <legend><strong>@currentGroup.Group.Name</strong><span>@FomodGroupInstruction(currentGroup.Group.Type)</span></legend>
+                                        @if (currentGroup.Group.Type == FomodGroupType.SelectAtMostOne
+                                             && !currentGroup.Plugins.Any(plugin => plugin.Forced))
+                                        {
+                                            <label class="fomod-option-card none @(!currentGroup.Plugins.Any(plugin => plugin.Selected) ? "selected" : null)"><input type="radio" name="@currentGroup.Group.Id" checked="@(!currentGroup.Plugins.Any(plugin => plugin.Selected))" @onchange="() => ClearFomodGroup(currentGroup.Group)" /><span class="fomod-choice-mark"></span><div><strong>Не устанавливать компоненты этой группы</strong><p>Оставить группу без выбора.</p></div></label>
+                                        }
+                                        @foreach (var pluginEvaluation in currentGroup.Plugins)
+                                        {
+                                            var currentPlugin = pluginEvaluation;
+                                            <label class="fomod-option-card @(currentPlugin.Selected ? "selected" : null) @FomodPluginClass(currentPlugin)">
+                                                <input type="@(radioGroup ? "radio" : "checkbox")" name="@(radioGroup ? currentGroup.Group.Id : currentPlugin.Plugin.Id)" checked="@currentPlugin.Selected" disabled="@(!currentPlugin.Selectable)" @onchange="args => ChangeFomodSelection(currentGroup.Group, currentPlugin, args)" />
+                                                <span class="fomod-choice-mark"></span>
+                                                <div class="fomod-option-copy"><header><strong>@currentPlugin.Plugin.Name</strong><em>@FomodPluginStatus(currentPlugin)</em></header><p>@(string.IsNullOrWhiteSpace(currentPlugin.Plugin.Description) ? "Описание компонента отсутствует." : currentPlugin.Plugin.Description)</p></div>
+                                                @if (FomodAsset(wizard, currentPlugin.Plugin.ImagePath) is string pluginImage) { <img src="@pluginImage" alt="" loading="lazy" decoding="async" /> }
+                                            </label>
+                                        }
+                                    </fieldset>
+                                }
+                            </section>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(wizard.ValidationError))
+                        {
+                            <div class="fomod-validation"><strong>ПРОВЕРЬТЕ ВЫБОР</strong><span>@wizard.ValidationError</span></div>
+                        }
+                    </main>
+                </div>
+
+                <footer class="fomod-wizard-footer">
+                    <div><span>FOMOD 0.13.21</span><small>@wizard.OperationMessage</small></div>
+                    <nav>
+                        <button class="danger" @onclick="CancelFomodWizard">@(wizard.Busy ? "ОТМЕНИТЬ ОПЕРАЦИЮ" : "ОТМЕНА")</button>
+                        @if (!wizard.Busy)
+                        {
+                            @if (wizard.StepIndex >= 0 || wizard.Reviewing) { <button @onclick="MoveFomodBackAsync">НАЗАД</button> }
+                            @if (wizard.Reviewing) { <button class="primary" disabled="@(wizard.Plan?.Success != true)" @onclick="ConfirmFomodInstallAsync">УСТАНОВИТЬ</button> }
+                            else { <button class="primary" @onclick="MoveFomodNextAsync">ДАЛЕЕ</button> }
+                        }
+                    </nav>
+                </footer>
+            </article>
+        </section>
+    }
+
+    @if (IsInterfaceLocked && _fomodWizard is null)
     {
         <section class="transfer-lock-overlay" role="dialog" aria-modal="true" aria-live="assertive" aria-label="Выполняется загрузка и установка">
             <div class="transfer-lock-card">
@@ -1610,8 +1878,21 @@
         new("GRAVE", "~", "Тильда (~)"),
     ];
 
+    private static readonly IReadOnlyDictionary<string, string> AnomalySecondLevelTitles =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["visual"] = "Визуал",
+            ["sound"] = "Звук",
+            ["control"] = "Управление",
+            ["gameplay"] = "Геймплей",
+            ["saves"] = "Сейвы",
+            ["optimizations"] = "Оптимизации",
+            ["debug"] = "Отладка",
+        };
+
     private string _section = "home";
     private bool _loading = true;
+    private bool _communityLoaded;
     private CommunityFeed? _feed;
     private InstallationStatus _installation = new(false, false, null, null, "Проверка установки");
     private string? _toast;
@@ -1653,10 +1934,14 @@
     private string _librarySearch = string.Empty;
     private UpdateRollbackCandidate? _rollbackCandidate;
     private ContentCatalog? _publishedContent;
+    private IReadOnlyList<LauncherReleaseHistoryEntry> _releaseHistory = [];
     private string? _openContentId;
     private string? _selectedLiveStreamId;
     private string? _contentDownloadId;
     private DownloadProgress? _contentDownloadProgress;
+    private bool _mo2ArchiveBusy;
+    private string _mo2ArchiveStatus = "Проверка архива";
+    private FomodWizardSession? _fomodWizard;
     private BundledMediaStatus _bundledMedia = new(false, string.Empty, "Проверка установочного комплекта");
     private bool _installBusy;
     private UpdateProgress? _installProgress;
@@ -1680,6 +1965,8 @@
     private Mo2ContentOverview? _mo2Content;
     private IReadOnlyList<Mo2VirtualEntry> _mo2DataEntries = [];
     private IReadOnlyList<Mo2ConflictEntry> _mo2ConflictEntries = [];
+    private int _mo2BrowseRequest;
+    private int _mo2ConflictRequest;
     private string _mo2RightTab = "files";
     private string _mo2DataPath = string.Empty;
     private string? _selectedMo2ModName;
@@ -1694,12 +1981,18 @@
     private string? _mo2ContentError;
     private CancellationTokenSource? _mo2ContentCancellation;
     private readonly CancellationTokenSource _mo2RuntimeMonitorCancellation = new();
+    private readonly CancellationTokenSource _deferredStartupCancellation = new();
     private DotNetObjectReference<Main>? _mo2DragReference;
     private readonly HashSet<string> _collapsedMo2Separators = new(StringComparer.OrdinalIgnoreCase);
     private string _informationSection = string.Empty;
     private string _selectedInformationArticleId = string.Empty;
     private bool _relayChatRunning;
 
+    private bool IsCompactMode => string.Equals(
+        _settings.InterfaceMode,
+        LauncherSettings.CompactInterfaceMode,
+        StringComparison.OrdinalIgnoreCase);
+    private static string LauncherVersion { get; } = ResolveLauncherVersion();
     private NavItem CurrentNavigation => Navigation.First(item => item.Id == _section);
     private ChoiceOption CurrentLanguage => InterfaceLanguages.FirstOrDefault(option => option.Value == _settings.InterfaceLanguage) ?? InterfaceLanguages[0];
     private RelayChatParticipant? RelayRecipient => _relayParticipants.FirstOrDefault(participant => string.Equals(participant.Nick, _relayRecipientNick, StringComparison.OrdinalIgnoreCase));
@@ -1738,7 +2031,9 @@
         .FirstOrDefault(block => string.Equals(block.Id, _selectedInformationArticleId, StringComparison.Ordinal))
         ?? CurrentInformationArticles.FirstOrDefault();
     private IEnumerable<ContentDocument> PublishedNews => (_publishedContent?.Items ?? [])
-        .Where(item => item.Kind == ContentKind.News);
+        .Where(item => item.Kind == ContentKind.News)
+        .OrderByDescending(NewsDate);
+    private ContentDocument? LatestPublishedNews => PublishedNews.FirstOrDefault();
     private IEnumerable<ContentVideo> PublishedVideos => PublishedNews.SelectMany(item => item.Videos);
     private IEnumerable<ProjectPerson> PublishedProjectPeople => (_publishedContent?.ProjectPeople ?? [])
         .OrderBy(person => person.Order);
@@ -1767,6 +2062,24 @@
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Order(StringComparer.OrdinalIgnoreCase)
         .ToArray();
+    // Compatibility fallback: published catalogs currently expose one changelog.
+    // Seen signed releases are journaled locally until a future manifest schema can
+    // safely carry a nullable history collection for both old and new launchers.
+    private IReadOnlyList<LauncherReleaseHistoryEntry> UpdateHistoryEntries => _releaseHistory.Count > 0
+        ? _releaseHistory
+        : CurrentReleaseHistoryFallback;
+    private IReadOnlyList<LauncherReleaseHistoryEntry> CurrentReleaseHistoryFallback
+    {
+        get
+        {
+            var version = _updateCheck?.SignedManifest.Payload.Version ?? _publishedContent?.Version;
+            var publishedAt = _updateCheck?.SignedManifest.Payload.PublishedAt ?? _publishedContent?.PublishedAt;
+            var changelog = _updateCheck?.SignedManifest.Payload.Content?.Changelog ?? _publishedContent?.Changelog;
+            return string.IsNullOrWhiteSpace(version) || publishedAt is null || changelog is null
+                ? []
+                : [new LauncherReleaseHistoryEntry(version, publishedAt.Value, changelog)];
+        }
+    }
     private ContentDocument? SelectedPublishedNews => (_publishedContent?.Items ?? [])
         .FirstOrDefault(item => item.Kind == ContentKind.News && item.Id == _openContentId);
     private string HomeGameVersion =>
@@ -1932,8 +2245,46 @@
         var first = group.OrderBy(item => item.DisplayOrder).First();
         var title = group.Key.Equals(basePath, StringComparison.OrdinalIgnoreCase)
             ? baseTitle
-            : first.MenuDisplayName ?? GameSettingsPresentation.Humanize(group.Key.Split('/').Last());
+            : ResolveConfigurationNodeTitle(first, group.Key, basePath);
         return new ConfigurationMenuNode(group.Key, title, ConfigurationOrder(group), group.Count());
+    }
+
+    private static string ResolveConfigurationNodeTitle(
+        AnomalyConfigurationEntry first,
+        string path,
+        string basePath)
+    {
+        var segment = path.Split('/').Last();
+        if (first.Kind == AnomalyConfigurationKind.Anomaly
+            && basePath.IndexOf('/') < 0
+            && AnomalySecondLevelTitles.TryGetValue(segment, out var title))
+        {
+            return title;
+        }
+
+        return first.MenuDisplayName ?? GameSettingsPresentation.Humanize(segment);
+    }
+
+    private string ConfigurationSettingTitle(AnomalyConfigurationEntry setting, GameSettingView view)
+    {
+        if (_configurationAdvanced || setting.Kind != AnomalyConfigurationKind.Anomaly)
+        {
+            return view.Title;
+        }
+
+        var suffixStart = view.Title.LastIndexOf(" (", StringComparison.Ordinal);
+        if (suffixStart < 0 || !view.Title.EndsWith(')'))
+        {
+            return view.Title;
+        }
+
+        var token = view.Title[(suffixStart + 2)..^1];
+        var storageKey = setting.StorageKey ?? setting.Key.Split('/').Last();
+        var isTechnicalToken = token.Equals(storageKey, StringComparison.OrdinalIgnoreCase)
+                               || token.Contains('_')
+                               || token.Contains('*')
+                               || token.Contains('\\');
+        return isTechnicalToken ? view.Title[..suffixStart].TrimEnd() : view.Title;
     }
 
     private static long ConfigurationOrder(IEnumerable<AnomalyConfigurationEntry> settings)
@@ -2011,38 +2362,110 @@
         return string.Concat(words.Take(2).Select(word => char.ToUpperInvariant(word[0])));
     }
 
+    private static string ResolveLauncherVersion()
+    {
+        var assembly = typeof(App).Assembly;
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+        {
+            return informationalVersion.Split('+', 2)[0];
+        }
+
+        return assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _settings = await Settings.LoadAsync();
         _installation = await Launcher.AutoConfigureInstallationAsync();
         _settings = Settings.Current.Copy();
-        await RefreshSystemDiagnosticsAsync(showToast: false);
         _bundledMedia = Installer.DetectMedia();
         _setupStatus = Setup.Detect();
-        RefreshMo2Workspace();
-        _ = MonitorMo2RuntimeAsync(_mo2RuntimeMonitorCancellation.Token);
+        RefreshMo2WorkspaceMetadata();
+        ApplyNativeWindowMode();
         RelayChat.MessageReceived += OnRelayChatMessageReceived;
         RelayChat.StatusChanged += OnRelayChatStatusChanged;
-        if (_settings.RelayChatAlways)
-        {
-            await Launcher.EnsureRelayChatStartedAsync();
-        }
+        Community.MessageReceived += OnChatMessageReceived;
         _relayChatRunning = RelayChat.IsConnected;
         _relayMessages = RelayChat.Messages.ToList();
         _relayParticipants = RelayChat.Participants;
-        _rollbackCandidate = await Updater.GetLatestRollbackAsync();
-        _publishedContent = await Updater.LoadCachedContentAsync();
+        _releaseHistory = await ReleaseHistory.LoadAsync();
         _report.GameVersion = DetectedBugReportGameVersion;
-        EnsurePublishedContentSelection();
-        _feed = await Community.GetFeedAsync();
-        Community.MessageReceived += OnChatMessageReceived;
-        if (!Community.IsOffline && _feed.Channels.Count > 0)
-        {
-            _selectedChannelId = _feed.Channels[0].Id;
-            await ConnectChatAsync(_selectedChannelId);
-        }
         _loading = false;
-        _ = InvokeAsync(CheckLauncherUpdateOnStartupAsync);
+        _ = MonitorMo2RuntimeAsync(_mo2RuntimeMonitorCancellation.Token);
+        _ = LoadDeferredStartupAsync(_deferredStartupCancellation.Token);
+    }
+
+    private async Task LoadDeferredStartupAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var diagnosticsTask = RefreshSystemDiagnosticsAsync(showToast: false);
+            var rollbackTask = Updater.GetLatestRollbackAsync(cancellationToken);
+            var contentTask = Updater.LoadCachedContentAsync(cancellationToken);
+            var feedTask = Community.GetFeedAsync(cancellationToken);
+            var savesTask = LoadSaveCatalogSnapshotForStartupAsync(cancellationToken);
+            _publishedContent = await contentTask;
+            EnsurePublishedContentSelection();
+            await RememberPublishedReleaseAsync(_publishedContent, cancellationToken);
+            await InvokeAsync(StateHasChanged);
+            _ = RefreshReleaseHistoryAsync(cancellationToken);
+
+            _rollbackCandidate = await rollbackTask;
+            _feed = await feedTask;
+            _communityLoaded = true;
+            if (_feed.Channels.Count > 0 && string.IsNullOrWhiteSpace(_selectedChannelId))
+            {
+                _selectedChannelId = _feed.Channels[0].Id;
+            }
+            await InvokeAsync(StateHasChanged);
+
+            var startupCheckTask = RunDeferredStartupUpdateCheckAsync(cancellationToken);
+            (_saveCatalog, _latestSave) = await savesTask;
+            await InvokeAsync(StateHasChanged);
+            await diagnosticsTask;
+
+            if (_settings.RelayChatAlways && _installation.GameRoot is not null)
+            {
+                using var relayTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                relayTimeout.CancelAfter(TimeSpan.FromSeconds(8));
+                try
+                {
+                    await Launcher.EnsureRelayChatStartedAsync(relayTimeout.Token);
+                }
+                catch (OperationCanceledException) when (relayTimeout.IsCancellationRequested)
+                {
+                    // Relay connectivity is optional and must never delay the launcher shell.
+                }
+                _relayChatRunning = RelayChat.IsConnected;
+                _relayMessages = RelayChat.Messages.ToList();
+                _relayParticipants = RelayChat.Participants;
+            }
+
+            await InvokeAsync(StateHasChanged);
+            await startupCheckTask;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Deferred work belongs to this page and is cancelled together with it.
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException
+                                           or HttpRequestException
+                                           or AggregateException)
+        {
+            // Local/offline launch remains available when optional startup data cannot be read.
+        }
+    }
+
+    private async Task RunDeferredStartupUpdateCheckAsync(CancellationToken cancellationToken)
+    {
+        await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken);
+        await InvokeAsync(CheckLauncherUpdateOnStartupAsync);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -2072,13 +2495,54 @@
         await JS.InvokeVoidAsync("anthologyLocalization.setLanguage", language);
     }
 
+    private MainWindow? NativeWindow =>
+        System.Windows.Application.Current?.MainWindow as MainWindow;
+
+    private void ApplyNativeWindowMode() => NativeWindow?.ApplyLauncherMode(_settings);
+
+    private Task SwitchToCompactModeAsync() =>
+        SetInterfaceModeAsync(LauncherSettings.CompactInterfaceMode, null);
+
+    private Task OpenDetailedSectionAsync(string section) =>
+        SetInterfaceModeAsync(LauncherSettings.DetailedInterfaceMode, section);
+
+    private async Task SetInterfaceModeAsync(string mode, string? section)
+    {
+        var window = NativeWindow;
+        if (!IsCompactMode
+            && string.Equals(mode, LauncherSettings.CompactInterfaceMode, StringComparison.OrdinalIgnoreCase)
+            && window is not null)
+        {
+            var bounds = window.CaptureDetailedWindowBounds();
+            _settings.DetailedWindowLeft = bounds.Left;
+            _settings.DetailedWindowTop = bounds.Top;
+            _settings.DetailedWindowWidth = bounds.Width;
+            _settings.DetailedWindowHeight = bounds.Height;
+            _settings.DetailedWindowMaximized = bounds.Maximized;
+        }
+
+        _settings.InterfaceMode = mode;
+        await Settings.SaveAsync(_settings);
+        _settings = Settings.Current.Copy();
+        ApplyNativeWindowMode();
+        if (!string.IsNullOrWhiteSpace(section))
+        {
+            await SelectSection(section);
+        }
+    }
+
     private async Task SelectSection(string section)
     {
         _section = section;
         await JS.InvokeVoidAsync("anthologyScroll.toTop");
         if (section == "mo2" && _mo2Workspace.Instance.Available)
         {
+            await RefreshMo2WorkspaceFullAsync();
             await LoadMo2ContentAsync();
+        }
+        if (section == "community")
+        {
+            await EnsureCommunityConnectedAsync();
         }
         if (section == "saves")
         {
@@ -2098,7 +2562,7 @@
             _settings = Settings.Current.Copy();
             _bundledMedia = Installer.DetectMedia();
             _setupStatus = Setup.Detect();
-            RefreshMo2Workspace();
+            RefreshMo2WorkspaceMetadata();
         }
     }
 
@@ -2108,18 +2572,20 @@
 
     private async Task LaunchModpackAsync()
     {
+        await PersistSettingsForLaunchAsync(alignMo2Executable: true);
         if (_settings.RelayChatAlways && _installation.GameRoot is not null)
         {
             await RelayChat.EnsureStartedAsync(_installation.GameRoot, _settings);
         }
         var result = await Mo2.LaunchSelectedAsync();
         _settings = Settings.Current.Copy();
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         ShowToast(result.Message, !result.Success);
     }
 
     private async Task LaunchOriginalAsync()
     {
+        await PersistSettingsForLaunchAsync(alignMo2Executable: false);
         var result = await Launcher.LaunchOriginalAsync();
         _settings = Settings.Current.Copy();
         ShowToast(result.Message, !result.Success);
@@ -2127,6 +2593,7 @@
 
     private async Task LaunchOnlineAsync()
     {
+        await PersistSettingsForLaunchAsync(alignMo2Executable: false);
         var result = await Launcher.LaunchOnlineAsync();
         _settings = Settings.Current.Copy();
         ShowToast(result.Message, !result.Success);
@@ -2167,7 +2634,7 @@
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
         await RefreshSystemDiagnosticsAsync(showToast: false);
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -2182,7 +2649,7 @@
         await Settings.SaveAsync(_settings);
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         _updateCheck = null;
         ShowToast("Связь с установленной игрой отключена");
     }
@@ -2197,7 +2664,7 @@
         _installation = await Launcher.AutoConfigureInstallationAsync();
         _settings = Settings.Current.Copy();
         await RefreshSystemDiagnosticsAsync(showToast: false);
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         ShowToast(
             _installation.GameFound
                 ? _installation.ModOrganizerFound
@@ -2231,7 +2698,7 @@
         _settings = Settings.Current.Copy();
         _installation = Launcher.DetectInstallation();
         _setupStatus = Setup.Detect();
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         var relayResult = _settings.RelayChatAlways
             ? await Launcher.EnsureRelayChatStartedAsync()
             : new LauncherActionResult(true, string.Empty);
@@ -2244,6 +2711,53 @@
         ShowToast(
             relayResult.Success ? "Настройки сохранены" : $"Настройки сохранены, но чат не подключён: {relayResult.Message}",
             !relayResult.Success);
+    }
+
+    private async Task SaveCompactSettingsAsync()
+    {
+        await PersistSettingsForLaunchAsync(alignMo2Executable: true);
+        LauncherActionResult relayResult;
+        if (_settings.RelayChatAlways)
+        {
+            relayResult = await Launcher.EnsureRelayChatStartedAsync();
+        }
+        else
+        {
+            await RelayChat.StopAsync();
+            relayResult = new LauncherActionResult(true, string.Empty);
+        }
+
+        _relayChatRunning = RelayChat.IsConnected;
+        ShowToast(
+            relayResult.Success
+                ? "Параметры запуска сохранены"
+                : $"Параметры сохранены, но чат не подключён: {relayResult.Message}",
+            !relayResult.Success);
+    }
+
+    private async Task PersistSettingsForLaunchAsync(bool alignMo2Executable)
+    {
+        await Settings.SaveAsync(_settings);
+        _settings = Settings.Current.Copy();
+        RefreshMo2WorkspaceMetadata();
+        if (!alignMo2Executable
+            || !_mo2Workspace.Instance.Available
+            || _mo2Workspace.SelectedProfile is null
+            || FindCompactExecutable(_mo2Workspace.Instance) is not { } executable
+            || string.Equals(_mo2Workspace.SelectedExecutable, executable.Title, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var selection = await Mo2.SaveSelectionAsync(_mo2Workspace.SelectedProfile, executable.Title);
+        if (!selection.Success)
+        {
+            ShowToast(selection.Message, true);
+            return;
+        }
+
+        _settings = Settings.Current.Copy();
+        RefreshMo2WorkspaceMetadata();
     }
 
     private async Task RefreshGameConfigurationAsync(bool showToast = true)
@@ -2585,9 +3099,100 @@
         _selectedLiveStreamId = SelectedLiveStream?.Id;
     }
 
+    private Task RememberPublishedReleaseAsync(
+        ContentCatalog? catalog,
+        CancellationToken cancellationToken = default) => catalog is null
+            ? Task.CompletedTask
+            : RememberReleaseAsync(
+                catalog.Version,
+                catalog.PublishedAt,
+                catalog.Changelog,
+                cancellationToken);
+
+    private async Task RefreshReleaseHistoryAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _releaseHistory = await ReleaseHistory.RefreshFromServerAsync(cancellationToken);
+            await RememberPublishedReleaseAsync(_publishedContent, cancellationToken);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The deferred refresh is abandoned when the launcher closes.
+        }
+    }
+
+    private Task RememberCheckedReleaseAsync(
+        UpdateCheckResult? check,
+        CancellationToken cancellationToken = default)
+    {
+        if (check is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var payload = check.SignedManifest.Payload;
+        return RememberReleaseAsync(
+            payload.Version,
+            payload.PublishedAt,
+            payload.Content?.Changelog,
+            cancellationToken);
+    }
+
+    private async Task RememberReleaseAsync(
+        string version,
+        DateTimeOffset publishedAt,
+        ReleaseChangelog? changelog,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _releaseHistory = await ReleaseHistory.RememberAsync(
+                version,
+                publishedAt,
+                changelog,
+                cancellationToken);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidDataException)
+        {
+            // A local history journal is helpful, but never blocks checking or launching.
+        }
+    }
+
     private void SelectLiveStream(string id) => _selectedLiveStreamId = id;
 
     private Task ShowStreams() => SelectSection("streams");
+
+    private async Task EnsureCommunityConnectedAsync()
+    {
+        if (!_communityLoaded || _feed is null)
+        {
+            _feed = await Community.GetFeedAsync(_deferredStartupCancellation.Token);
+            _communityLoaded = true;
+        }
+
+        if (_feed.Channels.Count == 0)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedChannelId)
+            || _feed.Channels.All(channel => !string.Equals(channel.Id, _selectedChannelId, StringComparison.OrdinalIgnoreCase)))
+        {
+            _selectedChannelId = _feed.Channels[0].Id;
+        }
+
+        if (Community.IsOffline || _chatConnected)
+        {
+            return;
+        }
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+        await ConnectChatAsync(_selectedChannelId, timeout.Token);
+    }
 
     private async Task SelectChannelAsync(string channelId)
     {
@@ -2812,7 +3417,7 @@
         var profile = args.Value?.ToString();
         var result = await Mo2.SaveSelectionAsync(profile, _mo2Workspace.SelectedExecutable);
         _settings = Settings.Current.Copy();
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -2827,7 +3432,27 @@
         var executable = args.Value?.ToString();
         var result = await Mo2.SaveSelectionAsync(_mo2Workspace.SelectedProfile, executable);
         _settings = Settings.Current.Copy();
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
+        ShowToast(result.Message, !result.Success);
+    }
+
+    private async Task ChangeCompactMo2ProfileAsync(ChangeEventArgs args)
+    {
+        var profile = args.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return;
+        }
+
+        var executable = FindCompactExecutable(_mo2Workspace.Instance)?.Title
+                         ?? _mo2Workspace.SelectedExecutable;
+        var result = await Mo2.SaveSelectionAsync(profile, executable);
+        _settings = Settings.Current.Copy();
+        await RefreshMo2WorkspaceFullAsync();
+        if (result.Success)
+        {
+            await RefreshLatestMo2SaveAsync();
+        }
         ShowToast(result.Message, !result.Success);
     }
 
@@ -2842,8 +3467,12 @@
             return;
         }
 
-        var result = await Mo2.InstallArchiveAsync(selected);
-        RefreshMo2Workspace();
+        var result = await InstallMo2ArchiveInteractiveAsync(selected);
+        if (result is null)
+        {
+            return;
+        }
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -2853,12 +3482,503 @@
 
     private async Task InstallMo2DownloadAsync(Mo2DownloadEntry download)
     {
-        var result = await Mo2.InstallArchiveAsync(download.FullPath);
-        RefreshMo2Workspace();
+        var result = await InstallMo2ArchiveInteractiveAsync(download.FullPath);
+        if (result is null)
+        {
+            return;
+        }
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
             await LoadMo2ContentAsync(forceRefresh: true);
+        }
+    }
+
+    private async Task<LauncherActionResult?> InstallMo2ArchiveInteractiveAsync(
+        string archivePath,
+        string? installName = null,
+        bool replaceExisting = false)
+    {
+        if (_fomodWizard is not null || _mo2ArchiveBusy)
+        {
+            return new LauncherActionResult(false, "Уже выполняется установка другого архива.");
+        }
+
+        using var transferLease = OperationGate.EnterTransfer();
+        using var cancellation = new CancellationTokenSource();
+        FomodWizardSession? session = null;
+        FomodPackage? pendingPackage = null;
+        try
+        {
+            _mo2ArchiveBusy = true;
+            _mo2ArchiveStatus = $"Проверяем {Path.GetFileName(archivePath)} на наличие FOMOD";
+            await InvokeAsync(StateHasChanged);
+            var preparation = await Mo2.InspectArchiveAsync(archivePath, cancellation.Token);
+            if (!preparation.Success)
+            {
+                return new LauncherActionResult(false, preparation.Message);
+            }
+
+            if (!preparation.IsFomod)
+            {
+                _mo2ArchiveStatus = $"Устанавливаем {Path.GetFileName(archivePath)} в MO2";
+                await InvokeAsync(StateHasChanged);
+                return await Mo2.InstallArchiveAsync(
+                    archivePath,
+                    installName,
+                    replaceExisting,
+                    cancellation.Token);
+            }
+
+            if (preparation.Package is null
+                || preparation.DependencyContext is null
+                || string.IsNullOrWhiteSpace(preparation.ProfileName))
+            {
+                preparation.Package?.Dispose();
+                return new LauncherActionResult(false, "FOMOD распознан, но мастер не получил безопасный план установки.");
+            }
+
+            pendingPackage = preparation.Package;
+            session = new FomodWizardSession(
+                archivePath,
+                installName,
+                replaceExisting,
+                preparation.ProfileName,
+                pendingPackage,
+                preparation.DependencyContext,
+                cancellation);
+            pendingPackage = null;
+            _fomodWizard = session;
+            _mo2ArchiveBusy = false;
+            await InvokeAsync(StateHasChanged);
+            await LoadFomodAssetsAsync(session);
+            return await session.Completion.Task;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        finally
+        {
+            _mo2ArchiveBusy = false;
+            if (session is not null && ReferenceEquals(_fomodWizard, session))
+            {
+                _fomodWizard = null;
+                session.Completion.TrySetResult(null);
+            }
+            pendingPackage?.Dispose();
+            session?.Dispose();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string FomodTitle(FomodWizardSession wizard) =>
+        !string.IsNullOrWhiteSpace(wizard.Package.Metadata.Name)
+            ? wizard.Package.Metadata.Name!
+            : !string.IsNullOrWhiteSpace(wizard.Package.Module.Name)
+                ? wizard.Package.Module.Name
+                : Path.GetFileNameWithoutExtension(wizard.ArchivePath);
+
+    private static FomodStepEvaluation? CurrentFomodStep(FomodWizardSession wizard) =>
+        wizard.StepIndex >= 0 && wizard.StepIndex < wizard.VisibleSteps.Count
+            ? wizard.VisibleSteps[wizard.StepIndex]
+            : null;
+
+    private static string? FomodAsset(FomodWizardSession wizard, string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && wizard.AssetDataUrls.TryGetValue(NormalizeFomodAssetKey(path), out var dataUrl)
+            ? dataUrl
+            : null;
+
+    private static string NormalizeFomodAssetKey(string path) =>
+        path.Replace('\\', '/').TrimStart('/');
+
+    private static bool IsFomodRadioGroup(FomodGroup group) =>
+        group.Type is FomodGroupType.SelectAtMostOne or FomodGroupType.SelectExactlyOne;
+
+    private static string FomodGroupInstruction(FomodGroupType type) => type switch
+    {
+        FomodGroupType.SelectAtLeastOne => "выберите один или несколько",
+        FomodGroupType.SelectAtMostOne => "можно выбрать один",
+        FomodGroupType.SelectExactlyOne => "выберите один вариант",
+        FomodGroupType.SelectAll => "все компоненты обязательны",
+        _ => "можно выбрать несколько",
+    };
+
+    private static string FomodPluginStatus(FomodPluginEvaluation plugin) => plugin.EffectiveType switch
+    {
+        FomodPluginType.Required => "ОБЯЗАТЕЛЬНО",
+        FomodPluginType.Recommended => "РЕКОМЕНДУЕТСЯ",
+        FomodPluginType.NotUsable => "НЕДОСТУПНО",
+        FomodPluginType.CouldBeUsable => "ВОЗМОЖНО",
+        _ => "ОПЦИОНАЛЬНО",
+    };
+
+    private static string FomodPluginClass(FomodPluginEvaluation plugin) => plugin.EffectiveType switch
+    {
+        FomodPluginType.Required => "required",
+        FomodPluginType.Recommended => "recommended",
+        FomodPluginType.NotUsable => "not-usable",
+        FomodPluginType.CouldBeUsable => "could-be-usable",
+        _ => "optional",
+    };
+
+    private static int FomodSelectedCount(FomodWizardSession wizard) =>
+        wizard.Evaluation.Steps
+            .Where(step => step.Visible)
+            .SelectMany(step => step.Groups)
+            .SelectMany(group => group.Plugins)
+            .Where(plugin => plugin.Selected)
+            .Select(plugin => plugin.Plugin.Id)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+
+    private void ChangeFomodSelection(
+        FomodGroup group,
+        FomodPluginEvaluation plugin,
+        ChangeEventArgs args)
+    {
+        var wizard = _fomodWizard;
+        if (wizard is null || wizard.Busy || !plugin.Selectable)
+        {
+            return;
+        }
+
+        if (IsFomodRadioGroup(group))
+        {
+            RemoveFomodGroupSelection(wizard, group);
+            wizard.SelectedPluginIds.Add(plugin.Plugin.Id);
+        }
+        else
+        {
+            var selected = args.Value is bool boolean
+                ? boolean
+                : bool.TryParse(args.Value?.ToString(), out var parsed) && parsed;
+            if (selected)
+            {
+                wizard.SelectedPluginIds.Add(plugin.Plugin.Id);
+            }
+            else
+            {
+                wizard.SelectedPluginIds.Remove(plugin.Plugin.Id);
+            }
+        }
+        RefreshFomodEvaluation(wizard);
+    }
+
+    private void ClearFomodGroup(FomodGroup group)
+    {
+        var wizard = _fomodWizard;
+        if (wizard is null || wizard.Busy)
+        {
+            return;
+        }
+        RemoveFomodGroupSelection(wizard, group);
+        RefreshFomodEvaluation(wizard);
+    }
+
+    private static void RemoveFomodGroupSelection(FomodWizardSession wizard, FomodGroup group)
+    {
+        foreach (var plugin in group.Plugins)
+        {
+            wizard.SelectedPluginIds.Remove(plugin.Id);
+        }
+    }
+
+    private static void RefreshFomodEvaluation(FomodWizardSession wizard)
+    {
+        wizard.Evaluation = FomodEngine.Evaluate(
+            wizard.Package.Module,
+            new FomodSelection(wizard.SelectedPluginIds.ToArray()),
+            wizard.DependencyContext);
+        wizard.VisibleSteps = wizard.Evaluation.Steps.Where(step => step.Visible).ToList();
+        if (wizard.StepIndex >= wizard.VisibleSteps.Count)
+        {
+            wizard.StepIndex = Math.Max(-1, wizard.VisibleSteps.Count - 1);
+        }
+        wizard.Plan = null;
+        wizard.ValidationError = null;
+        wizard.OperationMessage = "Выберите нужные компоненты мода";
+    }
+
+    private async Task MoveFomodNextAsync()
+    {
+        var wizard = _fomodWizard;
+        if (wizard is null || wizard.Busy)
+        {
+            return;
+        }
+
+        if (wizard.StepIndex < 0)
+        {
+            if (!wizard.Evaluation.ModuleDependenciesSatisfied)
+            {
+                wizard.ValidationError = string.Join(" ", wizard.Evaluation.Errors);
+                return;
+            }
+            if (wizard.VisibleSteps.Count > 0)
+            {
+                wizard.StepIndex = 0;
+                wizard.OperationMessage = "Выберите компоненты первого шага";
+                await LoadFomodAssetsAsync(wizard);
+                return;
+            }
+            await PrepareFomodReviewAsync(wizard);
+            return;
+        }
+
+        var current = CurrentFomodStep(wizard);
+        var validation = current is null ? null : ValidateFomodStep(current);
+        if (validation is not null)
+        {
+            wizard.ValidationError = validation;
+            return;
+        }
+
+        if (wizard.StepIndex + 1 < wizard.VisibleSteps.Count)
+        {
+            wizard.StepIndex++;
+            wizard.ValidationError = null;
+            wizard.OperationMessage = $"Шаг {wizard.StepIndex + 1} из {wizard.VisibleSteps.Count}";
+            await LoadFomodAssetsAsync(wizard);
+            return;
+        }
+        await PrepareFomodReviewAsync(wizard);
+    }
+
+    private async Task MoveFomodBackAsync()
+    {
+        var wizard = _fomodWizard;
+        if (wizard is null || wizard.Busy)
+        {
+            return;
+        }
+        if (wizard.Reviewing)
+        {
+            wizard.Reviewing = false;
+            wizard.StepIndex = wizard.VisibleSteps.Count - 1;
+        }
+        else
+        {
+            wizard.StepIndex = Math.Max(-1, wizard.StepIndex - 1);
+        }
+        wizard.ValidationError = null;
+        wizard.OperationMessage = wizard.StepIndex < 0
+            ? "Проверьте сведения об установщике"
+            : $"Шаг {wizard.StepIndex + 1} из {wizard.VisibleSteps.Count}";
+        await LoadFomodAssetsAsync(wizard);
+    }
+
+    private async Task PrepareFomodReviewAsync(FomodWizardSession wizard)
+    {
+        if (!ReferenceEquals(_fomodWizard, wizard))
+        {
+            return;
+        }
+        wizard.Busy = true;
+        wizard.OperationMessage = "Составляем безопасный план файлов…";
+        wizard.ValidationError = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var selection = new FomodSelection(wizard.SelectedPluginIds.ToArray());
+            wizard.Plan = await Task.Run(
+                () => FomodEngine.BuildPlan(
+                    wizard.Package,
+                    selection,
+                    wizard.DependencyContext,
+                    wizard.Cancellation.Token),
+                wizard.Cancellation.Token);
+            wizard.Reviewing = true;
+            wizard.ValidationError = wizard.Plan.Success
+                ? null
+                : string.Join(" ", wizard.Plan.Errors);
+            wizard.OperationMessage = wizard.Plan.Success
+                ? "План проверен — можно устанавливать"
+                : "План содержит ошибки";
+        }
+        catch (OperationCanceledException)
+        {
+            CloseFomodWizard(wizard, null);
+            return;
+        }
+        finally
+        {
+            wizard.Busy = false;
+        }
+        await LoadFomodAssetsAsync(wizard);
+    }
+
+    private static string? ValidateFomodStep(FomodStepEvaluation step)
+    {
+        foreach (var group in step.Groups)
+        {
+            var selected = group.Plugins.Count(plugin => plugin.Selected);
+            var valid = group.Group.Type switch
+            {
+                FomodGroupType.SelectAtLeastOne => selected >= 1,
+                FomodGroupType.SelectAtMostOne => selected <= 1,
+                FomodGroupType.SelectExactlyOne => selected == 1,
+                FomodGroupType.SelectAll => selected == group.Plugins.Count,
+                _ => true,
+            };
+            if (!valid)
+            {
+                return group.Group.Type switch
+                {
+                    FomodGroupType.SelectAtLeastOne => $"В группе «{group.Group.Name}» нужно выбрать хотя бы один компонент.",
+                    FomodGroupType.SelectAtMostOne => $"В группе «{group.Group.Name}» можно выбрать не более одного компонента.",
+                    FomodGroupType.SelectExactlyOne => $"В группе «{group.Group.Name}» нужно выбрать ровно один компонент.",
+                    FomodGroupType.SelectAll => $"В группе «{group.Group.Name}» обязательны все компоненты.",
+                    _ => "Выбор компонентов некорректен.",
+                };
+            }
+        }
+        return null;
+    }
+
+    private async Task ConfirmFomodInstallAsync()
+    {
+        var wizard = _fomodWizard;
+        if (wizard is null || wizard.Busy || wizard.Plan?.Success != true)
+        {
+            return;
+        }
+        wizard.Busy = true;
+        wizard.OperationMessage = $"Устанавливаем {FomodTitle(wizard)} атомарно…";
+        _mo2ArchiveStatus = wizard.OperationMessage;
+        wizard.ValidationError = null;
+        _mo2ArchiveBusy = true;
+        await InvokeAsync(StateHasChanged);
+        var result = await Mo2.InstallFomodArchiveAsync(
+            wizard.Package,
+            wizard.Plan,
+            wizard.ProfileName,
+            wizard.InstallName,
+            wizard.ReplaceExisting,
+            wizard.Cancellation.Token);
+        _mo2ArchiveBusy = false;
+        if (result.Success)
+        {
+            CloseFomodWizard(wizard, new LauncherActionResult(true, result.Message));
+            return;
+        }
+        if (result.Canceled)
+        {
+            CloseFomodWizard(wizard, null);
+            return;
+        }
+        if (wizard.Cancellation.IsCancellationRequested)
+        {
+            CloseFomodWizard(wizard, new LauncherActionResult(false, result.Message));
+            return;
+        }
+        wizard.Busy = false;
+        wizard.ValidationError = result.Message;
+        wizard.OperationMessage = "Установка не выполнена — файлы назначения не изменены";
+    }
+
+    private void CancelFomodWizard()
+    {
+        var wizard = _fomodWizard;
+        if (wizard is null)
+        {
+            return;
+        }
+        wizard.Cancellation.Cancel();
+        wizard.OperationMessage = "Отменяем операцию и очищаем временные файлы…";
+        if (!wizard.Busy)
+        {
+            CloseFomodWizard(wizard, null);
+        }
+    }
+
+    private void CloseFomodWizard(FomodWizardSession wizard, LauncherActionResult? result)
+    {
+        if (ReferenceEquals(_fomodWizard, wizard))
+        {
+            _fomodWizard = null;
+        }
+        _mo2ArchiveBusy = false;
+        wizard.Completion.TrySetResult(result);
+        wizard.Dispose();
+    }
+
+    private async Task LoadFomodAssetsAsync(FomodWizardSession wizard)
+    {
+        if (!ReferenceEquals(_fomodWizard, wizard) || wizard.Cancellation.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var desired = new List<string>();
+        if (wizard.Package.Module.ShowImage && !string.IsNullOrWhiteSpace(wizard.Package.Module.ImagePath))
+        {
+            desired.Add(wizard.Package.Module.ImagePath);
+        }
+        if (!wizard.Reviewing && CurrentFomodStep(wizard) is { } step)
+        {
+            desired.AddRange(step.Groups
+                .SelectMany(group => group.Plugins)
+                .Select(plugin => plugin.Plugin.ImagePath)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path!));
+        }
+
+        var safePaths = desired
+            .Select(NormalizeFomodAssetKey)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(10)
+            .ToArray();
+        var cachedCharacters = wizard.AssetDataUrls.Values.Sum(value => value.Length);
+        var missingPaths = safePaths
+            .Where(path => !wizard.AssetDataUrls.ContainsKey(path))
+            .ToArray();
+        if (missingPaths.Length == 0
+            || cachedCharacters >= FomodWizardSession.MaxCachedAssetCharacters)
+        {
+            return;
+        }
+
+        var previousMessage = wizard.OperationMessage;
+        wizard.Busy = true;
+        wizard.OperationMessage = "Загружаем изображения FOMOD…";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var result = await Mo2.ReadFomodImagesAsync(
+                wizard.Package,
+                missingPaths,
+                wizard.Cancellation.Token);
+            if (wizard.Cancellation.IsCancellationRequested)
+            {
+                CloseFomodWizard(wizard, null);
+                return;
+            }
+            if (!ReferenceEquals(_fomodWizard, wizard))
+            {
+                return;
+            }
+
+            foreach (var asset in result.DataUrls)
+            {
+                if (cachedCharacters + asset.Value.Length > FomodWizardSession.MaxCachedAssetCharacters)
+                {
+                    break;
+                }
+                wizard.AssetDataUrls[NormalizeFomodAssetKey(asset.Key)] = asset.Value;
+                cachedCharacters += asset.Value.Length;
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_fomodWizard, wizard))
+            {
+                wizard.Busy = false;
+                wizard.OperationMessage = previousMessage;
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
@@ -2872,7 +3992,7 @@
 
         var result = await Mo2.CreateProfileAsync(name.Trim());
         _settings = Settings.Current.Copy();
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -2891,7 +4011,7 @@
         }
 
         var result = Mo2.AddSeparator(name.Trim());
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -2901,7 +4021,7 @@
 
     private async Task RefreshMo2ContentAsync()
     {
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         await LoadMo2ContentAsync(forceRefresh: true);
     }
 
@@ -2918,7 +4038,9 @@
         {
             _mo2Content = await Mo2.GetContentOverviewAsync(forceRefresh, token);
             _mo2DataEntries = await Mo2.BrowseDataAsync(_mo2DataPath, token);
-            _mo2FileSearchResults = await Mo2.SearchDataAsync(_mo2FileSearch, token);
+            _mo2FileSearchResults = string.IsNullOrWhiteSpace(_mo2FileSearch)
+                ? []
+                : await Mo2.SearchDataAsync(_mo2FileSearch.Trim(), token);
             if (_selectedMo2ModName is not null)
             {
                 _mo2ConflictEntries = await Mo2.GetConflictsAsync(_selectedMo2ModName, token);
@@ -2967,10 +4089,16 @@
 
     private async Task SelectMo2ModAsync(Mo2ModEntry mod)
     {
+        var request = ++_mo2ConflictRequest;
         _selectedMo2ModName = mod.Name;
-        _mo2ConflictEntries = _mo2Content is null
+        var entries = _mo2Content is null
             ? []
             : await Mo2.GetConflictsAsync(mod.Name);
+        if (request == _mo2ConflictRequest
+            && string.Equals(_selectedMo2ModName, mod.Name, StringComparison.Ordinal))
+        {
+            _mo2ConflictEntries = entries;
+        }
     }
 
     private Task SelectMo2RightTabAsync(string tab)
@@ -2986,8 +4114,13 @@
 
     private async Task BrowseMo2DataAsync(string path)
     {
-        _mo2DataPath = path;
-        _mo2DataEntries = await Mo2.BrowseDataAsync(path);
+        var request = ++_mo2BrowseRequest;
+        var entries = await Mo2.BrowseDataAsync(path);
+        if (request == _mo2BrowseRequest)
+        {
+            _mo2DataPath = path;
+            _mo2DataEntries = entries;
+        }
     }
 
     private async Task SearchMo2FilesChangedAsync(ChangeEventArgs args)
@@ -2996,6 +4129,11 @@
         _mo2FileSearchCancellation?.Cancel();
         _mo2FileSearchCancellation?.Dispose();
         _mo2FileSearchCancellation = null;
+        if (string.IsNullOrWhiteSpace(_mo2FileSearch))
+        {
+            _mo2FileSearchResults = [];
+            return;
+        }
         var cancellation = new CancellationTokenSource();
         _mo2FileSearchCancellation = cancellation;
         try
@@ -3020,7 +4158,7 @@
 
     private async Task LoadMo2FileSearchAsync()
     {
-        if (!_mo2Workspace.Instance.Available)
+        if (!_mo2Workspace.Instance.Available || string.IsNullOrWhiteSpace(_mo2FileSearch))
         {
             _mo2FileSearchResults = [];
             return;
@@ -3137,7 +4275,7 @@
         }
 
         var result = Mo2.SetEnabled(_mo2Workspace.SelectedProfile, mod.Name, !mod.Enabled);
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -3153,7 +4291,7 @@
         }
 
         var result = Mo2.Move(_mo2Workspace.SelectedProfile, mod.Name, direction);
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -3173,7 +4311,7 @@
         }
 
         var result = Mo2.MoveTo(_mo2Workspace.SelectedProfile, source, target);
-        RefreshMo2Workspace();
+        await RefreshMo2WorkspaceFullAsync();
         ShowToast(result.Message, !result.Success);
         if (result.Success)
         {
@@ -3185,6 +4323,7 @@
     private async Task LaunchMo2SaveAsync(Mo2SaveEntry save)
     {
         _selectedMo2SavePath = save.FullPath;
+        await PersistSettingsForLaunchAsync(alignMo2Executable: true);
         if (_settings.RelayChatAlways && _installation.GameRoot is not null)
         {
             await RelayChat.EnsureStartedAsync(_installation.GameRoot, _settings);
@@ -3192,7 +4331,7 @@
 
         var result = await Mo2.LaunchSaveAsync(save.FullPath);
         _settings = Settings.Current.Copy();
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -3208,7 +4347,7 @@
 
     private async Task LaunchLatestSaveAsync()
     {
-        RefreshLatestMo2Save();
+        await RefreshLatestMo2SaveAsync();
         if (_latestSave is null)
         {
             ShowToast("Совместимое сохранение Anomaly не найдено. Откройте каталог и проверьте источник сейва.", true);
@@ -3256,6 +4395,8 @@
             return;
         }
 
+        await PersistSettingsForLaunchAsync(save.Origin.Origin == SaveRuntimeOrigin.ModOrganizer);
+
         LauncherActionResult result;
         if (save.Origin.Origin == SaveRuntimeOrigin.Original)
         {
@@ -3268,7 +4409,7 @@
         }
 
         _settings = Settings.Current.Copy();
-        RefreshMo2Workspace();
+        RefreshMo2WorkspaceMetadata();
         ShowToast(result.Message, !result.Success);
     }
 
@@ -3279,9 +4420,7 @@
         await InvokeAsync(StateHasChanged);
         try
         {
-            var gameRoot = _mo2Workspace.Instance.GamePath ?? _installation.GameRoot ?? _settings.GameRoot;
-            _saveCatalog = SaveCatalog.Load(gameRoot, _mo2Workspace.Instance.Root);
-            _latestSave = _saveCatalog.FirstOrDefault(IsConfiguredSaveOrigin);
+            (_saveCatalog, _latestSave) = await LoadSaveCatalogSnapshotAsync();
             if (_selectedCatalogSavePath is null
                 || !_saveCatalog.Any(item => string.Equals(item.Save.FullPath, _selectedCatalogSavePath, StringComparison.OrdinalIgnoreCase)))
             {
@@ -3301,11 +4440,31 @@
         }
     }
 
-    private void RefreshMo2Workspace()
+    private void RefreshMo2WorkspaceMetadata()
     {
         try
         {
-            _mo2Workspace = Mo2.GetWorkspace();
+            var runtimeBusy = Mo2.RuntimeBusy;
+            var instance = Mo2ProfileManager.Detect(_settings.ModpackRoot);
+            if (!instance.Available)
+            {
+                _mo2Workspace = new Mo2WorkspaceSnapshot(instance, null, null, null, runtimeBusy);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_settings.GameRoot) && Directory.Exists(_settings.GameRoot))
+            {
+                instance = instance with { GamePath = Path.GetFullPath(_settings.GameRoot) };
+            }
+
+            var profile = instance.Profiles.Contains(_settings.SelectedMo2Profile, StringComparer.OrdinalIgnoreCase)
+                ? _settings.SelectedMo2Profile
+                : instance.SelectedProfile;
+            var executable = instance.Executables.Any(item =>
+                    string.Equals(item.Title, _settings.SelectedMo2Executable, StringComparison.OrdinalIgnoreCase))
+                ? _settings.SelectedMo2Executable
+                : FindCompactExecutable(instance)?.Title;
+            _mo2Workspace = new Mo2WorkspaceSnapshot(instance, profile, executable, null, runtimeBusy);
         }
         catch (Exception exception) when (exception is IOException
                                            or InvalidDataException
@@ -3319,8 +4478,44 @@
                 null,
                 false);
         }
+    }
 
-        RefreshLatestMo2Save();
+    private async Task RefreshMo2WorkspaceFullAsync()
+    {
+        try
+        {
+            _mo2Workspace = await Task.Run(Mo2.GetWorkspace);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or UnauthorizedAccessException)
+        {
+            _mo2Workspace = new Mo2WorkspaceSnapshot(
+                new Mo2InstanceSnapshot(false, _settings.ModpackRoot ?? string.Empty, null, [], [], exception.Message),
+                null,
+                null,
+                null,
+                Mo2.RuntimeBusy);
+        }
+    }
+
+    private Mo2ExecutableDefinition? FindCompactExecutable(Mo2InstanceSnapshot instance)
+    {
+        var renderer = string.IsNullOrWhiteSpace(_settings.Renderer) ? "DX11" : _settings.Renderer.ToUpperInvariant();
+        var expectedFile = $"Anomaly{renderer}{(_settings.UseAvx ? "AVX" : string.Empty)}.exe";
+        var exact = instance.Executables.FirstOrDefault(item =>
+            string.Equals(Path.GetFileName(item.Binary.Replace('\\', Path.DirectorySeparatorChar)), expectedFile, StringComparison.OrdinalIgnoreCase));
+        if (exact is not null)
+        {
+            return exact;
+        }
+
+        return instance.Executables.FirstOrDefault(item =>
+                   item.Title.Contains(renderer, StringComparison.OrdinalIgnoreCase)
+                   && (!_settings.UseAvx || item.Title.Contains("AVX", StringComparison.OrdinalIgnoreCase)))
+               ?? instance.Executables.FirstOrDefault(item => item.Title.Contains(renderer, StringComparison.OrdinalIgnoreCase))
+               ?? instance.Executables.FirstOrDefault();
     }
 
     private async Task MonitorMo2RuntimeAsync(CancellationToken cancellationToken)
@@ -3339,7 +4534,14 @@
                 await InvokeAsync(async () =>
                 {
                     var wasBusy = _mo2Workspace.RuntimeBusy;
-                    RefreshMo2Workspace();
+                    if (_section == "mo2")
+                    {
+                        await RefreshMo2WorkspaceFullAsync();
+                    }
+                    else
+                    {
+                        RefreshMo2WorkspaceMetadata();
+                    }
                     if (wasBusy && !_mo2Workspace.RuntimeBusy)
                     {
                         if (_section == "mo2")
@@ -3360,14 +4562,12 @@
         }
     }
 
-    private void RefreshLatestMo2Save()
+    private async Task RefreshLatestMo2SaveAsync()
     {
         _latestSave = null;
         try
         {
-            var gameRoot = _mo2Workspace.Instance.GamePath ?? _installation.GameRoot ?? _settings.GameRoot;
-            _saveCatalog = SaveCatalog.Load(gameRoot, _mo2Workspace.Instance.Root);
-            _latestSave = _saveCatalog.FirstOrDefault(IsConfiguredSaveOrigin);
+            (_saveCatalog, _latestSave) = await LoadSaveCatalogSnapshotAsync();
         }
         catch (Exception exception) when (exception is IOException
                                            or InvalidDataException
@@ -3377,11 +4577,40 @@
         }
     }
 
-    private async Task ConnectChatAsync(string channelId)
+    private Task<(IReadOnlyList<AnomalySaveCatalogItem> Catalog, AnomalySaveCatalogItem? Latest)> LoadSaveCatalogSnapshotAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var gameRoot = _mo2Workspace.Instance.GamePath ?? _installation.GameRoot ?? _settings.GameRoot;
+        var mo2Root = _mo2Workspace.Instance.Root;
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var catalog = SaveCatalog.Load(gameRoot, mo2Root);
+            cancellationToken.ThrowIfCancellationRequested();
+            return (catalog, catalog.FirstOrDefault(IsConfiguredSaveOrigin));
+        }, cancellationToken);
+    }
+
+    private async Task<(IReadOnlyList<AnomalySaveCatalogItem> Catalog, AnomalySaveCatalogItem? Latest)> LoadSaveCatalogSnapshotForStartupAsync(
+        CancellationToken cancellationToken)
     {
         try
         {
-            _chatMessages = (await Community.JoinChannelAsync(channelId)).ToList();
+            return await LoadSaveCatalogSnapshotAsync(cancellationToken);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException)
+        {
+            return ([], null);
+        }
+    }
+
+    private async Task ConnectChatAsync(string channelId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _chatMessages = (await Community.JoinChannelAsync(channelId, cancellationToken)).ToList();
             _chatConnected = true;
         }
         catch (Exception exception) when (exception is HttpRequestException
@@ -3464,6 +4693,8 @@
             _updateCheck = await Updater.CheckAsync(cancellationToken);
             _publishedContent = _updateCheck.SignedManifest.Payload.Content;
             EnsurePublishedContentSelection();
+            _releaseHistory = await ReleaseHistory.RefreshFromServerAsync(cancellationToken);
+            await RememberCheckedReleaseAsync(_updateCheck, cancellationToken);
             ShowToast(_updateCheck.HasUpdates ? "Доступны обновления" : "Установлена актуальная версия");
         });
     }
@@ -3503,6 +4734,9 @@
                 var result = await Updater.ApplyAsync(_updateCheck, progress, cancellationToken);
                 launcherUpdateInstalled = includesLauncherUpdate && result.InstalledPackages > 0;
                 _updateCheck = await Updater.CheckAsync(cancellationToken);
+                _publishedContent = _updateCheck.SignedManifest.Payload.Content;
+                EnsurePublishedContentSelection();
+                await RememberCheckedReleaseAsync(_updateCheck, cancellationToken);
                 _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
                 if (!launcherUpdateInstalled)
                 {
@@ -3556,6 +4790,12 @@
                 var result = await Updater.RollbackLatestAsync(progress, cancellationToken);
                 _rollbackCandidate = await Updater.GetLatestRollbackAsync(cancellationToken);
                 _updateCheck = UpdateConfigurationReady ? await Updater.CheckAsync(cancellationToken) : null;
+                if (_updateCheck is not null)
+                {
+                    _publishedContent = _updateCheck.SignedManifest.Payload.Content;
+                    EnsurePublishedContentSelection();
+                    await RememberCheckedReleaseAsync(_updateCheck, cancellationToken);
+                }
                 ShowToast($"Восстановлено файлов: {result.RestoredFiles}. Версия: {result.RestoredVersion ?? "исходная"}");
             });
         }
@@ -3703,15 +4943,19 @@
 
         IDisposable? transferLease = null;
         CancellationTokenSource? startupCancellation = null;
+        using var checkCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            _deferredStartupCancellation.Token);
+        checkCancellation.CancelAfter(TimeSpan.FromSeconds(15));
         var restartScheduled = false;
         _updateBusy = true;
         try
         {
             _updateProgress = new UpdateProgress(UpdateStage.Checking, "Автоматическая проверка Launcher Next");
             await InvokeAsync(StateHasChanged);
-            _updateCheck = await Updater.CheckAsync();
+            _updateCheck = await Updater.CheckAsync(checkCancellation.Token);
             _publishedContent = _updateCheck.SignedManifest.Payload.Content;
             EnsurePublishedContentSelection();
+            await RememberCheckedReleaseAsync(_updateCheck, checkCancellation.Token);
             var hasLauncherUpdate = _updateCheck.Packages.Any(update =>
                 update.UpdateAvailable
                 && update.Package.Kind == PackageKind.Launcher
@@ -3756,6 +5000,7 @@
                 _updateCheck = await Updater.CheckAsync(startupCancellation.Token);
                 _publishedContent = _updateCheck.SignedManifest.Payload.Content;
                 EnsurePublishedContentSelection();
+                await RememberCheckedReleaseAsync(_updateCheck, startupCancellation.Token);
             }
 
             if (_updateCheck.Packages.Any(update => update.UpdateAvailable && update.RepairRequired))
@@ -3778,12 +5023,16 @@
                 _updateCheck = await Updater.CheckAsync(startupCancellation.Token);
                 _publishedContent = _updateCheck.SignedManifest.Payload.Content;
                 EnsurePublishedContentSelection();
+                await RememberCheckedReleaseAsync(_updateCheck, startupCancellation.Token);
                 ShowToast($"Автоматически восстановлено файлов: {repairResult.InstalledFiles}");
             }
         }
         catch (OperationCanceledException)
         {
-            ShowToast("Автоматическое обновление отменено", true);
+            if (startupCancellation?.IsCancellationRequested == true)
+            {
+                ShowToast("Автоматическое обновление отменено", true);
+            }
         }
         catch (Exception exception) when (exception is HttpRequestException
                                            or IOException
@@ -3843,17 +5092,22 @@
     private bool ShowTransferDock =>
         (_updateBusy && _updateProgress is not null)
         || (_installBusy && _installProgress is not null)
-        || (_contentDownloadId is not null && _contentDownloadProgress is not null);
+        || (_contentDownloadId is not null && _contentDownloadProgress is not null)
+        || _mo2ArchiveBusy;
 
     private bool IsInterfaceLocked =>
         _updateInteractionLocked
         || _installBusy
-        || _contentDownloadId is not null;
+        || _contentDownloadId is not null
+        || _mo2ArchiveBusy
+        || _fomodWizard is not null;
 
     private bool IsTransferOperationActive =>
         _updateBusy
         || _installBusy
-        || _contentDownloadId is not null;
+        || _contentDownloadId is not null
+        || _mo2ArchiveBusy
+        || _fomodWizard is not null;
 
     private bool CanCancelLockedUpdate =>
         _updateInteractionLocked
@@ -3864,7 +5118,9 @@
         ? UpdateProgressPercentage
         : _installBusy
             ? InstallProgressPercentage
-            : ContentDownloadPercentage;
+            : _mo2ArchiveBusy
+                ? 0
+                : ContentDownloadPercentage;
 
     private string TransferTitle
     {
@@ -3882,6 +5138,11 @@
                 return _installProgress?.Message ?? "Подготовка установки игры";
             }
 
+            if (_mo2ArchiveBusy)
+            {
+                return _mo2ArchiveStatus;
+            }
+
             var content = (_publishedContent?.Items ?? []).FirstOrDefault(item =>
                 string.Equals(item.Id, _contentDownloadId, StringComparison.OrdinalIgnoreCase));
             return content is null ? "Загрузка мода в MO2" : $"Мод: {Localized(content).Title}";
@@ -3896,7 +5157,9 @@
                 ? _updateProgress?.Provider
                 : _installBusy
                     ? _installProgress?.Provider ?? "InstallMedia"
-                    : _contentDownloadProgress?.Provider;
+                    : _mo2ArchiveBusy
+                        ? "mo2-fomod"
+                        : _contentDownloadProgress?.Provider;
             return $"Источник: {FriendlyProvider(provider)}";
         }
     }
@@ -3920,6 +5183,11 @@
                 return $"{FormatBytes(content.DownloadedBytes)} / {FormatBytes(content.TotalBytes)} · {TransferPercentage}%";
             }
 
+            if (_mo2ArchiveBusy)
+            {
+                return _mo2ArchiveStatus;
+            }
+
             return $"{TransferPercentage}% · подготовка файлов";
         }
     }
@@ -3932,6 +5200,7 @@
         "http" => "HTTPS / CDN",
         "local-file" => "локальный репозиторий",
         "installmedia" => "комплект InstallMedia",
+        "mo2-fomod" => "локальный архив · MO2",
         null or "" => "определяется…",
         _ => provider!,
     };
@@ -3983,17 +5252,22 @@
                 _ = InvokeAsync(StateHasChanged);
             });
             var path = await Updater.DownloadContentAsync(content, progress);
-            var install = await Mo2.InstallArchiveAsync(
+            var install = await InstallMo2ArchiveInteractiveAsync(
                 path,
                 content.Download?.InstallName,
                 content.Download?.ReplaceExisting ?? false);
+            if (install is null)
+            {
+                ShowToast("Установка FOMOD отменена; загруженный архив сохранён в кэше загрузок.");
+                return;
+            }
             if (!install.Success)
             {
                 ShowToast($"Архив загружен, но MO2 не установил его: {install.Message}", true);
                 return;
             }
 
-            RefreshMo2Workspace();
+            await RefreshMo2WorkspaceFullAsync();
             await LoadMo2ContentAsync(forceRefresh: true);
             ShowToast(install.Message);
         }
@@ -4334,10 +5608,19 @@
         _restartTransferLease = null;
         _mo2ContentCancellation?.Cancel();
         _mo2ContentCancellation?.Dispose();
+        _deferredStartupCancellation.Cancel();
+        _deferredStartupCancellation.Dispose();
         _mo2RuntimeMonitorCancellation.Cancel();
         _mo2RuntimeMonitorCancellation.Dispose();
         _mo2FileSearchCancellation?.Cancel();
         _mo2FileSearchCancellation?.Dispose();
+        if (_fomodWizard is { } wizard)
+        {
+            wizard.Cancellation.Cancel();
+            wizard.Completion.TrySetResult(null);
+            wizard.Dispose();
+            _fomodWizard = null;
+        }
         _mo2DragReference?.Dispose();
     }
 
@@ -4352,6 +5635,65 @@
     private sealed record Mo2ModGroup(Mo2ModEntry? Separator, IReadOnlyList<Mo2ModEntry> Mods);
 
     private sealed record ConfigurationMenuNode(string Path, string Title, long Order, int Count);
+
+    private sealed class FomodWizardSession : IDisposable
+    {
+        public const int MaxCachedAssetCharacters = 24 * 1024 * 1024;
+        private bool _disposed;
+
+        public FomodWizardSession(
+            string archivePath,
+            string? installName,
+            bool replaceExisting,
+            string profileName,
+            FomodPackage package,
+            FomodDependencyContext dependencyContext,
+            CancellationTokenSource cancellation)
+        {
+            ArchivePath = archivePath;
+            InstallName = installName;
+            ReplaceExisting = replaceExisting;
+            ProfileName = profileName;
+            Package = package;
+            DependencyContext = dependencyContext;
+            Cancellation = cancellation;
+            var defaults = FomodEngine.CreateDefaultSelection(package.Module, dependencyContext);
+            SelectedPluginIds = new HashSet<string>(defaults.SelectedPluginIds, StringComparer.Ordinal);
+            Evaluation = FomodEngine.Evaluate(package.Module, defaults, dependencyContext);
+            VisibleSteps = Evaluation.Steps.Where(step => step.Visible).ToList();
+        }
+
+        public string ArchivePath { get; }
+        public string? InstallName { get; }
+        public bool ReplaceExisting { get; }
+        public string ProfileName { get; }
+        public FomodPackage Package { get; }
+        public FomodDependencyContext DependencyContext { get; }
+        public CancellationTokenSource Cancellation { get; }
+        public HashSet<string> SelectedPluginIds { get; }
+        public Dictionary<string, string> AssetDataUrls { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public TaskCompletionSource<LauncherActionResult?> Completion { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public FomodEvaluation Evaluation { get; set; }
+        public List<FomodStepEvaluation> VisibleSteps { get; set; }
+        public FomodInstallPlan? Plan { get; set; }
+        public int StepIndex { get; set; } = -1;
+        public bool Reviewing { get; set; }
+        public bool Busy { get; set; }
+        public string? ValidationError { get; set; }
+        public string OperationMessage { get; set; } = "Проверьте сведения об установщике";
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            AssetDataUrls.Clear();
+            Package.Dispose();
+        }
+    }
 
     private sealed class BugReportForm
     {

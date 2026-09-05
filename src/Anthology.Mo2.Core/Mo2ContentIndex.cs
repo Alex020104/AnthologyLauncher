@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Anthology.Mo2.Core;
 
 public sealed record Mo2ModConflictSummary(
@@ -58,14 +60,19 @@ public sealed class Mo2ContentIndex
     private const string BaseGameSource = "ИГРА";
     private readonly Dictionary<string, List<FileProvider>> _files;
     private readonly string? _gameRoot;
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<Mo2ConflictEntry>> _conflictsByMod;
+    private readonly ConcurrentDictionary<string, IReadOnlyList<Mo2VirtualEntry>> _browseCache =
+        new(StringComparer.OrdinalIgnoreCase);
 
     private Mo2ContentIndex(
         Dictionary<string, List<FileProvider>> files,
         string? gameRoot,
+        IReadOnlyDictionary<string, IReadOnlyList<Mo2ConflictEntry>> conflictsByMod,
         Mo2ContentOverview overview)
     {
         _files = files;
         _gameRoot = gameRoot;
+        _conflictsByMod = conflictsByMod;
         Overview = overview;
     }
 
@@ -120,17 +127,27 @@ public sealed class Mo2ContentIndex
             pair => pair.Key,
             pair => new MutableConflict(pair.Value),
             StringComparer.OrdinalIgnoreCase);
+        var conflictEntries = modFileCounts.ToDictionary(
+            pair => pair.Key,
+            _ => new List<Mo2ConflictEntry>(),
+            StringComparer.OrdinalIgnoreCase);
         var conflictingFiles = 0;
         foreach (var pair in files.Where(pair => pair.Value.Select(item => item.ModName).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1))
         {
             conflictingFiles++;
             var ordered = pair.Value.OrderBy(item => item.Priority).ToArray();
             var winner = ordered[^1].ModName;
-            foreach (var provider in ordered.DistinctBy(item => item.ModName, StringComparer.OrdinalIgnoreCase))
+            var providers = ordered
+                .Select(item => item.ModName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var entry = new Mo2ConflictEntry(pair.Key, winner, providers);
+            foreach (var providerName in providers)
             {
-                var conflict = mutable[provider.ModName];
+                var conflict = mutable[providerName];
                 conflict.Paths.Add(pair.Key);
-                if (string.Equals(provider.ModName, winner, StringComparison.OrdinalIgnoreCase))
+                conflictEntries[providerName].Add(entry);
+                if (string.Equals(providerName, winner, StringComparison.OrdinalIgnoreCase))
                 {
                     conflict.Winning++;
                 }
@@ -159,12 +176,23 @@ public sealed class Mo2ContentIndex
             conflicts,
             downloads,
             saves);
-        return new Mo2ContentIndex(files, instance.GamePath, overview);
+        var conflictsByMod = conflictEntries.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<Mo2ConflictEntry>)pair.Value
+                .OrderBy(item => item.RelativePath, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+            StringComparer.OrdinalIgnoreCase);
+        return new Mo2ContentIndex(files, instance.GamePath, conflictsByMod, overview);
     }
 
     public IReadOnlyList<Mo2VirtualEntry> Browse(string? relativePath)
     {
         var current = NormalizeRelativePath(relativePath ?? string.Empty);
+        return _browseCache.GetOrAdd(current, BrowseCore);
+    }
+
+    private IReadOnlyList<Mo2VirtualEntry> BrowseCore(string current)
+    {
         var prefix = current.Length == 0 ? string.Empty : current + "/";
         var entries = new Dictionary<string, MutableVirtualEntry>(StringComparer.OrdinalIgnoreCase);
 
@@ -227,20 +255,15 @@ public sealed class Mo2ContentIndex
 
     public IReadOnlyList<Mo2ConflictEntry> GetConflicts(string modName, int limit = 500)
     {
-        return _files
-            .Where(pair => pair.Value.Count > 1
-                           && pair.Value.Any(provider => string.Equals(provider.ModName, modName, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
-            .Take(Math.Max(1, limit))
-            .Select(pair =>
-            {
-                var ordered = pair.Value.OrderBy(provider => provider.Priority).ToArray();
-                return new Mo2ConflictEntry(
-                    pair.Key,
-                    ordered[^1].ModName,
-                    ordered.Select(provider => provider.ModName).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
-            })
-            .ToArray();
+        if (!_conflictsByMod.TryGetValue(modName, out var entries))
+        {
+            return [];
+        }
+
+        var boundedLimit = Math.Max(1, limit);
+        return entries.Count <= boundedLimit
+            ? entries
+            : entries.Take(boundedLimit).ToArray();
     }
 
     public IReadOnlyList<Mo2VirtualEntry> Search(
@@ -438,12 +461,16 @@ public static class Mo2WorkspaceReader
             .GroupBy(
                 path => Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path)),
                 StringComparer.OrdinalIgnoreCase)
+            // .scop is the actual X-Ray save. A matching .scoc is auxiliary
+            // data and may enrich the catalog entry, but cannot be loaded alone.
+            .Where(group => group.Any(path =>
+                Path.GetExtension(path).Equals(".scop", StringComparison.OrdinalIgnoreCase)))
             .Select(group =>
             {
                 var parts = group.Select(path => new FileInfo(path)).ToArray();
                 var persistent = parts.FirstOrDefault(info => info.Extension.Equals(".scop", StringComparison.OrdinalIgnoreCase));
                 var container = parts.FirstOrDefault(info => info.Extension.Equals(".scoc", StringComparison.OrdinalIgnoreCase));
-                var primary = persistent ?? container!;
+                var primary = persistent!;
                 var saveName = Path.GetFileName(group.Key);
                 var previewPath = group.Key + ".dds";
                 return new Mo2SaveEntry(

@@ -45,6 +45,27 @@ public sealed class XRayDatabaseReaderTests
         Assert.Contains("DB: 2 файлов из 1 архивов", snapshot.StatusText);
     }
 
+    [Fact]
+    public void McmCatalogReadsModdedExesOptionsFromDb0Archive()
+    {
+        using var environment = TestDatabase.Create();
+        environment.WriteGameFile("appdata/user.ltx", "mt_scheduler 1\r\nraw_internal 42\r\n");
+        environment.WriteGameFile("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteArchiveAt(
+            "db/mods/00_modded_exes_gamedata.db0",
+            ("scripts/options_modded_exes.script",
+                "local page_optimizations=options_modded_exes_optimizations.PAGE GROUP=group{{id='modded_exes'},page_optimizations}"),
+            ("scripts/options_modded_exes_optimizations.script",
+                "PAGE=page{{id='optimizations'},list_bool{id='mt_scheduler'}}"));
+
+        var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, null);
+        var entry = Assert.Single(snapshot.AnomalySettings);
+
+        Assert.Equal("mt_scheduler", entry.Key);
+        Assert.Equal("modded_exes/optimizations", entry.MenuPath);
+        Assert.Contains("DB: 2", snapshot.StatusText);
+    }
+
     private sealed class TestDatabase : IDisposable
     {
         private TestDatabase(string root)
@@ -72,7 +93,17 @@ public sealed class XRayDatabaseReaderTests
 
         public string WriteArchive(params (string Name, string Contents)[] files)
         {
-            var archivePath = Path.Combine(GameRoot, "db", "configs", "metadata.xdb0");
+            return WriteArchiveAt("db/configs/metadata.xdb0", files);
+        }
+
+        public string WriteArchiveAt(
+            string relativePath,
+            params (string Name, string Contents)[] files)
+        {
+            var archivePath = Path.Combine(
+                GameRoot,
+                relativePath.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(archivePath)!);
             using var stream = File.Create(archivePath);
             var payloads = files.Select(file => Encoding.UTF8.GetBytes(file.Contents)).ToArray();
             var dataSize = payloads.Sum(item => item.Length);

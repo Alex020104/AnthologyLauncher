@@ -138,6 +138,7 @@ public static partial class GameSettingsPresentation
         {
             var leafKey = entry.Key.Split('/').Last();
             Anomaly.TryGetValue(leafKey, out var known);
+            var authoredChoices = MapChoices(entry.Choices);
             return new GameSettingView(
                 entry.DisplayName ?? known?.Title ?? Humanize(leafKey),
                 entry.Description ?? known?.Description ?? "Параметр оригинального меню Anomaly.",
@@ -147,7 +148,7 @@ public static partial class GameSettingsPresentation
                 entry.Minimum ?? known?.Minimum,
                 entry.Maximum ?? known?.Maximum,
                 entry.Step ?? known?.Step,
-                known?.Choices);
+                authoredChoices ?? known?.Choices);
         }
 
         var slash = entry.Key.IndexOf('/');
@@ -157,6 +158,7 @@ public static partial class GameSettingsPresentation
                           ?? (McmModules.TryGetValue(module, out var knownTitle) ? knownTitle : Humanize(module));
         var optionTitle = entry.DisplayName ?? Humanize(option.Replace('/', ' '));
         var control = ControlFromMetadata(entry) ?? InferControl(entry);
+        var authoredMcmChoices = MapChoices(entry.Choices);
         return new GameSettingView(
             optionTitle,
             entry.Description ?? $"Настройка модуля «{moduleTitle}». MCM применит её при следующем запуске игры.",
@@ -165,7 +167,8 @@ public static partial class GameSettingsPresentation
             true,
             entry.Minimum,
             entry.Maximum,
-            entry.Step ?? InferStep(entry.Value));
+            entry.Step ?? InferStep(entry.Value),
+            authoredMcmChoices);
     }
 
     private static GameSettingControl? ControlFromMetadata(
@@ -185,9 +188,10 @@ public static partial class GameSettingsPresentation
 
         if (type == "track" || type.EndsWith(".track", StringComparison.Ordinal))
         {
-            return entry.Minimum.HasValue && entry.Maximum.HasValue
-                ? GameSettingControl.Slider
-                : GameSettingControl.Number;
+            // Modded Exes' track constructor obtains some bounds from the live
+            // engine console registry. Those bounds are unavailable to the
+            // launcher, but the authored control is still a slider.
+            return GameSettingControl.Slider;
         }
 
         if (type is "list" or "radio" or "radio_h" or "radio_v"
@@ -196,7 +200,7 @@ public static partial class GameSettingsPresentation
             // Keep authored choices where the launcher knows them. Dynamic MCM
             // list contents are not safe to evaluate outside the game, so they
             // remain directly editable instead of presenting an empty select.
-            return known?.Choices is { Count: > 0 }
+            return entry.Choices is { Count: > 0 } || known?.Choices is { Count: > 0 }
                 ? GameSettingControl.Select
                 : GameSettingControl.Text;
         }
@@ -205,6 +209,12 @@ public static partial class GameSettingsPresentation
             ? GameSettingControl.Text
             : null;
     }
+
+    private static GameSettingChoice[]? MapChoices(
+        IReadOnlyList<AnomalyConfigurationChoice>? choices) =>
+        choices is { Count: > 0 }
+            ? choices.Select(choice => new GameSettingChoice(choice.Value, choice.Label)).ToArray()
+            : null;
 
     public static string CategoryTitle(AnomalyConfigurationKind kind, string category) =>
         kind == AnomalyConfigurationKind.Mcm && McmModules.TryGetValue(category, out var title)

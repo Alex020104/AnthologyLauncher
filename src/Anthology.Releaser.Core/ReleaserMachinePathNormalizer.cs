@@ -49,6 +49,13 @@ public static class ReleaserMachinePathNormalizer
         machine.Mo2SourceRoot = NormalizeValue(machine.Mo2SourceRoot, ref changed);
         machine.OutputRoot = NormalizeValue(machine.OutputRoot, ref changed);
         machine.SharedWorkspaceRoot = NormalizeValue(machine.SharedWorkspaceRoot, ref changed);
+        machine.RepackTemporaryRoot = NormalizeValue(machine.RepackTemporaryRoot, ref changed);
+        machine.RepackOutputRoot = NormalizeValue(machine.RepackOutputRoot, ref changed);
+        machine.SevenZipPath = NormalizeValue(machine.SevenZipPath, ref changed);
+        machine.InnoSetupCompilerPath = NormalizeValue(machine.InnoSetupCompilerPath, ref changed);
+        machine.InstallerTemplateRoot = NormalizeValue(machine.InstallerTemplateRoot, ref changed);
+        machine.GoogleDriveRclonePath = NormalizeValue(machine.GoogleDriveRclonePath, ref changed);
+        machine.GoogleDriveRcloneConfigPath = NormalizeValue(machine.GoogleDriveRcloneConfigPath, ref changed);
         machine.PrivateKeyPath = NormalizeValue(machine.PrivateKeyPath, ref changed);
         machine.PublicKeyPath = NormalizeValue(machine.PublicKeyPath, ref changed);
 

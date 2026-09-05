@@ -508,7 +508,7 @@ public static class Mo2ProfileManager
                 continue;
             }
 
-            var fileName = Path.GetFileName(NormalizeIniPath(value));
+            var fileName = Path.GetFileName(NormalizeIniPath(DecodeQtByteArray(value)));
             if (!fileName.StartsWith("Anomaly", StringComparison.OrdinalIgnoreCase)
                 || !fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
@@ -572,6 +572,34 @@ public static class Mo2ProfileManager
         }
 
         lines.Insert(0, (enabled ? "+" : "-") + modName);
+        WriteAtomicWithBackup(path, lines);
+    }
+
+    internal static void AddOrEnableMod(string root, string profileName, string modName)
+    {
+        var profileRoot = ResolveProfileRoot(root, profileName);
+        var path = Path.Combine(profileRoot, ModListFile);
+        var lines = File.ReadAllLines(path).ToList();
+        var index = FindModLine(lines, modName);
+        if (index < 0)
+        {
+            lines.Insert(0, "+" + modName);
+        }
+        else
+        {
+            if (lines[index].StartsWith('*'))
+            {
+                throw new InvalidOperationException("Неуправляемый мод нельзя изменить через modlist.txt.");
+            }
+            if (lines[index].StartsWith('+'))
+            {
+                return;
+            }
+            lines[index] = "+" + lines[index][1..];
+        }
+
+        // One atomic profile mutation preserves the pre-install backup. Calling
+        // AddMod followed by SetEnabled overwrote that recovery point.
         WriteAtomicWithBackup(path, lines);
     }
 
@@ -693,7 +721,7 @@ public static class Mo2ProfileManager
         WriteNewAtomic(path, ["Anthology portable MO2 instance lock."]);
     }
 
-    private static string ResolveProfileRoot(string root, string profileName)
+    internal static string ResolveProfileRoot(string root, string profileName)
     {
         var fullRoot = Path.GetFullPath(root);
         var profilesRoot = Path.GetFullPath(Path.Combine(fullRoot, "profiles"));
@@ -786,7 +814,7 @@ public static class Mo2ProfileManager
         }
 
         var decoded = DecodeQtByteArray(value[prefix.Length..]);
-        return string.IsNullOrWhiteSpace(decoded) ? null : decoded.Replace('\\', Path.DirectorySeparatorChar);
+        return string.IsNullOrWhiteSpace(decoded) ? null : NormalizeIniPath(decoded);
     }
 
     private static Mo2ExecutableDefinition[] ReadExecutables(IEnumerable<string> lines)
@@ -808,7 +836,7 @@ public static class Mo2ProfileManager
             }
 
             var equals = line.IndexOf('=');
-            var slash = line.IndexOf('\\');
+            var slash = IndexOfIniPathSeparator(line);
             if (slash <= 0 || equals <= slash
                 || !int.TryParse(line[..slash], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
             {
@@ -826,12 +854,13 @@ public static class Mo2ProfileManager
 
         return values.OrderBy(pair => pair.Key)
             .Select(pair => pair.Value)
-            .Where(value => value.TryGetValue("title", out var title) && !string.IsNullOrWhiteSpace(title))
+            .Where(value => value.TryGetValue("title", out var title)
+                            && !string.IsNullOrWhiteSpace(DecodeQtByteArray(title)))
             .Select(value => new Mo2ExecutableDefinition(
-                value["title"],
-                NormalizeIniPath(value.GetValueOrDefault("binary")),
-                value.GetValueOrDefault("arguments") ?? string.Empty,
-                NormalizeIniPath(value.GetValueOrDefault("workingDirectory"))))
+                DecodeQtByteArray(value["title"]),
+                NormalizeIniPath(DecodeQtByteArray(value.GetValueOrDefault("binary") ?? string.Empty)),
+                DecodeQtByteArray(value.GetValueOrDefault("arguments") ?? string.Empty),
+                NormalizeIniPath(DecodeQtByteArray(value.GetValueOrDefault("workingDirectory") ?? string.Empty))))
             .ToArray();
     }
 
@@ -844,7 +873,7 @@ public static class Mo2ProfileManager
         executableIndex = 0;
         field = string.Empty;
         value = string.Empty;
-        var slash = line.IndexOf('\\');
+        var slash = IndexOfIniPathSeparator(line);
         var equals = line.IndexOf('=');
         if (slash <= 0 || equals <= slash
             || !int.TryParse(line[..slash], NumberStyles.None, CultureInfo.InvariantCulture, out executableIndex))
@@ -857,39 +886,101 @@ public static class Mo2ProfileManager
         return true;
     }
 
+    private static int IndexOfIniPathSeparator(string value)
+    {
+        var backslash = value.IndexOf('\\');
+        var slash = value.IndexOf('/');
+        return backslash < 0
+            ? slash
+            : slash < 0
+                ? backslash
+                : Math.Min(backslash, slash);
+    }
+
     private static string NormalizeIniPath(string? value) =>
-        (value ?? string.Empty).Replace('/', Path.DirectorySeparatorChar);
+        (value ?? string.Empty)
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
 
     private static string ToIniPath(string value) =>
-        value.Replace(Path.DirectorySeparatorChar, '/');
+        value.Replace('\\', '/');
 
     internal static string DecodeQtByteArray(string value)
     {
         const string prefix = "@ByteArray(";
-        if (!value.StartsWith(prefix, StringComparison.Ordinal) || !value.EndsWith(')'))
+        var serialized = value.Trim();
+        if (serialized.Length >= 2 && serialized[0] == '"' && serialized[^1] == '"')
+        {
+            serialized = serialized[1..^1];
+        }
+
+        if (!serialized.StartsWith(prefix, StringComparison.Ordinal) || !serialized.EndsWith(')'))
         {
             return value;
         }
 
         var bytes = new List<byte>();
-        var content = value[prefix.Length..^1];
+        var content = serialized[prefix.Length..^1];
         for (var index = 0; index < content.Length; index++)
         {
-            if (content[index] == '\\' && index + 3 < content.Length && content[index + 1] == 'x'
-                && byte.TryParse(content.AsSpan(index + 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed))
-            {
-                bytes.Add(parsed);
-                index += 3;
-            }
-            else if (content[index] == '\\' && index + 1 < content.Length && content[index + 1] == '\\')
-            {
-                bytes.Add((byte)'\\');
-                index++;
-            }
-            else
+            if (content[index] != '\\' || index + 1 >= content.Length)
             {
                 bytes.AddRange(Encoding.UTF8.GetBytes(content[index].ToString()));
+                continue;
             }
+
+            var escaped = content[index + 1];
+            if (escaped == 'x')
+            {
+                var hexStart = index + 2;
+                var hexLength = 0;
+                while (hexLength < 2
+                       && hexStart + hexLength < content.Length
+                       && Uri.IsHexDigit(content[hexStart + hexLength]))
+                {
+                    hexLength++;
+                }
+
+                if (hexLength > 0
+                    && byte.TryParse(
+                        content.AsSpan(hexStart, hexLength),
+                        NumberStyles.HexNumber,
+                        CultureInfo.InvariantCulture,
+                        out var parsed))
+                {
+                    bytes.Add(parsed);
+                    index = hexStart + hexLength - 1;
+                    continue;
+                }
+            }
+
+            var decodedEscape = escaped switch
+            {
+                '0' => (byte)0x00,
+                'a' => (byte)0x07,
+                'b' => (byte)0x08,
+                'f' => (byte)0x0c,
+                'n' => (byte)0x0a,
+                'r' => (byte)0x0d,
+                't' => (byte)0x09,
+                'v' => (byte)0x0b,
+                '"' => (byte)'"',
+                '?' => (byte)'?',
+                '\'' => (byte)'\'',
+                '\\' => (byte)'\\',
+                _ => (byte?)null,
+            };
+            if (decodedEscape.HasValue)
+            {
+                bytes.Add(decodedEscape.Value);
+                index++;
+                continue;
+            }
+
+            // Be lenient with hand-edited files. QSettings writes a literal
+            // backslash as "\\\\", but older launcher builds and user fixes can
+            // contain an unescaped Windows separator inside @ByteArray(...).
+            bytes.Add((byte)'\\');
         }
 
         return Encoding.UTF8.GetString(bytes.ToArray());
@@ -898,19 +989,79 @@ public static class Mo2ProfileManager
     internal static string EncodeQtByteArray(string value)
     {
         var builder = new StringBuilder("@ByteArray(");
+        var escapeNextHexDigit = false;
+        var needsQuotes = false;
         foreach (var valueByte in Encoding.UTF8.GetBytes(value))
         {
-            if (valueByte is >= 0x20 and <= 0x7E && valueByte is not (byte)'\\' and not (byte)')')
+            // QSettings consumes consecutive hexadecimal digits after \x. If the
+            // next real byte is also 0-9/A-F, it must start its own escape.
+            if (escapeNextHexDigit && IsAsciiHexDigit(valueByte))
             {
-                builder.Append((char)valueByte);
+                AppendHexEscape(builder, valueByte);
+                continue;
             }
-            else
+
+            escapeNextHexDigit = false;
+            if (valueByte is (byte)';' or (byte)',' or (byte)'=')
             {
-                builder.Append("\\x");
-                builder.Append(valueByte.ToString("x2", CultureInfo.InvariantCulture));
+                needsQuotes = true;
+            }
+
+            switch (valueByte)
+            {
+                case 0x00:
+                    builder.Append("\\0");
+                    escapeNextHexDigit = true;
+                    break;
+                case 0x07:
+                    builder.Append("\\a");
+                    break;
+                case 0x08:
+                    builder.Append("\\b");
+                    break;
+                case 0x0c:
+                    builder.Append("\\f");
+                    break;
+                case 0x0a:
+                    builder.Append("\\n");
+                    break;
+                case 0x0d:
+                    builder.Append("\\r");
+                    break;
+                case 0x09:
+                    builder.Append("\\t");
+                    break;
+                case 0x0b:
+                    builder.Append("\\v");
+                    break;
+                case (byte)'"':
+                    builder.Append("\\\"");
+                    break;
+                case (byte)'\\':
+                    builder.Append("\\\\");
+                    break;
+                case <= 0x1f or >= 0x7f:
+                    AppendHexEscape(builder, valueByte);
+                    escapeNextHexDigit = true;
+                    break;
+                default:
+                    builder.Append((char)valueByte);
+                    break;
             }
         }
 
-        return builder.Append(')').ToString();
+        var encoded = builder.Append(')').ToString();
+        return needsQuotes ? $"\"{encoded}\"" : encoded;
+    }
+
+    private static bool IsAsciiHexDigit(byte value) =>
+        value is >= (byte)'0' and <= (byte)'9'
+            or >= (byte)'A' and <= (byte)'F'
+            or >= (byte)'a' and <= (byte)'f';
+
+    private static void AppendHexEscape(StringBuilder builder, byte value)
+    {
+        builder.Append("\\x");
+        builder.Append(value.ToString("x", CultureInfo.InvariantCulture));
     }
 }

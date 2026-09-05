@@ -42,4 +42,14 @@ public static class ProductionTrustAnchor
                 $"Манифест подписан неизвестным ключом '{manifest.Signature.KeyId}'. Ожидался '{KeyId}'.");
         }
     }
+
+    public static void ValidateReleaseHistory(SignedReleaseHistory history)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+        if (!string.Equals(history.Signature.KeyId, KeyId, StringComparison.Ordinal))
+        {
+            throw new CryptographicException(
+                $"История версий подписана неизвестным ключом '{history.Signature.KeyId}'. Ожидался '{KeyId}'.");
+        }
+    }
 }

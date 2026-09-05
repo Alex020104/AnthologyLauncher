@@ -51,13 +51,16 @@ public partial class App : System.Windows.Application
         services.AddSingleton<AnomalySaveCatalogService>();
         services.AddSingleton<BugReportDiagnosticBundleService>();
         services.AddSingleton<LauncherOperationGate>();
+        services.AddSingleton<LauncherReleaseHistoryStore>();
         services.AddSingleton<LauncherUpdateService>();
         services.AddSingleton<BundledInstallerService>();
         services.AddSingleton<SetupLauncherService>();
 
         _serviceProvider = services.BuildServiceProvider();
         Resources["services"] = _serviceProvider;
-        var window = new MainWindow(_serviceProvider.GetRequiredService<LauncherOperationGate>());
+        var window = new MainWindow(
+            _serviceProvider.GetRequiredService<LauncherOperationGate>(),
+            _serviceProvider.GetRequiredService<LauncherSettingsStore>());
         MainWindow = window;
         window.Show();
     }

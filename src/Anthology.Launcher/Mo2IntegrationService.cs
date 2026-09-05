@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Buffers;
 using System.IO;
 using Anthology.Mo2.Core;
+using SharpCompress.Common;
 
 namespace Anthology.Launcher;
 
@@ -12,6 +13,29 @@ public sealed record Mo2WorkspaceSnapshot(
     Mo2ProfileSnapshot? Profile,
     bool RuntimeBusy);
 
+public sealed record Mo2ArchivePreparation(
+    bool Success,
+    bool IsFomod,
+    string Message,
+    string? ProfileName = null,
+    FomodPackage? Package = null,
+    FomodDependencyContext? DependencyContext = null);
+
+public sealed record FomodImageAssetResult(
+    bool Success,
+    string Message,
+    string? DataUrl = null);
+
+public sealed record FomodImageAssetsResult(
+    bool Success,
+    string Message,
+    IReadOnlyDictionary<string, string> DataUrls);
+
+public sealed record FomodInstallActionResult(
+    bool Success,
+    bool Canceled,
+    string Message);
+
 public sealed class Mo2IntegrationService(
     LauncherSettingsStore settingsStore,
     LauncherBridge launcherBridge,
@@ -19,8 +43,13 @@ public sealed class Mo2IntegrationService(
 {
     private static readonly SearchValues<char> InvalidSaveNameCharacters =
         SearchValues.Create("/\\:*?\"<>|^()[]%");
+    private const int MaxFomodImageBytes = 4 * 1024 * 1024;
+    private const long MaxFomodImageBatchBytes = 18L * 1024 * 1024;
     private readonly SemaphoreSlim _contentGate = new(1, 1);
+    private readonly SemaphoreSlim _archiveInstallGate = new(1, 1);
     private string? _contentKey;
+    private string? _contentModListPath;
+    private long _contentModListStamp;
     private Mo2ContentIndex? _contentIndex;
 
 #pragma warning disable CA1822 // Exposed through the injected service so the UI can monitor runtime state.
@@ -78,7 +107,9 @@ public sealed class Mo2IntegrationService(
         string? executable,
         CancellationToken cancellationToken = default)
     {
-        var instance = Mo2ProfileManager.Detect(settingsStore.Current.ModpackRoot);
+        var instance = await Task.Run(
+            () => Mo2ProfileManager.Detect(settingsStore.Current.ModpackRoot),
+            cancellationToken);
         if (!instance.Available)
         {
             return new LauncherActionResult(false, instance.StatusText);
@@ -94,14 +125,16 @@ public sealed class Mo2IntegrationService(
             return new LauncherActionResult(false, "Выбранный запуск отсутствует в ModOrganizer.ini");
         }
 
-        if (IsRuntimeBusy())
+        if (await Task.Run(IsRuntimeBusy, cancellationToken))
         {
             return new LauncherActionResult(false, "Нельзя менять профиль, пока MO2 или Anomaly запущены");
         }
 
         try
         {
-            Mo2ProfileManager.SetSelectedProfile(instance.Root, profile!);
+            await Task.Run(
+                () => Mo2ProfileManager.SetSelectedProfile(instance.Root, profile!),
+                cancellationToken);
         }
         catch (Exception exception) when (exception is IOException
                                            or InvalidDataException
@@ -276,13 +309,186 @@ public sealed class Mo2IntegrationService(
         }
     }
 
+    public async Task<Mo2ArchivePreparation> InspectArchiveAsync(
+        string archivePath,
+        CancellationToken cancellationToken = default)
+    {
+        var workspace = await Task.Run(GetWorkspace);
+        if (!workspace.Instance.Available || workspace.SelectedProfile is null)
+        {
+            return new Mo2ArchivePreparation(false, false, "Сначала выберите профиль MO2");
+        }
+        if (workspace.RuntimeBusy)
+        {
+            return new Mo2ArchivePreparation(
+                false,
+                false,
+                "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
+        }
+        if (!File.Exists(archivePath))
+        {
+            return new Mo2ArchivePreparation(false, false, $"Архив не найден: {archivePath}");
+        }
+
+        FomodPackage? packageToDispose = null;
+        try
+        {
+            var inspection = await Task.Run(
+                () => Mo2ArchiveInstaller.InspectFomod(archivePath, cancellationToken),
+                cancellationToken);
+            if (!inspection.IsFomod)
+            {
+                var regularArchive = inspection.Message.Equals(
+                    "В архиве нет fomod/ModuleConfig.xml.",
+                    StringComparison.Ordinal);
+                return new Mo2ArchivePreparation(
+                    regularArchive,
+                    false,
+                    regularArchive ? "Обычный архив готов к установке." : inspection.Message,
+                    workspace.SelectedProfile);
+            }
+            if (!inspection.Success || inspection.Package is null)
+            {
+                return new Mo2ArchivePreparation(
+                    false,
+                    true,
+                    inspection.Message,
+                    workspace.SelectedProfile);
+            }
+
+            packageToDispose = inspection.Package;
+            var dependencyContext = await Task.Run(
+                () => CreateFomodDependencyContext(workspace, inspection.Package, cancellationToken),
+                cancellationToken);
+            var preparation = new Mo2ArchivePreparation(
+                true,
+                true,
+                inspection.Message,
+                workspace.SelectedProfile,
+                inspection.Package,
+                dependencyContext);
+            packageToDispose = null;
+            return preparation;
+        }
+        catch (OperationCanceledException)
+        {
+            return new Mo2ArchivePreparation(false, false, "Проверка архива отменена.");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException
+                                           or NotSupportedException
+                                           or ArgumentException
+                                           or AggregateException
+                                           or SharpCompressException)
+        {
+            return new Mo2ArchivePreparation(false, false, exception.Message);
+        }
+        finally
+        {
+            packageToDispose?.Dispose();
+        }
+    }
+
+#pragma warning disable CA1822 // Kept on the injected service as part of the archive-wizard API.
+    public async Task<FomodImageAssetsResult> ReadFomodImagesAsync(
+        FomodPackage package,
+        IEnumerable<string> relativePaths,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        ArgumentNullException.ThrowIfNull(relativePaths);
+        var requestedPaths = relativePaths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => path.Replace('\\', '/').TrimStart('/'))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(10)
+            .ToArray();
+        if (requestedPaths.Length == 0)
+        {
+            return new FomodImageAssetsResult(
+                false,
+                "Пути к изображениям FOMOD не указаны.",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        try
+        {
+            var assets = await Task.Run(
+                () => FomodArchiveReader.ReadAssets(
+                    package,
+                    requestedPaths,
+                    MaxFomodImageBytes,
+                    MaxFomodImageBatchBytes,
+                    cancellationToken),
+                cancellationToken);
+            var dataUrls = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var asset in assets)
+            {
+                var mimeType = DetectSafeImageMime(asset.Value);
+                if (mimeType is not null)
+                {
+                    dataUrls[asset.Key] = $"data:{mimeType};base64,{Convert.ToBase64String(asset.Value)}";
+                }
+            }
+
+            return new FomodImageAssetsResult(
+                dataUrls.Count > 0,
+                dataUrls.Count > 0
+                    ? "Изображения FOMOD загружены."
+                    : "Изображения FOMOD отсутствуют либо имеют неподдерживаемый формат.",
+                dataUrls);
+        }
+        catch (OperationCanceledException)
+        {
+            return new FomodImageAssetsResult(
+                false,
+                "Загрузка изображений отменена.",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException
+                                           or NotSupportedException
+                                           or ArgumentException
+                                           or AggregateException
+                                           or SharpCompressException)
+        {
+            return new FomodImageAssetsResult(
+                false,
+                exception.Message,
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+        }
+    }
+
+    public async Task<FomodImageAssetResult> ReadFomodImageAsync(
+        FomodPackage package,
+        string? relativePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return new FomodImageAssetResult(false, "Путь к изображению FOMOD не указан.");
+        }
+
+        var normalizedPath = relativePath.Replace('\\', '/').TrimStart('/');
+        var result = await ReadFomodImagesAsync(package, [normalizedPath], cancellationToken);
+        return result.DataUrls.TryGetValue(normalizedPath, out var dataUrl)
+            ? new FomodImageAssetResult(true, result.Message, dataUrl)
+            : new FomodImageAssetResult(false, result.Message);
+    }
+#pragma warning restore CA1822
+
     public async Task<LauncherActionResult> InstallArchiveAsync(
         string archivePath,
         string? installName = null,
         bool replaceExisting = false,
         CancellationToken cancellationToken = default)
     {
-        var workspace = GetWorkspace();
+        var workspace = await Task.Run(GetWorkspace);
         if (!workspace.Instance.Available || workspace.SelectedProfile is null)
         {
             return new LauncherActionResult(false, "Сначала выберите профиль MO2");
@@ -293,8 +499,11 @@ public sealed class Mo2IntegrationService(
             return new LauncherActionResult(false, "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
         }
 
+        var gateEntered = false;
         try
         {
+            await _archiveInstallGate.WaitAsync(cancellationToken);
+            gateEntered = true;
             var result = await Task.Run(
                 () => Mo2ArchiveInstaller.Install(
                     workspace.Instance.Root,
@@ -302,7 +511,7 @@ public sealed class Mo2IntegrationService(
                     archivePath,
                     installName,
                     replaceExisting,
-                    cancellationToken),
+                    cancellationToken: cancellationToken),
                 cancellationToken);
             if (result.Success)
             {
@@ -310,12 +519,94 @@ public sealed class Mo2IntegrationService(
             }
             return new LauncherActionResult(result.Success, result.Message);
         }
+        catch (OperationCanceledException)
+        {
+            return new LauncherActionResult(false, "Установка архива отменена.");
+        }
         catch (Exception exception) when (exception is IOException
                                            or InvalidDataException
                                            or UnauthorizedAccessException
-                                           or InvalidOperationException)
+                                           or InvalidOperationException
+                                           or NotSupportedException
+                                           or ArgumentException
+                                           or AggregateException
+                                           or SharpCompressException)
         {
             return new LauncherActionResult(false, exception.Message);
+        }
+        finally
+        {
+            if (gateEntered)
+            {
+                _archiveInstallGate.Release();
+            }
+        }
+    }
+
+    public async Task<FomodInstallActionResult> InstallFomodArchiveAsync(
+        FomodPackage package,
+        FomodInstallPlan plan,
+        string profileName,
+        string? installName = null,
+        bool replaceExisting = false,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var workspace = await Task.Run(GetWorkspace);
+        if (!workspace.Instance.Available
+            || !workspace.Instance.Profiles.Contains(profileName, StringComparer.OrdinalIgnoreCase))
+        {
+            return new FomodInstallActionResult(false, false, "Профиль MO2, выбранный для FOMOD, больше недоступен");
+        }
+        if (workspace.RuntimeBusy)
+        {
+            return new FomodInstallActionResult(false, false, "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
+        }
+
+        var gateEntered = false;
+        try
+        {
+            await _archiveInstallGate.WaitAsync(cancellationToken);
+            gateEntered = true;
+            var result = await Task.Run(
+                () => Mo2ArchiveInstaller.InstallFomod(
+                    workspace.Instance.Root,
+                    profileName,
+                    package,
+                    plan,
+                    installName,
+                    replaceExisting,
+                    cancellationToken: cancellationToken),
+                cancellationToken);
+            if (result.Success)
+            {
+                InvalidateContent();
+            }
+            return new FomodInstallActionResult(result.Success, false, result.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            return new FomodInstallActionResult(false, true, "Установка FOMOD отменена.");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException
+                                           or NotSupportedException
+                                           or ArgumentException
+                                           or AggregateException
+                                           or SharpCompressException)
+        {
+            return new FomodInstallActionResult(false, false, exception.Message);
+        }
+        finally
+        {
+            if (gateEntered)
+            {
+                _archiveInstallGate.Release();
+            }
         }
     }
 
@@ -323,7 +614,7 @@ public sealed class Mo2IntegrationService(
         string profileName,
         CancellationToken cancellationToken = default)
     {
-        var workspace = GetWorkspace();
+        var workspace = await Task.Run(GetWorkspace, cancellationToken);
         if (!workspace.Instance.Available)
         {
             return new LauncherActionResult(false, workspace.Instance.StatusText);
@@ -335,8 +626,13 @@ public sealed class Mo2IntegrationService(
 
         try
         {
-            Mo2ProfileManager.CreateProfile(workspace.Instance.Root, profileName, workspace.SelectedProfile);
-            Mo2ProfileManager.SetSelectedProfile(workspace.Instance.Root, profileName);
+            await Task.Run(
+                () =>
+                {
+                    Mo2ProfileManager.CreateProfile(workspace.Instance.Root, profileName, workspace.SelectedProfile);
+                    Mo2ProfileManager.SetSelectedProfile(workspace.Instance.Root, profileName);
+                },
+                cancellationToken);
             var settings = settingsStore.Current.Copy();
             settings.SelectedMo2Profile = profileName;
             await settingsStore.SaveAsync(settings, cancellationToken);
@@ -392,7 +688,7 @@ public sealed class Mo2IntegrationService(
         CancellationToken cancellationToken = default)
     {
         var index = await GetContentIndexAsync(false, cancellationToken);
-        return index.Browse(relativePath);
+        return await Task.Run(() => index.Browse(relativePath), cancellationToken);
     }
 
     public async Task<IReadOnlyList<Mo2VirtualEntry>> SearchDataAsync(
@@ -408,7 +704,7 @@ public sealed class Mo2IntegrationService(
         CancellationToken cancellationToken = default)
     {
         var index = await GetContentIndexAsync(false, cancellationToken);
-        return index.GetConflicts(modName);
+        return await Task.Run(() => index.GetConflicts(modName), cancellationToken);
     }
 
     public Task<LauncherActionResult> LaunchSelectedAsync(CancellationToken cancellationToken = default) =>
@@ -445,7 +741,7 @@ public sealed class Mo2IntegrationService(
             return new LauncherActionResult(false, $"Не удалось подготовить portable MO2: {exception.Message}");
         }
 
-        var workspace = GetWorkspace();
+        var workspace = await Task.Run(GetWorkspace, cancellationToken);
         if (!workspace.Instance.Available || workspace.SelectedProfile is null || workspace.SelectedExecutable is null)
         {
             return new LauncherActionResult(false, "Сначала назначьте профиль и запуск в разделе MO2");
@@ -500,10 +796,7 @@ public sealed class Mo2IntegrationService(
             var gameArguments = launcherBridge.GetGameArguments();
             if (saveName is not null)
             {
-                var quotedSaveName = $"\"{saveName.Replace("\"", "\\\"")}\"";
-                gameArguments = string.IsNullOrWhiteSpace(gameArguments)
-                    ? $"-load {quotedSaveName}"
-                    : $"{gameArguments} -load {quotedSaveName}";
+                gameArguments = AnomalyLaunchArguments.AppendStartSave(gameArguments, saveName);
             }
             startInfo.ArgumentList.Add(gameArguments);
             Process.Start(startInfo);
@@ -552,8 +845,7 @@ public sealed class Mo2IntegrationService(
         }
 
         var extension = Path.GetExtension(fullPath);
-        if (!extension.Equals(".scop", StringComparison.OrdinalIgnoreCase)
-            && !extension.Equals(".scoc", StringComparison.OrdinalIgnoreCase))
+        if (!extension.Equals(".scop", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Выбранный файл не является сохранением Anomaly");
         }
@@ -591,7 +883,18 @@ public sealed class Mo2IntegrationService(
         bool forceRefresh,
         CancellationToken cancellationToken)
     {
-        var workspace = GetWorkspace();
+        var cachedIndex = _contentIndex;
+        var cachedModListPath = _contentModListPath;
+        if (!forceRefresh
+            && cachedIndex is not null
+            && !string.IsNullOrWhiteSpace(cachedModListPath)
+            && File.Exists(cachedModListPath)
+            && File.GetLastWriteTimeUtc(cachedModListPath).Ticks == _contentModListStamp)
+        {
+            return cachedIndex;
+        }
+
+        var workspace = await Task.Run(GetWorkspace, cancellationToken);
         if (!workspace.Instance.Available || workspace.Profile is null || workspace.SelectedProfile is null)
         {
             throw new InvalidOperationException("Профиль MO2 не выбран");
@@ -615,8 +918,10 @@ public sealed class Mo2IntegrationService(
             var index = await Task.Run(
                 () => Mo2ContentIndex.Build(workspace.Instance, workspace.Profile, cancellationToken),
                 cancellationToken);
-            _contentIndex = index;
             _contentKey = key;
+            _contentModListPath = workspace.Profile.ModListPath;
+            _contentModListStamp = stamp;
+            _contentIndex = index;
             return index;
         }
         finally
@@ -625,10 +930,180 @@ public sealed class Mo2IntegrationService(
         }
     }
 
+    private static FomodDependencyContext CreateFomodDependencyContext(
+        Mo2WorkspaceSnapshot workspace,
+        FomodPackage package,
+        CancellationToken cancellationToken)
+    {
+        var dependencyFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        AddDependencyFiles(package.Module.Dependencies, dependencyFiles);
+        foreach (var step in package.Module.Steps)
+        {
+            AddDependencyFiles(step.Visibility, dependencyFiles);
+            foreach (var plugin in step.Groups.SelectMany(group => group.Plugins))
+            {
+                foreach (var pattern in plugin.TypeDescriptor.Patterns)
+                {
+                    AddDependencyFiles(pattern.Dependencies, dependencyFiles);
+                }
+            }
+        }
+        foreach (var conditional in package.Module.ConditionalInstalls)
+        {
+            AddDependencyFiles(conditional.Dependencies, dependencyFiles);
+        }
+
+        var states = new Dictionary<string, FomodFileState>(StringComparer.OrdinalIgnoreCase);
+        var mods = workspace.Profile?.Mods
+            .Where(mod => !mod.IsSeparator && Directory.Exists(mod.DirectoryPath))
+            .ToArray() ?? [];
+        foreach (var dependencyFile in dependencyFiles)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var relativePath = NormalizeDependencyPath(dependencyFile);
+            if (relativePath is null)
+            {
+                states[dependencyFile] = FomodFileState.Missing;
+                continue;
+            }
+
+            if (ContainsDependencyFile(workspace.Instance.GamePath, relativePath))
+            {
+                states[dependencyFile] = FomodFileState.Active;
+                continue;
+            }
+
+            if (mods.Any(mod => mod.Enabled && ContainsDependencyFile(mod.DirectoryPath, relativePath)))
+            {
+                states[dependencyFile] = FomodFileState.Active;
+            }
+            else if (mods.Any(mod => !mod.Enabled && ContainsDependencyFile(mod.DirectoryPath, relativePath)))
+            {
+                states[dependencyFile] = FomodFileState.Inactive;
+            }
+            else
+            {
+                states[dependencyFile] = FomodFileState.Missing;
+            }
+        }
+
+        return new FomodDependencyContext(
+            states,
+            GameVersion: "1.5.3",
+            FomodVersion: "0.13.21");
+    }
+
+    private static void AddDependencyFiles(
+        FomodDependency? dependency,
+        ISet<string> destination)
+    {
+        switch (dependency)
+        {
+            case FomodFileDependency file when !string.IsNullOrWhiteSpace(file.File):
+                destination.Add(file.File.Trim());
+                break;
+            case FomodCompositeDependency composite:
+                foreach (var child in composite.Dependencies)
+                {
+                    AddDependencyFiles(child, destination);
+                }
+                break;
+        }
+    }
+
+    private static string? NormalizeDependencyPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path))
+        {
+            return null;
+        }
+        var normalized = path.Replace('\\', '/').Trim();
+        var segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0
+            || segments.Any(segment => segment is "." or ".." || segment.Contains(':')))
+        {
+            return null;
+        }
+        return string.Join('/', segments);
+    }
+
+    private static bool ContainsDependencyFile(string? root, string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+        {
+            return false;
+        }
+
+        var variants = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { relativePath };
+        if (relativePath.StartsWith("Data/", StringComparison.OrdinalIgnoreCase))
+        {
+            variants.Add(relativePath[5..]);
+        }
+        if (relativePath.StartsWith("gamedata/", StringComparison.OrdinalIgnoreCase))
+        {
+            variants.Add(relativePath[9..]);
+        }
+        else
+        {
+            variants.Add("gamedata/" + relativePath);
+        }
+
+        var fullRoot = Path.GetFullPath(root);
+        foreach (var variant in variants)
+        {
+            try
+            {
+                var candidate = Path.GetFullPath(Path.Combine(
+                    fullRoot,
+                    variant.Replace('/', Path.DirectorySeparatorChar)));
+                if (candidate.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(candidate))
+                {
+                    return true;
+                }
+            }
+            catch (Exception exception) when (exception is IOException
+                                               or UnauthorizedAccessException
+                                               or ArgumentException
+                                               or NotSupportedException)
+            {
+                // Invalid dependency paths are simply reported to FOMOD as missing.
+            }
+        }
+        return false;
+    }
+
+    private static string? DetectSafeImageMime(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length >= 8
+            && bytes[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a }))
+        {
+            return "image/png";
+        }
+        if (bytes.Length >= 3 && bytes[0] == 0xff && bytes[1] == 0xd8 && bytes[2] == 0xff)
+        {
+            return "image/jpeg";
+        }
+        if (bytes.Length >= 6
+            && (bytes[..6].SequenceEqual("GIF87a"u8) || bytes[..6].SequenceEqual("GIF89a"u8)))
+        {
+            return "image/gif";
+        }
+        if (bytes.Length >= 12
+            && bytes[..4].SequenceEqual("RIFF"u8)
+            && bytes.Slice(8, 4).SequenceEqual("WEBP"u8))
+        {
+            return "image/webp";
+        }
+        return null;
+    }
+
     private void InvalidateContent()
     {
-        _contentKey = null;
         _contentIndex = null;
+        _contentKey = null;
+        _contentModListPath = null;
+        _contentModListStamp = 0;
     }
 
     private static LauncherActionResult OpenDirectory(string path)
@@ -678,5 +1153,9 @@ public sealed class Mo2IntegrationService(
         return false;
     }
 
-    public void Dispose() => _contentGate.Dispose();
+    public void Dispose()
+    {
+        _contentGate.Dispose();
+        _archiveInstallGate.Dispose();
+    }
 }

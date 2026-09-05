@@ -12,7 +12,7 @@ else if (_youtubeId is not null)
         @if (!_embedRequested)
         {
             <button type="button" class="safe-video-preview" title="Воспроизвести видео в лаунчере" @onclick="ActivateEmbed">
-                <img src="@_posterUrl" alt="@Title" loading="lazy" />
+                <img src="@_posterUrl" alt="@Title" loading="lazy" decoding="async" />
                 <span class="safe-video-preview-shade"></span>
                 <span class="video-play">▶</span>
                 <span class="safe-video-preview-copy">
@@ -25,6 +25,7 @@ else if (_youtubeId is not null)
         {
             <iframe src="@_embedUrl"
                     title="@Title"
+                    loading="lazy"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen></iframe>
@@ -50,7 +51,7 @@ else if (_youtubeId is not null)
 else if (_embedUrl is not null)
 {
     <div class="safe-video-player external-video">
-        <iframe src="@_embedUrl" title="@Title" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <iframe src="@_embedUrl" title="@Title" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         @if (_externalUrl is not null)
         {
             <div class="safe-video-actions">
@@ -117,10 +118,11 @@ else
         {
             try
             {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
                 var resolved = await YandexDiskMirrorResolver.ResolvePublicDownloadAsync(
                     Http,
                     sourceUrl,
-                    CancellationToken.None);
+                    timeout.Token);
                 if (string.Equals(_lastSourceUrl, sourceUrl, StringComparison.Ordinal)
                     && resolved.Scheme == Uri.UriSchemeHttps
                     && string.IsNullOrEmpty(resolved.UserInfo))

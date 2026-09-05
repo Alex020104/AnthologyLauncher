@@ -6,8 +6,8 @@
 IDI_ANTHOLOGY_RELEASER_ICON ICON "../../assets/A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,2,0,0
- PRODUCTVERSION 0,2,0,0
+ FILEVERSION 0,2,0,2
+ PRODUCTVERSION 0,2,0,2
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -24,11 +24,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "A.N.T.H.O.L.O.G.Y Team"
             VALUE "FileDescription", "A.N.T.H.O.L.O.G.Y Releaser Next"
-            VALUE "FileVersion", "0.2.0-alpha.1"
+            VALUE "FileVersion", "0.2.0-alpha.2"
             VALUE "InternalName", "AnthologyReleaser.Next"
             VALUE "OriginalFilename", "AnthologyReleaser.Next.exe"
             VALUE "ProductName", "A.N.T.H.O.L.O.G.Y Releaser"
-            VALUE "ProductVersion", "0.2.0-alpha.1"
+            VALUE "ProductVersion", "0.2.0-alpha.2"
         END
     END
     BLOCK "VarFileInfo"

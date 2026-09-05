@@ -56,17 +56,64 @@ public static class WorkspaceStorage
         var fullPath = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         var temporary = fullPath + $".tmp-{Guid.NewGuid():N}";
-        await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 64 * 1024, FileOptions.Asynchronous))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, value, ManifestJson.Options, cancellationToken);
-            await stream.FlushAsync(cancellationToken);
+            await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 64 * 1024, FileOptions.Asynchronous))
+            {
+                await JsonSerializer.SerializeAsync(stream, value, ManifestJson.Options, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
+
+            if (File.Exists(fullPath) && await ContainsValidJsonAsync(fullPath, cancellationToken))
+            {
+                File.Copy(fullPath, fullPath + ".bak", true);
+            }
+            File.Move(temporary, fullPath, true);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(temporary))
+                {
+                    File.Delete(temporary);
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // A sync client can briefly retain a handle. Startup maintenance
+                // will remove old transaction files on the next launch.
+            }
+        }
+    }
+
+    public static int CleanupTemporaryFiles(string directory, TimeSpan minimumAge)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        if (!Directory.Exists(directory))
+        {
+            return 0;
         }
 
-        if (File.Exists(fullPath) && await ContainsValidJsonAsync(fullPath, cancellationToken))
+        var cutoff = DateTimeOffset.UtcNow - minimumAge;
+        var removed = 0;
+        foreach (var path in Directory.EnumerateFiles(directory, "*.tmp-*", SearchOption.TopDirectoryOnly))
         {
-            File.Copy(fullPath, fullPath + ".bak", true);
+            try
+            {
+                if (File.GetLastWriteTimeUtc(path) > cutoff.UtcDateTime)
+                {
+                    continue;
+                }
+                File.Delete(path);
+                removed++;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Best-effort maintenance; an active writer keeps its file.
+            }
         }
-        File.Move(temporary, fullPath, true);
+        return removed;
     }
 
     private static async Task<T> DeserializeAsync<T>(

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using Anthology.Mo2.Core;
 
 namespace Anthology.Launcher;
 
@@ -285,10 +286,9 @@ public sealed class LauncherBridge(
             var executable = GetSelectedGameExecutable(status.GameRoot, settingsStore.Current);
             await PrepareGameLaunchAsync(status.GameRoot, cancellationToken);
             await StartRelayChatIfEnabledAsync(status.GameRoot, cancellationToken);
-            var arguments = BuildGameArguments(settingsStore.Current);
-            arguments = string.IsNullOrWhiteSpace(arguments)
-                ? $"-load \"{saveName}\""
-                : $"{arguments} -load \"{saveName}\"";
+            var arguments = AnomalyLaunchArguments.AppendStartSave(
+                BuildGameArguments(settingsStore.Current),
+                saveName);
             Process.Start(new ProcessStartInfo(executable)
             {
                 WorkingDirectory = Path.GetDirectoryName(executable)!,
@@ -301,7 +301,8 @@ public sealed class LauncherBridge(
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
                                            or InvalidOperationException
-                                           or InvalidDataException)
+                                           or InvalidDataException
+                                           or ArgumentException)
         {
             return new LauncherActionResult(false, exception.Message);
         }
@@ -327,8 +328,7 @@ public sealed class LauncherBridge(
         }
 
         var extension = Path.GetExtension(fullPath);
-        if (!extension.Equals(".scop", StringComparison.OrdinalIgnoreCase)
-            && !extension.Equals(".scoc", StringComparison.OrdinalIgnoreCase))
+        if (!extension.Equals(".scop", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Выбранный файл не является сохранением Anomaly");
         }
@@ -547,6 +547,7 @@ public sealed class LauncherBridge(
 
     private async Task PrepareGameLaunchAsync(string gameRoot, CancellationToken cancellationToken)
     {
+        AnomalyRuntimeMaintenance.ClearShaderCache(gameRoot);
         var settings = settingsStore.Current;
         var shadowMap = ShadowMapSizes.Contains(settings.ShadowMapSize) ? settings.ShadowMapSize : 1536;
         var configLines = new[]

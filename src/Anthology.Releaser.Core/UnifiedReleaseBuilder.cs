@@ -42,6 +42,18 @@ public static class UnifiedReleaseBuilder
         "ModOrganizer.ini",
     ];
 
+    public static Task<UnifiedReleaseResult> BuildLooseAsync(
+        UnifiedReleaseRequest request,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return BuildAsync(
+            request with { DeliveryMode = UnifiedReleaseDeliveryMode.LooseFiles },
+            progress,
+            cancellationToken);
+    }
+
     public static async Task<UnifiedReleaseResult> BuildAsync(
         UnifiedReleaseRequest request,
         IProgress<string>? progress = null,
@@ -52,6 +64,19 @@ public static class UnifiedReleaseBuilder
         var machine = request.Machine;
         ReleaseVersionRules.Validate(workspace.Version);
         ValidateMachine(machine);
+        var baselineManifest = await PublicationManifestBaseline.LoadAsync(
+            workspace,
+            machine,
+            cancellationToken);
+        var effectiveMinimumLauncherVersion = PublicationManifestBaseline.PreserveMinimumLauncherVersion(
+            baselineManifest?.Payload.MinimumLauncherVersion,
+            request.MinimumLauncherVersion);
+        if (request.DeliveryMode == UnifiedReleaseDeliveryMode.LooseFiles
+            && string.IsNullOrWhiteSpace(effectiveMinimumLauncherVersion))
+        {
+            throw new InvalidOperationException(
+                "Loose-file delivery is schema 5. Publish a compatible launcher first or provide MinimumLauncherVersion explicitly.");
+        }
         if (string.IsNullOrWhiteSpace(machine.GameSourceRoot) || string.IsNullOrWhiteSpace(machine.Mo2SourceRoot))
         {
             throw new InvalidOperationException("Для выпуска всей сборки выберите оба подготовленных корня: игру и MO2.");
@@ -63,53 +88,84 @@ public static class UnifiedReleaseBuilder
         ValidatePathSeparation(machine.GameSourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
         ValidatePathSeparation(machine.Mo2SourceRoot, outputRoot, machine.PrivateKeyPath, machine.PublicKeyPath);
         Directory.CreateDirectory(outputRoot);
-        var packages = (await LoadPreservedPackagesAsync(
-                Path.Combine(outputRoot, "manifest.json"),
-                cancellationToken))
-            .Where(package => package.Kind == PackageKind.Launcher
-                              && !string.Equals(
-                                  package.Id,
-                                  PackageIntegrityCatalogBuilder.PackageId,
-                                  StringComparison.OrdinalIgnoreCase))
+        var packages = (baselineManifest?.Payload.Packages ?? [])
+            .Where(package => !IsReplacedByFullSnapshot(package))
             .ToList();
         var artifactPaths = new List<string>();
+        var looseMirrorOverrides = BuildLooseMirrorOverrideIndex(request.LooseFileMirrors);
 
         if (!string.IsNullOrWhiteSpace(machine.GameSourceRoot))
         {
             progress?.Report("Сканирование полного корня игры…");
-            var result = await BuildPackageAsync(
-                "anthology-game",
-                "Anthology — корень игры",
-                PackageKind.Game,
-                "game",
-                machine.GameSourceRoot,
-                outputRoot,
-                workspace,
-                static mirror => mirror.GameUrl,
-                GameExcludedRoots,
-                progress,
-                cancellationToken);
-            packages.Add(result.Package);
-            artifactPaths.Add(result.ArtifactPath);
+            if (request.DeliveryMode == UnifiedReleaseDeliveryMode.LooseFiles)
+            {
+                packages.Add(await BuildLoosePackageAsync(
+                    "anthology-game",
+                    "Anthology — корень игры",
+                    PackageKind.Game,
+                    "game",
+                    machine.GameSourceRoot,
+                    workspace,
+                    static mirror => mirror.GameUrl,
+                    GameExcludedRoots,
+                    looseMirrorOverrides,
+                    progress,
+                    cancellationToken));
+            }
+            else
+            {
+                var result = await BuildPackageAsync(
+                    "anthology-game",
+                    "Anthology — корень игры",
+                    PackageKind.Game,
+                    "game",
+                    machine.GameSourceRoot,
+                    outputRoot,
+                    workspace,
+                    ResolveArtifactUrlTemplate,
+                    GameExcludedRoots,
+                    progress,
+                    cancellationToken);
+                packages.Add(result.Package);
+                artifactPaths.Add(result.ArtifactPath);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(machine.Mo2SourceRoot))
         {
             progress?.Report("Сканирование полного корня MO2…");
-            var result = await BuildPackageAsync(
-                "anthology-mo2",
-                "Anthology — Mod Organizer 2",
-                PackageKind.Modpack,
-                "modpack",
-                mo2SourceRoot,
-                outputRoot,
-                workspace,
-                static mirror => mirror.Mo2Url,
-                Mo2ExcludedRoots,
-                progress,
-                cancellationToken);
-            packages.Add(result.Package);
-            artifactPaths.Add(result.ArtifactPath);
+            if (request.DeliveryMode == UnifiedReleaseDeliveryMode.LooseFiles)
+            {
+                packages.Add(await BuildLoosePackageAsync(
+                    "anthology-mo2",
+                    "Anthology — Mod Organizer 2",
+                    PackageKind.Modpack,
+                    "modpack",
+                    mo2SourceRoot,
+                    workspace,
+                    static mirror => mirror.Mo2Url,
+                    Mo2ExcludedRoots,
+                    looseMirrorOverrides,
+                    progress,
+                    cancellationToken));
+            }
+            else
+            {
+                var result = await BuildPackageAsync(
+                    "anthology-mo2",
+                    "Anthology — Mod Organizer 2",
+                    PackageKind.Modpack,
+                    "modpack",
+                    mo2SourceRoot,
+                    outputRoot,
+                    workspace,
+                    ResolveArtifactUrlTemplate,
+                    Mo2ExcludedRoots,
+                    progress,
+                    cancellationToken);
+                packages.Add(result.Package);
+                artifactPaths.Add(result.ArtifactPath);
+            }
         }
 
         if (packages.Count == 0)
@@ -126,14 +182,16 @@ public static class UnifiedReleaseBuilder
         progress?.Report("Подпись единого манифеста…");
         using var privateKey = ECDsa.Create();
         privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
-        var integrity = await PackageIntegrityCatalogBuilder.BuildAsync(
-            packages,
-            outputRoot,
-            workspace,
-            privateKey,
-            machine.KeyId.Trim(),
-            progress,
-            cancellationToken);
+        var integrity = request.DeliveryMode == UnifiedReleaseDeliveryMode.Archive
+            ? await PackageIntegrityCatalogBuilder.BuildAsync(
+                packages,
+                outputRoot,
+                workspace,
+                privateKey,
+                machine.KeyId.Trim(),
+                progress,
+                cancellationToken)
+            : null;
         if (integrity is not null)
         {
             packages.Add(integrity.Package);
@@ -141,30 +199,44 @@ public static class UnifiedReleaseBuilder
         }
 
         var catalog = CreateContentCatalog(workspace, media);
+        var manifestShape = PublicationManifestBaseline.ResolveShape(
+            baselineManifest,
+            packages,
+            effectiveMinimumLauncherVersion);
         var payload = new UpdateManifest(
-            4,
+            manifestShape.SchemaVersion,
             string.IsNullOrWhiteSpace(workspace.Channel) ? "next" : workspace.Channel.Trim().ToLowerInvariant(),
             workspace.Version.Trim(),
             DateTimeOffset.UtcNow,
-            null,
+            manifestShape.MinimumLauncherVersion,
             packages,
             catalog);
         var signed = ManifestSecurity.Sign(payload, privateKey, machine.KeyId.Trim());
         ManifestValidator.ValidateAndThrow(signed);
 
         var manifestPath = Path.Combine(outputRoot, "manifest.json");
+        var contentPath = Path.Combine(outputRoot, "content.json");
         await WriteJsonAtomicallyAsync(manifestPath, signed, cancellationToken);
-        await WriteJsonAtomicallyAsync(Path.Combine(outputRoot, "content.json"), catalog, cancellationToken);
+        await WriteJsonAtomicallyAsync(contentPath, catalog, cancellationToken);
         await WriteJsonAtomicallyAsync(Path.Combine(outputRoot, "release-workspace.json"), workspace, cancellationToken);
+
+        IReadOnlyList<string>? publicationFiles = request.DeliveryMode == UnifiedReleaseDeliveryMode.LooseFiles
+            ? [
+                manifestPath,
+                contentPath,
+                .. media.RelativeFiles.Select(path => PathSafety.ResolveUnderRoot(outputRoot, path)),
+            ]
+            : null;
 
         progress?.Report("Единый релиз готов.");
         return new UnifiedReleaseResult(
             workspace.Version,
             manifestPath,
             artifactPaths,
-            packages.Sum(package => package.Files.Count),
+            packages.Sum(package => package.GetFilePaths().Count),
             packages.Sum(package => package.Size),
-            catalog.Items.Count);
+            catalog.Items.Count,
+            publicationFiles);
     }
 
     public static void GenerateKeys(string privateKeyPath, string publicKeyPath, bool overwrite = false)
@@ -181,6 +253,214 @@ public static class UnifiedReleaseBuilder
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         File.WriteAllText(privatePath, key.ExportECPrivateKeyPem());
         File.WriteAllText(publicPath, key.ExportSubjectPublicKeyInfoPem());
+    }
+
+    private static bool IsReplacedByFullSnapshot(PackageManifest package) =>
+        package.Id.Equals("anthology-game", StringComparison.OrdinalIgnoreCase)
+        || package.Id.Equals("anthology-mo2", StringComparison.OrdinalIgnoreCase)
+        || package.Id.Equals(PackageIntegrityCatalogBuilder.PackageId, StringComparison.OrdinalIgnoreCase)
+        || package.Id.StartsWith("anthology-files-", StringComparison.OrdinalIgnoreCase)
+           && (package.InstallRoot.Equals("game", StringComparison.OrdinalIgnoreCase)
+               || package.InstallRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase));
+
+    private static async Task<PackageManifest> BuildLoosePackageAsync(
+        string id,
+        string displayName,
+        PackageKind kind,
+        string installRoot,
+        string inputRoot,
+        ReleaserWorkspace workspace,
+        Func<ReleaseMirrorSet, string> selectUrl,
+        IReadOnlyList<string> specificExcludedRoots,
+        Dictionary<string, IReadOnlyList<MirrorManifest>> mirrorOverrides,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        var input = Path.GetFullPath(inputRoot);
+        if (!Directory.Exists(input))
+        {
+            throw new DirectoryNotFoundException($"Не найдена исходная папка: {input}");
+        }
+
+        var excluded = CommonExcludedRoots
+            .Concat(specificExcludedRoots)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var paths = Directory.EnumerateFiles(input, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = false,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            })
+            .Select(path => Path.GetRelativePath(input, path).Replace('\\', '/'))
+            .Where(path => !excluded.Contains(path.Split('/', 2)[0]))
+            .Select(PathSafety.NormalizeRelativePath)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        if (paths.Length == 0)
+        {
+            throw new InvalidDataException($"Исходная папка {displayName} не содержит файлов для публикации.");
+        }
+        if (paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != paths.Length)
+        {
+            throw new InvalidDataException($"Исходная папка {displayName} содержит пути, различающиеся только регистром.");
+        }
+
+        progress?.Report($"Хеширование {displayName}: {paths.Length:N0} файлов без создания архива…");
+        var entries = new PackageLooseFile[paths.Length];
+        var completed = 0;
+        var progressLock = new object();
+        await Parallel.ForEachAsync(
+            Enumerable.Range(0, paths.Length),
+            new ParallelOptions
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = 4,
+            },
+            async (index, token) =>
+            {
+                var relativePath = paths[index];
+                var sourcePath = PathSafety.ResolveUnderRoot(input, relativePath);
+                var before = new FileInfo(sourcePath);
+                if (!before.Exists)
+                {
+                    throw new FileNotFoundException("Файл исчез во время сканирования релиза.", sourcePath);
+                }
+                var size = before.Length;
+                var modified = before.LastWriteTimeUtc;
+                var sha256 = await ArtifactHash.ComputeSha256Async(sourcePath, token);
+                var after = new FileInfo(sourcePath);
+                if (!after.Exists || after.Length != size || after.LastWriteTimeUtc != modified)
+                {
+                    throw new IOException($"Файл изменился во время построения релиза: {relativePath}");
+                }
+
+                mirrorOverrides.TryGetValue(LooseMirrorKey(id, relativePath), out var exactMirrors);
+                var normalizedMirrors = exactMirrors?
+                    .Where(mirror => SupportsArtifact(mirror.Provider, size))
+                    .Select(mirror => new MirrorManifest(
+                        NormalizeProvider(mirror.Provider),
+                        ExpandUrl(mirror.Url, workspace.Version, id, Path.GetFileName(relativePath)),
+                        mirror.Priority,
+                        mirror.Region))
+                    .ToArray();
+                entries[index] = new PackageLooseFile(
+                    relativePath,
+                    size,
+                    sha256,
+                    normalizedMirrors is { Length: > 0 } ? normalizedMirrors : null);
+
+                var current = Interlocked.Increment(ref completed);
+                if (current == paths.Length || current % 250 == 0)
+                {
+                    lock (progressLock)
+                    {
+                        progress?.Report($"{displayName}: проверено {current:N0} из {paths.Length:N0} файлов…");
+                    }
+                }
+            });
+
+        var largestFile = entries.Max(file => file.Size);
+        var mirrors = workspace.Mirrors
+            .Select(mirror => new
+            {
+                Mirror = mirror,
+                Provider = NormalizeProvider(mirror.Provider),
+                Url = selectUrl(mirror).Trim(),
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+            .Where(item => SupportsArtifact(item.Provider, largestFile))
+            .Select(item => new MirrorManifest(
+                item.Provider,
+                CreateLooseMirrorTemplate(item.Provider, item.Url, workspace.Version, id),
+                item.Mirror.Priority))
+            .OrderBy(item => item.Priority)
+            .ToArray();
+        if (mirrors.Length == 0 && entries.Any(file => file.Mirrors is not { Count: > 0 }))
+        {
+            throw new InvalidOperationException(
+                $"Для {displayName} укажите URL папки с шаблоном '{{path}}' или точные зеркала каждого файла.");
+        }
+
+        var totalSize = entries.Aggregate(0L, static (total, file) => checked(total + file.Size));
+        return new PackageManifest(
+            id,
+            displayName,
+            workspace.Version,
+            kind,
+            installRoot,
+            "loose",
+            totalSize,
+            LoosePackageHash.ComputeSha256(entries),
+            mirrors,
+            [],
+            PackageUpdateMode.ManagedExact,
+            true,
+            CommonExcludedRoots
+                .Concat(specificExcludedRoots)
+                .Concat(installRoot.Equals("modpack", StringComparison.OrdinalIgnoreCase)
+                    ? ["profiles"]
+                    : Array.Empty<string>())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+            LooseFiles: entries);
+    }
+
+    private static Dictionary<string, IReadOnlyList<MirrorManifest>> BuildLooseMirrorOverrideIndex(
+        IReadOnlyList<LooseFileMirrorOverride>? overrides)
+    {
+        var result = new Dictionary<string, IReadOnlyList<MirrorManifest>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in overrides ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(item.PackageId))
+            {
+                throw new ArgumentException("Loose-file mirror override has no package id.");
+            }
+            var path = PathSafety.NormalizeRelativePath(item.Path);
+            if (item.Mirrors is null || item.Mirrors.Count == 0)
+            {
+                throw new ArgumentException($"Loose-file mirror override '{item.PackageId}|{path}' has no mirrors.");
+            }
+            if (!result.TryAdd(LooseMirrorKey(item.PackageId, path), item.Mirrors))
+            {
+                throw new ArgumentException($"Duplicate loose-file mirror override: {item.PackageId}|{path}");
+            }
+        }
+        return result;
+    }
+
+    private static string LooseMirrorKey(string packageId, string path) =>
+        packageId.Trim().ToLowerInvariant() + "\0" + PathSafety.NormalizeRelativePath(path);
+
+    public static string CreateLooseMirrorTemplate(
+        string provider,
+        string url,
+        string version,
+        string packageId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+        var normalizedProvider = NormalizeProvider(provider);
+        var template = url
+            .Replace("{file}", "{path}", StringComparison.OrdinalIgnoreCase)
+            .Replace("{version}", version.Trim(), StringComparison.OrdinalIgnoreCase)
+            .Replace("{id}", packageId.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase);
+        if (template.Contains("{path}", StringComparison.OrdinalIgnoreCase))
+        {
+            return template;
+        }
+
+        if (normalizedProvider.Equals("yandex-disk", StringComparison.OrdinalIgnoreCase)
+            && YandexDiskMirrorResolver.IsYandexDiskUrl(template))
+        {
+            var separator = template.Contains('?') ? '&' : '?';
+            return template + separator + "path=/{path}";
+        }
+        if (template.EndsWith('/'))
+        {
+            return template + "{path}";
+        }
+
+        throw new InvalidDataException(
+            $"Loose-file mirror '{provider}' must contain '{{path}}' or be a Yandex.Disk folder URL.");
     }
 
     private static async Task<(PackageManifest Package, string ArtifactPath)> BuildPackageAsync(
@@ -270,30 +550,6 @@ public static class UnifiedReleaseBuilder
     public static bool SupportsArtifact(string provider, long size) =>
         !NormalizeProvider(provider).Equals("github", StringComparison.OrdinalIgnoreCase)
         || size <= GitHubRepositoryArtifactLimitBytes;
-
-    private static async Task<IReadOnlyList<PackageManifest>> LoadPreservedPackagesAsync(
-        string manifestPath,
-        CancellationToken cancellationToken)
-    {
-        if (!File.Exists(manifestPath))
-        {
-            return [];
-        }
-
-        await using var stream = new FileStream(
-            manifestPath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            64 * 1024,
-            FileOptions.Asynchronous);
-        var signed = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(
-                         stream,
-                         ManifestJson.Options,
-                         cancellationToken)
-                     ?? throw new InvalidDataException("Existing manifest.json is empty or damaged.");
-        return signed.Payload.Packages;
-    }
 
     public static ContentCatalog CreateContentCatalog(
         ReleaserWorkspace workspace,
@@ -649,6 +905,58 @@ public static class UnifiedReleaseBuilder
         .Replace("{version}", version.Trim(), StringComparison.OrdinalIgnoreCase)
         .Replace("{id}", id.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase)
         .Replace("{file}", fileName.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Resolves the version-root artifact template without ever reusing a loose
+    /// file {path} template. Older workspaces did not have ArtifactUrl, so their
+    /// legacy archive GameUrl remains supported when it is not a loose template;
+    /// otherwise the channel path is derived from the stable manifest sibling.
+    /// </summary>
+    public static string ResolveArtifactUrlTemplate(ReleaseMirrorSet mirror)
+    {
+        ArgumentNullException.ThrowIfNull(mirror);
+        var configured = mirror.ArtifactUrl?.Trim() ?? string.Empty;
+        if (configured.Length > 0)
+        {
+            return RequireArtifactTemplate(configured);
+        }
+
+        var legacy = mirror.GameUrl?.Trim() ?? string.Empty;
+        if (legacy.Length > 0 && !legacy.Contains("{path}", StringComparison.OrdinalIgnoreCase))
+        {
+            return RequireArtifactTemplate(legacy);
+        }
+
+        var manifest = mirror.ManifestUrl?.Trim() ?? string.Empty;
+        const string manifestName = "manifest.json";
+        var marker = manifest.LastIndexOf(manifestName, StringComparison.OrdinalIgnoreCase);
+        if (marker < 0)
+        {
+            return string.Empty;
+        }
+
+        var beforeMarkerIsBoundary = marker == 0 || manifest[marker - 1] is '/' or '=';
+        var afterMarker = marker + manifestName.Length;
+        var afterMarkerIsBoundary = afterMarker == manifest.Length
+                                    || manifest[afterMarker] is '?' or '&' or '#';
+        if (!beforeMarkerIsBoundary || !afterMarkerIsBoundary)
+        {
+            return string.Empty;
+        }
+
+        return RequireArtifactTemplate(
+            manifest[..marker] + "{version}/{file}" + manifest[afterMarker..]);
+    }
+
+    private static string RequireArtifactTemplate(string template)
+    {
+        if (template.Contains("{path}", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                "Шаблон артефактов канала не может содержать {path}; используйте отдельное поле URL артефактов.");
+        }
+        return template;
+    }
 
     public static void ValidateMachine(ReleaserMachineSettings machine)
     {

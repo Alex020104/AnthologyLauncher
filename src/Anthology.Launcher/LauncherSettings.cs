@@ -8,6 +8,22 @@ public sealed class LauncherSettings
 {
     private const string DefaultRenderer = "DX11";
 
+    public const string DetailedInterfaceMode = "detailed";
+
+    public const string CompactInterfaceMode = "compact";
+
+    public string InterfaceMode { get; set; } = DetailedInterfaceMode;
+
+    public double? DetailedWindowLeft { get; set; }
+
+    public double? DetailedWindowTop { get; set; }
+
+    public double DetailedWindowWidth { get; set; } = 1440;
+
+    public double DetailedWindowHeight { get; set; } = 900;
+
+    public bool DetailedWindowMaximized { get; set; }
+
     public string? GameRoot { get; set; }
 
     public bool GameRootManualOverride { get; set; }
@@ -25,6 +41,8 @@ public sealed class LauncherSettings
     public string? SelectedMo2Executable { get; set; }
 
     public string ManifestSource { get; set; } = string.Empty;
+
+    public string ReleaseHistorySource { get; set; } = string.Empty;
 
     public string PublicKeyPath { get; set; } = string.Empty;
 
@@ -82,6 +100,12 @@ public sealed class LauncherSettings
 
     public LauncherSettings Copy() => new()
     {
+        InterfaceMode = InterfaceMode,
+        DetailedWindowLeft = DetailedWindowLeft,
+        DetailedWindowTop = DetailedWindowTop,
+        DetailedWindowWidth = DetailedWindowWidth,
+        DetailedWindowHeight = DetailedWindowHeight,
+        DetailedWindowMaximized = DetailedWindowMaximized,
         GameRoot = GameRoot,
         GameRootManualOverride = GameRootManualOverride,
         ModpackRoot = ModpackRoot,
@@ -91,6 +115,7 @@ public sealed class LauncherSettings
         SelectedMo2Profile = SelectedMo2Profile,
         SelectedMo2Executable = SelectedMo2Executable,
         ManifestSource = ManifestSource,
+        ReleaseHistorySource = ReleaseHistorySource,
         PublicKeyPath = PublicKeyPath,
         UpdateChannel = UpdateChannel,
         PreferredMirrorProvider = PreferredMirrorProvider,
@@ -233,6 +258,16 @@ public sealed class LauncherSettingsStore : IDisposable
 
     private static void Normalize(LauncherSettings settings)
     {
+        settings.InterfaceMode = string.Equals(
+            settings.InterfaceMode,
+            LauncherSettings.CompactInterfaceMode,
+            StringComparison.OrdinalIgnoreCase)
+                ? LauncherSettings.CompactInterfaceMode
+                : LauncherSettings.DetailedInterfaceMode;
+        settings.DetailedWindowLeft = NormalizeFiniteCoordinate(settings.DetailedWindowLeft);
+        settings.DetailedWindowTop = NormalizeFiniteCoordinate(settings.DetailedWindowTop);
+        settings.DetailedWindowWidth = NormalizeWindowDimension(settings.DetailedWindowWidth, 760, 7680, 1440);
+        settings.DetailedWindowHeight = NormalizeWindowDimension(settings.DetailedWindowHeight, 560, 4320, 900);
         settings.GameRoot = NormalizeOptionalPath(settings.GameRoot);
         settings.ModpackRoot = NormalizeOptionalPath(settings.ModpackRoot);
         settings.InstallDestination = NormalizeOptionalPath(settings.InstallDestination);
@@ -241,6 +276,7 @@ public sealed class LauncherSettingsStore : IDisposable
         settings.SelectedMo2Executable = NormalizeOptionalText(settings.SelectedMo2Executable);
         settings.PublicKeyPath = NormalizeOptionalPath(settings.PublicKeyPath) ?? string.Empty;
         settings.ManifestSource = settings.ManifestSource.Trim();
+        settings.ReleaseHistorySource = settings.ReleaseHistorySource.Trim();
         settings.UpdateChannel = string.IsNullOrWhiteSpace(settings.UpdateChannel)
             ? "next"
             : settings.UpdateChannel.Trim().ToLowerInvariant();
@@ -301,6 +337,12 @@ public sealed class LauncherSettingsStore : IDisposable
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    private static double? NormalizeFiniteCoordinate(double? value) =>
+        value is { } coordinate && double.IsFinite(coordinate) ? coordinate : null;
+
+    private static double NormalizeWindowDimension(double value, double minimum, double maximum, double fallback) =>
+        double.IsFinite(value) ? Math.Clamp(value, minimum, maximum) : fallback;
+
     private static void ApplyEnvironmentOverrides(LauncherSettings settings)
     {
         var gameRoot = Environment.GetEnvironmentVariable("ANTHOLOGY_GAME_ROOT");
@@ -335,6 +377,12 @@ public sealed class LauncherSettingsStore : IDisposable
         {
             settings.ManifestSource = manifestSource.Trim();
         }
+
+        var historySource = Environment.GetEnvironmentVariable("ANTHOLOGY_RELEASE_HISTORY_SOURCE");
+        if (!string.IsNullOrWhiteSpace(historySource))
+        {
+            settings.ReleaseHistorySource = historySource.Trim();
+        }
     }
 
     private static void ApplyBundledUpdateConfiguration(LauncherSettings settings)
@@ -363,10 +411,15 @@ public sealed class LauncherSettingsStore : IDisposable
                      Path.Combine(GetDeploymentRoot(), "Update", "channel.json"),
                  })
         {
-            var configuredSource = ReadManifestSource(descriptorPath);
-            if (!string.IsNullOrWhiteSpace(configuredSource))
+            var configured = ReadUpdateChannel(descriptorPath);
+            if (!string.IsNullOrWhiteSpace(configured.ManifestSource))
             {
-                settings.ManifestSource = configuredSource;
+                settings.ManifestSource = configured.ManifestSource;
+                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHOLOGY_RELEASE_HISTORY_SOURCE"))
+                    && !string.IsNullOrWhiteSpace(configured.ReleaseHistorySource))
+                {
+                    settings.ReleaseHistorySource = configured.ReleaseHistorySource;
+                }
                 return;
             }
         }
@@ -382,35 +435,46 @@ public sealed class LauncherSettingsStore : IDisposable
         }
     }
 
-    private static string? ReadManifestSource(string descriptorPath)
+    private static LauncherUpdateChannelConfiguration ReadUpdateChannel(string descriptorPath)
     {
         if (!File.Exists(descriptorPath))
         {
-            return null;
+            return default;
         }
 
         try
         {
             using var document = JsonDocument.Parse(File.ReadAllText(descriptorPath));
-            var source = document.RootElement.TryGetProperty("manifestSource", out var node)
-                ? node.GetString()?.Trim()
-                : null;
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                return null;
-            }
-            if (Uri.TryCreate(source, UriKind.Absolute, out var uri)
-                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-            {
-                return uri.AbsoluteUri;
-            }
-            return Path.GetFullPath(source, Path.GetDirectoryName(descriptorPath)!);
+            var manifestSource = ReadConfiguredSource(document.RootElement, "manifestSource", descriptorPath);
+            var historySource = ReadConfiguredSource(document.RootElement, "releaseHistorySource", descriptorPath);
+            return new LauncherUpdateChannelConfiguration(manifestSource, historySource);
         }
         catch (JsonException)
         {
-            return null;
+            return default;
         }
     }
+
+    private static string? ReadConfiguredSource(JsonElement root, string propertyName, string descriptorPath)
+    {
+        var source = root.TryGetProperty(propertyName, out var node)
+            ? node.GetString()?.Trim()
+            : null;
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return null;
+        }
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            return uri.AbsoluteUri;
+        }
+        return Path.GetFullPath(source, Path.GetDirectoryName(descriptorPath)!);
+    }
+
+    private readonly record struct LauncherUpdateChannelConfiguration(
+        string? ManifestSource,
+        string? ReleaseHistorySource);
 
     private static string GetDeploymentRoot() =>
         Directory.GetParent(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))?.FullName

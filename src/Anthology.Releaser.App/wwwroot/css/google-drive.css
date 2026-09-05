@@ -1,0 +1,129 @@
+.google-drive-card {
+    display: grid;
+    gap: 20px;
+    margin: 16px 0;
+    border-color: #3e5b45;
+    background:
+        linear-gradient(115deg, rgba(24, 47, 34, .5), transparent 46%),
+        linear-gradient(145deg, rgba(17, 24, 28, .98), rgba(12, 18, 21, .98));
+}
+
+.google-drive-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.google-drive-heading h3 {
+    margin: 7px 0 8px;
+    font-size: 23px;
+    font-weight: 400;
+}
+
+.google-drive-heading p {
+    max-width: 780px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.google-drive-links {
+    display: grid;
+    justify-items: end;
+    flex: 0 0 auto;
+}
+
+.google-drive-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding-top: 18px;
+    border-top: 1px solid #30443a;
+}
+
+.google-drive-grid .wide { grid-column: 1 / -1; }
+.google-drive-grid input[readonly] { color: #93a69b; }
+
+.google-drive-source-map {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.google-drive-source-map > span {
+    color: #79b78a;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+}
+
+.google-drive-source-map code {
+    min-width: 0;
+    overflow: hidden;
+    padding: 10px;
+    border: 1px solid #293a31;
+    background: #0a100d;
+    color: #a9bbb0;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.google-drive-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 10px 13px;
+    border: 1px solid #293a31;
+    background: rgba(8, 15, 11, .72);
+}
+
+.google-drive-status > span {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #6e9d7a;
+}
+
+.google-drive-status.working > span {
+    background: var(--gold);
+    box-shadow: 0 0 9px var(--gold);
+}
+
+.google-drive-status p {
+    margin: 0;
+    color: #a3b1a8;
+    font-size: 11px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.google-drive-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cloud-managed-note {
+    align-self: stretch;
+    align-items: center;
+    border-left: 2px solid #568a65;
+}
+
+.cloud-managed-note strong,
+.cloud-managed-note small { display: block; }
+.cloud-managed-note strong { color: #79b78a; font-size: 9px; letter-spacing: 1.3px; }
+.cloud-managed-note small { margin-top: 5px; color: var(--muted); line-height: 1.45; }
+
+@media (max-width: 1050px) {
+    .google-drive-heading { display: grid; }
+    .google-drive-links { justify-items: start; }
+    .google-drive-grid { grid-template-columns: 1fr; }
+    .google-drive-grid .wide { grid-column: auto; }
+    .google-drive-source-map { grid-template-columns: 1fr; }
+}

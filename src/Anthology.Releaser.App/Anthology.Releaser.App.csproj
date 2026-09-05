@@ -9,7 +9,7 @@
     <SelfContained>true</SelfContained>
     <ApplicationIcon>../../assets/A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico</ApplicationIcon>
     <AssemblyName>AnthologyReleaser.Next</AssemblyName>
-    <Version>0.2.0-alpha.1</Version>
+    <Version>0.2.0-alpha.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,5 +26,10 @@
     <Resource Include="..\..\assets\A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico">
       <Link>Assets\releaser.ico</Link>
     </Resource>
+    <Content Include="..\..\assets\A.N.T.H.O.L.O.G.Y_Trilogy_Icon_v1.ico">
+      <Link>InstallerTemplate\AnthologyLauncher.ico</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 </Project>

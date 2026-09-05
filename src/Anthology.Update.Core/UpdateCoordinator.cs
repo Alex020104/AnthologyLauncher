@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using Anthology.Contracts;
 
 namespace Anthology.Update.Core;
@@ -63,7 +64,10 @@ public sealed record UpdateRollbackResult(
 
 public sealed class UpdateCoordinator
 {
-    private const int MaximumManifestBytes = 4 * 1024 * 1024;
+    // Schema 5 can carry hashes for a complete game and MO2 tree. Keep a hard
+    // upper bound and enforce it while streaming so a response without a
+    // Content-Length header cannot exhaust memory.
+    private const int MaximumManifestBytes = 128 * 1024 * 1024;
     private readonly HttpClient _httpClient;
     private readonly IReadOnlyList<IMirrorResolver>? _resolvers;
 
@@ -185,9 +189,29 @@ public sealed class UpdateCoordinator
         {
             installed.Packages.TryGetValue(package.Id, out var currentVersion);
             var versionChanged = !string.Equals(currentVersion, package.Version, StringComparison.OrdinalIgnoreCase);
-            var expectedIntegrity = FindArchiveIntegrity(integrityCatalog, package);
+            var expectedIntegrity = package.LooseFiles?.Select(file => new PackageFileIntegrity(
+                    PathSafety.NormalizeRelativePath(file.Path),
+                    file.Size,
+                    file.Sha256.ToLowerInvariant()))
+                .ToArray()
+                ?? FindArchiveIntegrity(integrityCatalog, package);
             var assessment = IntegrityAssessment.Intact;
-            if (!versionChanged
+            IReadOnlyList<string>? looseDeltaFiles = null;
+            if (package.LooseFiles is not null
+                && installRoots is not null
+                && package.Kind != PackageKind.Launcher)
+            {
+                assessment = await AssessIntegrityAsync(
+                    package.InstallRoot,
+                    expectedIntegrity ?? [],
+                    installRoots,
+                    cancellationToken);
+                // For a new version this is a delta install list, while for the
+                // same version it is the ordinary repair list. An empty list is
+                // meaningful: every signed file is already present and valid.
+                looseDeltaFiles = assessment.RepairFiles;
+            }
+            else if (!versionChanged
                 && string.Equals(package.Id, "anthology-integrity", StringComparison.OrdinalIgnoreCase)
                 && integrityCatalogLoad.RequiresCatalogRepair)
             {
@@ -207,7 +231,7 @@ public sealed class UpdateCoordinator
                 if (localBaseline is not null
                     && string.Equals(localBaseline.PackageVersion, package.Version, StringComparison.OrdinalIgnoreCase))
                 {
-                    var currentPaths = package.Files
+                    var currentPaths = package.GetFilePaths()
                         .Select(PathSafety.NormalizeRelativePath)
                         .ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var expectedCurrentFiles = localBaseline.Files
@@ -222,12 +246,13 @@ public sealed class UpdateCoordinator
                 }
             }
 
+            var repairRequired = !versionChanged && assessment.RequiresRepair;
             var update = new PackageUpdate(
                 package,
                 currentVersion,
                 versionChanged || assessment.RequiresRepair,
-                assessment.RequiresRepair,
-                assessment.RepairFiles,
+                repairRequired,
+                looseDeltaFiles ?? (assessment.RequiresRepair ? assessment.RepairFiles : null),
                 expectedIntegrity);
             packages.Add(update);
             regularUpdates[package.Id] = update;
@@ -393,11 +418,11 @@ public sealed class UpdateCoordinator
 
     private static async Task<IntegrityAssessment> AssessIntegrityAsync(
         string installRoot,
-        PackageFileIntegrity[] expectedFiles,
+        IReadOnlyCollection<PackageFileIntegrity> expectedFiles,
         IReadOnlyDictionary<string, string> installRoots,
         CancellationToken cancellationToken)
     {
-        if (expectedFiles.Length == 0)
+        if (expectedFiles.Count == 0)
         {
             return IntegrityAssessment.Intact;
         }
@@ -409,40 +434,48 @@ public sealed class UpdateCoordinator
         }
 
         var root = Path.GetFullPath(configuredRoot);
-        var damaged = new List<string>();
-        foreach (var expected in expectedFiles)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var normalized = PathSafety.NormalizeRelativePath(expected.Path);
-            var path = PathSafety.ResolveUnderRoot(root, normalized);
-            if (!File.Exists(path))
+        var damaged = new ConcurrentBag<string>();
+        await Parallel.ForEachAsync(
+            expectedFiles,
+            new ParallelOptions
             {
-                damaged.Add(normalized);
-                continue;
-            }
-
-            try
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = 4,
+            },
+            async (expected, token) =>
             {
-                if (new FileInfo(path).Length != expected.Size
-                    || !string.Equals(
-                        await ArtifactHash.ComputeSha256Async(path, cancellationToken),
-                        expected.Sha256,
-                        StringComparison.OrdinalIgnoreCase))
+                var normalized = PathSafety.NormalizeRelativePath(expected.Path);
+                var path = PathSafety.ResolveUnderRoot(root, normalized);
+                if (!File.Exists(path))
                 {
                     damaged.Add(normalized);
+                    return;
                 }
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                // A managed file that cannot be read is not known-good. Let the
-                // transactional repair report a concrete access error if needed.
-                damaged.Add(normalized);
-            }
-        }
 
-        return damaged.Count == 0
+                try
+                {
+                    if (new FileInfo(path).Length != expected.Size
+                        || !string.Equals(
+                            await ArtifactHash.ComputeSha256Async(path, token),
+                            expected.Sha256,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        damaged.Add(normalized);
+                    }
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // A managed file that cannot be read is not known-good. Let
+                    // the transactional repair report the concrete access error.
+                    damaged.Add(normalized);
+                }
+            });
+
+        return damaged.IsEmpty
             ? IntegrityAssessment.Intact
-            : new IntegrityAssessment(true, damaged);
+            : new IntegrityAssessment(
+                true,
+                damaged.Order(StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     public async Task<UpdateApplyResult> ApplyAsync(
@@ -481,6 +514,7 @@ public sealed class UpdateCoordinator
         Directory.CreateDirectory(operationRoot);
 
         var downloader = new ArtifactDownloader(_httpClient, _resolvers);
+        var looseDownloader = new LoosePackageDownloader(_httpClient, _resolvers);
         var installedState = await ReadInstalledStateAsync(stateRoot, cancellationToken);
         var history = await ReadHistoryAsync(stateRoot, cancellationToken);
         var historyBeforeApply = history.Entries.ToArray();
@@ -502,36 +536,73 @@ public sealed class UpdateCoordinator
                 var artifactPath = Path.Combine(packageRoot, "artifact.zip");
                 var stagingRoot = Path.Combine(packageRoot, "staging");
                 Directory.CreateDirectory(packageRoot);
-
-                progress?.Report(new UpdateProgress(UpdateStage.Downloading, $"Загрузка {package.DisplayName}", package.Id, 0, package.Size));
-                var downloadProgress = progress is null
-                    ? null
-                    : new Progress<DownloadProgress>(value => progress.Report(new UpdateProgress(
-                        UpdateStage.Downloading,
-                        $"Загрузка {package.DisplayName}",
-                        package.Id,
-                        value.DownloadedBytes,
-                        value.TotalBytes,
-                        value.Provider)));
-                await downloader.DownloadAsync(
-                    package,
-                    artifactPath,
-                    downloadProgress,
-                    preferredMirrorProvider,
-                    cancellationToken);
-
-                var installPaths = update.RepairRequired && update.RepairFiles is not null
+                var declaredFiles = package.GetFilePaths();
+                var installPaths = update.RepairFiles is not null
                     ? update.RepairFiles
-                    : package.Files;
-                progress?.Report(new UpdateProgress(UpdateStage.Verifying, $"Проверка {package.DisplayName}", package.Id, package.Size, package.Size));
-                progress?.Report(new UpdateProgress(UpdateStage.Extracting, $"Распаковка {package.DisplayName}", package.Id));
-                await SafeZipExtractor.ExtractAsync(
-                    artifactPath,
-                    stagingRoot,
-                    package,
-                    update.ExpectedIntegrity,
-                    installPaths,
-                    cancellationToken);
+                    : declaredFiles;
+                if (package.LooseFiles is not null)
+                {
+                    var selected = installPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var downloadSize = package.LooseFiles
+                        .Where(file => selected.Contains(PathSafety.NormalizeRelativePath(file.Path)))
+                        .Aggregate(0L, static (total, file) => checked(total + file.Size));
+                    progress?.Report(new UpdateProgress(
+                        UpdateStage.Downloading,
+                        $"Загрузка файлов {package.DisplayName}",
+                        package.Id,
+                        0,
+                        downloadSize));
+                    var looseProgress = progress is null
+                        ? null
+                        : new Progress<DownloadProgress>(value => progress.Report(new UpdateProgress(
+                            UpdateStage.Downloading,
+                            $"Загрузка файлов {package.DisplayName}",
+                            package.Id,
+                            value.DownloadedBytes,
+                            value.TotalBytes,
+                            value.Provider)));
+                    await looseDownloader.DownloadAsync(
+                        package,
+                        stagingRoot,
+                        installPaths,
+                        looseProgress,
+                        preferredMirrorProvider,
+                        cancellationToken);
+                    progress?.Report(new UpdateProgress(
+                        UpdateStage.Verifying,
+                        $"Файлы {package.DisplayName} проверены",
+                        package.Id,
+                        downloadSize,
+                        downloadSize));
+                }
+                else
+                {
+                    progress?.Report(new UpdateProgress(UpdateStage.Downloading, $"Загрузка {package.DisplayName}", package.Id, 0, package.Size));
+                    var downloadProgress = progress is null
+                        ? null
+                        : new Progress<DownloadProgress>(value => progress.Report(new UpdateProgress(
+                            UpdateStage.Downloading,
+                            $"Загрузка {package.DisplayName}",
+                            package.Id,
+                            value.DownloadedBytes,
+                            value.TotalBytes,
+                            value.Provider)));
+                    await downloader.DownloadAsync(
+                        package,
+                        artifactPath,
+                        downloadProgress,
+                        preferredMirrorProvider,
+                        cancellationToken);
+                    progress?.Report(new UpdateProgress(UpdateStage.Verifying, $"Проверка {package.DisplayName}", package.Id, package.Size, package.Size));
+                    progress?.Report(new UpdateProgress(UpdateStage.Extracting, $"Распаковка {package.DisplayName}", package.Id));
+                    await SafeZipExtractor.ExtractAsync(
+                        artifactPath,
+                        stagingRoot,
+                        package,
+                        update.ExpectedIntegrity,
+                        installPaths,
+                        cancellationToken);
+                }
 
                 var previousManagedFiles = update.TrackInstallation
                     ? await ReadManagedFilesAsync(stateRoot, package.Id, cancellationToken)
@@ -556,14 +627,14 @@ public sealed class UpdateCoordinator
                 if (!update.RepairRequired && package.UpdateMode == PackageUpdateMode.ManagedExact)
                 {
                     obsoleteFiles.AddRange(
-                        previousManagedFiles.Except(package.Files, StringComparer.OrdinalIgnoreCase));
+                        previousManagedFiles.Except(declaredFiles, StringComparer.OrdinalIgnoreCase));
                 }
                 if (!update.RepairRequired && package.PruneInstallRoot)
                 {
                     obsoleteFiles.AddRange(EnumeratePrunableFiles(
                         resolvedRoots[package.Id],
                         package.PreservedPaths ?? [])
-                        .Except(package.Files, StringComparer.OrdinalIgnoreCase));
+                        .Except(declaredFiles, StringComparer.OrdinalIgnoreCase));
                 }
                 var distinctObsoleteFiles = obsoleteFiles
                     .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -850,14 +921,11 @@ public sealed class UpdateCoordinator
             response.EnsureSuccessStatusCode();
             if (response.Content.Headers.ContentLength > MaximumManifestBytes)
             {
-                throw new InvalidDataException("Manifest exceeds the 4 MiB safety limit.");
+                throw new InvalidDataException("Manifest exceeds the 128 MiB safety limit.");
             }
 
-            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-            if (bytes.Length > MaximumManifestBytes)
-            {
-                throw new InvalidDataException("Manifest exceeds the 4 MiB safety limit.");
-            }
+            await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var bytes = await ReadBoundedManifestAsync(responseStream, cancellationToken);
 
             stream = new MemoryStream(bytes, writable: false);
         }
@@ -872,7 +940,7 @@ public sealed class UpdateCoordinator
             var file = new FileInfo(path);
             if (file.Length > MaximumManifestBytes)
             {
-                throw new InvalidDataException("Manifest exceeds the 4 MiB safety limit.");
+                throw new InvalidDataException("Manifest exceeds the 128 MiB safety limit.");
             }
 
             stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.Asynchronous);
@@ -883,6 +951,28 @@ public sealed class UpdateCoordinator
             return await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(stream, ManifestJson.Options, cancellationToken)
                 ?? throw new InvalidDataException("Manifest is empty or invalid JSON.");
         }
+    }
+
+    private static async Task<byte[]> ReadBoundedManifestAsync(
+        Stream source,
+        CancellationToken cancellationToken)
+    {
+        await using var buffer = new MemoryStream();
+        var block = new byte[64 * 1024];
+        while (true)
+        {
+            var read = await source.ReadAsync(block, cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+            if (buffer.Length + read > MaximumManifestBytes)
+            {
+                throw new InvalidDataException("Manifest exceeds the 128 MiB safety limit.");
+            }
+            await buffer.WriteAsync(block.AsMemory(0, read), cancellationToken);
+        }
+        return buffer.ToArray();
     }
 
     private static HttpRequestMessage CreateManifestRequest(Uri source)
@@ -1145,7 +1235,7 @@ public sealed class UpdateCoordinator
             : NormalizeManagedPaths(package.Id, previousFiles)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         RemoveDeletedPaths(files, package.DeletedFiles, package.DeletedDirectories);
-        files.UnionWith(package.Files.Select(PathSafety.NormalizeRelativePath));
+        files.UnionWith(package.GetFilePaths().Select(PathSafety.NormalizeRelativePath));
         return files.Order(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
@@ -1165,7 +1255,7 @@ public sealed class UpdateCoordinator
         var archiveFiles = archiveIntegrity.ToDictionary(
             file => PathSafety.NormalizeRelativePath(file.Path),
             StringComparer.OrdinalIgnoreCase);
-        foreach (var path in package.Files.Select(PathSafety.NormalizeRelativePath))
+        foreach (var path in package.GetFilePaths().Select(PathSafety.NormalizeRelativePath))
         {
             if (!archiveFiles.TryGetValue(path, out var integrity))
             {
@@ -1186,8 +1276,9 @@ public sealed class UpdateCoordinator
         ManagedIntegrityState? previous,
         CancellationToken cancellationToken)
     {
-        var integrity = new List<PackageFileIntegrity>(package.Files.Count);
-        foreach (var relativePath in package.Files.Select(PathSafety.NormalizeRelativePath))
+        var declaredFiles = package.GetFilePaths();
+        var integrity = new List<PackageFileIntegrity>(declaredFiles.Count);
+        foreach (var relativePath in declaredFiles.Select(PathSafety.NormalizeRelativePath))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var path = PathSafety.ResolveUnderRoot(stagingRoot, relativePath);

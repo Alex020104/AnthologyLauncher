@@ -1,4 +1,6 @@
 using Anthology.Contracts;
+using Anthology.Update.Core;
+using System.Text.Json;
 
 namespace Anthology.Releaser.Core;
 
@@ -20,6 +22,12 @@ public static class LauncherUpdateConfigurationPublisher
             .Select(mirror => mirror.ManifestUrl?.Trim())
             .FirstOrDefault(IsHttpAddress);
 
+    public static string? ResolveStableHistorySource(ReleaserWorkspace workspace)
+    {
+        var manifestSource = ResolveStableManifestSource(workspace);
+        return ReleaseHistorySourceResolver.Resolve(null, manifestSource);
+    }
+
     public static async Task<LauncherUpdatePreparationResult> PrepareAsync(
         ReleaserWorkspace workspace,
         ReleaserMachineSettings machine,
@@ -37,13 +45,18 @@ public static class LauncherUpdateConfigurationPublisher
 
         var keyCopied = await CopyPublicKeyAsync(launcherRoot, machine.PublicKeyPath, cancellationToken);
         var manifestSource = ResolveStableManifestSource(workspace);
+        var historySource = ResolveStableHistorySource(workspace);
         string? descriptorPath = null;
         if (manifestSource is not null)
         {
             descriptorPath = Path.Combine(launcherRoot, "Update", "channel.json");
             await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(
                 descriptorPath,
-                new LauncherUpdateChannel(1, manifestSource, NormalizeChannel(workspace.Channel)),
+                new LauncherUpdateChannel(
+                    2,
+                    manifestSource,
+                    historySource,
+                    NormalizeChannel(workspace.Channel)),
                 cancellationToken);
             progress?.Report("Лаунчер подключён к постоянному подписанному каналу обновлений.");
         }
@@ -58,6 +71,17 @@ public static class LauncherUpdateConfigurationPublisher
     public static async Task<bool> UpdateLocalManifestAsync(
         string manifestPath,
         ReleaserMachineSettings machine,
+        CancellationToken cancellationToken = default) =>
+        await UpdateLocalReleaseDocumentsAsync(
+            manifestPath,
+            historyPath: null,
+            machine,
+            cancellationToken);
+
+    public static async Task<bool> UpdateLocalReleaseDocumentsAsync(
+        string manifestPath,
+        string? historyPath,
+        ReleaserMachineSettings machine,
         CancellationToken cancellationToken = default)
     {
         if (!File.Exists(manifestPath))
@@ -71,6 +95,13 @@ public static class LauncherUpdateConfigurationPublisher
             return false;
         }
 
+        if (!string.IsNullOrWhiteSpace(historyPath) && File.Exists(historyPath))
+        {
+            await CopyFileAtomicallyAsync(
+                historyPath,
+                Path.Combine(launcherRoot, "Update", ReleaseHistoryCatalogBuilder.FileName),
+                cancellationToken);
+        }
         await CopyFileAtomicallyAsync(
             manifestPath,
             Path.Combine(launcherRoot, "Update", "manifest.json"),
@@ -82,6 +113,17 @@ public static class LauncherUpdateConfigurationPublisher
     public static async Task<bool> RemoveLocalManifestAsync(
         ReleaserMachineSettings machine,
         string trashRoot,
+        CancellationToken cancellationToken = default) =>
+        await RemoveLocalManifestAsync(
+            machine,
+            trashRoot,
+            expectedVersion: null,
+            cancellationToken);
+
+    public static async Task<bool> RemoveLocalManifestAsync(
+        ReleaserMachineSettings machine,
+        string trashRoot,
+        string? expectedVersion,
         CancellationToken cancellationToken = default)
     {
         var launcherRoot = FindLauncherRoot(machine.GameSourceRoot);
@@ -96,10 +138,50 @@ public static class LauncherUpdateConfigurationPublisher
             return false;
         }
 
+        if (!string.IsNullOrWhiteSpace(expectedVersion))
+        {
+            await using var stream = new FileStream(
+                manifestPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                64 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            SignedUpdateManifest? manifest;
+            try
+            {
+                manifest = await JsonSerializer.DeserializeAsync<SignedUpdateManifest>(
+                    stream,
+                    ManifestJson.Options,
+                    cancellationToken);
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+            if (manifest?.Payload is null)
+            {
+                return false;
+            }
+            if (!manifest.Payload.Version.Equals(expectedVersion.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
         var destination = Path.Combine(trashRoot, "launcher", "manifest.json");
         await CopyFileAtomicallyAsync(manifestPath, destination, cancellationToken);
         File.Delete(manifestPath);
         return true;
+    }
+
+    internal static string? ResolveLocalManifestPath(ReleaserMachineSettings machine)
+    {
+        ArgumentNullException.ThrowIfNull(machine);
+        var launcherRoot = FindLauncherRoot(machine.GameSourceRoot);
+        return launcherRoot is null
+            ? null
+            : Path.Combine(launcherRoot, "Update", "manifest.json");
     }
 
     private static string? FindLauncherRoot(string? gameSourceRoot)
@@ -198,7 +280,11 @@ public static class LauncherUpdateConfigurationPublisher
     private static string NormalizeChannel(string? channel) =>
         string.IsNullOrWhiteSpace(channel) ? "next" : channel.Trim().ToLowerInvariant();
 
-    private sealed record LauncherUpdateChannel(int SchemaVersion, string ManifestSource, string Channel);
+    private sealed record LauncherUpdateChannel(
+        int SchemaVersion,
+        string ManifestSource,
+        string? ReleaseHistorySource,
+        string Channel);
 }
 
 public sealed record LauncherUpdatePreparationResult(

@@ -111,6 +111,23 @@ public sealed class Mo2ProfileManagerTests : IDisposable
     }
 
     [Fact]
+    public void SelectedProfileEscapesAsciiHexDigitAfterUtf8ByteForQt()
+    {
+        CreateInstance();
+        const string profileName = "Профиль ЯA";
+        var secondProfile = Path.Combine(_root, "profiles", profileName);
+        Directory.CreateDirectory(secondProfile);
+        File.WriteAllText(Path.Combine(secondProfile, "modlist.txt"), "+First\n");
+
+        Mo2ProfileManager.SetSelectedProfile(_root, profileName);
+
+        var selectedProfileLine = File.ReadLines(Path.Combine(_root, "ModOrganizer.ini"))
+            .Single(line => line.StartsWith("selected_profile=", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(@"\xd0\xaf\x41", selectedProfileLine);
+        Assert.Equal(profileName, Mo2ProfileManager.Detect(_root).SelectedProfile);
+    }
+
+    [Fact]
     public void RebaseGamePathsUpdatesPortableAnomalyExecutablesAndCreatesBackup()
     {
         CreateInstance();
@@ -127,6 +144,101 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         Assert.Equal(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), executable.Binary);
         Assert.Equal(gameBin, executable.WorkingDirectory);
         Assert.True(File.Exists(Path.Combine(_root, "ModOrganizer.ini.anthology-backup")));
+
+        var gamePathLine = File.ReadLines(Path.Combine(_root, "ModOrganizer.ini"))
+            .Single(line => line.StartsWith("gamePath=", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(@"\\A.N.T.H.O.L.O.G.Y", gamePathLine);
+        Assert.DoesNotContain(@"\x5c", gamePathLine, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(@"@ByteArray(C:\\Games\\Anomaly)")]
+    [InlineData("@ByteArray(C:/Games/Anomaly)")]
+    [InlineData(@"@ByteArray(C:\x5cGames\x5cAnomaly)")]
+    public void DetectNormalizesQtEscapedForwardAndLegacyHexPathSeparators(string encodedPath)
+    {
+        CreateInstance();
+        var iniPath = Path.Combine(_root, "ModOrganizer.ini");
+        var lines = File.ReadAllLines(iniPath).ToList();
+        lines.Insert(1, "gamePath=" + encodedPath);
+        File.WriteAllLines(iniPath, lines);
+
+        Assert.Equal(@"C:\Games\Anomaly", Mo2ProfileManager.Detect(_root).GamePath);
+    }
+
+    [Fact]
+    public void DetectAcceptsForwardSlashExecutableKeys()
+    {
+        CreateInstance();
+        var iniPath = Path.Combine(_root, "ModOrganizer.ini");
+        File.WriteAllText(iniPath, """
+            [General]
+            selected_profile=@ByteArray(Anthology \xd0\xa1\xd1\x82\xd0\xb0\xd0\xbd\xd0\xb4\xd0\xb0\xd1\x80\xd1\x82)
+            [customExecutables]
+            size=1
+            1/binary=C:/Games/Anomaly/bin/AnomalyDX11AVX.exe
+            1/arguments=
+            1/title=Anomaly (DX11-AVX)
+            1/workingDirectory=C:\Games\Anomaly/bin
+            """);
+
+        var executable = Assert.Single(Mo2ProfileManager.Detect(_root).Executables);
+        Assert.Equal(@"C:\Games\Anomaly\bin\AnomalyDX11AVX.exe", executable.Binary);
+        Assert.Equal(@"C:\Games\Anomaly\bin", executable.WorkingDirectory);
+    }
+
+    [Fact]
+    public void DetectDecodesQtByteArrayExecutableValuesFromPortableIni()
+    {
+        CreateInstance();
+        var iniPath = Path.Combine(_root, "ModOrganizer.ini");
+        File.WriteAllText(iniPath, """
+            [General]
+            selected_profile=@ByteArray(Anthology \xd0\xa1\xd1\x82\xd0\xb0\xd0\xbd\xd0\xb4\xd0\xb0\xd1\x80\xd1\x82)
+            gamePath=@ByteArray(A:\x5cGames\x5cAnomaly)
+            [customExecutables]
+            size=1
+            1\binary=@ByteArray(A:\x5cGames\x5cAnomaly/bin/AnomalyDX11AVX.exe)
+            1\arguments=@ByteArray(-skip_reg -nointro)
+            1\title=@ByteArray(Anomaly DX11 AVX)
+            1\workingDirectory=@ByteArray(A:\x5cGames\x5cAnomaly/bin)
+            """);
+
+        var executable = Assert.Single(Mo2ProfileManager.Detect(_root).Executables);
+        Assert.Equal("Anomaly DX11 AVX", executable.Title);
+        Assert.Equal(@"A:\Games\Anomaly\bin\AnomalyDX11AVX.exe", executable.Binary);
+        Assert.Equal("-skip_reg -nointro", executable.Arguments);
+        Assert.Equal(@"A:\Games\Anomaly\bin", executable.WorkingDirectory);
+    }
+
+    [Fact]
+    public void RebaseGamePathsDecodesQtByteArrayExecutableBeforeMatchingFileName()
+    {
+        CreateInstance();
+        var iniPath = Path.Combine(_root, "ModOrganizer.ini");
+        File.WriteAllText(iniPath, """
+            [General]
+            selected_profile=@ByteArray(Anthology)
+            gamePath=@ByteArray(A:\x5cOld\x5cAnomaly)
+            [customExecutables]
+            size=1
+            1\binary=@ByteArray(A:\x5cOld\x5cAnomaly/bin/AnomalyDX11AVX.exe)
+            1\arguments=
+            1\title=Anomaly DX11 AVX
+            1\workingDirectory=@ByteArray(A:\x5cOld\x5cAnomaly/bin)
+            """);
+        var gameRoot = Path.Combine(_root, "new-game");
+        var gameBin = Path.Combine(gameRoot, "bin");
+        Directory.CreateDirectory(gameBin);
+        File.WriteAllText(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), "engine");
+
+        Mo2ProfileManager.RebaseGamePaths(_root, gameRoot);
+
+        var instance = Mo2ProfileManager.Detect(_root);
+        Assert.Equal(gameRoot, instance.GamePath, ignoreCase: true);
+        var executable = Assert.Single(instance.Executables);
+        Assert.Equal(Path.Combine(gameBin, "AnomalyDX11AVX.exe"), executable.Binary, ignoreCase: true);
+        Assert.Equal(gameBin, executable.WorkingDirectory, ignoreCase: true);
     }
 
     [Fact]
@@ -247,9 +359,11 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         var older = Path.Combine(saves, "older.scop");
         var newestPersistent = Path.Combine(saves, "newest.scop");
         var newest = Path.Combine(saves, "newest.scoc");
+        var orphanContainer = Path.Combine(saves, "orphan.scoc");
         File.WriteAllText(older, "older");
         File.WriteAllText(newestPersistent, "persistent");
         File.WriteAllText(newest, "newest");
+        File.WriteAllText(orphanContainer, "not independently loadable");
         File.WriteAllText(Path.Combine(saves, "newest.dds"), "preview");
         File.WriteAllText(Path.Combine(saves, "notes.txt"), "not a save");
         File.SetLastWriteTimeUtc(older, DateTime.UtcNow.AddMinutes(-10));
@@ -259,8 +373,10 @@ public sealed class Mo2ProfileManagerTests : IDisposable
         var result = Mo2WorkspaceReader.ReadSaves(Path.Combine(_root, "game"));
 
         Assert.Equal(["newest.scop", "older.scop"], result.Select(save => save.Name));
+        Assert.DoesNotContain(result, save => save.SaveName.Equals("orphan", StringComparison.OrdinalIgnoreCase));
         Assert.True(result[0].HasScop);
         Assert.True(result[0].HasScoc);
+        Assert.Equal(newestPersistent, result[0].FullPath, ignoreCase: true);
         Assert.EndsWith("newest.dds", result[0].PreviewPath, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(new FileInfo(newestPersistent).Length + new FileInfo(newest).Length, result[0].Size);
     }

@@ -30,6 +30,7 @@ public sealed class ReleaserStateStore : IDisposable
         try
         {
             Directory.CreateDirectory(DataRoot);
+            _ = WorkspaceStorage.CleanupTemporaryFiles(DataRoot, TimeSpan.FromHours(1));
             var workspaceExists = File.Exists(WorkspacePath);
             var workspace = await WorkspaceStorage.LoadAsync(WorkspacePath, () => new ReleaserWorkspace(), cancellationToken);
             var machine = await WorkspaceStorage.LoadAsync(MachinePath, () => new ReleaserMachineSettings(), cancellationToken);
@@ -40,6 +41,15 @@ public sealed class ReleaserStateStore : IDisposable
                 seedEditorialContent: requiresMigrationSave,
                 applyMirrorDefaults: requiresMigrationSave);
             var machineDefaultsChanged = EnsureMachineDefaults(workspace, machine);
+            try
+            {
+                _ = RepackBuilder.CleanupStaleJobs(machine.RepackTemporaryRoot, TimeSpan.FromDays(1));
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or InvalidOperationException or NotSupportedException)
+            {
+                // Invalid user-entered paths stay visible in the editor and must not
+                // prevent the releaser from starting. Build validation reports them.
+            }
             if (requiresMigrationSave || workspaceDefaultsChanged || machineDefaultsChanged)
             {
                 await WorkspaceStorage.SaveAsync(WorkspacePath, workspace, cancellationToken);
@@ -150,7 +160,12 @@ public sealed class ReleaserStateStore : IDisposable
             stream.Url = stream.Url?.Trim() ?? string.Empty;
             stream.Translations = new Dictionary<string, LiveStreamTranslationDraft>(stream.Translations ?? [], StringComparer.OrdinalIgnoreCase);
         }
-        workspace.SchemaVersion = Math.Max(workspace.SchemaVersion, 8);
+        var normalizedSchemaVersion = Math.Max(workspace.SchemaVersion, 10);
+        if (workspace.SchemaVersion != normalizedSchemaVersion)
+        {
+            workspace.SchemaVersion = normalizedSchemaVersion;
+            changed = true;
+        }
         foreach (var content in workspace.Content)
         {
             // Schema 1 treated every existing entry as published. Keep that state during migration;
@@ -245,6 +260,20 @@ public sealed class ReleaserStateStore : IDisposable
             changed = true;
         }
 
+        // Google Drive was added after existing workspaces had already acquired
+        // their source list. Add only the empty provider record during migration:
+        // the authenticated /drive/home page is help, never a downloadable URL.
+        if (!workspace.Mirrors.Any(mirror =>
+                string.Equals(mirror.Provider, GoogleDrivePublisher.Provider, StringComparison.OrdinalIgnoreCase)))
+        {
+            workspace.Mirrors.Add(new ReleaseMirrorSet
+            {
+                Provider = GoogleDrivePublisher.Provider,
+                Priority = 30,
+            });
+            changed = true;
+        }
+
         foreach (var mirror in workspace.Mirrors)
         {
             if (string.IsNullOrWhiteSpace(mirror.Id))
@@ -266,10 +295,16 @@ public sealed class ReleaserStateStore : IDisposable
                 mirror.Provider = mirror.Provider?.Trim().ToLowerInvariant() ?? "http";
                 mirror.GameUrl = mirror.GameUrl?.Trim() ?? string.Empty;
                 mirror.Mo2Url = mirror.Mo2Url?.Trim() ?? string.Empty;
+                mirror.ArtifactUrl = mirror.ArtifactUrl?.Trim() ?? string.Empty;
                 mirror.ContentUrl = mirror.ContentUrl?.Trim() ?? string.Empty;
                 mirror.ManifestUrl = mirror.ManifestUrl?.Trim() ?? string.Empty;
             }
         }
+
+        // Apply source-folder templates only after missing mirror records have been
+        // created and their generic defaults normalized. This also makes a fresh
+        // workspace immediately reuse the already-synced Yandex project folders.
+        changed |= ApplyYandexLooseSourceDefaults(workspace, machine);
 
         if (previousSchemaVersion < 3 || seedEditorialContent)
         {
@@ -343,6 +378,7 @@ public sealed class ReleaserStateStore : IDisposable
         mirror.Provider = mirror.Provider?.Trim().ToLowerInvariant() ?? "http";
         mirror.GameUrl = mirror.GameUrl?.Trim() ?? string.Empty;
         mirror.Mo2Url = mirror.Mo2Url?.Trim() ?? string.Empty;
+        mirror.ArtifactUrl = mirror.ArtifactUrl?.Trim() ?? string.Empty;
         mirror.ContentUrl = mirror.ContentUrl?.Trim() ?? string.Empty;
         mirror.ManifestUrl = mirror.ManifestUrl?.Trim() ?? string.Empty;
 
@@ -352,11 +388,13 @@ public sealed class ReleaserStateStore : IDisposable
             {
                 $"{GitHubRawRoot}/{{version}}/{{file}}",
                 $"{GitHubRawRoot}/{{version}}/{{file}}",
+                $"{GitHubRawRoot}/{{version}}/{{file}}",
                 $"{GitHubRawRoot}/{{version}}/addons/{{id}}/{{file}}",
                 $"{GitHubRawRoot}/manifest.json",
             },
             "yandex-disk" => new[]
             {
+                $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/{{file}}",
                 $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/{{file}}",
                 $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/{{file}}",
                 $"{YandexPublicRoot}?path={YandexChannelPath}/{{version}}/addons/{{id}}/{{file}}",
@@ -379,14 +417,19 @@ public sealed class ReleaserStateStore : IDisposable
             mirror.Mo2Url = defaults[1];
             changed = true;
         }
+        if (NeedsDefault(mirror.ArtifactUrl))
+        {
+            mirror.ArtifactUrl = defaults[2];
+            changed = true;
+        }
         if (NeedsDefault(mirror.ContentUrl))
         {
-            mirror.ContentUrl = defaults[2];
+            mirror.ContentUrl = defaults[3];
             changed = true;
         }
         if (NeedsDefault(mirror.ManifestUrl))
         {
-            mirror.ManifestUrl = defaults[3];
+            mirror.ManifestUrl = defaults[4];
             changed = true;
         }
         return changed;
@@ -396,6 +439,59 @@ public sealed class ReleaserStateStore : IDisposable
         string.IsNullOrWhiteSpace(value)
         || value.Contains("ЗАМЕНИТЕ", StringComparison.OrdinalIgnoreCase)
         || value.Contains("ВАШ_PUBLIC_KEY", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ApplyYandexLooseSourceDefaults(
+        ReleaserWorkspace workspace,
+        ReleaserMachineSettings machine)
+    {
+        var mirror = workspace.Mirrors.FirstOrDefault(item =>
+            string.Equals(item.Provider, "yandex-disk", StringComparison.OrdinalIgnoreCase));
+        if (mirror is null || string.IsNullOrWhiteSpace(machine.SharedWorkspaceRoot))
+        {
+            return false;
+        }
+
+        var changed = false;
+        var gameTemplate = CreateYandexSourceTemplate(machine.SharedWorkspaceRoot, machine.GameSourceRoot);
+        var mo2Template = CreateYandexSourceTemplate(machine.SharedWorkspaceRoot, machine.Mo2SourceRoot);
+        if (gameTemplate is not null && IsLegacyArchiveTemplate(mirror.GameUrl))
+        {
+            mirror.GameUrl = gameTemplate;
+            changed = true;
+        }
+        if (mo2Template is not null && IsLegacyArchiveTemplate(mirror.Mo2Url))
+        {
+            mirror.Mo2Url = mo2Template;
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static string? CreateYandexSourceTemplate(string sharedRoot, string sourceRoot)
+    {
+        if (string.IsNullOrWhiteSpace(sourceRoot))
+        {
+            return null;
+        }
+
+        var shared = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sharedRoot));
+        var source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceRoot));
+        if (source.Equals(shared, StringComparison.OrdinalIgnoreCase)
+            || !source.StartsWith(shared + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var relative = Path.GetRelativePath(shared, source).Replace('\\', '/').Trim('/');
+        return relative.Length == 0
+            ? null
+            : $"{YandexPublicRoot}?path=/{relative}/{{path}}";
+    }
+
+    private static bool IsLegacyArchiveTemplate(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+        || value.Contains("/AnthologyUpdateChannel/{version}/{file}", StringComparison.OrdinalIgnoreCase)
+        || value.Contains("\\AnthologyUpdateChannel\\{version}\\{file}", StringComparison.OrdinalIgnoreCase);
 
     private static void MigrateLegacyTranslation(
         Dictionary<string, ContentTranslationDraft> translations,
@@ -446,6 +542,49 @@ public sealed class ReleaserStateStore : IDisposable
             changed = true;
         }
 
+        var roomyDrive = Directory.Exists(@"B:\") ? @"B:\" : Path.GetPathRoot(machine.OutputRoot) ?? @"C:\";
+        if (string.IsNullOrWhiteSpace(machine.RepackTemporaryRoot))
+        {
+            machine.RepackTemporaryRoot = Path.Combine(roomyDrive, "AnthologyReleaserTemp");
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(machine.RepackOutputRoot))
+        {
+            machine.RepackOutputRoot = Path.Combine(roomyDrive, "Anthology Repack");
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(machine.RepackProjectName))
+        {
+            machine.RepackProjectName = "ANTHOLOGY";
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(machine.SevenZipPath))
+        {
+            machine.SevenZipPath = FindFirstExistingFile(
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "7-Zip", "7z.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "7-Zip", "7z.exe"));
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(machine.InnoSetupCompilerPath)
+            || !File.Exists(machine.InnoSetupCompilerPath))
+        {
+            machine.InnoSetupCompilerPath = FindFirstExistingFile(
+                @"B:\AnthologyProjectTools\Inno Setup 6\ISCC.exe",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Inno Setup 6", "ISCC.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Inno Setup 6", "ISCC.exe"));
+            changed = true;
+        }
+        if (string.IsNullOrWhiteSpace(machine.InstallerTemplateRoot)
+            || !Directory.Exists(machine.InstallerTemplateRoot))
+        {
+            machine.InstallerTemplateRoot = FindFirstExistingDirectory(
+                Path.Combine(AppContext.BaseDirectory, "InstallerTemplate"),
+                @"X:\OpenAI\anomaly-codex-main\projects\Anthology-Work-Git\projects\installer");
+            changed = true;
+        }
+
+        changed |= EnsureGoogleDriveDefaults(machine);
+
         if (!string.Equals(machine.KeyId, ProductionSigningKeyPolicy.KeyId, StringComparison.Ordinal))
         {
             machine.KeyId = ProductionSigningKeyPolicy.KeyId;
@@ -492,6 +631,98 @@ public sealed class ReleaserStateStore : IDisposable
 
         return changed;
     }
+
+    private static bool EnsureGoogleDriveDefaults(ReleaserMachineSettings machine)
+    {
+        var changed = false;
+        if (string.IsNullOrWhiteSpace(machine.GoogleDriveRclonePath))
+        {
+            machine.GoogleDriveRclonePath = FindRcloneExecutable();
+            changed |= machine.GoogleDriveRclonePath.Length > 0;
+        }
+        if (string.IsNullOrWhiteSpace(machine.GoogleDriveRcloneConfigPath))
+        {
+            machine.GoogleDriveRcloneConfigPath = @"B:\AnthologyProjectTools\rclone\rclone.conf";
+            changed = true;
+        }
+
+        changed |= NormalizeSetting(machine.GoogleDriveRemoteName, string.Empty, out var remoteName);
+        machine.GoogleDriveRemoteName = remoteName;
+        changed |= NormalizeSetting(machine.GoogleDriveProjectPath, "ANTHOLOGY", out var projectPath);
+        machine.GoogleDriveProjectPath = projectPath;
+        changed |= NormalizeSetting(machine.GoogleDriveGamePath, string.Empty, out var gamePath);
+        machine.GoogleDriveGamePath = gamePath;
+        changed |= NormalizeSetting(machine.GoogleDriveMo2Path, string.Empty, out var mo2Path);
+        machine.GoogleDriveMo2Path = mo2Path;
+        changed |= NormalizeSetting(machine.GoogleDriveReleasePath, "AnthologyUpdateChannel", out var releasePath);
+        machine.GoogleDriveReleasePath = releasePath;
+        changed |= NormalizeSetting(
+            machine.GoogleDriveManifestPath,
+            $"{machine.GoogleDriveReleasePath.Trim().TrimEnd('/', '\\')}/manifest.json",
+            out var manifestPath);
+        machine.GoogleDriveManifestPath = manifestPath;
+
+        if (!string.Equals(machine.GoogleDriveAccountUrl, GoogleDrivePublisher.AccountHomeUrl, StringComparison.Ordinal))
+        {
+            machine.GoogleDriveAccountUrl = GoogleDrivePublisher.AccountHomeUrl;
+            changed = true;
+        }
+        changed |= NormalizeSetting(machine.GoogleDriveProjectPublicUrl, string.Empty, out var publicUrl);
+        machine.GoogleDriveProjectPublicUrl = publicUrl;
+        if (string.Equals(
+                machine.GoogleDriveProjectPublicUrl,
+                GoogleDrivePublisher.AccountHomeUrl,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            machine.GoogleDriveProjectPublicUrl = string.Empty;
+            changed = true;
+        }
+        if (machine.GoogleDriveMirrorPriority is < 0 or > 10_000)
+        {
+            machine.GoogleDriveMirrorPriority = 30;
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static bool NormalizeSetting(string? value, string fallback, out string normalized)
+    {
+        normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        return !string.Equals(value, normalized, StringComparison.Ordinal);
+    }
+
+    private static string FindRcloneExecutable()
+    {
+        var candidates = new List<string>
+        {
+            @"B:\AnthologyProjectTools\rclone\rclone.exe",
+            Path.Combine(AppContext.BaseDirectory, "rclone.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "rclone", "rclone.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "rclone", "rclone.exe"),
+        };
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (!string.IsNullOrWhiteSpace(pathValue))
+        {
+            foreach (var directory in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                try
+                {
+                    candidates.Add(Path.Combine(directory, "rclone.exe"));
+                }
+                catch (ArgumentException)
+                {
+                    // Ignore malformed PATH entries and keep checking known locations.
+                }
+            }
+        }
+        return candidates.FirstOrDefault(File.Exists) ?? string.Empty;
+    }
+
+    private static string FindFirstExistingFile(params string[] candidates) =>
+        candidates.FirstOrDefault(File.Exists) ?? candidates.FirstOrDefault() ?? string.Empty;
+
+    private static string FindFirstExistingDirectory(params string[] candidates) =>
+        candidates.FirstOrDefault(Directory.Exists) ?? candidates.FirstOrDefault() ?? string.Empty;
 
     public void Dispose() => _gate.Dispose();
 }

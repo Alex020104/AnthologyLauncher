@@ -9,6 +9,8 @@ namespace Anthology.Releaser;
 
 public static class ReleaserApplication
 {
+    private const string LooseReleaseMinimumLauncherVersion = "0.7.0-alpha.18";
+
     public static async Task<int> RunAsync(string[] args)
     {
         try
@@ -40,6 +42,12 @@ public static class ReleaserApplication
             if (args is ["content", "publish", .. var contentArgs])
             {
                 await PublishContentAsync(Arguments.Parse(contentArgs));
+                return 0;
+            }
+
+            if (args is ["content-bundle", "publish", .. var contentBundleArgs])
+            {
+                await PublishContentBundleAsync(Arguments.Parse(contentBundleArgs));
                 return 0;
             }
 
@@ -78,11 +86,33 @@ public static class ReleaserApplication
     private static async Task PublishReleaseAsync(Arguments arguments)
     {
         var (workspace, machine) = await LoadReleaseSettingsAsync(arguments);
-        var progress = new Progress<string>(Console.WriteLine);
+        IProgress<string> progress = new Progress<string>(Console.WriteLine);
         await LauncherUpdateConfigurationPublisher.PrepareAsync(workspace, machine, progress);
-        var release = await UnifiedReleaseBuilder.BuildAsync(
-            new UnifiedReleaseRequest(workspace, machine),
-            progress);
+        var legacyArchive = arguments.HasFlag("archive");
+        IReadOnlyList<LooseFileMirrorOverride>? googleDriveMirrors = null;
+        if (!legacyArchive && GoogleDrivePublisher.IsConfigured(machine))
+        {
+            var googleDrive = new GoogleDrivePublisher();
+            progress.Report("Google Drive: подготовка прямого зеркала файлов без локальной копии…");
+            _ = await googleDrive.EnsureProjectAsync(machine, progress);
+            _ = await googleDrive.SyncSourcesAsync(machine, progress);
+            googleDriveMirrors = await googleDrive.BuildLooseFileMirrorOverridesAsync(machine, progress);
+        }
+        else if (!legacyArchive)
+        {
+            progress.Report("Google Drive не настроен полностью; выпуск продолжится через настроенные зеркала, включая Яндекс.Диск.");
+        }
+
+        var request = legacyArchive
+            ? new UnifiedReleaseRequest(workspace, machine)
+            : new UnifiedReleaseRequest(
+                workspace,
+                machine,
+                LooseFileMirrors: googleDriveMirrors,
+                MinimumLauncherVersion: LooseReleaseMinimumLauncherVersion);
+        var release = legacyArchive
+            ? await UnifiedReleaseBuilder.BuildAsync(request, progress)
+            : await UnifiedReleaseBuilder.BuildLooseAsync(request, progress);
         var publication = await ReleasePublicationService.PublishReleaseAsync(
             release,
             workspace,
@@ -91,6 +121,27 @@ public static class ReleaserApplication
         Console.WriteLine($"Release: {release.Version}");
         Console.WriteLine($"Manifest: {release.ManifestPath}");
         Console.WriteLine($"Files: {release.Files}; bytes: {release.Bytes}; targets: {publication.Targets}");
+    }
+
+    private static async Task PublishContentBundleAsync(Arguments arguments)
+    {
+        var (workspace, machine) = await LoadReleaseSettingsAsync(arguments);
+        var progress = new Progress<string>(Console.WriteLine);
+        var result = await ReleasePublicationService.PublishContentBundleAsync(
+            workspace,
+            machine,
+            progress);
+
+        Console.WriteLine($"Content bundle: {result.Version}");
+        Console.WriteLine($"Manifest: {result.ManifestPath}");
+        Console.WriteLine($"Content: {result.ContentPath}");
+        Console.WriteLine(
+            $"Content items: {result.ContentItems}; published add-ons: {result.PublishedAddonIds.Count}; " +
+            $"preserved add-ons: {result.PreservedAddonIds.Count}");
+        Console.WriteLine(
+            $"Added files: {result.AddedFiles}; added folders: {result.AddedFolders}; " +
+            $"deleted files: {result.DeletedFiles}; deleted folders: {result.DeletedFolders}");
+        Console.WriteLine($"Published files: {result.Publication.Files}; targets: {result.Publication.Targets}");
     }
 
     private static async Task PublishContentAsync(Arguments arguments)
@@ -322,8 +373,12 @@ public static class ReleaserApplication
         Console.WriteLine("    [--channel next] [--force]");
         Console.WriteLine();
         Console.WriteLine("  launcher publish --workspace release-workspace.json --machine machine-settings.json");
-        Console.WriteLine("  release publish --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("  release publish --workspace release-workspace.json --machine machine-settings.json [--archive]");
+        Console.WriteLine($"    Default: schema 5 loose files (minimum launcher {LooseReleaseMinimumLauncherVersion}); no full game/MO2 ZIPs.");
+        Console.WriteLine("    --archive creates the legacy schema 4 game/MO2 ZIP release.");
         Console.WriteLine("  content publish --id CONTENT_ID --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("  content-bundle publish --workspace release-workspace.json --machine machine-settings.json");
+        Console.WriteLine("    Publishes news, information, mod library and selected quick files as one version without rebuilding game/MO2.");
         Console.WriteLine("  quick publish --workspace release-workspace.json --machine machine-settings.json");
         Console.WriteLine("    Publishes the files/folders and deletions saved in the Releaser quick-release list.");
     }

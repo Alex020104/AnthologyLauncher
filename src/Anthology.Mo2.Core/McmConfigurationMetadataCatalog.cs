@@ -6,6 +6,8 @@ using System.Xml.Linq;
 
 namespace Anthology.Mo2.Core;
 
+public sealed record AnomalyConfigurationChoice(string Value, string Label);
+
 public sealed record McmConfigurationMetadata(
     string? DisplayName,
     string? Description,
@@ -18,7 +20,8 @@ public sealed record McmConfigurationMetadata(
     double? Minimum,
     double? Maximum,
     double? Step,
-    string? DefaultValue);
+    string? DefaultValue,
+    IReadOnlyList<AnomalyConfigurationChoice>? Choices = null);
 
 public sealed class McmConfigurationMetadataCatalog
 {
@@ -100,6 +103,7 @@ public sealed class McmConfigurationMetadataCatalog
         var nodeOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var anomalyOptions = new Dictionary<string, AnomalyOptionDefinition>(StringComparer.OrdinalIgnoreCase);
         var anomalyCommands = new Dictionary<string, AnomalyOptionDefinition>(StringComparer.OrdinalIgnoreCase);
+        var modularAnomalyScripts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var databaseArchiveCount = 0;
         var databaseAssetCount = 0;
         if (!string.IsNullOrWhiteSpace(gameRoot) && Directory.Exists(gameRoot))
@@ -114,6 +118,7 @@ public sealed class McmConfigurationMetadataCatalog
                 nodeOrder,
                 anomalyOptions,
                 anomalyCommands,
+                modularAnomalyScripts,
                 ref databaseArchiveCount,
                 ref databaseAssetCount);
 
@@ -125,7 +130,8 @@ public sealed class McmConfigurationMetadataCatalog
                 menuTitleIds,
                 nodeOrder,
                 anomalyOptions,
-                anomalyCommands);
+                anomalyCommands,
+                modularAnomalyScripts);
             var gameTextRoot = Path.Combine(gameDataRoot, "configs", "text");
             LoadTranslations(Path.Combine(gameTextRoot, "eng"), translations, overwrite: false);
             LoadTranslations(Path.Combine(gameTextRoot, "rus"), translations, overwrite: true);
@@ -133,6 +139,7 @@ public sealed class McmConfigurationMetadataCatalog
 
         if (string.IsNullOrWhiteSpace(mo2Root) || !Directory.Exists(mo2Root))
         {
+            ProcessModularAnomalyOptionsScripts(modularAnomalyScripts, anomalyOptions, anomalyCommands);
             return new McmConfigurationMetadataCatalog(
                 options,
                 translations,
@@ -148,6 +155,7 @@ public sealed class McmConfigurationMetadataCatalog
         var modsRoot = Path.Combine(Path.GetFullPath(mo2Root), "mods");
         if (!Directory.Exists(modsRoot))
         {
+            ProcessModularAnomalyOptionsScripts(modularAnomalyScripts, anomalyOptions, anomalyCommands);
             return new McmConfigurationMetadataCatalog(
                 options,
                 translations,
@@ -172,7 +180,8 @@ public sealed class McmConfigurationMetadataCatalog
                     menuTitleIds,
                     nodeOrder,
                     anomalyOptions,
-                    anomalyCommands);
+                    anomalyCommands,
+                    modularAnomalyScripts);
             }
 
             // Localization-only mods are valid MO2 overrides too. Load every enabled mod
@@ -185,6 +194,7 @@ public sealed class McmConfigurationMetadataCatalog
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            ProcessModularAnomalyOptionsScripts(modularAnomalyScripts, anomalyOptions, anomalyCommands);
             return new McmConfigurationMetadataCatalog(
                 options,
                 translations,
@@ -197,6 +207,7 @@ public sealed class McmConfigurationMetadataCatalog
                 databaseAssetCount);
         }
 
+        ProcessModularAnomalyOptionsScripts(modularAnomalyScripts, anomalyOptions, anomalyCommands);
         return new McmConfigurationMetadataCatalog(
             options,
             translations,
@@ -218,6 +229,7 @@ public sealed class McmConfigurationMetadataCatalog
         Dictionary<string, int> nodeOrder,
         Dictionary<string, AnomalyOptionDefinition> anomalyOptions,
         Dictionary<string, AnomalyOptionDefinition> anomalyCommands,
+        Dictionary<string, string> modularAnomalyScripts,
         ref int archiveCount,
         ref int assetCount)
     {
@@ -236,6 +248,10 @@ public sealed class McmConfigurationMetadataCatalog
                         if (IsAnomalyOptionsScript(entry.Name))
                         {
                             ProcessAnomalyOptionsScript(script, anomalyOptions, anomalyCommands);
+                        }
+                        else if (IsModularAnomalyOptionsScript(entry.Name))
+                        {
+                            modularAnomalyScripts[Path.GetFileNameWithoutExtension(entry.Name)] = script;
                         }
                         else if (IsMcmSchemaScript(entry.Name))
                         {
@@ -321,7 +337,11 @@ public sealed class McmConfigurationMetadataCatalog
                 continue;
             }
 
-            foreach (var archive in Directory.EnumerateFiles(directory, "*.xdb*", SearchOption.TopDirectoryOnly)
+            foreach (var archive in Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
+                         .Where(path => Regex.IsMatch(
+                             Path.GetFileName(path),
+                             @"\.(?:xdb|db)\d*$",
+                             RegexOptions.IgnoreCase))
                          .OrderBy(GetDatabaseOrder)
                          .ThenBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
             {
@@ -350,6 +370,7 @@ public sealed class McmConfigurationMetadataCatalog
         entry.Name.StartsWith("scripts\\", StringComparison.OrdinalIgnoreCase)
         && (entry.Name.EndsWith("_mcm.script", StringComparison.OrdinalIgnoreCase)
             || IsMcmSchemaScript(entry.Name)
+            || IsModularAnomalyOptionsScript(entry.Name)
             || IsAnomalyOptionsScript(entry.Name));
 
     private static bool IsAnomalyOptionsScript(string path) =>
@@ -358,6 +379,10 @@ public sealed class McmConfigurationMetadataCatalog
     private static bool IsMcmSchemaScript(string path) =>
         path.EndsWith("_mcm_schema.script", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsModularAnomalyOptionsScript(string path) =>
+        Path.GetFileName(path).StartsWith("options_modded_exes", StringComparison.OrdinalIgnoreCase)
+        && path.EndsWith(".script", StringComparison.OrdinalIgnoreCase);
+
     private static void LoadScripts(
         string root,
         Dictionary<string, OptionDefinition> options,
@@ -365,7 +390,8 @@ public sealed class McmConfigurationMetadataCatalog
         Dictionary<string, string> menuTitleIds,
         Dictionary<string, int> nodeOrder,
         Dictionary<string, AnomalyOptionDefinition> anomalyOptions,
-        Dictionary<string, AnomalyOptionDefinition> anomalyCommands)
+        Dictionary<string, AnomalyOptionDefinition> anomalyCommands,
+        Dictionary<string, string> modularAnomalyScripts)
     {
         if (!Directory.Exists(root))
         {
@@ -397,6 +423,11 @@ public sealed class McmConfigurationMetadataCatalog
         foreach (var scriptPath in Directory.EnumerateFiles(root, "ui_options.script", SearchOption.AllDirectories))
         {
             ProcessAnomalyOptionsScript(ReadText(scriptPath), anomalyOptions, anomalyCommands);
+        }
+
+        foreach (var scriptPath in Directory.EnumerateFiles(root, "options_modded_exes*.script", SearchOption.AllDirectories))
+        {
+            modularAnomalyScripts[Path.GetFileNameWithoutExtension(scriptPath)] = ReadText(scriptPath);
         }
     }
 
@@ -790,6 +821,550 @@ public sealed class McmConfigurationMetadataCatalog
 
         var order = 0;
         WalkAnomalyTree(uncommented, string.Empty, root, null, options, commands, ref order);
+    }
+
+    private static void ProcessModularAnomalyOptionsScripts(
+        Dictionary<string, string> scripts,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands)
+    {
+        if (scripts.Count == 0)
+        {
+            return;
+        }
+
+        var nodes = new Dictionary<string, ModularAnomalyNode>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (sourceName, sourceText) in scripts)
+        {
+            var text = RemoveLuaComments(sourceText);
+            var kind = TryFindConstructedTable(text, "GROUP", "group", out var table)
+                ? ModularAnomalyNodeKind.Group
+                : TryFindConstructedTable(text, "PAGE", "page", out table)
+                    ? ModularAnomalyNodeKind.Page
+                    : ModularAnomalyNodeKind.Unknown;
+            if (kind == ModularAnomalyNodeKind.Unknown)
+            {
+                continue;
+            }
+
+            var id = EnumerateLuaTableChildren(text, table)
+                .Select(child => ReadLuaProperties(text, child).GetValueOrDefault("id"))
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                continue;
+            }
+
+            var references = kind == ModularAnomalyNodeKind.Group
+                ? ReadModularAnomalyReferences(text, table)
+                : [];
+            nodes[sourceName] = new ModularAnomalyNode(sourceName, id, kind, text, table, references);
+        }
+
+        if (nodes.Count == 0)
+        {
+            return;
+        }
+
+        var referenced = nodes.Values
+            .SelectMany(node => node.References)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var roots = nodes.Values
+            .Where(node => !referenced.Contains(node.SourceName))
+            .OrderBy(node => node.Id.Equals("modded_exes", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(node => node.SourceName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var order = options.Count;
+        foreach (var root in roots)
+        {
+            WalkModularAnomalyTree(
+                root,
+                string.Empty,
+                nodes,
+                visited,
+                options,
+                commands,
+                ref order);
+        }
+
+        // A partially overridden module set can leave a page disconnected from the
+        // root. It is still authored UI data, so retain it under the Modded Exes
+        // branch instead of silently reverting that command to a raw user.ltx row.
+        foreach (var node in nodes.Values.OrderBy(node => node.SourceName, StringComparer.OrdinalIgnoreCase))
+        {
+            if (!visited.Contains(node.SourceName))
+            {
+                WalkModularAnomalyTree(
+                    node,
+                    "modded_exes",
+                    nodes,
+                    visited,
+                    options,
+                    commands,
+                    ref order);
+            }
+        }
+    }
+
+    private static List<string> ReadModularAnomalyReferences(string text, LuaTableSpan table)
+    {
+        var aliases = Regex.Matches(
+                text,
+                @"\b(?:local\s+)?(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?<module>options_modded_exes(?:_[A-Za-z0-9_]+)*)\s*\.\s*(?:GROUP|PAGE)\b",
+                RegexOptions.IgnoreCase)
+            .Cast<Match>()
+            .ToDictionary(
+                match => match.Groups["alias"].Value,
+                match => match.Groups["module"].Value,
+                StringComparer.OrdinalIgnoreCase);
+        var body = text[table.Open..(table.Close + 1)];
+        var result = new List<string>();
+        foreach (Match identifier in Regex.Matches(body, @"\b[A-Za-z_][A-Za-z0-9_]*\b"))
+        {
+            if (aliases.TryGetValue(identifier.Value, out var module)
+                && !result.Contains(module, StringComparer.OrdinalIgnoreCase))
+            {
+                result.Add(module);
+            }
+        }
+
+        foreach (Match directReference in Regex.Matches(
+                     body,
+                     @"\b(?<module>options_modded_exes(?:_[A-Za-z0-9_]+)*)\s*\.\s*(?:GROUP|PAGE)\b",
+                     RegexOptions.IgnoreCase))
+        {
+            var module = directReference.Groups["module"].Value;
+            if (!result.Contains(module, StringComparer.OrdinalIgnoreCase))
+            {
+                result.Add(module);
+            }
+        }
+
+        return result;
+    }
+
+    private static void WalkModularAnomalyTree(
+        ModularAnomalyNode node,
+        string parentPath,
+        IReadOnlyDictionary<string, ModularAnomalyNode> nodes,
+        HashSet<string> visited,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands,
+        ref int order)
+    {
+        if (!visited.Add(node.SourceName))
+        {
+            return;
+        }
+
+        var path = string.IsNullOrWhiteSpace(parentPath) ? node.Id : $"{parentPath}/{node.Id}";
+        if (node.Kind == ModularAnomalyNodeKind.Group)
+        {
+            foreach (var reference in node.References)
+            {
+                if (nodes.TryGetValue(reference, out var child))
+                {
+                    WalkModularAnomalyTree(child, path, nodes, visited, options, commands, ref order);
+                }
+            }
+
+            return;
+        }
+
+        ProcessModularAnomalyPage(node, path, options, commands, ref order);
+    }
+
+    private static void ProcessModularAnomalyPage(
+        ModularAnomalyNode node,
+        string menuPath,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands,
+        ref int order)
+    {
+        var children = EnumerateLuaTableChildren(node.Text, node.Table).ToArray();
+        foreach (var child in children.Skip(1))
+        {
+            var constructor = FindLuaConstructorBeforeTable(node.Text, child.Open);
+            if (constructor == "vector")
+            {
+                AddAuthoredVectorDefinitions(
+                    ReadLuaProperties(node.Text, child),
+                    menuPath,
+                    options,
+                    commands,
+                    ref order);
+                continue;
+            }
+
+            if (constructor is not ("check" or "track" or "list" or "list_enum" or "list_bool" or "input"))
+            {
+                continue;
+            }
+
+            var properties = ReadLuaProperties(node.Text, child);
+            var id = properties.GetValueOrDefault("id");
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                continue;
+            }
+
+            var command = properties.GetValueOrDefault("cmd");
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                command = id;
+            }
+            else if (command.Equals("false", StringComparison.OrdinalIgnoreCase)
+                     || command.Equals("nil", StringComparison.OrdinalIgnoreCase))
+            {
+                command = null;
+            }
+
+            var key = $"{menuPath}/{id}";
+            var type = constructor is "list" or "list_enum" or "list_bool" ? "list" : constructor;
+            IReadOnlyList<AnomalyOptionChoiceDefinition>? choices = constructor switch
+            {
+                "list_bool" =>
+                [
+                    new AnomalyOptionChoiceDefinition("1", "ВКЛ"),
+                    new AnomalyOptionChoiceDefinition("0", "ВЫКЛ"),
+                ],
+                "list_enum" => ReadModularListEnumChoices(node.Text, child),
+                _ => null,
+            };
+            AddModularAnomalyDefinition(
+                key,
+                command,
+                menuPath,
+                properties.GetValueOrDefault("text"),
+                properties.GetValueOrDefault("hint"),
+                type,
+                ParseNumber(properties.GetValueOrDefault("min")),
+                ParseNumber(properties.GetValueOrDefault("max")),
+                ParseNumber(properties.GetValueOrDefault("step")),
+                ParseLuaDefaultValue(properties.GetValueOrDefault("def")),
+                options,
+                commands,
+                ref order,
+                choices: choices);
+        }
+
+        if (node.SourceName.Equals("options_modded_exes_crosshair", StringComparison.OrdinalIgnoreCase))
+        {
+            AddAuthoredCrosshairDefinitions(menuPath, node.Text, options, commands, ref order);
+        }
+    }
+
+    private static AnomalyOptionChoiceDefinition[]? ReadModularListEnumChoices(
+        string text,
+        LuaTableSpan table)
+    {
+        if (!TryGetLuaTableProperty(text, table, "content", out var content))
+        {
+            return null;
+        }
+
+        var labels = EnumerateTopLevelLuaStrings(text, content).ToArray();
+        return labels.Length == 0
+            ? null
+            : labels.Select((label, index) => new AnomalyOptionChoiceDefinition(
+                    index.ToString(CultureInfo.InvariantCulture),
+                    label))
+                .ToArray();
+    }
+
+    private static void AddAuthoredVectorDefinitions(
+        LuaProperties properties,
+        string menuPath,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands,
+        ref int order)
+    {
+        var id = properties.GetValueOrDefault("id");
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        var components = new[] { "x", "y", "z", "w" };
+        for (var index = 0; index < components.Length; index++)
+        {
+            var component = components[index];
+            if (index == 3
+                && !properties.ContainsKey("w_min")
+                && !properties.ContainsKey("w_max")
+                && !properties.ContainsKey("w_def")
+                && !properties.ContainsKey("w_step"))
+            {
+                continue;
+            }
+
+            AddModularAnomalyDefinition(
+                $"{menuPath}/{id}_{component}",
+                id,
+                menuPath,
+                null,
+                $"{id}_{component}",
+                "track",
+                ParseNumber(properties.GetValueOrDefault($"{component}_min")),
+                ParseNumber(properties.GetValueOrDefault($"{component}_max")),
+                ParseNumber(properties.GetValueOrDefault($"{component}_step")),
+                ParseLuaDefaultValue(properties.GetValueOrDefault($"{component}_def")),
+                options,
+                commands,
+                ref order,
+                index);
+        }
+    }
+
+    private static void AddAuthoredCrosshairDefinitions(
+        string menuPath,
+        string text,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands,
+        ref int order)
+    {
+        var prefixes = new List<CrosshairPrefixDefinition>();
+        foreach (var call in EnumerateLuaConstructorCalls(text, "crosshair_camera_far_commands"))
+        {
+            var properties = ReadLuaProperties(text, call);
+            var prefix = properties.GetValueOrDefault("prefix");
+            if (!string.IsNullOrWhiteSpace(prefix))
+            {
+                prefixes.Add(new CrosshairPrefixDefinition(
+                    prefix,
+                    Distance: false,
+                    Opacity: false,
+                    Line: false,
+                    ReadNestedLuaProperties(text, call, "defs")));
+            }
+        }
+
+        foreach (var call in EnumerateLuaConstructorCalls(text, "crosshair_camera_near_commands"))
+        {
+            var properties = ReadLuaProperties(text, call);
+            var prefix = properties.GetValueOrDefault("prefix");
+            if (!string.IsNullOrWhiteSpace(prefix))
+            {
+                prefixes.Add(new CrosshairPrefixDefinition(
+                    prefix,
+                    Distance: true,
+                    Opacity: false,
+                    Line: false,
+                    ReadNestedLuaProperties(text, call, "defs")));
+            }
+        }
+
+        foreach (var call in EnumerateLuaConstructorCalls(text, "crosshair_pair_commands"))
+        {
+            var properties = ReadLuaProperties(text, call);
+            var prefix = properties.GetValueOrDefault("prefix");
+            if (string.IsNullOrWhiteSpace(prefix))
+            {
+                continue;
+            }
+
+            var definitions = TryGetLuaTableProperty(text, call, "defs", out var definitionsTable)
+                ? definitionsTable
+                : default;
+            var far = definitions != default
+                ? ReadNestedLuaProperties(text, definitions, "far")
+                : new LuaProperties();
+            var near = definitions != default
+                ? ReadNestedLuaProperties(text, definitions, "near")
+                : new LuaProperties();
+            prefixes.Add(new CrosshairPrefixDefinition($"{prefix}_far", false, false, true, far));
+            prefixes.Add(new CrosshairPrefixDefinition($"{prefix}_near", true, true, true, near));
+        }
+
+        foreach (var prefix in prefixes.DistinctBy(item => item.Prefix, StringComparer.OrdinalIgnoreCase))
+        {
+            AddCrosshairDefinition(prefix.Prefix, string.Empty, "check", null, null, null, CrosshairDefault(prefix.Defaults, "show", "false"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_recon", "check", null, null, null, CrosshairDefault(prefix.Defaults, "recon", "false"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_recon_max_opacity", "track", null, null, 0.05, CrosshairDefault(prefix.Defaults, "recon_max_opacity", "0.5"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_use_shader", "check", null, null, null, CrosshairDefault(prefix.Defaults, "use_shader", "false"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_shader", "input", null, null, null, CrosshairDefault(prefix.Defaults, "shader", @"hud\cursor"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_texture", "input", null, null, null, CrosshairDefault(prefix.Defaults, "texture", @"ui\cursor_dot"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_size", "track", null, null, 1, CrosshairDefault(prefix.Defaults, "size", "1"), menuPath, options, commands, ref order);
+            AddCrosshairDefinition(prefix.Prefix, "_depth", "track", null, null, 1, CrosshairDefault(prefix.Defaults, "depth", "0"), menuPath, options, commands, ref order);
+            foreach (var (component, componentIndex) in new[]
+                     {
+                         ("r", 0),
+                         ("g", 1),
+                         ("b", 2),
+                         ("a", 3),
+                     })
+            {
+                var colorCommand = $"g_crosshair_{prefix.Prefix}_color";
+                AddModularAnomalyDefinition(
+                    $"{menuPath}/{colorCommand}_{component}",
+                    colorCommand,
+                    menuPath,
+                    null,
+                    $"modded_exes_color_{component}",
+                    "track",
+                    0,
+                    255,
+                    1,
+                    "255",
+                    options,
+                    commands,
+                    ref order,
+                    componentIndex);
+            }
+            if (prefix.Distance)
+            {
+                AddCrosshairDefinition(prefix.Prefix, "_distance_lerp", "check", null, null, null, CrosshairDefault(prefix.Defaults, "distance_lerp", "false"), menuPath, options, commands, ref order);
+                AddCrosshairDefinition(prefix.Prefix, "_distance_lerp_rate", "track", null, null, 1, CrosshairDefault(prefix.Defaults, "distance_lerp_rate", "40"), menuPath, options, commands, ref order);
+            }
+            if (prefix.Opacity)
+            {
+                AddCrosshairDefinition(prefix.Prefix, "_occluded_opacity", "track", null, null, 0.05, CrosshairDefault(prefix.Defaults, "occluded_opacity", "0.5"), menuPath, options, commands, ref order);
+                AddCrosshairDefinition(prefix.Prefix, "_occlusion_fade_rate", "track", null, null, 1, CrosshairDefault(prefix.Defaults, "occlusion_fade_rate", "40"), menuPath, options, commands, ref order);
+            }
+            if (prefix.Line)
+            {
+                AddCrosshairDefinition(prefix.Prefix, "_line", "check", null, null, null, CrosshairDefault(prefix.Defaults, "line", "false"), menuPath, options, commands, ref order);
+            }
+        }
+    }
+
+    private static IEnumerable<LuaTableSpan> EnumerateLuaConstructorCalls(string text, string constructor)
+    {
+        foreach (Match match in Regex.Matches(
+                     text,
+                     $@"\b{Regex.Escape(constructor)}\s*\{{",
+                     RegexOptions.IgnoreCase))
+        {
+            var open = text.IndexOf('{', match.Index + match.Length - 1);
+            var close = FindMatchingBrace(text, open);
+            if (open >= 0 && close >= 0)
+            {
+                yield return new LuaTableSpan(open, close);
+            }
+        }
+    }
+
+    private static LuaProperties ReadNestedLuaProperties(
+        string text,
+        LuaTableSpan parent,
+        string property) =>
+        TryGetLuaTableProperty(text, parent, property, out var table)
+            ? ReadLuaProperties(text, table)
+            : new LuaProperties();
+
+    private static string CrosshairDefault(
+        LuaProperties definitions,
+        string name,
+        string fallback) =>
+        ParseLuaDefaultValue(definitions.GetValueOrDefault(name)) ?? fallback;
+
+    private static void AddCrosshairDefinition(
+        string prefix,
+        string suffix,
+        string type,
+        double? minimum,
+        double? maximum,
+        double? step,
+        string? defaultValue,
+        string menuPath,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands,
+        ref int order)
+    {
+        var command = $"g_crosshair_{prefix}{suffix}";
+        var hintSuffix = string.IsNullOrWhiteSpace(suffix) ? "show" : suffix.TrimStart('_');
+        AddModularAnomalyDefinition(
+            $"{menuPath}/{command}",
+            command,
+            menuPath,
+            null,
+            $"modded_exes_visual_crosshair_g_crosshair_{hintSuffix}",
+            type,
+            minimum,
+            maximum,
+            step,
+            defaultValue,
+            options,
+            commands,
+            ref order);
+    }
+
+    private static void AddModularAnomalyDefinition(
+        string key,
+        string? command,
+        string menuPath,
+        string? labelId,
+        string? hintId,
+        string controlType,
+        double? minimum,
+        double? maximum,
+        double? step,
+        string? defaultValue,
+        Dictionary<string, AnomalyOptionDefinition> options,
+        Dictionary<string, AnomalyOptionDefinition> commands,
+        ref int order,
+        int? valueComponentIndex = null,
+        IReadOnlyList<AnomalyOptionChoiceDefinition>? choices = null)
+    {
+        var definition = new AnomalyOptionDefinition(
+            key,
+            command,
+            menuPath,
+            labelId ?? $"ui_mm_{key.Replace('/', '_')}",
+            hintId,
+            $"ui_mm_{menuPath.Split('/').Last()}_modded_exes",
+            order++,
+            controlType,
+            minimum,
+            maximum,
+            step,
+            defaultValue,
+            valueComponentIndex,
+            choices);
+        options[key] = definition;
+        if (!string.IsNullOrWhiteSpace(command))
+        {
+            commands[command] = definition;
+        }
+    }
+
+    private static bool TryFindConstructedTable(
+        string text,
+        string variable,
+        string constructor,
+        out LuaTableSpan table)
+    {
+        table = default;
+        var match = Regex.Match(
+            text,
+            $@"\b{Regex.Escape(variable)}\s*=\s*(?:filter_false\s*\(\s*)?{Regex.Escape(constructor)}\s*\{{",
+            RegexOptions.IgnoreCase);
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        var open = text.IndexOf('{', match.Index + match.Length - 1);
+        var close = FindMatchingBrace(text, open);
+        if (open < 0 || close < 0)
+        {
+            return false;
+        }
+
+        table = new LuaTableSpan(open, close);
+        return true;
+    }
+
+    private static string? FindLuaConstructorBeforeTable(string text, int open)
+    {
+        var start = Math.Max(0, open - 160);
+        var prefix = text[start..open];
+        var match = Regex.Match(
+            prefix,
+            @"(?<type>[A-Za-z_][A-Za-z0-9_]*)\s*$",
+            RegexOptions.IgnoreCase);
+        return match.Success ? match.Groups["type"].Value.ToLowerInvariant() : null;
     }
 
     private static void WalkAnomalyTree(
@@ -1465,12 +2040,74 @@ public sealed class McmConfigurationMetadataCatalog
             definition?.DefaultValue);
     }
 
-    public McmConfigurationMetadata ResolveAnomaly(string key, int displayOrder)
+    public bool HasAnomalyDefinitions => _anomalyOptions.Count > 0 || _anomalyCommands.Count > 0;
+
+    public bool TryResolveAnomaly(
+        string key,
+        int displayOrder,
+        out McmConfigurationMetadata metadata)
+    {
+        var definition = FindAnomalyDefinition(key);
+        metadata = ResolveAnomaly(key, displayOrder, definition);
+        return definition is not null;
+    }
+
+    public McmConfigurationMetadata ResolveAnomaly(string key, int displayOrder) =>
+        ResolveAnomaly(key, displayOrder, FindAnomalyDefinition(key));
+
+    public string? ResolveAnomalyCommand(string key) => FindAnomalyDefinition(key)?.Command;
+
+    internal IReadOnlyList<AnomalyCommandComponentMetadata> ResolveAnomalyCommandComponents(
+        string command,
+        int displayOrder)
+    {
+        return _anomalyOptions.Values
+            .Where(definition => definition.ValueComponentIndex.HasValue
+                                 && definition.Command?.Equals(command, StringComparison.OrdinalIgnoreCase) == true)
+            .OrderBy(definition => definition.ValueComponentIndex)
+            .Select((definition, index) => new AnomalyCommandComponentMetadata(
+                definition.Key,
+                definition.ValueComponentIndex!.Value,
+                ResolveAnomaly(definition.Key, displayOrder + index, definition)))
+            .ToArray();
+    }
+
+    private AnomalyOptionDefinition? FindAnomalyDefinition(string key)
     {
         var incomingSegments = key.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var lookupCommand = incomingSegments.LastOrDefault() ?? key;
         _anomalyOptions.TryGetValue(key, out var definition);
         definition ??= _anomalyCommands.GetValueOrDefault(lookupCommand);
+
+        // The stock warfare menu declares the Stalker faction once and clones the
+        // same authored controls for every other faction at runtime. Mirror only
+        // that deterministic expansion; arbitrary unknown paths remain filtered.
+        if (definition is null
+            && incomingSegments.Length >= 4
+            && incomingSegments[0].Equals("alife", StringComparison.OrdinalIgnoreCase)
+            && incomingSegments[1].Equals("warfare", StringComparison.OrdinalIgnoreCase))
+        {
+            var templateKey = $"alife/warfare/stalker/{string.Join('/', incomingSegments[3..])}";
+            if (_anomalyOptions.TryGetValue(templateKey, out var template))
+            {
+                definition = template with
+                {
+                    Key = key,
+                    MenuPath = string.Join('/', incomingSegments[..^1]),
+                };
+            }
+        }
+
+        return definition;
+    }
+
+    private McmConfigurationMetadata ResolveAnomaly(
+        string key,
+        int displayOrder,
+        AnomalyOptionDefinition? definition)
+    {
+        var incomingSegments = key.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var lookupCommand = incomingSegments.LastOrDefault() ?? key;
 
         var resolvedKey = definition?.Key ?? key;
         var segments = resolvedKey.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -1481,6 +2118,7 @@ public sealed class McmConfigurationMetadataCatalog
         var normalized = resolvedKey.Replace('/', '_');
         var labelId = definition?.LabelId ?? $"ui_mm_{normalized}";
         var displayName = TranslateToken(labelId)
+                          ?? TranslateHintCaption(definition?.HintId, "ui_mm_")
                           ?? FirstTranslation($"ui_mm_{normalized}", $"ui_mm_{lookupCommand}")
                           ?? HumanizeIdentifier(segments.LastOrDefault() ?? key);
         var description = TranslateHintDescription(definition?.HintId, "ui_mm_")
@@ -1499,6 +2137,11 @@ public sealed class McmConfigurationMetadataCatalog
                             $"ui_mm_menu_{menuSegment}",
                             $"ui_mm_title_{menuSegment}")
                         ?? HumanizeAnomalyMenu(menuSegment);
+        var choices = definition?.Choices?
+            .Select(choice => new AnomalyConfigurationChoice(
+                choice.Value,
+                ResolveAnomalyChoiceLabel(choice.LabelId)))
+            .ToArray();
 
         return new McmConfigurationMetadata(
             Clean(displayName),
@@ -1512,7 +2155,24 @@ public sealed class McmConfigurationMetadataCatalog
             definition?.Minimum,
             definition?.Maximum,
             definition?.Step,
-            definition?.DefaultValue);
+            definition?.DefaultValue,
+            choices);
+    }
+
+    private string ResolveAnomalyChoiceLabel(string labelId)
+    {
+        const string listLocalizationPrefix = "ui_mm_lst_";
+        var localizationId = labelId.StartsWith(listLocalizationPrefix, StringComparison.OrdinalIgnoreCase)
+            ? labelId
+            : listLocalizationPrefix + labelId;
+        var fallbackLabel = labelId.StartsWith(listLocalizationPrefix, StringComparison.OrdinalIgnoreCase)
+            ? labelId[listLocalizationPrefix.Length..]
+            : labelId;
+
+        return Clean(
+                   FirstTranslation(localizationId, labelId)
+                   ?? HumanizeIdentifier(fallbackLabel))
+               ?? fallbackLabel;
     }
 
     private string? Translate(string id) => _translations.GetValueOrDefault(id);
@@ -1877,8 +2537,16 @@ public sealed class McmConfigurationMetadataCatalog
     private static int AnomalyMenuOrder(string menuPath)
     {
         var segments = menuPath.Split('/');
-        var top = Array.IndexOf(["video", "sound", "control", "gameplay", "alife", "other"], segments[0]);
+        var top = Array.IndexOf(["video", "sound", "control", "gameplay", "alife", "other", "modded_exes"], segments[0]);
         var child = segments.Length > 1 ? segments[1] : string.Empty;
+        if (segments[0].Equals("modded_exes", StringComparison.OrdinalIgnoreCase))
+        {
+            var moddedExesOrder = Array.IndexOf(
+                ["visual", "sound", "control", "gameplay", "saves", "optimizations", "debug"],
+                child);
+            return top * 100 + (moddedExesOrder < 0 ? 50 : moddedExesOrder);
+        }
+
         var childOrder = child switch
         {
             "basic" or "general" => 0,
@@ -2217,7 +2885,38 @@ public sealed class McmConfigurationMetadataCatalog
         double? Minimum,
         double? Maximum,
         double? Step,
-        string? DefaultValue);
+        string? DefaultValue,
+        int? ValueComponentIndex = null,
+        IReadOnlyList<AnomalyOptionChoiceDefinition>? Choices = null);
+
+    private sealed record AnomalyOptionChoiceDefinition(string Value, string LabelId);
+
+    internal sealed record AnomalyCommandComponentMetadata(
+        string Key,
+        int ComponentIndex,
+        McmConfigurationMetadata Metadata);
+
+    private enum ModularAnomalyNodeKind
+    {
+        Unknown,
+        Group,
+        Page,
+    }
+
+    private sealed record ModularAnomalyNode(
+        string SourceName,
+        string Id,
+        ModularAnomalyNodeKind Kind,
+        string Text,
+        LuaTableSpan Table,
+        IReadOnlyList<string> References);
+
+    private sealed record CrosshairPrefixDefinition(
+        string Prefix,
+        bool Distance,
+        bool Opacity,
+        bool Line,
+        LuaProperties Defaults);
 
     private readonly record struct LuaTableSpan(int Open, int Close);
 

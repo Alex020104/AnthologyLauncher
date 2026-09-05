@@ -4,7 +4,7 @@ namespace Anthology.Releaser.Core;
 
 public sealed class ReleaserWorkspace
 {
-    public int SchemaVersion { get; set; } = 8;
+    public int SchemaVersion { get; set; } = 10;
 
     public int Revision { get; set; }
 
@@ -215,6 +215,13 @@ public sealed class ReleaseMirrorSet
 
     public string Mo2Url { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Version-relative channel artifacts such as launcher, integrity, full
+    /// archives, and quick-update ZIPs. This is intentionally separate from
+    /// GameUrl/Mo2Url because those fields may be loose-file {path} templates.
+    /// </summary>
+    public string ArtifactUrl { get; set; } = string.Empty;
+
     public string ContentUrl { get; set; } = string.Empty;
 
     /// <summary>
@@ -358,6 +365,50 @@ public sealed class ReleaserMachineSettings
 
     public string SharedWorkspaceRoot { get; set; } = string.Empty;
 
+    // Repack work files are written under a unique child of this directory and
+    // removed after success, cancellation, or failure. Keep it on a roomy drive.
+    public string RepackTemporaryRoot { get; set; } = string.Empty;
+
+    public string RepackOutputRoot { get; set; } = string.Empty;
+
+    public string RepackProjectName { get; set; } = "ANTHOLOGY";
+
+    public string SevenZipPath { get; set; } = string.Empty;
+
+    public string InnoSetupCompilerPath { get; set; } = string.Empty;
+
+    public string InstallerTemplateRoot { get; set; } = string.Empty;
+
+    public bool RepackIncludeMo2 { get; set; } = true;
+
+    public bool RepackOverwriteExisting { get; set; }
+
+    // Google Drive is published directly through rclone. These values are local
+    // machine configuration and never enter the shared release workspace.
+    public string GoogleDriveRclonePath { get; set; } = string.Empty;
+
+    public string GoogleDriveRcloneConfigPath { get; set; } = string.Empty;
+
+    public string GoogleDriveRemoteName { get; set; } = string.Empty;
+
+    public string GoogleDriveProjectPath { get; set; } = "ANTHOLOGY";
+
+    public string GoogleDriveGamePath { get; set; } = string.Empty;
+
+    public string GoogleDriveMo2Path { get; set; } = string.Empty;
+
+    public string GoogleDriveReleasePath { get; set; } = "AnthologyUpdateChannel";
+
+    public string GoogleDriveManifestPath { get; set; } = "AnthologyUpdateChannel/manifest.json";
+
+    // Navigation/help URL only. It is deliberately never used as a package or
+    // manifest mirror because /drive/home is an authenticated HTML application.
+    public string GoogleDriveAccountUrl { get; set; } = "https://drive.google.com/drive/home";
+
+    public string GoogleDriveProjectPublicUrl { get; set; } = string.Empty;
+
+    public int GoogleDriveMirrorPriority { get; set; } = 30;
+
     public bool AutoSync { get; set; }
 
     public int AutoSyncSeconds { get; set; } = 60;
@@ -435,9 +486,23 @@ public sealed class QuickDeleteFolderDraft
     public string RelativePath { get; set; } = string.Empty;
 }
 
+public enum UnifiedReleaseDeliveryMode
+{
+    Archive,
+    LooseFiles,
+}
+
+public sealed record LooseFileMirrorOverride(
+    string PackageId,
+    string Path,
+    IReadOnlyList<MirrorManifest> Mirrors);
+
 public sealed record UnifiedReleaseRequest(
     ReleaserWorkspace Workspace,
-    ReleaserMachineSettings Machine);
+    ReleaserMachineSettings Machine,
+    UnifiedReleaseDeliveryMode DeliveryMode = UnifiedReleaseDeliveryMode.Archive,
+    IReadOnlyList<LooseFileMirrorOverride>? LooseFileMirrors = null,
+    string? MinimumLauncherVersion = null);
 
 public sealed record UnifiedReleaseResult(
     string Version,
@@ -445,7 +510,11 @@ public sealed record UnifiedReleaseResult(
     IReadOnlyList<string> Artifacts,
     int Files,
     long Bytes,
-    int ContentItems);
+    int ContentItems,
+    // When present, publication is restricted to these generated files. Loose
+    // releases use this allow-list so stale archives in the same version folder
+    // cannot be copied to mirrors accidentally.
+    IReadOnlyList<string>? PublicationFiles = null);
 
 public sealed record PublicationResult(
     int Targets,
@@ -466,6 +535,29 @@ public sealed record QuickReleaseResult(
     int AddedFolders,
     int DeletedFolders,
     IReadOnlyList<string> Artifacts,
+    PublicationResult Publication);
+
+/// <summary>
+/// Result of publishing the editable workspace content and an optional set of
+/// quick file changes without rebuilding the full game or MO2 distributions.
+/// </summary>
+public sealed record ContentBundlePublicationResult(
+    string Version,
+    string ManifestPath,
+    string ContentPath,
+    int ContentItems,
+    IReadOnlyList<string> PublishedAddonIds,
+    IReadOnlyList<string> PreservedAddonIds,
+    int AddedFiles,
+    int DeletedFiles,
+    int AddedFolders,
+    int DeletedFolders,
+    IReadOnlyList<string> Artifacts,
+    /// <summary>
+    /// Version-relative files in publication order. Referenced payloads always
+    /// precede content.json and manifest.json.
+    /// </summary>
+    IReadOnlyList<string> PublicationFiles,
     PublicationResult Publication);
 
 public sealed record LauncherPublicationResult(

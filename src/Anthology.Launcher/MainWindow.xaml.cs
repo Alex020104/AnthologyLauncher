@@ -14,6 +14,8 @@ public partial class MainWindow : Window
 {
     private const int WmGetMinMaxInfo = 0x0024;
     private const uint MonitorDefaultToNearest = 0x00000002;
+    private const double CompactWindowWidth = 1180;
+    private const double CompactWindowHeight = 720;
     private const string YoutubeClientReferrer = "https://github.com/Alex020104/AnthologyLauncher";
     private static readonly string WebViewUserDataFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -22,10 +24,15 @@ public partial class MainWindow : Window
         "WebView2");
     private CoreWebView2? _webViewCore;
     private readonly LauncherOperationGate _operationGate;
+    private readonly LauncherSettingsStore _settingsStore;
+    private bool _compactMode;
 
-    public MainWindow(LauncherOperationGate operationGate)
+    public MainWindow(
+        LauncherOperationGate operationGate,
+        LauncherSettingsStore settingsStore)
     {
         _operationGate = operationGate;
+        _settingsStore = settingsStore;
         InitializeComponent();
         UpdateWindowStateVisuals();
     }
@@ -77,6 +84,99 @@ public partial class MainWindow : Window
             loginWindow.Show();
         });
         return completion.Task;
+    }
+
+    public LauncherWindowBounds CaptureDetailedWindowBounds()
+    {
+        var bounds = WindowState == WindowState.Normal
+            ? new Rect(Left, Top, ActualWidth > 0 ? ActualWidth : Width, ActualHeight > 0 ? ActualHeight : Height)
+            : RestoreBounds;
+        return new LauncherWindowBounds(
+            bounds.Left,
+            bounds.Top,
+            Math.Max(MinWidth, bounds.Width),
+            Math.Max(MinHeight, bounds.Height),
+            WindowState == WindowState.Maximized);
+    }
+
+    public void ApplyLauncherMode(LauncherSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var compact = string.Equals(
+            settings.InterfaceMode,
+            LauncherSettings.CompactInterfaceMode,
+            StringComparison.OrdinalIgnoreCase);
+        _compactMode = compact;
+        WindowState = WindowState.Normal;
+        MaximizeButton.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+
+        if (compact)
+        {
+            ResizeMode = ResizeMode.NoResize;
+            MinWidth = CompactWindowWidth;
+            MaxWidth = CompactWindowWidth;
+            MinHeight = CompactWindowHeight;
+            MaxHeight = CompactWindowHeight;
+            Width = CompactWindowWidth;
+            Height = CompactWindowHeight;
+            CenterInWorkArea();
+            UpdateWindowStateVisuals();
+            return;
+        }
+
+        ResizeMode = ResizeMode.CanResize;
+        MaxWidth = double.PositiveInfinity;
+        MaxHeight = double.PositiveInfinity;
+        MinWidth = 760;
+        MinHeight = 560;
+        Width = Math.Max(MinWidth, settings.DetailedWindowWidth);
+        Height = Math.Max(MinHeight, settings.DetailedWindowHeight);
+        if (settings.DetailedWindowLeft is { } left
+            && settings.DetailedWindowTop is { } top
+            && IsVisibleOnDesktop(left, top, Width, Height))
+        {
+            Left = left;
+            Top = top;
+        }
+        else
+        {
+            CenterInWorkArea();
+        }
+
+        if (settings.DetailedWindowMaximized)
+        {
+            _ = Dispatcher.BeginInvoke(
+                DispatcherPriority.Loaded,
+                new Action(() => WindowState = WindowState.Maximized));
+        }
+        UpdateWindowStateVisuals();
+    }
+
+    private void CenterInWorkArea()
+    {
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Left + Math.Max(0, (workArea.Width - Width) / 2);
+        Top = workArea.Top + Math.Max(0, (workArea.Height - Height) / 2);
+    }
+
+    private static bool IsVisibleOnDesktop(double left, double top, double width, double height)
+    {
+        if (!double.IsFinite(left)
+            || !double.IsFinite(top)
+            || !double.IsFinite(width)
+            || !double.IsFinite(height))
+        {
+            return false;
+        }
+
+        var desktop = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        var candidate = new Rect(left, top, width, height);
+        candidate.Intersect(desktop);
+        return candidate.Width >= 120 && candidate.Height >= 80;
     }
 
     private static void YoutubePlayerResourceRequested(
@@ -196,6 +296,11 @@ public partial class MainWindow : Window
 
     private void ToggleMaximizeRestore()
     {
+        if (_compactMode)
+        {
+            return;
+        }
+
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
@@ -221,6 +326,28 @@ public partial class MainWindow : Window
         if (_operationGate.ShouldBlockWindowClose)
         {
             e.Cancel = true;
+            return;
+        }
+
+        if (!_compactMode)
+        {
+            var bounds = CaptureDetailedWindowBounds();
+            var settings = _settingsStore.Current.Copy();
+            settings.DetailedWindowLeft = bounds.Left;
+            settings.DetailedWindowTop = bounds.Top;
+            settings.DetailedWindowWidth = bounds.Width;
+            settings.DetailedWindowHeight = bounds.Height;
+            settings.DetailedWindowMaximized = bounds.Maximized;
+            try
+            {
+                Task.Run(() => _settingsStore.SaveAsync(settings)).GetAwaiter().GetResult();
+            }
+            catch (Exception exception) when (exception is IOException
+                                               or UnauthorizedAccessException
+                                               or InvalidOperationException)
+            {
+                // Window shutdown must continue even if the optional bounds cannot be persisted.
+            }
         }
     }
 
@@ -277,3 +404,10 @@ public partial class MainWindow : Window
         public uint Flags;
     }
 }
+
+public sealed record LauncherWindowBounds(
+    double Left,
+    double Top,
+    double Width,
+    double Height,
+    bool Maximized);

@@ -71,6 +71,86 @@ public sealed class ReleaserBridge
         }
     }
 
+    public void OpenUrl(string? url)
+    {
+        lock (_dialogGate)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                || uri.Scheme is not ("https" or "http"))
+            {
+                throw new ArgumentException("Укажите корректную ссылку HTTP или HTTPS.", nameof(url));
+            }
+
+            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        }
+    }
+
+    public async Task<int> ConfigureRcloneAsync(
+        string? rclonePath,
+        string? configPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(rclonePath) || !Path.IsPathFullyQualified(rclonePath))
+        {
+            throw new ArgumentException("Укажите полный путь к rclone.exe.", nameof(rclonePath));
+        }
+        var executable = Path.GetFullPath(rclonePath.Trim());
+        if (!File.Exists(executable))
+        {
+            throw new FileNotFoundException("Не найден rclone.exe.", executable);
+        }
+        if (string.IsNullOrWhiteSpace(configPath) || !Path.IsPathFullyQualified(configPath))
+        {
+            throw new ArgumentException("Укажите полный путь к локальному rclone.conf.", nameof(configPath));
+        }
+        var configuration = Path.GetFullPath(configPath.Trim());
+        var configurationDirectory = Path.GetDirectoryName(configuration)
+                                     ?? throw new ArgumentException("Некорректный путь к rclone.conf.", nameof(configPath));
+        Directory.CreateDirectory(configurationDirectory);
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = executable,
+            WorkingDirectory = Path.GetDirectoryName(executable)!,
+            UseShellExecute = false,
+            CreateNoWindow = false,
+            WindowStyle = ProcessWindowStyle.Normal,
+        };
+        startInfo.ArgumentList.Add("config");
+        startInfo.ArgumentList.Add("--config");
+        startInfo.ArgumentList.Add(configuration);
+
+        Process process;
+        lock (_dialogGate)
+        {
+            process = Process.Start(startInfo)
+                      ?? throw new InvalidOperationException("Не удалось открыть интерактивную настройку rclone.");
+        }
+        using (process)
+        {
+            try
+            {
+                await process.WaitForExitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    // rclone успел закрыться между проверкой и отменой.
+                }
+                throw;
+            }
+            return process.ExitCode;
+        }
+    }
+
     public bool Confirm(string message, string title)
     {
         lock (_dialogGate)

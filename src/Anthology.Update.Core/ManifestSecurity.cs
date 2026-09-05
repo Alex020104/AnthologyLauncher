@@ -87,9 +87,53 @@ public static class ManifestSecurity
         }
     }
 
+    public static SignedReleaseHistory Sign(
+        ReleaseHistoryCatalog catalog,
+        ECDsa privateKey,
+        string keyId)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyId);
+        var signature = privateKey.SignData(
+            GetCanonicalBytes(catalog),
+            HashAlgorithmName.SHA256,
+            DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        return new SignedReleaseHistory(
+            catalog,
+            new ManifestSignature(Algorithm, keyId, Convert.ToBase64String(signature)));
+    }
+
+    public static bool Verify(SignedReleaseHistory history, ECDsa publicKey)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+        ArgumentNullException.ThrowIfNull(publicKey);
+        if (!string.Equals(history.Signature.Algorithm, Algorithm, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            var signature = Convert.FromBase64String(history.Signature.Value);
+            return publicKey.VerifyData(
+                GetCanonicalBytes(history.Payload),
+                signature,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        }
+        catch (Exception exception) when (exception is FormatException or CryptographicException)
+        {
+            return false;
+        }
+    }
+
     public static byte[] GetCanonicalBytes(UpdateManifest manifest)
         => JsonSerializer.SerializeToUtf8Bytes(manifest, CanonicalJsonOptions);
 
     public static byte[] GetCanonicalBytes(PackageIntegrityCatalog catalog)
+        => JsonSerializer.SerializeToUtf8Bytes(catalog, CanonicalJsonOptions);
+
+    public static byte[] GetCanonicalBytes(ReleaseHistoryCatalog catalog)
         => JsonSerializer.SerializeToUtf8Bytes(catalog, CanonicalJsonOptions);
 }

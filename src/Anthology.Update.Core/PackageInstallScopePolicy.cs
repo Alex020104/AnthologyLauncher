@@ -38,7 +38,7 @@ public static class PackageInstallScopePolicy
                 $"Package '{package.Id}' cannot prune the MO2 root; it may change only 'mods/**'.");
         }
 
-        AppendPathErrors(package.Id, "file", package.Files, errors);
+        AppendPathErrors(package.Id, "file", package.GetFilePaths(), errors);
         AppendPathErrors(package.Id, "preserved path", package.PreservedPaths ?? [], errors);
         AppendPathErrors(package.Id, "deleted file", package.DeletedFiles ?? [], errors);
         AppendPathErrors(package.Id, "deleted directory", package.DeletedDirectories ?? [], errors);

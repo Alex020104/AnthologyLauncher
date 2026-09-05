@@ -153,13 +153,18 @@ public static class PackageIntegrityCatalogBuilder
         await CreateCatalogArchiveAsync(catalogPath, artifactPath, cancellationToken);
         var artifactSize = new FileInfo(artifactPath).Length;
         var mirrors = workspace.Mirrors
-            .Where(mirror => !string.IsNullOrWhiteSpace(mirror.GameUrl))
-            .Where(mirror => UnifiedReleaseBuilder.SupportsArtifact(mirror.Provider, artifactSize))
-            .Select(mirror => new MirrorManifest(
-                UnifiedReleaseBuilder.NormalizeProvider(mirror.Provider),
-                UnifiedReleaseBuilder.ExpandUrl(mirror.GameUrl.Trim(), workspace.Version, PackageId, artifactName),
-                mirror.Priority))
-            .OrderBy(mirror => mirror.Priority)
+            .Select(mirror => new
+            {
+                Mirror = mirror,
+                Url = UnifiedReleaseBuilder.ResolveArtifactUrlTemplate(mirror),
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+            .Where(item => UnifiedReleaseBuilder.SupportsArtifact(item.Mirror.Provider, artifactSize))
+            .Select(item => new MirrorManifest(
+                UnifiedReleaseBuilder.NormalizeProvider(item.Mirror.Provider),
+                UnifiedReleaseBuilder.ExpandUrl(item.Url, workspace.Version, PackageId, artifactName),
+                item.Mirror.Priority))
+            .OrderBy(item => item.Priority)
             .ToArray();
         if (mirrors.Length == 0)
         {
@@ -486,6 +491,7 @@ public static class PackageIntegrityCatalogBuilder
 
     private static bool IsProtectedPackage(PackageManifest package) =>
         package.Kind != PackageKind.Launcher
+        && package.LooseFiles is null
         && !string.Equals(package.Id, PackageId, StringComparison.OrdinalIgnoreCase);
 
     private static async Task<ArtifactSource> LoadArtifactAsync(

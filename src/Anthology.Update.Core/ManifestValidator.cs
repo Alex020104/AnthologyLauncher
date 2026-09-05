@@ -22,7 +22,7 @@ public static partial class ManifestValidator
         var errors = new List<string>();
         var payload = manifest.Payload;
 
-        if (payload.SchemaVersion is not (1 or 2 or 3 or 4))
+        if (payload.SchemaVersion is not (1 or 2 or 3 or 4 or 5))
         {
             errors.Add($"Unsupported schema version: {payload.SchemaVersion}.");
         }
@@ -35,6 +35,12 @@ public static partial class ManifestValidator
         if (string.IsNullOrWhiteSpace(payload.Version))
         {
             errors.Add("Version is required.");
+        }
+
+        if (payload.Packages.Any(package => package.LooseFiles is not null)
+            && string.IsNullOrWhiteSpace(payload.MinimumLauncherVersion))
+        {
+            errors.Add("Loose-file delivery requires an explicit minimum launcher version.");
         }
 
         if (payload.Packages.Count == 0
@@ -101,11 +107,6 @@ public static partial class ManifestValidator
             errors.Add($"Package '{package.Id}' uses unknown install root '{package.InstallRoot}'.");
         }
 
-        if (package.Size <= 0)
-        {
-            errors.Add($"Package '{package.Id}' has invalid size.");
-        }
-
         if (string.IsNullOrWhiteSpace(package.DisplayName))
         {
             errors.Add($"Package '{package.Id}' has no display name.");
@@ -116,66 +117,19 @@ public static partial class ManifestValidator
             errors.Add($"Package '{package.Id}' has no version.");
         }
 
-        if (!string.Equals(package.ArchiveFormat, "zip", StringComparison.OrdinalIgnoreCase))
-        {
-            errors.Add($"Package '{package.Id}' uses unsupported archive format '{package.ArchiveFormat}'.");
-        }
-
         if (!Sha256Regex().IsMatch(package.Sha256))
         {
             errors.Add($"Package '{package.Id}' has invalid SHA-256.");
         }
 
-        if (package.Mirrors.Count == 0)
-        {
-            errors.Add($"Package '{package.Id}' has no mirrors.");
-        }
-
-        foreach (var mirror in package.Mirrors)
-        {
-            if (string.IsNullOrWhiteSpace(mirror.Provider))
-            {
-                errors.Add($"Package '{package.Id}' has a mirror without provider.");
-            }
-
-            var localFile = string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
-            var bundleFile = string.Equals(mirror.Provider, "bundle-file", StringComparison.OrdinalIgnoreCase);
-            if (!Uri.TryCreate(mirror.Url, UriKind.Absolute, out var uri)
-                || (localFile
-                    ? !uri.IsFile
-                    : bundleFile
-                        ? !string.Equals(uri.Scheme, "bundle", StringComparison.OrdinalIgnoreCase)
-                          || !string.IsNullOrEmpty(uri.Query)
-                          || !string.IsNullOrEmpty(uri.Fragment)
-                          || !string.IsNullOrEmpty(uri.UserInfo)
-                        : !IsWebUri(uri)))
-            {
-                errors.Add($"Package '{package.Id}' has unsafe mirror URL '{mirror.Url}'.");
-            }
-        }
-
-        if (package.Files.Count == 0
+        var filePaths = package.LooseFiles is null
+            ? ValidateArchivePackage(package, errors)
+            : ValidateLoosePackage(package, schemaVersion, errors);
+        if (filePaths.Count == 0
             && (package.DeletedFiles is null || package.DeletedFiles.Count == 0)
             && (package.DeletedDirectories is null || package.DeletedDirectories.Count == 0))
         {
             errors.Add($"Package '{package.Id}' has no files and no deletion paths.");
-        }
-
-        var filePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in package.Files)
-        {
-            try
-            {
-                var normalized = PathSafety.NormalizeRelativePath(path);
-                if (!filePaths.Add(normalized))
-                {
-                    errors.Add($"Package '{package.Id}' contains duplicate path '{path}'.");
-                }
-            }
-            catch (ArgumentException exception)
-            {
-                errors.Add($"Package '{package.Id}' has unsafe path '{path}': {exception.Message}");
-            }
         }
 
         foreach (var path in package.PreservedPaths ?? [])
@@ -236,6 +190,221 @@ public static partial class ManifestValidator
         foreach (var error in PackageInstallScopePolicy.Validate(package))
         {
             errors.Add(error);
+        }
+    }
+
+    private static HashSet<string> ValidateArchivePackage(
+        PackageManifest package,
+        List<string> errors)
+    {
+        if (package.Size <= 0)
+        {
+            errors.Add($"Package '{package.Id}' has invalid size.");
+        }
+        if (!string.Equals(package.ArchiveFormat, "zip", StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add($"Package '{package.Id}' uses unsupported archive format '{package.ArchiveFormat}'.");
+        }
+        if (package.Mirrors.Count == 0)
+        {
+            errors.Add($"Package '{package.Id}' has no mirrors.");
+        }
+        foreach (var mirror in package.Mirrors)
+        {
+            ValidateMirror(package.Id, mirror, false, errors);
+        }
+
+        return ValidatePaths(package.Id, package.Files, errors);
+    }
+
+    private static HashSet<string> ValidateLoosePackage(
+        PackageManifest package,
+        int schemaVersion,
+        List<string> errors)
+    {
+        if (schemaVersion < 5)
+        {
+            errors.Add($"Package '{package.Id}' requires schema version 5 for loose-file delivery.");
+        }
+        if (!string.Equals(package.ArchiveFormat, "loose", StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add($"Loose package '{package.Id}' must use archive format 'loose'.");
+        }
+        if (package.LooseFiles!.Count > 500_000)
+        {
+            errors.Add($"Loose package '{package.Id}' exceeds the 500000-file safety limit.");
+        }
+        if (package.Mirrors.Count > 16)
+        {
+            errors.Add($"Loose package '{package.Id}' has too many mirror templates.");
+        }
+        foreach (var mirror in package.Mirrors)
+        {
+            ValidateMirror(package.Id, mirror, true, errors);
+        }
+
+        var filePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        long totalSize = 0;
+        var canComputePackageHash = true;
+        foreach (var file in package.LooseFiles)
+        {
+            string? normalized = null;
+            try
+            {
+                normalized = PathSafety.NormalizeRelativePath(file.Path);
+                if (normalized.Length > 1024)
+                {
+                    errors.Add($"Loose package '{package.Id}' path is too long: '{file.Path}'.");
+                    canComputePackageHash = false;
+                }
+                if (!filePaths.Add(normalized))
+                {
+                    errors.Add($"Package '{package.Id}' contains duplicate path '{file.Path}'.");
+                    canComputePackageHash = false;
+                }
+            }
+            catch (ArgumentException exception)
+            {
+                errors.Add($"Package '{package.Id}' has unsafe path '{file.Path}': {exception.Message}");
+                canComputePackageHash = false;
+            }
+
+            if (file.Size < 0)
+            {
+                errors.Add($"Loose package '{package.Id}' file '{file.Path}' has invalid size.");
+                canComputePackageHash = false;
+            }
+            else
+            {
+                try
+                {
+                    totalSize = checked(totalSize + file.Size);
+                }
+                catch (OverflowException)
+                {
+                    errors.Add($"Loose package '{package.Id}' total size overflows Int64.");
+                    canComputePackageHash = false;
+                }
+            }
+            if (!Sha256Regex().IsMatch(file.Sha256))
+            {
+                errors.Add($"Loose package '{package.Id}' file '{file.Path}' has invalid SHA-256.");
+                canComputePackageHash = false;
+            }
+            if (file.Mirrors is { Count: > 16 })
+            {
+                errors.Add($"Loose package '{package.Id}' file '{file.Path}' has too many mirrors.");
+            }
+            foreach (var mirror in file.Mirrors ?? [])
+            {
+                ValidateMirror(package.Id, mirror, false, errors, normalized);
+            }
+            if (package.Mirrors.Count == 0 && file.Mirrors is not { Count: > 0 })
+            {
+                errors.Add($"Loose package '{package.Id}' file '{file.Path}' has no mirror.");
+            }
+        }
+
+        if (package.Files.Count > 0)
+        {
+            var legacyPaths = ValidatePaths(package.Id, package.Files, errors);
+            if (!legacyPaths.SetEquals(filePaths))
+            {
+                errors.Add($"Loose package '{package.Id}' legacy file list does not match loose-file metadata.");
+            }
+        }
+        if (package.Size != totalSize)
+        {
+            errors.Add($"Loose package '{package.Id}' total size does not match its file table.");
+        }
+        if (canComputePackageHash)
+        {
+            try
+            {
+                var expectedHash = LoosePackageHash.ComputeSha256(package.LooseFiles);
+                if (!string.Equals(expectedHash, package.Sha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    errors.Add($"Loose package '{package.Id}' table SHA-256 does not match its file metadata.");
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or FormatException)
+            {
+                errors.Add($"Loose package '{package.Id}' table hash cannot be computed: {exception.Message}");
+            }
+        }
+
+        return filePaths;
+    }
+
+    private static HashSet<string> ValidatePaths(
+        string packageId,
+        IEnumerable<string> paths,
+        List<string> errors)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in paths)
+        {
+            try
+            {
+                var normalized = PathSafety.NormalizeRelativePath(path);
+                if (!result.Add(normalized))
+                {
+                    errors.Add($"Package '{packageId}' contains duplicate path '{path}'.");
+                }
+            }
+            catch (ArgumentException exception)
+            {
+                errors.Add($"Package '{packageId}' has unsafe path '{path}': {exception.Message}");
+            }
+        }
+        return result;
+    }
+
+    private static void ValidateMirror(
+        string packageId,
+        MirrorManifest mirror,
+        bool requirePathTemplate,
+        List<string> errors,
+        string? filePath = null)
+    {
+        var label = filePath is null
+            ? $"Package '{packageId}'"
+            : $"Loose package '{packageId}' file '{filePath}'";
+        if (string.IsNullOrWhiteSpace(mirror.Provider))
+        {
+            errors.Add($"{label} has a mirror without provider.");
+        }
+
+        if (string.IsNullOrWhiteSpace(mirror.Url))
+        {
+            errors.Add($"{label} has a mirror without URL.");
+            return;
+        }
+
+        var containsTemplate = mirror.Url.Contains("{path}", StringComparison.OrdinalIgnoreCase);
+        if (containsTemplate != requirePathTemplate)
+        {
+            errors.Add(requirePathTemplate
+                ? $"{label} mirror '{mirror.Provider}' has no '{{path}}' placeholder."
+                : $"{label} exact mirror '{mirror.Provider}' must not contain '{{path}}'.");
+            return;
+        }
+        var resolvedUrl = requirePathTemplate
+            ? mirror.Url.Replace("{path}", "probe/file.bin", StringComparison.OrdinalIgnoreCase)
+            : mirror.Url;
+        var localFile = string.Equals(mirror.Provider, "local-file", StringComparison.OrdinalIgnoreCase);
+        var bundleFile = string.Equals(mirror.Provider, "bundle-file", StringComparison.OrdinalIgnoreCase);
+        if (!Uri.TryCreate(resolvedUrl, UriKind.Absolute, out var uri)
+            || (localFile
+                ? !uri.IsFile
+                : bundleFile
+                    ? !string.Equals(uri.Scheme, "bundle", StringComparison.OrdinalIgnoreCase)
+                      || !string.IsNullOrEmpty(uri.Query)
+                      || !string.IsNullOrEmpty(uri.Fragment)
+                      || !string.IsNullOrEmpty(uri.UserInfo)
+                    : !IsWebUri(uri)))
+        {
+            errors.Add($"{label} has unsafe mirror URL '{mirror.Url}'.");
         }
     }
 

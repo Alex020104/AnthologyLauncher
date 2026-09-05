@@ -221,6 +221,20 @@ main {
 .quick-delete-list button { border: 0; background: transparent; color: #d86e5c; font-size: 16px; }
 .quick-release-actions { justify-content: flex-end; padding-top: 13px; border-top: 1px solid #2a353b; }
 
+.content-bundle-dock {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 16px 0;
+    border-color: #416454;
+    background: linear-gradient(100deg, rgba(29, 64, 47, .34), #0d1417 58%);
+}
+
+.content-bundle-dock > div { flex: 1; }
+.content-bundle-dock h3 { margin: 6px 0 8px; font-size: 20px; font-weight: 400; }
+.content-bundle-dock p { margin: 0; color: #87969f; font-size: 11px; line-height: 1.6; }
+.content-bundle-dock .primary { max-width: 310px; }
+
 @media (max-width: 1250px) {
     .quick-file-list article { grid-template-columns: minmax(180px, 1fr) 130px minmax(180px, 1fr) 40px; }
     .quick-delete-builder { grid-template-columns: 1fr 130px 105px 1fr; }
@@ -256,6 +270,7 @@ main {
 
     .publish-actions,
     .build-dock,
+    .content-bundle-dock,
     .quick-release-head,
     .quick-release-tools,
     .quick-release-actions,

@@ -18,6 +18,27 @@ public sealed record ManifestSignature(
     string KeyId,
     string Value);
 
+/// <summary>
+/// A separately signed, append-only view of the public update history. Keeping
+/// this outside <see cref="UpdateManifest"/> preserves the canonical JSON read
+/// by already published launchers while allowing a fresh installation to show
+/// releases that it has never checked locally.
+/// </summary>
+public sealed record SignedReleaseHistory(
+    ReleaseHistoryCatalog Payload,
+    ManifestSignature Signature);
+
+public sealed record ReleaseHistoryCatalog(
+    int SchemaVersion,
+    string Channel,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<ReleaseHistoryEntry> Entries);
+
+public sealed record ReleaseHistoryEntry(
+    string Version,
+    DateTimeOffset PublishedAt,
+    ReleaseChangelog Changelog);
+
 // The integrity catalog is delivered as a small ordinary launcher package. This
 // keeps the main manifest compatible with already installed launchers while the
 // catalog itself is still authenticated with the production signing key.
@@ -51,6 +72,16 @@ public sealed record PackageFileIntegrity(
     long Size,
     string Sha256);
 
+// Optional per-file delivery metadata for packages that are already exposed as
+// ordinary files by a public sync folder (for example, a Yandex.Disk project).
+// A null value on PackageManifest keeps the legacy archive contract byte-for-
+// byte compatible when it is serialized and signed.
+public sealed record PackageLooseFile(
+    string Path,
+    long Size,
+    string Sha256,
+    IReadOnlyList<MirrorManifest>? Mirrors = null);
+
 public sealed record PackageManifest(
     string Id,
     string DisplayName,
@@ -66,7 +97,25 @@ public sealed record PackageManifest(
     bool PruneInstallRoot = false,
     IReadOnlyList<string>? PreservedPaths = null,
     IReadOnlyList<string>? DeletedFiles = null,
-    IReadOnlyList<string>? DeletedDirectories = null);
+    IReadOnlyList<string>? DeletedDirectories = null,
+    IReadOnlyList<PackageLooseFile>? LooseFiles = null);
+
+public static class PackageManifestExtensions
+{
+    public static bool IsLoose(this PackageManifest package)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        return package.LooseFiles is not null;
+    }
+
+    public static IReadOnlyList<string> GetFilePaths(this PackageManifest package)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        return package.LooseFiles is null
+            ? package.Files
+            : package.LooseFiles.Select(file => file.Path).ToArray();
+    }
+}
 
 public sealed record MirrorManifest(
     string Provider,

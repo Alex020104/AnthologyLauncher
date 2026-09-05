@@ -548,6 +548,294 @@ public sealed class AnomalyConfigurationManagerTests
         Assert.Equal("Authored English Label", entry.DisplayName);
     }
 
+    [Fact]
+    public void LoadHidesConsoleCommandsThatAreNotInTheAuthoredOptionsTree()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame(
+            "appdata/user.ltx",
+            "known_console 1\r\nraw_internal 42\r\nbind jump kSPACE\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/ui_options.script",
+            "options={{id='video',gr={{id='advanced',gr={{id='known',type='check',cmd='known_console'}}}}}}");
+
+        var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
+        var entry = Assert.Single(snapshot.AnomalySettings);
+
+        Assert.Equal("known_console", entry.Key);
+        Assert.Equal("video/advanced", entry.MenuPath);
+        Assert.True(entry.IsBoolean);
+        entry.ToggleBoolean();
+
+        var saved = AnomalyConfigurationManager.Save(snapshot);
+
+        Assert.True(saved.Success, saved.Message);
+        Assert.Equal(
+            "known_console 0\r\nraw_internal 42\r\nbind jump kSPACE\r\n",
+            File.ReadAllText(Path.Combine(environment.GameRoot, "appdata", "user.ltx")));
+    }
+
+    [Fact]
+    public void LoadDeduplicatesUserCommandByAuthoredCommandInsteadOfOptionId()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame("appdata/user.ltx", "vid_mode 1920x1080\r\n");
+        environment.WriteGame(
+            "gamedata/configs/axr_options.ltx",
+            "[options]\r\nvideo/basic/resolution = 1920x1080\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/ui_options.script",
+            "options={{id='video',gr={{id='basic',gr={{id='resolution',type='list',cmd='vid_mode'}}}}}}");
+
+        var entry = Assert.Single(
+            AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings);
+
+        Assert.Equal("video/basic/resolution", entry.Key);
+        Assert.Equal(AnomalyConfigurationStorageFormat.SectionKeyValue, entry.StorageFormat);
+    }
+
+    [Fact]
+    public void LoadUsesModdedExesModulesAsAnAuthoredAllowlistAndPreservesAliasHierarchy()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame(
+            "appdata/user.ltx",
+            "r_wallmarks_static 1\r\nmt_scheduler 0\r\nraw_internal 42\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes.script",
+            "local group_visual=options_modded_exes_visual.GROUP local page_optimizations=options_modded_exes_optimizations.PAGE GROUP=group{{id='modded_exes'},group_visual,page_optimizations}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_visual.script",
+            "local page_graphics=options_modded_exes_graphics.PAGE GROUP=group{{id='visual'},page_graphics}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_graphics.script",
+            "PAGE=filter_false(page{{id='graphics'},get_item_if_exists(check{id='r_wallmarks_static'})})");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_optimizations.script",
+            "PAGE=page{{id='optimizations'},list_bool{id='mt_scheduler'}}");
+
+        var settings = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings;
+        var wallmarks = Assert.Single(settings, item => item.Key == "r_wallmarks_static");
+        var scheduler = Assert.Single(settings, item => item.Key == "mt_scheduler");
+
+        Assert.Equal(2, settings.Count);
+        Assert.Equal("modded_exes/visual/graphics", wallmarks.MenuPath);
+        Assert.Equal("check", wallmarks.ControlType);
+        Assert.True(wallmarks.IsBoolean);
+        wallmarks.ToggleBoolean();
+        Assert.Equal("0", wallmarks.Value);
+        Assert.Equal("modded_exes/optimizations", scheduler.MenuPath);
+        Assert.Equal("list", scheduler.ControlType);
+        Assert.Collection(
+            scheduler.Choices!,
+            choice =>
+            {
+                Assert.Equal("1", choice.Value);
+                Assert.Equal("ВКЛ", choice.Label);
+            },
+            choice =>
+            {
+                Assert.Equal("0", choice.Value);
+                Assert.Equal("ВЫКЛ", choice.Label);
+            });
+    }
+
+    [Fact]
+    public void LoadTranslatesModdedExesEnumChoicesUsingGameListLocalizationIds()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame(
+            "appdata/user.ltx",
+            "g_nearwall 1\r\nr4_hdr10_colorspace 2\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes.script",
+            "local group_visual=options_modded_exes_visual.GROUP local group_gameplay=options_modded_exes_gameplay.GROUP GROUP=group{{id='modded_exes'},group_visual,group_gameplay}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_visual.script",
+            "local page_hdr10=options_modded_exes_hdr10.PAGE GROUP=group{{id='visual'},page_hdr10}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_hdr10.script",
+            "PAGE=page{{id='hdr10'},list_enum{id='colorspace',cmd='r4_hdr10_colorspace',content={'hdr10_colorspace_rec709','hdr10_colorspace_p3d65','hdr10_colorspace_rec2020'}}}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_gameplay.script",
+            "local page_ballistics=options_modded_exes_3d_ballistics.PAGE GROUP=group{{id='gameplay'},page_ballistics}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_3d_ballistics.script",
+            "PAGE=page{{id='3d_ballistics'},list_enum{id='g_nearwall',content={'OFF','nearwall_hud_fov','nearwall_position'}}}");
+        environment.WriteGame(
+            "gamedata/configs/text/rus/ui_mm_modded_exes.xml",
+            "<string_table>"
+            + "<string id=\"ui_mm_lst_OFF\"><text>ВЫКЛ</text></string>"
+            + "<string id=\"ui_mm_lst_nearwall_hud_fov\"><text>HUD FOV</text></string>"
+            + "<string id=\"ui_mm_lst_nearwall_position\"><text>Положение</text></string>"
+            + "<string id=\"ui_mm_lst_hdr10_colorspace_rec709\"><text>Rec.709 (sRGB)</text></string>"
+            + "<string id=\"ui_mm_lst_hdr10_colorspace_p3d65\"><text>P3-D65 (DCI-P3)</text></string>"
+            + "<string id=\"ui_mm_lst_hdr10_colorspace_rec2020\"><text>Rec.2020</text></string>"
+            + "</string_table>");
+
+        var settings = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root).AnomalySettings;
+        var nearWall = Assert.Single(settings, item => item.Key == "g_nearwall");
+        Assert.Collection(
+            nearWall.Choices!,
+            choice => Assert.Equal(("0", "ВЫКЛ"), (choice.Value, choice.Label)),
+            choice => Assert.Equal(("1", "HUD FOV"), (choice.Value, choice.Label)),
+            choice => Assert.Equal(("2", "Положение"), (choice.Value, choice.Label)));
+
+        var colorSpace = Assert.Single(settings, item => item.Key == "r4_hdr10_colorspace");
+        Assert.Collection(
+            colorSpace.Choices!,
+            choice => Assert.Equal(("0", "Rec.709 (sRGB)"), (choice.Value, choice.Label)),
+            choice => Assert.Equal(("1", "P3-D65 (DCI-P3)"), (choice.Value, choice.Label)),
+            choice => Assert.Equal(("2", "Rec.2020"), (choice.Value, choice.Label)));
+    }
+
+    [Fact]
+    public void LoadAndSaveProjectVectorComponentsWithoutChangingTheirSiblings()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame(
+            "appdata/user.ltx",
+            "ssfx_grass_shadows (0.000000, 0.350000, 30.000000, 0.000000)\r\n");
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes.script",
+            "local group_visual=options_modded_exes_visual.GROUP GROUP=group{{id='modded_exes'},group_visual}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_visual.script",
+            "local page_graphics=options_modded_exes_graphics.PAGE GROUP=group{{id='visual'},page_graphics}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_graphics.script",
+            """
+            PAGE=page{{id='graphics'},vector{
+              id='ssfx_grass_shadows',
+              x_min=0,x_max=3,x_def=1,x_step=1,
+              y_min=0,y_max=1,y_def=0.35,y_step=0.05,
+              z_min=0,z_max=100,z_def=30,z_step=5,
+              w_min=0,w_max=100,w_def=0,w_step=5,
+              path='visual/graphics'
+            }}
+            """);
+
+        var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
+
+        Assert.Equal(4, snapshot.AnomalySettings.Count);
+        Assert.Equal(["0.000000", "0.350000", "30.000000", "0.000000"],
+            snapshot.AnomalySettings.OrderBy(item => item.ValueComponentIndex).Select(item => item.Value));
+        var y = Assert.Single(snapshot.AnomalySettings, item => item.Key.EndsWith("_y", StringComparison.Ordinal));
+        Assert.Equal("modded_exes/visual/graphics", y.MenuPath);
+        Assert.Equal(0, y.Minimum);
+        Assert.Equal(1, y.Maximum);
+        Assert.Equal(0.05, y.Step);
+        y.Value = "0.75";
+        var z = Assert.Single(snapshot.AnomalySettings, item => item.Key.EndsWith("_z", StringComparison.Ordinal));
+        z.Value = "45";
+
+        var result = AnomalyConfigurationManager.Save(snapshot);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(
+            "ssfx_grass_shadows (0.000000, 0.75, 45, 0.000000)\r\n",
+            File.ReadAllText(Path.Combine(environment.GameRoot, "appdata", "user.ltx")));
+        Assert.Equal("0.000000", snapshot.AnomalySettings.Single(item => item.Key.EndsWith("_x", StringComparison.Ordinal)).Value);
+        Assert.Equal("0.000000", snapshot.AnomalySettings.Single(item => item.Key.EndsWith("_w", StringComparison.Ordinal)).Value);
+    }
+
+    [Fact]
+    public void LoadAndSaveProjectCrosshairRgbaAndReadLiteralEnumChoices()
+    {
+        using var environment = TestEnvironment.Create();
+        environment.WriteGame(
+            "appdata/user.ltx",
+            """
+            g_crosshair_camera_far_color (255, 128, 64, 32)
+            g_crosshair_camera_far_size 1
+            g_crosshair_camera_far_depth 25
+            g_crosshair_camera_near_distance_lerp_rate 40
+            g_crosshair_weapon_near_recon_max_opacity 0.5
+            g_crosshair_weapon_near_occluded_opacity 0.25
+            g_crosshair_weapon_near_occlusion_fade_rate 40
+            r4_hdr10_colorspace 2
+
+            """.Replace("\n", "\r\n", StringComparison.Ordinal));
+        environment.WriteGame("gamedata/configs/axr_options.ltx", "[options]\r\n");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes.script",
+            "local group_visual=options_modded_exes_visual.GROUP GROUP=group{{id='modded_exes'},group_visual}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_visual.script",
+            "local page_crosshair=options_modded_exes_crosshair.PAGE local page_hdr10=options_modded_exes_hdr10.PAGE GROUP=group{{id='visual'},page_crosshair,page_hdr10}");
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_crosshair.script",
+            """
+            function crosshair_camera_far_commands(args) return true end
+            function crosshair_camera_near_commands(args) return true end
+            function crosshair_pair_commands(args) return true end
+            local commands={}
+            append(commands,crosshair_camera_far_commands{
+              prefix='camera_far',defs={size=1,depth=25}
+            })
+            append(commands,crosshair_camera_near_commands{
+              prefix='camera_near',defs={distance_lerp_rate=40}
+            })
+            append(commands,crosshair_pair_commands{
+              prefix='weapon',defs={far={},near={
+                recon_max_opacity=0.5,
+                occluded_opacity=0.25,
+                occlusion_fade_rate=40
+              }}
+            })
+            PAGE=page{{id='crosshair'},unpack(commands)}
+            """);
+        environment.WriteGame(
+            "gamedata/scripts/options_modded_exes_hdr10.script",
+            "PAGE=page{{id='hdr10'},list_enum{id='colorspace',cmd='r4_hdr10_colorspace',content={'Rec.709','P3-D65','Rec.2020'}}}");
+
+        var snapshot = AnomalyConfigurationManager.Load(environment.GameRoot, environment.Mo2Root);
+        var colors = snapshot.AnomalySettings
+            .Where(item => item.StorageKey == "g_crosshair_camera_far_color")
+            .OrderBy(item => item.ValueComponentIndex)
+            .ToArray();
+        Assert.Equal(4, colors.Length);
+        Assert.Equal(["255", "128", "64", "32"], colors.Select(item => item.Value));
+        Assert.All(colors, item => Assert.Equal("modded_exes/visual/crosshair", item.MenuPath));
+        colors[1].Value = "192";
+        colors[2].Value = "80";
+
+        AssertCrosshairTrack("g_crosshair_camera_far_size", "1", 1);
+        AssertCrosshairTrack("g_crosshair_camera_far_depth", "25", 1);
+        AssertCrosshairTrack("g_crosshair_camera_near_distance_lerp_rate", "40", 1);
+        AssertCrosshairTrack("g_crosshair_weapon_near_recon_max_opacity", "0.5", 0.05);
+        AssertCrosshairTrack("g_crosshair_weapon_near_occluded_opacity", "0.25", 0.05);
+        AssertCrosshairTrack("g_crosshair_weapon_near_occlusion_fade_rate", "40", 1);
+
+        var colorspace = Assert.Single(snapshot.AnomalySettings, item => item.Key == "r4_hdr10_colorspace");
+        Assert.Collection(
+            colorspace.Choices!,
+            choice => Assert.Equal(("0", "Rec.709"), (choice.Value, choice.Label)),
+            choice => Assert.Equal(("1", "P3-D65"), (choice.Value, choice.Label)),
+            choice => Assert.Equal(("2", "Rec.2020"), (choice.Value, choice.Label)));
+
+        var result = AnomalyConfigurationManager.Save(snapshot);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Contains(
+            "g_crosshair_camera_far_color (255, 192, 80, 32)",
+            File.ReadAllText(Path.Combine(environment.GameRoot, "appdata", "user.ltx")));
+
+        void AssertCrosshairTrack(string key, string defaultValue, double step)
+        {
+            var entry = Assert.Single(snapshot.AnomalySettings, item => item.Key == key);
+            Assert.Equal("track", entry.ControlType);
+            Assert.Null(entry.Minimum);
+            Assert.Null(entry.Maximum);
+            Assert.Equal(step, entry.Step);
+            Assert.Equal(defaultValue, entry.DefaultValue);
+        }
+    }
+
     private sealed class TestEnvironment : IDisposable
     {
         private TestEnvironment(string root)

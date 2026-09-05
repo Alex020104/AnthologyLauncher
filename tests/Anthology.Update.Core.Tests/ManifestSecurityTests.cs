@@ -1,10 +1,14 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Anthology.Contracts;
 
 namespace Anthology.Update.Core.Tests;
 
 public sealed class ManifestSecurityTests
 {
+    private static readonly JsonSerializerOptions CanonicalJsonOptions =
+        new(ManifestJson.Options) { WriteIndented = false };
+
     [Fact]
     public void SignedManifestVerifiesAndTamperingFails()
     {
@@ -18,6 +22,47 @@ public sealed class ManifestSecurityTests
             Payload = signed.Payload with { Version = "tampered" },
         };
         Assert.False(ManifestSecurity.Verify(tampered, key));
+    }
+
+    [Fact]
+    public void NullLooseMetadataPreservesLegacyCanonicalPayload()
+    {
+        var manifest = CreateManifest() with { SchemaVersion = 4 };
+        var package = manifest.Packages[0];
+        var legacy = new LegacyUpdateManifest(
+            manifest.SchemaVersion,
+            manifest.Channel,
+            manifest.Version,
+            manifest.PublishedAt,
+            manifest.MinimumLauncherVersion,
+            [new LegacyPackageManifest(
+                package.Id,
+                package.DisplayName,
+                package.Version,
+                package.Kind,
+                package.InstallRoot,
+                package.ArchiveFormat,
+                package.Size,
+                package.Sha256,
+                package.Mirrors,
+                package.Files,
+                package.UpdateMode,
+                package.PruneInstallRoot,
+                package.PreservedPaths,
+                package.DeletedFiles,
+                package.DeletedDirectories)],
+            manifest.Content);
+        var legacyBytes = JsonSerializer.SerializeToUtf8Bytes(legacy, CanonicalJsonOptions);
+
+        Assert.Equal(legacyBytes, ManifestSecurity.GetCanonicalBytes(manifest));
+        Assert.DoesNotContain("looseFiles", JsonSerializer.Serialize(manifest, ManifestJson.Options), StringComparison.Ordinal);
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var signed = ManifestSecurity.Sign(manifest, key, "legacy-test");
+        Assert.True(key.VerifyData(
+            legacyBytes,
+            Convert.FromBase64String(signed.Signature.Value),
+            HashAlgorithmName.SHA256,
+            DSASignatureFormat.IeeeP1363FixedFieldConcatenation));
     }
 
     [Fact]
@@ -153,4 +198,30 @@ public sealed class ManifestSecurityTests
                 [new MirrorManifest("github", "https://example.com/package.zip")],
                 ["mods/test/file.txt"]),
         ]);
+
+    private sealed record LegacyUpdateManifest(
+        int SchemaVersion,
+        string Channel,
+        string Version,
+        DateTimeOffset PublishedAt,
+        string? MinimumLauncherVersion,
+        IReadOnlyList<LegacyPackageManifest> Packages,
+        ContentCatalog? Content = null);
+
+    private sealed record LegacyPackageManifest(
+        string Id,
+        string DisplayName,
+        string Version,
+        PackageKind Kind,
+        string InstallRoot,
+        string ArchiveFormat,
+        long Size,
+        string Sha256,
+        IReadOnlyList<MirrorManifest> Mirrors,
+        IReadOnlyList<string> Files,
+        PackageUpdateMode UpdateMode = PackageUpdateMode.Merge,
+        bool PruneInstallRoot = false,
+        IReadOnlyList<string>? PreservedPaths = null,
+        IReadOnlyList<string>? DeletedFiles = null,
+        IReadOnlyList<string>? DeletedDirectories = null);
 }

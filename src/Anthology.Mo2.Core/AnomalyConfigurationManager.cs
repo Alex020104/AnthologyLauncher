@@ -35,6 +35,10 @@ public sealed class AnomalyConfigurationEntry
 
     public required int LineIndex { get; init; }
 
+    public string? StorageKey { get; init; }
+
+    public int? ValueComponentIndex { get; init; }
+
     public AnomalyConfigurationStorageFormat StorageFormat { get; init; }
 
     public string? DisplayName { get; init; }
@@ -61,15 +65,21 @@ public sealed class AnomalyConfigurationEntry
 
     public string? DefaultValue { get; init; }
 
+    public IReadOnlyList<AnomalyConfigurationChoice>? Choices { get; init; }
+
     public bool IsDirty => !string.Equals(Value, OriginalValue, StringComparison.Ordinal);
 
     public bool IsBoolean => Value.Equals("true", StringComparison.OrdinalIgnoreCase)
                              || Value.Equals("false", StringComparison.OrdinalIgnoreCase)
                              || Value.Equals("on", StringComparison.OrdinalIgnoreCase)
-                             || Value.Equals("off", StringComparison.OrdinalIgnoreCase);
+                             || Value.Equals("off", StringComparison.OrdinalIgnoreCase)
+                             || (ControlType?.Equals("check", StringComparison.OrdinalIgnoreCase) == true
+                                 && Value is "0" or "1");
 
     public bool BooleanValue => Value.Equals("true", StringComparison.OrdinalIgnoreCase)
-                                || Value.Equals("on", StringComparison.OrdinalIgnoreCase);
+                                || Value.Equals("on", StringComparison.OrdinalIgnoreCase)
+                                || (ControlType?.Equals("check", StringComparison.OrdinalIgnoreCase) == true
+                                    && Value == "1");
 
     public void ToggleBoolean()
     {
@@ -80,9 +90,13 @@ public sealed class AnomalyConfigurationEntry
 
         var usesOnOff = Value.Equals("on", StringComparison.OrdinalIgnoreCase)
                         || Value.Equals("off", StringComparison.OrdinalIgnoreCase);
+        var usesNumeric = ControlType?.Equals("check", StringComparison.OrdinalIgnoreCase) == true
+                          && Value is "0" or "1";
         Value = usesOnOff
             ? BooleanValue ? "off" : "on"
-            : BooleanValue ? "false" : "true";
+            : usesNumeric
+                ? BooleanValue ? "0" : "1"
+                : BooleanValue ? "false" : "true";
     }
 }
 
@@ -130,7 +144,10 @@ public static class AnomalyConfigurationManager
         if (userPath is not null)
         {
             var representedCommands = anomalySettings
-                .Select(item => item.Key.Split('/').Last())
+                .Select(item => metadataCatalog.ResolveAnomalyCommand(item.Key)
+                                ?? item.Key.Split('/').Last())
+                .Where(command => !string.IsNullOrWhiteSpace(command))
+                .Cast<string>()
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             anomalySettings.AddRange(ParseUserLtx(userPath, metadataCatalog, representedCommands));
         }
@@ -345,7 +362,11 @@ public static class AnomalyConfigurationManager
                 continue;
             }
 
-            var metadata = metadataCatalog.ResolveAnomaly(key, index);
+            var isAuthoredSetting = metadataCatalog.TryResolveAnomaly(key, index, out var metadata);
+            if (metadataCatalog.HasAnomalyDefinitions && !isAuthoredSetting)
+            {
+                continue;
+            }
             var resolvedCategory = metadata.MenuPath.Split(
                     '/',
                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -375,6 +396,7 @@ public static class AnomalyConfigurationManager
                 Maximum = metadata.Maximum,
                 Step = metadata.Step,
                 DefaultValue = metadata.DefaultValue,
+                Choices = metadata.Choices,
             });
         }
 
@@ -399,8 +421,68 @@ public static class AnomalyConfigurationManager
             }
 
             var (category, menuPath) = ResolveConsoleMenuPath(command);
+            var componentDefinitions = metadataCatalog.ResolveAnomalyCommandComponents(command, index);
+            if (componentDefinitions.Count > 0)
+            {
+                if (!TryParseCompositeValue(value, out var componentValues))
+                {
+                    continue;
+                }
+
+                foreach (var component in componentDefinitions)
+                {
+                    if (component.ComponentIndex < 0 || component.ComponentIndex >= componentValues.Count)
+                    {
+                        continue;
+                    }
+
+                    var componentMetadata = component.Metadata;
+                    var componentMenuPath = string.IsNullOrWhiteSpace(componentMetadata.MenuPath)
+                        ? menuPath
+                        : componentMetadata.MenuPath;
+                    var componentCategory = componentMenuPath.Split(
+                            '/',
+                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .FirstOrDefault() ?? category;
+                    result.Add(new AnomalyConfigurationEntry
+                    {
+                        Kind = AnomalyConfigurationKind.Anomaly,
+                        Category = componentCategory,
+                        Key = component.Key,
+                        Value = componentValues[component.ComponentIndex],
+                        OriginalValue = componentValues[component.ComponentIndex],
+                        SourcePath = path,
+                        TargetPath = path,
+                        StorageSection = string.Empty,
+                        StorageFormat = AnomalyConfigurationStorageFormat.ConsoleCommand,
+                        StorageKey = command,
+                        ValueComponentIndex = component.ComponentIndex,
+                        LineIndex = index,
+                        DisplayName = componentMetadata.DisplayName,
+                        Description = componentMetadata.Description,
+                        CategoryDisplayName = componentMetadata.CategoryDisplayName,
+                        MenuPath = componentMenuPath,
+                        MenuDisplayName = componentMetadata.MenuDisplayName,
+                        MenuOrder = componentMetadata.MenuOrder,
+                        DisplayOrder = componentMetadata.DisplayOrder,
+                        ControlType = componentMetadata.ControlType,
+                        Minimum = componentMetadata.Minimum,
+                        Maximum = componentMetadata.Maximum,
+                        Step = componentMetadata.Step,
+                        DefaultValue = componentMetadata.DefaultValue,
+                        Choices = componentMetadata.Choices,
+                    });
+                }
+
+                continue;
+            }
+
             var metadataKey = $"{menuPath}/{key.Replace('/', '_')}";
-            var metadata = metadataCatalog.ResolveAnomaly(metadataKey, index);
+            var isAuthoredSetting = metadataCatalog.TryResolveAnomaly(metadataKey, index, out var metadata);
+            if (metadataCatalog.HasAnomalyDefinitions && !isAuthoredSetting)
+            {
+                continue;
+            }
             var resolvedMenuPath = string.IsNullOrWhiteSpace(metadata.MenuPath)
                 ? menuPath
                 : metadata.MenuPath;
@@ -432,6 +514,7 @@ public static class AnomalyConfigurationManager
                 Maximum = metadata.Maximum,
                 Step = metadata.Step,
                 DefaultValue = metadata.DefaultValue,
+                Choices = metadata.Choices,
             });
         }
 
@@ -542,6 +625,7 @@ public static class AnomalyConfigurationManager
                 Maximum = metadata?.Maximum,
                 Step = metadata?.Step,
                 DefaultValue = metadata?.DefaultValue,
+                Choices = metadata?.Choices,
             });
         }
 
@@ -597,7 +681,8 @@ public static class AnomalyConfigurationManager
         var parsed = entry.StorageFormat == AnomalyConfigurationStorageFormat.ConsoleCommand
             ? TryParseConsoleLine(line, out var key, out _, out _)
             : TryParseMcmLine(line, out key, out _);
-        return parsed && key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase);
+        var storageKey = entry.StorageKey ?? entry.Key;
+        return parsed && key.Equals(storageKey, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryParseConsoleLine(
@@ -650,6 +735,32 @@ public static class AnomalyConfigurationManager
         return true;
     }
 
+    private static bool TryParseCompositeValue(string value, out IReadOnlyList<string> components)
+    {
+        components = [];
+        var trimmed = value.Trim();
+        if (trimmed.Length >= 2
+            && ((trimmed[0] == '(' && trimmed[^1] == ')')
+                || (trimmed[0] == '[' && trimmed[^1] == ']')))
+        {
+            trimmed = trimmed[1..^1].Trim();
+        }
+
+        if (!trimmed.Contains(','))
+        {
+            return false;
+        }
+
+        var values = trimmed.Split(',', StringSplitOptions.TrimEntries);
+        if (values.Length < 2 || values.Any(string.IsNullOrWhiteSpace))
+        {
+            return false;
+        }
+
+        components = values;
+        return true;
+    }
+
     private static bool TryParseMcmLine(string line, out string key, out string value)
     {
         key = string.Empty;
@@ -671,10 +782,37 @@ public static class AnomalyConfigurationManager
         return key.Length > 0 && value.Length > 0;
     }
 
-    private static string ReplaceValue(string line, AnomalyConfigurationEntry entry) =>
-        entry.StorageFormat == AnomalyConfigurationStorageFormat.ConsoleCommand
-            ? ReplaceConsoleValue(line, entry.Value)
-            : ReplaceSectionValue(line, entry.Value);
+    private static string ReplaceValue(string line, AnomalyConfigurationEntry entry)
+    {
+        if (entry.StorageFormat != AnomalyConfigurationStorageFormat.ConsoleCommand)
+        {
+            return ReplaceSectionValue(line, entry.Value);
+        }
+
+        if (!entry.ValueComponentIndex.HasValue)
+        {
+            return ReplaceConsoleValue(line, entry.Value);
+        }
+
+        if (entry.Value.IndexOfAny([',', '(', ')', '[', ']']) >= 0
+            || !TryParseConsoleLine(line, out _, out _, out var storedValue)
+            || !TryParseCompositeValue(storedValue, out var parsedComponents))
+        {
+            throw new InvalidDataException("Составное значение user.ltx имеет неизвестный формат");
+        }
+
+        var componentIndex = entry.ValueComponentIndex.Value;
+        if (componentIndex < 0 || componentIndex >= parsedComponents.Count)
+        {
+            throw new InvalidDataException("В user.ltx нет нужного компонента составного параметра");
+        }
+
+        var updated = parsedComponents.ToArray();
+        updated[componentIndex] = entry.Value;
+        var opening = storedValue.TrimStart().StartsWith('[') ? '[' : '(';
+        var closing = opening == '[' ? ']' : ')';
+        return ReplaceConsoleValue(line, $"{opening}{string.Join(", ", updated)}{closing}");
+    }
 
     private static string ReplaceSectionValue(string line, string value)
     {
