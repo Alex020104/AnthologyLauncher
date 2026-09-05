@@ -74,6 +74,36 @@ try {
     Assert-TestCondition -Condition (([System.IO.File]::ReadAllText((Join-Path $rollbackDestination "App\Data\settings.json"))) -eq "rollback-state") -Message "App\Data changed during rollback."
     Remove-AnthologySiblingWorkingDirectory -DestinationRoot $rollbackDestination -WorkingDirectory $rollbackStage
 
+    # Exercise the exact production topology where the destination and all
+    # sibling staging/backup directories live directly under a drive root.
+    $driveRoot = [System.IO.Path]::GetPathRoot([System.IO.Path]::GetFullPath($PSScriptRoot))
+    $driveRootAnchor = Join-Path $driveRoot ("AnthologyPublishSafetyDriveRootAnchor-" + [System.Guid]::NewGuid().ToString("N"))
+    $driveRootDestination = New-AnthologySiblingWorkingDirectory -DestinationRoot $driveRootAnchor -Purpose "direct-target"
+    $driveRootStage = $null
+    try {
+        New-Item -ItemType Directory -Path (Join-Path $driveRootDestination "App\Data") -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $driveRootDestination "App\stale.dll"), "stale")
+        [System.IO.File]::WriteAllText((Join-Path $driveRootDestination "App\Data\settings.json"), "drive-root-state")
+
+        $driveRootStage = New-AnthologySiblingWorkingDirectory -DestinationRoot $driveRootDestination -Purpose "test"
+        New-Item -ItemType Directory -Path (Join-Path $driveRootStage "App") -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $driveRootStage "App\current.dll"), "current")
+        Copy-AnthologyPreservedAppData -DestinationRoot $driveRootDestination -StagingRoot $driveRootStage
+        Invoke-AnthologyControlledReplacement -DestinationRoot $driveRootDestination -StagingRoot $driveRootStage -RelativePaths @("App")
+
+        Assert-TestCondition -Condition (Test-Path -LiteralPath (Join-Path $driveRootDestination "App\current.dll") -PathType Leaf) -Message "Direct drive-root destination did not receive current output."
+        Assert-TestCondition -Condition (-not (Test-Path -LiteralPath (Join-Path $driveRootDestination "App\stale.dll"))) -Message "Direct drive-root destination retained stale output."
+        Assert-TestCondition -Condition (([System.IO.File]::ReadAllText((Join-Path $driveRootDestination "App\Data\settings.json"))) -eq "drive-root-state") -Message "Direct drive-root destination did not preserve App\Data."
+    }
+    finally {
+        if ($null -ne $driveRootStage -and (Test-Path -LiteralPath $driveRootStage)) {
+            Remove-AnthologySiblingWorkingDirectory -DestinationRoot $driveRootDestination -WorkingDirectory $driveRootStage
+        }
+        if (Test-Path -LiteralPath $driveRootDestination) {
+            Remove-AnthologySiblingWorkingDirectory -DestinationRoot $driveRootAnchor -WorkingDirectory $driveRootDestination
+        }
+    }
+
     Write-Host "Publish safety checks passed."
 }
 finally {

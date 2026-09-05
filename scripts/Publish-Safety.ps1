@@ -79,7 +79,14 @@ function New-AnthologySiblingWorkingDirectory {
         throw "Cannot determine the parent of publish destination: $destination"
     }
 
-    New-Item -ItemType Directory -Path $parent.FullName -Force | Out-Null
+    if (Test-Path -LiteralPath $parent.FullName) {
+        if (-not (Test-Path -LiteralPath $parent.FullName -PathType Container)) {
+            throw "The publish destination parent is not a directory: $($parent.FullName)"
+        }
+    }
+    else {
+        New-Item -ItemType Directory -Path $parent.FullName -Force | Out-Null
+    }
     $leafName = [System.IO.Path]::GetFileName($destination)
     $workingName = ".$leafName.$Purpose.$([System.Guid]::NewGuid().ToString('N'))"
     $workingPath = Join-Path $parent.FullName $workingName
