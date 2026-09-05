@@ -208,6 +208,18 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
             ["bin/xrEngine.exe"],
             PackageUpdateMode.ManagedExact,
             true);
+        var integrityPackage = new PackageManifest(
+            PackageIntegrityCatalogBuilder.PackageId,
+            "Existing integrity catalog",
+            new string('f', 64),
+            PackageKind.Launcher,
+            "game",
+            "zip",
+            97,
+            new string('e', 64),
+            [new MirrorManifest("https", "https://example.test/existing-integrity.zip", 10)],
+            [PackageIntegrityCatalogBuilder.CatalogRelativePath],
+            PackageUpdateMode.Merge);
         using (var privateKey = ECDsa.Create())
         {
             privateKey.ImportFromPem(await File.ReadAllTextAsync(privateKeyPath));
@@ -218,7 +230,7 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
                     BaselineVersion,
                     DateTimeOffset.UtcNow,
                     null,
-                    [gamePackage],
+                    [gamePackage, integrityPackage],
                     new ContentCatalog(4, BaselineVersion, DateTimeOffset.UtcNow, [])),
                 privateKey,
                 KeyId);
@@ -226,6 +238,7 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
                 Path.Combine(outputRoot, "manifest.json"),
                 baseline);
         }
+        File.Delete(gameArtifact);
 
         var workspace = new ReleaserWorkspace
         {
@@ -263,6 +276,15 @@ public sealed class PublicationBaselineRegressionTests : IDisposable
         var preservedGame = Assert.Single(manifest.Payload.Packages, package => package.Id == gamePackage.Id);
         Assert.Equal(gamePackage.Version, preservedGame.Version);
         Assert.Equal(gamePackage.Sha256, preservedGame.Sha256);
+        var preservedIntegrity = Assert.Single(
+            manifest.Payload.Packages,
+            package => package.Id == PackageIntegrityCatalogBuilder.PackageId);
+        Assert.Equal(integrityPackage.Version, preservedIntegrity.Version);
+        Assert.Equal(integrityPackage.Sha256, preservedIntegrity.Sha256);
+        Assert.Equal(integrityPackage.Size, preservedIntegrity.Size);
+        Assert.DoesNotContain(
+            Directory.EnumerateFiles(Path.Combine(outputRoot, BaselineVersion)).Select(Path.GetFileName),
+            file => file!.StartsWith("anthology-integrity-", StringComparison.OrdinalIgnoreCase));
         var launcherPackage = Assert.Single(
             manifest.Payload.Packages,
             package => package.Id == "anthology-launcher");

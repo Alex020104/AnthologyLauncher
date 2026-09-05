@@ -221,11 +221,10 @@ public static partial class ReleasePublicationService
             machine,
             cancellationToken);
         var packages = (baselineManifest?.Payload.Packages ?? [])
-            .Where(package => !string.Equals(package.Id, "anthology-launcher", StringComparison.OrdinalIgnoreCase)
-                              && !string.Equals(
-                                  package.Id,
-                                  PackageIntegrityCatalogBuilder.PackageId,
-                                  StringComparison.OrdinalIgnoreCase))
+            .Where(package => !string.Equals(
+                package.Id,
+                "anthology-launcher",
+                StringComparison.OrdinalIgnoreCase))
             .ToList();
         packages.Add(new PackageManifest(
             "anthology-launcher",
@@ -264,18 +263,11 @@ public static partial class ReleasePublicationService
         }
         using var privateKey = ECDsa.Create();
         privateKey.ImportFromPem(await File.ReadAllTextAsync(Path.GetFullPath(machine.PrivateKeyPath), cancellationToken));
-        var integrity = await PackageIntegrityCatalogBuilder.BuildAsync(
-            packages,
-            versionRoot,
-            workspace,
-            privateKey,
-            machine.KeyId.Trim(),
-            progress,
-            cancellationToken);
-        if (integrity is not null)
-        {
-            packages.Add(integrity.Package);
-        }
+        // Publishing only the launcher must not rebuild integrity metadata for
+        // already-published game or MO2 archives. Those archives can be hosted
+        // exclusively by a remote mirror and intentionally absent locally.
+        // Preserve the signed baseline integrity package just like every other
+        // unrelated package; content/quick/full publication owns its rebuild.
 
         var manifestShape = PublicationManifestBaseline.ResolveShape(baselineManifest, packages);
         var updateManifest = new UpdateManifest(
@@ -292,10 +284,6 @@ public static partial class ReleasePublicationService
         await UnifiedReleaseBuilder.WriteJsonAtomicallyAsync(Path.Combine(versionRoot, "content.json"), catalog, cancellationToken);
 
         var relativeFiles = new List<string> { deliveryName, "manifest.json", "content.json" };
-        if (integrity is not null)
-        {
-            relativeFiles.Add(Path.GetFileName(integrity.ArtifactPath));
-        }
         relativeFiles.AddRange(media.RelativeFiles);
         var publication = await PublishFilesAsync(versionRoot, relativeFiles, workspace, machine, progress, cancellationToken);
         progress?.Report($"Launcher Next {launcherVersion} опубликован. Он применится до следующего запуска приложения.");
