@@ -1648,6 +1648,81 @@
     </main>
     }
 
+    @if (_manualArchiveWizard is { } manualWizard)
+    {
+        <section class="fomod-wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="manual-archive-title">
+            <article class="fomod-wizard-shell manual-archive-shell">
+                <header class="fomod-wizard-header">
+                    <div class="fomod-wizard-brand"><img src="assets/anthology-logo.png" alt="" /><div><span>ANTHOLOGY · РУЧНОЙ УСТАНОВЩИК</span><strong id="manual-archive-title">@Path.GetFileName(manualWizard.ArchivePath)</strong></div></div>
+                    <div class="fomod-wizard-profile"><span>ПРОФИЛЬ MO2</span><strong>@manualWizard.ProfileName</strong></div>
+                </header>
+
+                <div class="manual-archive-content">
+                    <aside class="manual-archive-summary">
+                        <div class="fomod-wizard-emblem"><img src="assets/anthology-logo.png" alt="" /><span>BAIN · MANUAL</span></div>
+                        <dl>
+                            <div><dt>АРХИВ</dt><dd title="@manualWizard.ArchivePath">@Path.GetFileName(manualWizard.ArchivePath)</dd></div>
+                            <div><dt>ФАЙЛОВ</dt><dd>@manualWizard.Package.FileCount.ToString("N0", CultureInfo.CurrentCulture)</dd></div>
+                            <div><dt>РАСПАКОВАННЫЙ РАЗМЕР</dt><dd>@FormatBytes(manualWizard.Package.ExpandedBytes)</dd></div>
+                            <div><dt>ВЫБРАНО</dt><dd>@ManualArchiveRootLabel(manualWizard.SelectedRoot)</dd></div>
+                        </dl>
+                        <div class="manual-archive-rule"><strong>КАК ЭТО РАБОТАЕТ</strong><span>Содержимое выбранной папки попадёт прямо в корень нового мода. Остальные ветки архива устанавливаться не будут.</span></div>
+                    </aside>
+
+                    <main class="manual-archive-page">
+                        @if (manualWizard.Busy)
+                        {
+                            <div class="fomod-wizard-working"><div class="transfer-lock-spinner" aria-hidden="true"><i></i><i></i><i></i></div><strong>@manualWizard.OperationMessage</strong><p>Архив распаковывается в безопасную временную папку. После установки она будет удалена автоматически.</p></div>
+                        }
+                        else
+                        {
+                            <section class="manual-archive-heading">
+                                <div><span class="eyebrow">СТРУКТУРА АРХИВА</span><h2>Выберите корневую папку мода</h2><p>Аналог ручного установщика MO2: выберите каталог, который должен обозначать <code>&lt;данные&gt;</code>.</p></div>
+                                <button type="button" @onclick="() => SelectSuggestedManualRoot(manualWizard)" disabled="@(manualWizard.SelectedRoot.Equals(manualWizard.Package.SuggestedRoot, StringComparison.OrdinalIgnoreCase))">АВТОВЫБОР</button>
+                            </section>
+
+                            <label class="manual-archive-name"><span>ИМЯ МОДА В MO2</span><input @bind="manualWizard.InstallName" @bind:event="oninput" maxlength="180" spellcheck="false" /></label>
+                            <label class="manual-archive-replace"><input type="checkbox" @bind="manualWizard.ReplaceExisting" /><span><strong>ЗАМЕНИТЬ СУЩЕСТВУЮЩИЙ МОД</strong><small>Если папка с таким именем уже есть, она будет заменена атомарно с автоматическим откатом при ошибке.</small></span></label>
+
+                            <div class="manual-archive-selection">
+                                <span>КОРЕНЬ УСТАНОВКИ</span><strong title="@manualWizard.SelectedRoot">@ManualArchiveRootLabel(manualWizard.SelectedRoot)</strong>
+                                @if (ManualSelectedDirectory(manualWizard) is { } selectedDirectory)
+                                {
+                                    <small>@selectedDirectory.FileCount.ToString("N0", CultureInfo.CurrentCulture) файлов · @FormatBytes(selectedDirectory.ExpandedBytes)</small>
+                                }
+                            </div>
+
+                            <div class="manual-archive-tree" role="tree" aria-label="Папки архива">
+                                @foreach (var directoryNode in VisibleManualArchiveNodes(manualWizard))
+                                {
+                                    var currentNode = directoryNode;
+                                    <div class="manual-archive-row @(manualWizard.SelectedRoot.Equals(currentNode.Directory.Path, StringComparison.OrdinalIgnoreCase) ? "selected" : null) @(manualWizard.Package.SuggestedRoot.Equals(currentNode.Directory.Path, StringComparison.OrdinalIgnoreCase) ? "suggested" : null)" role="treeitem" aria-selected="@manualWizard.SelectedRoot.Equals(currentNode.Directory.Path, StringComparison.OrdinalIgnoreCase)">
+                                        <button class="manual-tree-toggle" type="button" disabled="@(!currentNode.HasChildren)" @onclick="() => ToggleManualArchiveNode(currentNode)" aria-label="@(currentNode.Expanded ? "Свернуть папку" : "Развернуть папку")">@(currentNode.HasChildren ? currentNode.Expanded ? "▾" : "▸" : "·")</button>
+                                        <button class="manual-tree-directory" type="button" style="padding-left:@(8 + currentNode.Depth * 18)px" @onclick="() => SelectManualArchiveRoot(manualWizard, currentNode.Directory.Path)">
+                                            <span>▱</span><strong>@ManualArchiveDirectoryName(currentNode.Directory.Path)</strong>
+                                            @if (manualWizard.Package.SuggestedRoot.Equals(currentNode.Directory.Path, StringComparison.OrdinalIgnoreCase)) { <em>РЕКОМЕНДУЕТСЯ</em> }
+                                            <small>@currentNode.Directory.FileCount.ToString("N0", CultureInfo.CurrentCulture) · @FormatBytes(currentNode.Directory.ExpandedBytes)</small>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(manualWizard.ValidationError))
+                            {
+                                <div class="fomod-validation"><strong>УСТАНОВКА НЕ ЗАВЕРШЕНА</strong><span>@manualWizard.ValidationError</span></div>
+                            }
+                        }
+                    </main>
+                </div>
+
+                <footer class="fomod-wizard-footer">
+                    <div><span>BAIN · РУЧНОЙ РЕЖИМ</span><small>@manualWizard.OperationMessage</small></div>
+                    <nav><button class="danger" @onclick="CancelManualArchiveWizard">@(manualWizard.Busy ? "ОТМЕНИТЬ ОПЕРАЦИЮ" : "ОТМЕНА")</button>@if (!manualWizard.Busy) { <button class="primary" disabled="@string.IsNullOrWhiteSpace(manualWizard.InstallName)" @onclick="ConfirmManualArchiveInstallAsync">УСТАНОВИТЬ</button> }</nav>
+                </footer>
+            </article>
+        </section>
+    }
+
     @if (_fomodWizard is { } wizard)
     {
         <section class="fomod-wizard-overlay" role="dialog" aria-modal="true" aria-labelledby="fomod-wizard-title">
@@ -1774,20 +1849,24 @@
         </section>
     }
 
-    @if (IsInterfaceLocked && _fomodWizard is null)
+    @if (IsInterfaceLocked && _fomodWizard is null && _manualArchiveWizard is null)
     {
         <section class="transfer-lock-overlay" role="dialog" aria-modal="true" aria-live="assertive" aria-label="Выполняется загрузка и установка">
             <div class="transfer-lock-card">
-                <span class="transfer-lock-kicker">ОБНОВЛЕНИЕ ANTHOLOGY</span>
+                <span class="transfer-lock-kicker">@(_mo2ArchiveBusy ? "АРХИВ MO2" : "ОБНОВЛЕНИЕ ANTHOLOGY")</span>
                 <div class="transfer-lock-spinner" aria-hidden="true"><i></i><i></i><i></i></div>
                 <strong>@TransferTitle</strong>
                 <small>@TransferSource</small>
                 <div class="transfer-lock-progress"><span style="width:@TransferPercentage%"></span></div>
                 <p>@TransferDetails</p>
-                <em>Лаунчер временно заблокирован, чтобы файлы сборки не изменялись во время установки.</em>
+                <em>@(_mo2ArchiveBusy ? "Лаунчер проверяет структуру архива. Временные файлы будут удалены автоматически." : "Лаунчер временно заблокирован, чтобы файлы сборки не изменялись во время установки.")</em>
                 @if (CanCancelLockedUpdate)
                 {
                     <button type="button" @onclick="CancelUpdate">ОТМЕНИТЬ ЗАГРУЗКУ</button>
+                }
+                else if (CanCancelMo2ArchiveOperation)
+                {
+                    <button type="button" @onclick="CancelMo2ArchiveOperation">ОТМЕНИТЬ ПРОВЕРКУ АРХИВА</button>
                 }
             </div>
         </section>
@@ -1946,6 +2025,8 @@
     private DownloadProgress? _contentDownloadProgress;
     private bool _mo2ArchiveBusy;
     private string _mo2ArchiveStatus = "Проверка архива";
+    private CancellationTokenSource? _mo2ArchiveCancellation;
+    private ManualArchiveWizardSession? _manualArchiveWizard;
     private FomodWizardSession? _fomodWizard;
     private BundledMediaStatus _bundledMedia = new(false, string.Empty, "Проверка установочного комплекта");
     private bool _installBusy;
@@ -3510,15 +3591,18 @@
         string? installName = null,
         bool replaceExisting = false)
     {
-        if (_fomodWizard is not null || _mo2ArchiveBusy)
+        if (_fomodWizard is not null || _manualArchiveWizard is not null || _mo2ArchiveBusy)
         {
             return new LauncherActionResult(false, "Уже выполняется установка другого архива.");
         }
 
         using var transferLease = OperationGate.EnterTransfer();
         using var cancellation = new CancellationTokenSource();
+        _mo2ArchiveCancellation = cancellation;
         FomodWizardSession? session = null;
+        ManualArchiveWizardSession? manualSession = null;
         FomodPackage? pendingPackage = null;
+        Mo2ManualArchivePackage? pendingManualPackage = null;
         try
         {
             _mo2ArchiveBusy = true;
@@ -3532,13 +3616,26 @@
 
             if (!preparation.IsFomod)
             {
-                _mo2ArchiveStatus = $"Устанавливаем {Path.GetFileName(archivePath)} в MO2";
-                await InvokeAsync(StateHasChanged);
-                return await Mo2.InstallArchiveAsync(
+                if (preparation.ManualPackage is null
+                    || string.IsNullOrWhiteSpace(preparation.ProfileName))
+                {
+                    preparation.ManualPackage?.Dispose();
+                    return new LauncherActionResult(false, "Архив прочитан, но дерево папок для ручной установки не получено.");
+                }
+
+                pendingManualPackage = preparation.ManualPackage;
+                manualSession = new ManualArchiveWizardSession(
                     archivePath,
                     installName,
                     replaceExisting,
-                    cancellation.Token);
+                    preparation.ProfileName,
+                    pendingManualPackage,
+                    cancellation);
+                pendingManualPackage = null;
+                _manualArchiveWizard = manualSession;
+                _mo2ArchiveBusy = false;
+                await InvokeAsync(StateHasChanged);
+                return await manualSession.Completion.Task;
             }
 
             if (preparation.Package is null
@@ -3577,10 +3674,163 @@
                 _fomodWizard = null;
                 session.Completion.TrySetResult(null);
             }
+            if (manualSession is not null && ReferenceEquals(_manualArchiveWizard, manualSession))
+            {
+                _manualArchiveWizard = null;
+                manualSession.Completion.TrySetResult(null);
+            }
             pendingPackage?.Dispose();
+            pendingManualPackage?.Dispose();
             session?.Dispose();
+            manualSession?.Dispose();
+            if (ReferenceEquals(_mo2ArchiveCancellation, cancellation))
+            {
+                _mo2ArchiveCancellation = null;
+            }
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private static IEnumerable<ManualArchiveNode> VisibleManualArchiveNodes(
+        ManualArchiveWizardSession wizard) => EnumerateManualArchiveNodes(wizard.RootNode);
+
+    private static IEnumerable<ManualArchiveNode> EnumerateManualArchiveNodes(ManualArchiveNode node)
+    {
+        yield return node;
+        if (!node.Expanded)
+        {
+            yield break;
+        }
+
+        foreach (var child in node.Children)
+        {
+            foreach (var descendant in EnumerateManualArchiveNodes(child))
+            {
+                yield return descendant;
+            }
+        }
+    }
+
+    private static string ManualArchiveRootLabel(string path) =>
+        path.Length == 0 ? "Корень архива" : path.Replace("/", " › ", StringComparison.Ordinal);
+
+    private static string ManualArchiveDirectoryName(string path)
+    {
+        if (path.Length == 0)
+        {
+            return "Корень архива";
+        }
+        var separator = path.LastIndexOf('/');
+        return separator < 0 ? path : path[(separator + 1)..];
+    }
+
+    private static Mo2ArchiveDirectory? ManualSelectedDirectory(ManualArchiveWizardSession wizard) =>
+        wizard.Package.Directories.FirstOrDefault(directory =>
+            directory.Path.Equals(wizard.SelectedRoot, StringComparison.OrdinalIgnoreCase));
+
+    private static void ToggleManualArchiveNode(ManualArchiveNode node)
+    {
+        if (node.HasChildren)
+        {
+            node.Expanded = !node.Expanded;
+        }
+    }
+
+    private static void SelectManualArchiveRoot(
+        ManualArchiveWizardSession wizard,
+        string path)
+    {
+        wizard.SelectedRoot = path;
+        wizard.ValidationError = null;
+        wizard.OperationMessage = path.Length == 0
+            ? "Будет установлено всё содержимое архива"
+            : $"Корнем мода станет папка: {path}";
+    }
+
+    private static void SelectSuggestedManualRoot(ManualArchiveWizardSession wizard)
+    {
+        SelectManualArchiveRoot(wizard, wizard.Package.SuggestedRoot);
+        wizard.ExpandTo(wizard.Package.SuggestedRoot);
+    }
+
+    private async Task ConfirmManualArchiveInstallAsync()
+    {
+        var wizard = _manualArchiveWizard;
+        if (wizard is null || wizard.Busy || string.IsNullOrWhiteSpace(wizard.InstallName))
+        {
+            return;
+        }
+
+        wizard.Busy = true;
+        wizard.ValidationError = null;
+        wizard.OperationMessage = "Распаковываем выбранную папку и подключаем мод";
+        _mo2ArchiveStatus = wizard.OperationMessage;
+        _mo2ArchiveBusy = true;
+        await InvokeAsync(StateHasChanged);
+
+        LauncherActionResult result;
+        try
+        {
+            result = await Mo2.InstallManualArchiveAsync(
+                wizard.Package,
+                wizard.SelectedRoot,
+                wizard.ProfileName,
+                wizard.InstallName.Trim(),
+                wizard.ReplaceExisting,
+                wizard.Cancellation.Token);
+        }
+        catch (Exception exception)
+        {
+            result = new LauncherActionResult(false, $"Не удалось установить архив: {exception.Message}");
+        }
+        finally
+        {
+            _mo2ArchiveBusy = false;
+        }
+
+        if (result.Success)
+        {
+            CloseManualArchiveWizard(wizard, result);
+        }
+        else if (wizard.Cancellation.IsCancellationRequested)
+        {
+            CloseManualArchiveWizard(wizard, null);
+        }
+        else
+        {
+            wizard.Busy = false;
+            wizard.ValidationError = result.Message;
+            wizard.OperationMessage = "Исправьте параметры и повторите установку";
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelManualArchiveWizard()
+    {
+        var wizard = _manualArchiveWizard;
+        if (wizard is null)
+        {
+            return;
+        }
+        if (wizard.Busy)
+        {
+            wizard.OperationMessage = "Отменяем установку и очищаем временные файлы";
+            wizard.Cancellation.Cancel();
+            return;
+        }
+        CloseManualArchiveWizard(wizard, null);
+    }
+
+    private void CloseManualArchiveWizard(
+        ManualArchiveWizardSession wizard,
+        LauncherActionResult? result)
+    {
+        if (ReferenceEquals(_manualArchiveWizard, wizard))
+        {
+            _manualArchiveWizard = null;
+        }
+        _mo2ArchiveBusy = false;
+        wizard.Completion.TrySetResult(result);
     }
 
     private static string FomodTitle(FomodWizardSession wizard) =>
@@ -3861,14 +4111,28 @@
         wizard.ValidationError = null;
         _mo2ArchiveBusy = true;
         await InvokeAsync(StateHasChanged);
-        var result = await Mo2.InstallFomodArchiveAsync(
-            wizard.Package,
-            wizard.Plan,
-            wizard.ProfileName,
-            wizard.InstallName,
-            wizard.ReplaceExisting,
-            wizard.Cancellation.Token);
-        _mo2ArchiveBusy = false;
+        FomodInstallActionResult result;
+        try
+        {
+            result = await Mo2.InstallFomodArchiveAsync(
+                wizard.Package,
+                wizard.Plan,
+                wizard.ProfileName,
+                wizard.InstallName,
+                wizard.ReplaceExisting,
+                wizard.Cancellation.Token);
+        }
+        catch (Exception exception)
+        {
+            result = new FomodInstallActionResult(
+                false,
+                wizard.Cancellation.IsCancellationRequested,
+                $"Не удалось установить FOMOD: {exception.Message}");
+        }
+        finally
+        {
+            _mo2ArchiveBusy = false;
+        }
         if (result.Success)
         {
             CloseFomodWizard(wizard, new LauncherActionResult(true, result.Message));
@@ -5110,6 +5374,7 @@
         || _installBusy
         || _contentDownloadId is not null
         || _mo2ArchiveBusy
+        || _manualArchiveWizard is not null
         || _fomodWizard is not null;
 
     private bool IsTransferOperationActive =>
@@ -5117,12 +5382,28 @@
         || _installBusy
         || _contentDownloadId is not null
         || _mo2ArchiveBusy
+        || _manualArchiveWizard is not null
         || _fomodWizard is not null;
 
     private bool CanCancelLockedUpdate =>
         _updateInteractionLocked
         && _updateCancellation is { IsCancellationRequested: false }
         && _updateProgress?.Stage != UpdateStage.RollingBack;
+
+    private bool CanCancelMo2ArchiveOperation =>
+        _mo2ArchiveBusy
+        && _mo2ArchiveCancellation is { IsCancellationRequested: false };
+
+    private void CancelMo2ArchiveOperation()
+    {
+        if (!CanCancelMo2ArchiveOperation)
+        {
+            return;
+        }
+
+        _mo2ArchiveStatus = "Отменяем проверку архива и очищаем временные файлы";
+        _mo2ArchiveCancellation!.Cancel();
+    }
 
     private int TransferPercentage => _updateBusy && _updateProgress is not null
         ? UpdateProgressPercentage
@@ -5624,12 +5905,20 @@
         _mo2RuntimeMonitorCancellation.Dispose();
         _mo2FileSearchCancellation?.Cancel();
         _mo2FileSearchCancellation?.Dispose();
+        _mo2ArchiveCancellation?.Cancel();
         if (_fomodWizard is { } wizard)
         {
             wizard.Cancellation.Cancel();
             wizard.Completion.TrySetResult(null);
             wizard.Dispose();
             _fomodWizard = null;
+        }
+        if (_manualArchiveWizard is { } manualWizard)
+        {
+            manualWizard.Cancellation.Cancel();
+            manualWizard.Completion.TrySetResult(null);
+            manualWizard.Dispose();
+            _manualArchiveWizard = null;
         }
         _mo2DragReference?.Dispose();
     }
@@ -5645,6 +5934,110 @@
     private sealed record Mo2ModGroup(Mo2ModEntry? Separator, IReadOnlyList<Mo2ModEntry> Mods);
 
     private sealed record ConfigurationMenuNode(string Path, string Title, long Order, int Count);
+
+    private sealed class ManualArchiveNode(Mo2ArchiveDirectory directory, int depth)
+    {
+        public Mo2ArchiveDirectory Directory { get; } = directory;
+        public int Depth { get; } = depth;
+        public List<ManualArchiveNode> Children { get; } = [];
+        public bool HasChildren => Children.Count > 0;
+        public bool Expanded { get; set; }
+    }
+
+    private sealed class ManualArchiveWizardSession : IDisposable
+    {
+        private readonly Dictionary<string, ManualArchiveNode> _nodes;
+        private bool _disposed;
+
+        public ManualArchiveWizardSession(
+            string archivePath,
+            string? installName,
+            bool replaceExisting,
+            string profileName,
+            Mo2ManualArchivePackage package,
+            CancellationTokenSource cancellation)
+        {
+            ArchivePath = archivePath;
+            InstallName = string.IsNullOrWhiteSpace(installName)
+                ? Path.GetFileNameWithoutExtension(archivePath)
+                : installName;
+            ReplaceExisting = replaceExisting;
+            ProfileName = profileName;
+            Package = package;
+            Cancellation = cancellation;
+            SelectedRoot = package.SuggestedRoot;
+
+            _nodes = package.Directories.ToDictionary(
+                directory => directory.Path,
+                directory => new ManualArchiveNode(
+                    directory,
+                    directory.Path.Length == 0 ? 0 : directory.Path.Count(character => character == '/') + 1),
+                StringComparer.OrdinalIgnoreCase);
+            if (!_nodes.TryGetValue(string.Empty, out var root))
+            {
+                throw new InvalidDataException("Архив не содержит корневой каталог.");
+            }
+            RootNode = root;
+            foreach (var node in _nodes.Values.Where(node => node.Directory.Path.Length > 0))
+            {
+                var separator = node.Directory.Path.LastIndexOf('/');
+                var parentPath = separator < 0 ? string.Empty : node.Directory.Path[..separator];
+                if (_nodes.TryGetValue(parentPath, out var parent))
+                {
+                    parent.Children.Add(node);
+                }
+            }
+            foreach (var node in _nodes.Values)
+            {
+                node.Children.Sort((left, right) =>
+                    StringComparer.CurrentCultureIgnoreCase.Compare(left.Directory.Path, right.Directory.Path));
+            }
+            RootNode.Expanded = true;
+            ExpandTo(SelectedRoot);
+        }
+
+        public string ArchivePath { get; }
+        public string InstallName { get; set; }
+        public bool ReplaceExisting { get; set; }
+        public string ProfileName { get; }
+        public Mo2ManualArchivePackage Package { get; }
+        public CancellationTokenSource Cancellation { get; }
+        public ManualArchiveNode RootNode { get; }
+        public TaskCompletionSource<LauncherActionResult?> Completion { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public string SelectedRoot { get; set; }
+        public bool Busy { get; set; }
+        public string? ValidationError { get; set; }
+        public string OperationMessage { get; set; } = "Выберите папку, которая станет корнем мода";
+
+        public void ExpandTo(string path)
+        {
+            var current = path;
+            while (true)
+            {
+                if (_nodes.TryGetValue(current, out var node))
+                {
+                    node.Expanded = true;
+                }
+                if (current.Length == 0)
+                {
+                    break;
+                }
+                var separator = current.LastIndexOf('/');
+                current = separator < 0 ? string.Empty : current[..separator];
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            Package.Dispose();
+        }
+    }
 
     private sealed class FomodWizardSession : IDisposable
     {

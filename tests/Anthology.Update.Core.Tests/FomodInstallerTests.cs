@@ -119,6 +119,49 @@ public sealed class FomodInstallerTests : IDisposable
     }
 
     [Fact]
+    public void InspectIgnoresEmptyConditionalInstallPlaceholderLikeMo2()
+    {
+        var package = InspectPackage(CreateArchive(
+            "empty-conditional-pattern.zip",
+            new Dictionary<string, string>
+            {
+                ["fomod/ModuleConfig.xml"] = """
+                    <config>
+                      <moduleName>MO2 compatible placeholder</moduleName>
+                      <conditionalFileInstalls>
+                        <patterns><pattern /></patterns>
+                      </conditionalFileInstalls>
+                    </config>
+                    """
+            }));
+
+        Assert.Empty(package.Module.ConditionalInstalls);
+    }
+
+    [Fact]
+    public void InspectRejectsNonemptyConditionalInstallWithoutDependencies()
+    {
+        var inspection = Mo2ArchiveInstaller.InspectFomod(CreateArchive(
+            "invalid-conditional-pattern.zip",
+            new Dictionary<string, string>
+            {
+                ["fomod/ModuleConfig.xml"] = """
+                    <config>
+                      <moduleName>Invalid conditional install</moduleName>
+                      <conditionalFileInstalls>
+                        <patterns><pattern><files><file source="a.txt" destination="a.txt" /></files></pattern></patterns>
+                      </conditionalFileInstalls>
+                    </config>
+                    """,
+                ["a.txt"] = "payload"
+            }));
+
+        Assert.True(inspection.IsFomod);
+        Assert.False(inspection.Success);
+        Assert.Contains("dependencies", inspection.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void InspectReturnsFailureForMalformedArchiveAndDuplicateMasters()
     {
         Directory.CreateDirectory(_root);
@@ -168,7 +211,9 @@ public sealed class FomodInstallerTests : IDisposable
                 ["fomod/ModuleConfig.xml"] = $"<config><moduleName>Deep</moduleName><moduleDependencies>{nested}</moduleDependencies></config>"
             }));
 
-        Assert.True(unsafeWrapper.IsFomod);
+        // Unsafe archive paths are rejected before they can be classified or
+        // handed back to the native extractor as a FOMOD candidate.
+        Assert.False(unsafeWrapper.IsFomod);
         Assert.False(unsafeWrapper.Success);
         Assert.False(invalidEnum.Success);
         Assert.Contains("Random", invalidEnum.Message, StringComparison.Ordinal);

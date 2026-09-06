@@ -19,7 +19,8 @@ public sealed record Mo2ArchivePreparation(
     string Message,
     string? ProfileName = null,
     FomodPackage? Package = null,
-    FomodDependencyContext? DependencyContext = null);
+    FomodDependencyContext? DependencyContext = null,
+    Mo2ManualArchivePackage? ManualPackage = null);
 
 public sealed record FomodImageAssetResult(
     bool Success,
@@ -313,39 +314,40 @@ public sealed class Mo2IntegrationService(
         string archivePath,
         CancellationToken cancellationToken = default)
     {
-        var workspace = await Task.Run(GetWorkspace);
-        if (!workspace.Instance.Available || workspace.SelectedProfile is null)
-        {
-            return new Mo2ArchivePreparation(false, false, "Сначала выберите профиль MO2");
-        }
-        if (workspace.RuntimeBusy)
-        {
-            return new Mo2ArchivePreparation(
-                false,
-                false,
-                "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
-        }
-        if (!File.Exists(archivePath))
-        {
-            return new Mo2ArchivePreparation(false, false, $"Архив не найден: {archivePath}");
-        }
-
         FomodPackage? packageToDispose = null;
         try
         {
+            var workspace = await Task.Run(GetWorkspace, cancellationToken);
+            if (!workspace.Instance.Available || workspace.SelectedProfile is null)
+            {
+                return new Mo2ArchivePreparation(false, false, "Сначала выберите профиль MO2");
+            }
+            if (workspace.RuntimeBusy)
+            {
+                return new Mo2ArchivePreparation(
+                    false,
+                    false,
+                    "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
+            }
+            if (!File.Exists(archivePath))
+            {
+                return new Mo2ArchivePreparation(false, false, $"Архив не найден: {archivePath}");
+            }
+
             var inspection = await Task.Run(
                 () => Mo2ArchiveInstaller.InspectFomod(archivePath, cancellationToken),
                 cancellationToken);
             if (!inspection.IsFomod)
             {
-                var regularArchive = inspection.Message.Equals(
-                    "В архиве нет fomod/ModuleConfig.xml.",
-                    StringComparison.Ordinal);
+                var manualPackage = await Task.Run(
+                    () => Mo2ArchiveInstaller.InspectManualArchive(archivePath, cancellationToken),
+                    cancellationToken);
                 return new Mo2ArchivePreparation(
-                    regularArchive,
+                    true,
                     false,
-                    regularArchive ? "Обычный архив готов к установке." : inspection.Message,
-                    workspace.SelectedProfile);
+                    "Обычный архив готов к выбору корневой папки.",
+                    workspace.SelectedProfile,
+                    ManualPackage: manualPackage);
             }
             if (!inspection.Success || inspection.Package is null)
             {
@@ -543,6 +545,71 @@ public sealed class Mo2IntegrationService(
         }
     }
 
+    public async Task<LauncherActionResult> InstallManualArchiveAsync(
+        Mo2ManualArchivePackage package,
+        string selectedRoot,
+        string profileName,
+        string? installName = null,
+        bool replaceExisting = false,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        var gateEntered = false;
+        try
+        {
+            var workspace = await Task.Run(GetWorkspace, cancellationToken);
+            if (!workspace.Instance.Available
+                || !workspace.Instance.Profiles.Contains(profileName, StringComparer.OrdinalIgnoreCase))
+            {
+                return new LauncherActionResult(false, "Профиль MO2, выбранный для архива, больше недоступен");
+            }
+            if (workspace.RuntimeBusy)
+            {
+                return new LauncherActionResult(false, "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
+            }
+
+            await _archiveInstallGate.WaitAsync(cancellationToken);
+            gateEntered = true;
+            var result = await Task.Run(
+                () => Mo2ArchiveInstaller.Install(
+                    workspace.Instance.Root,
+                    profileName,
+                    package,
+                    selectedRoot,
+                    installName,
+                    replaceExisting,
+                    cancellationToken: cancellationToken),
+                cancellationToken);
+            if (result.Success)
+            {
+                InvalidateContent();
+            }
+            return new LauncherActionResult(result.Success, result.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            return new LauncherActionResult(false, "Ручная установка архива отменена.");
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or InvalidDataException
+                                           or UnauthorizedAccessException
+                                           or InvalidOperationException
+                                           or NotSupportedException
+                                           or ArgumentException
+                                           or AggregateException
+                                           or SharpCompressException)
+        {
+            return new LauncherActionResult(false, exception.Message);
+        }
+        finally
+        {
+            if (gateEntered)
+            {
+                _archiveInstallGate.Release();
+            }
+        }
+    }
+
     public async Task<FomodInstallActionResult> InstallFomodArchiveAsync(
         FomodPackage package,
         FomodInstallPlan plan,
@@ -553,21 +620,20 @@ public sealed class Mo2IntegrationService(
     {
         ArgumentNullException.ThrowIfNull(package);
         ArgumentNullException.ThrowIfNull(plan);
-
-        var workspace = await Task.Run(GetWorkspace);
-        if (!workspace.Instance.Available
-            || !workspace.Instance.Profiles.Contains(profileName, StringComparer.OrdinalIgnoreCase))
-        {
-            return new FomodInstallActionResult(false, false, "Профиль MO2, выбранный для FOMOD, больше недоступен");
-        }
-        if (workspace.RuntimeBusy)
-        {
-            return new FomodInstallActionResult(false, false, "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
-        }
-
         var gateEntered = false;
         try
         {
+            var workspace = await Task.Run(GetWorkspace, cancellationToken);
+            if (!workspace.Instance.Available
+                || !workspace.Instance.Profiles.Contains(profileName, StringComparer.OrdinalIgnoreCase))
+            {
+                return new FomodInstallActionResult(false, false, "Профиль MO2, выбранный для FOMOD, больше недоступен");
+            }
+            if (workspace.RuntimeBusy)
+            {
+                return new FomodInstallActionResult(false, false, "Нельзя устанавливать мод, пока MO2 или Anomaly запущены");
+            }
+
             await _archiveInstallGate.WaitAsync(cancellationToken);
             gateEntered = true;
             var result = await Task.Run(

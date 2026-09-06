@@ -24,12 +24,53 @@ public sealed record Mo2ArchiveExtractionLimits(
 public static class Mo2ArchiveInstaller
 {
     private const int MaxArchiveEntries = 1_000_000;
-    private static readonly string[] SupportedExtensions = [".zip", ".7z", ".rar", ".001"];
+    private static readonly string[] SupportedExtensions = [".zip", ".7z", ".rar"];
 
     public static FomodArchiveInspection InspectFomod(
         string archivePath,
         CancellationToken cancellationToken = default) =>
         FomodArchiveReader.Inspect(archivePath, cancellationToken);
+
+    public static Mo2ManualArchivePackage InspectManualArchive(
+        string archivePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(archivePath))
+        {
+            throw new FileNotFoundException("Архив не найден.", archivePath);
+        }
+        if (!SupportedExtensions.Contains(Path.GetExtension(archivePath), StringComparer.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException("Поддерживаются только архивы ZIP, 7z и RAR.");
+        }
+
+        FileStream? archiveLease = null;
+        try
+        {
+            archiveLease = OpenArchiveStream(archivePath);
+            var entries = ArchiveFileAccess.ReadFileEntries(archivePath, cancellationToken)
+                .Select(entry => entry with { Path = ArchiveFileAccess.NormalizeFilePath(entry.Path) })
+                .ToArray();
+            if (entries.Length == 0)
+            {
+                throw new InvalidDataException("Архив не содержит файлов.");
+            }
+
+            var directories = BuildDirectoryCatalog(entries, cancellationToken);
+            var package = new Mo2ManualArchivePackage(
+                Path.GetFullPath(archivePath),
+                entries,
+                directories,
+                FindSuggestedRoot(entries.Select(entry => entry.Path)),
+                archiveLease);
+            archiveLease = null;
+            return package;
+        }
+        finally
+        {
+            archiveLease?.Dispose();
+        }
+    }
 
     public static Mo2ArchiveInstallResult Install(
         string root,
@@ -46,11 +87,9 @@ public static class Mo2ArchiveInstaller
             return error!;
         }
 
-        // Deny writers and deletion for the complete validation/extraction
-        // transaction so the file scanned here is the one later installed.
-        using var archiveLease = OpenArchiveStream(archivePath);
-        var fileKeys = ReadFileKeys(archivePath, cancellationToken);
-        if (fileKeys.Count == 0)
+        using var package = InspectManualArchive(archivePath, cancellationToken);
+        var fileKeys = package.Entries.Select(entry => entry.Path).ToArray();
+        if (fileKeys.Length == 0)
         {
             return new Mo2ArchiveInstallResult(false, "В архиве нет файлов.");
         }
@@ -61,7 +100,8 @@ public static class Mo2ArchiveInstaller
                 "Архив использует мастер FOMOD. Сначала выберите его компоненты.");
         }
 
-        var prefix = FindWrapperPrefix(fileKeys);
+        var prefix = package.SuggestedRoot;
+        var selectedEntries = SelectEntries(package, prefix);
         return CommitInstall(
             root,
             profileName,
@@ -72,6 +112,49 @@ public static class Mo2ArchiveInstaller
                 archivePath,
                 staging,
                 prefix,
+                selectedEntries,
+                budget,
+                cancellationToken),
+            cancellationToken);
+    }
+
+    public static Mo2ArchiveInstallResult Install(
+        string root,
+        string profileName,
+        Mo2ManualArchivePackage package,
+        string selectedRoot,
+        string? installName = null,
+        bool replaceExisting = false,
+        Mo2ArchiveExtractionLimits? extractionLimits = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        package.ThrowIfDisposed();
+        var target = PrepareTarget(root, package.ArchivePath, installName, replaceExisting, out var error);
+        if (target is null)
+        {
+            return error!;
+        }
+        if (package.Entries.Any(entry => FomodArchiveReader.IsModuleConfigPath(entry.Path)))
+        {
+            return new Mo2ArchiveInstallResult(
+                false,
+                "Архив использует мастер FOMOD. Сначала выберите его компоненты.");
+        }
+
+        var canonicalRoot = ResolveSelectedRoot(package, selectedRoot);
+        var selectedEntries = SelectEntries(package, canonicalRoot);
+        return CommitInstall(
+            root,
+            profileName,
+            target,
+            package.ArchivePath,
+            extractionLimits,
+            (staging, budget) => ExtractRegularArchive(
+                package.ArchivePath,
+                staging,
+                canonicalRoot,
+                selectedEntries,
                 budget,
                 cancellationToken),
             cancellationToken);
@@ -117,7 +200,7 @@ public static class Mo2ArchiveInstaller
             archivePath,
             extractionLimits,
             (staging, budget) => ExtractFomodPlan(
-                archivePath,
+                package,
                 staging,
                 plan,
                 budget,
@@ -307,10 +390,26 @@ public static class Mo2ArchiveInstaller
     private static void ExtractRegularArchive(
         string archivePath,
         string staging,
-        string prefix,
+        string selectedRoot,
+        IReadOnlyCollection<ArchiveFileEntry> selectedEntries,
         ExtractionBudget budget,
         CancellationToken cancellationToken)
     {
+        budget.ValidateManifest(selectedEntries.Select(entry => (entry.Size, entry.Path)));
+        if (ArchiveFileAccess.UsesNativeSevenZip(archivePath))
+        {
+            ExtractNativeRegularArchive(
+                archivePath,
+                staging,
+                selectedRoot,
+                selectedEntries,
+                budget,
+                cancellationToken);
+            return;
+        }
+
+        var targets = selectedEntries.ToDictionary(entry => entry.Path, StringComparer.OrdinalIgnoreCase);
+        var extracted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var entryCount = 0;
         using var archiveStream = OpenArchiveStream(archivePath);
         using var reader = ReaderFactory.OpenReader(archiveStream);
@@ -324,37 +423,62 @@ public static class Mo2ArchiveInstaller
                 continue;
             }
 
-            var relative = NormalizeRegularArchivePath(reader.Entry.Key ?? string.Empty);
-            if (prefix.Length > 0 && relative.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                relative = relative[prefix.Length..];
-            }
-            if (relative.Length == 0)
+            var archiveEntry = NormalizeRegularArchivePath(reader.Entry.Key ?? string.Empty);
+            if (!targets.ContainsKey(archiveEntry))
             {
                 continue;
             }
+
+            var relative = GetRelativeToSelectedRoot(archiveEntry, selectedRoot);
 
             var outputPath = GetStagingPath(staging, relative, reader.Entry.Key);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             using var source = reader.OpenEntryStream();
             using var output = new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             CopyTo(source, output, reader.Entry.Size, reader.Entry.Key, budget, cancellationToken);
+            extracted.Add(archiveEntry);
         }
+
+        EnsureAllEntriesExtracted(targets.Keys, extracted);
     }
 
     private static void ExtractFomodPlan(
-        string archivePath,
+        FomodPackage package,
         string staging,
         FomodInstallPlan plan,
         ExtractionBudget budget,
         CancellationToken cancellationToken)
     {
+        var archivePath = package.ArchivePath;
         var targets = plan.Files
             .GroupBy(file => file.ArchivePath, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
         var extracted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (targets.Count == 0)
         {
+            return;
+        }
+
+        var entriesByPath = package.ArchiveEntries
+            .ToDictionary(entry => entry.Path, StringComparer.OrdinalIgnoreCase);
+        var manifest = plan.Files.Select(file =>
+        {
+            if (!entriesByPath.TryGetValue(file.ArchivePath, out var entry))
+            {
+                throw new InvalidDataException($"Archive entry is missing: {file.ArchivePath}");
+            }
+            return (entry.Size, file.DestinationPath);
+        });
+        budget.ValidateManifest(manifest);
+        if (ArchiveFileAccess.UsesNativeSevenZip(archivePath))
+        {
+            ExtractNativeFomodPlan(
+                archivePath,
+                staging,
+                targets,
+                entriesByPath,
+                budget,
+                cancellationToken);
             return;
         }
 
@@ -371,7 +495,7 @@ public static class Mo2ArchiveInstaller
                 continue;
             }
 
-            var archiveEntry = Normalize(reader.Entry.Key ?? string.Empty);
+            var archiveEntry = NormalizeRegularArchivePath(reader.Entry.Key ?? string.Empty);
             if (!targets.TryGetValue(archiveEntry, out var plannedFiles))
             {
                 continue;
@@ -390,8 +514,25 @@ public static class Mo2ArchiveInstaller
                 cancellationToken.ThrowIfCancellationRequested();
                 var duplicatePath = GetStagingPath(staging, duplicate.DestinationPath, reader.Entry.Key);
                 Directory.CreateDirectory(Path.GetDirectoryName(duplicatePath)!);
-                budget.AccountCopy(new FileInfo(firstPath).Length, duplicate.DestinationPath);
-                File.Copy(firstPath, duplicatePath, overwrite: false);
+                using var duplicateSource = new FileStream(
+                    firstPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    81920,
+                    FileOptions.SequentialScan);
+                using var duplicateOutput = new FileStream(
+                    duplicatePath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None);
+                CopyTo(
+                    duplicateSource,
+                    duplicateOutput,
+                    reader.Entry.Size,
+                    duplicate.DestinationPath,
+                    budget,
+                    cancellationToken);
             }
             extracted.Add(archiveEntry);
             if (extracted.Count == targets.Count)
@@ -404,6 +545,110 @@ public static class Mo2ArchiveInstaller
         if (missing.Length > 0)
         {
             throw new InvalidDataException($"Архив изменился во время установки; отсутствует: {missing[0]}");
+        }
+    }
+
+    private static void ExtractNativeRegularArchive(
+        string archivePath,
+        string staging,
+        string selectedRoot,
+        IReadOnlyCollection<ArchiveFileEntry> entries,
+        ExtractionBudget budget,
+        CancellationToken cancellationToken)
+    {
+        var extractionRoot = Path.Combine(staging, $".__anthology_7z_{Guid.NewGuid():N}");
+        try
+        {
+            NativeSevenZip.ExtractFiles(archivePath, entries, extractionRoot, cancellationToken);
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var relative = GetRelativeToSelectedRoot(entry.Path, selectedRoot);
+                var outputPath = GetStagingPath(staging, relative, entry.SourcePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                var sourcePath = NativeSevenZip.GetExtractedPath(extractionRoot, entry.Path);
+                budget.ValidateDeclaredSize(entry.Size, entry.SourcePath);
+                budget.AccountCopy(entry.Size, entry.SourcePath);
+                File.Move(sourcePath, outputPath);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(extractionRoot))
+            {
+                Directory.Delete(extractionRoot, recursive: true);
+            }
+        }
+    }
+
+    private static void ExtractNativeFomodPlan(
+        string archivePath,
+        string staging,
+        IReadOnlyDictionary<string, FomodPlannedFile[]> targets,
+        Dictionary<string, ArchiveFileEntry> entriesByPath,
+        ExtractionBudget budget,
+        CancellationToken cancellationToken)
+    {
+        var sourceEntries = targets.Keys.Select(path => entriesByPath[path]).ToArray();
+        var extractionRoot = Path.Combine(staging, $".__anthology_7z_{Guid.NewGuid():N}");
+        try
+        {
+            NativeSevenZip.ExtractFiles(archivePath, sourceEntries, extractionRoot, cancellationToken);
+            foreach (var entry in sourceEntries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var plannedFiles = targets[entry.Path];
+                var sourcePath = NativeSevenZip.GetExtractedPath(extractionRoot, entry.Path);
+                var firstPath = GetStagingPath(staging, plannedFiles[0].DestinationPath, entry.SourcePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(firstPath)!);
+                budget.ValidateDeclaredSize(entry.Size, entry.SourcePath);
+                budget.AccountCopy(entry.Size, entry.SourcePath);
+                File.Move(sourcePath, firstPath);
+
+                foreach (var duplicate in plannedFiles.Skip(1))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var duplicatePath = GetStagingPath(staging, duplicate.DestinationPath, entry.SourcePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(duplicatePath)!);
+                    using var duplicateSource = new FileStream(
+                        firstPath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.Read,
+                        81920,
+                        FileOptions.SequentialScan);
+                    using var duplicateOutput = new FileStream(
+                        duplicatePath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None);
+                    CopyTo(
+                        duplicateSource,
+                        duplicateOutput,
+                        entry.Size,
+                        duplicate.DestinationPath,
+                        budget,
+                        cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(extractionRoot))
+            {
+                Directory.Delete(extractionRoot, recursive: true);
+            }
+        }
+    }
+
+    private static void EnsureAllEntriesExtracted(
+        IEnumerable<string> expected,
+        HashSet<string> extracted)
+    {
+        var missing = expected.FirstOrDefault(path => !extracted.Contains(path));
+        if (missing is not null)
+        {
+            throw new InvalidDataException($"Архив изменился во время установки; отсутствует: {missing}");
         }
     }
 
@@ -446,6 +691,13 @@ public static class Mo2ArchiveInstaller
 
     private static List<string> ReadFileKeys(string archivePath, CancellationToken cancellationToken)
     {
+        if (ArchiveFileAccess.UsesNativeSevenZip(archivePath))
+        {
+            return ArchiveFileAccess.ReadFileEntries(archivePath, cancellationToken)
+                .Select(entry => entry.Path)
+                .ToList();
+        }
+
         var keys = new List<string>();
         var entryCount = 0;
         using var archiveStream = OpenArchiveStream(archivePath);
@@ -467,7 +719,103 @@ public static class Mo2ArchiveInstaller
         return keys;
     }
 
-    private static string FindWrapperPrefix(IEnumerable<string> paths)
+    private static Mo2ArchiveDirectory[] BuildDirectoryCatalog(
+        IReadOnlyCollection<ArchiveFileEntry> entries,
+        CancellationToken cancellationToken)
+    {
+        var totals = new Dictionary<string, DirectoryTotals>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var expandedBytes = Math.Max(0, entry.Size);
+            AddToDirectory(string.Empty, expandedBytes);
+            var separator = entry.Path.LastIndexOf('/');
+            while (separator > 0)
+            {
+                AddToDirectory(entry.Path[..separator], expandedBytes);
+                separator = entry.Path.LastIndexOf('/', separator - 1);
+            }
+        }
+
+        return totals
+            .Select(pair => new Mo2ArchiveDirectory(pair.Key, pair.Value.FileCount, pair.Value.ExpandedBytes))
+            .OrderBy(directory => directory.Path.Length == 0 ? 0 : 1)
+            .ThenBy(directory => directory.Path.Count(character => character == '/'))
+            .ThenBy(directory => directory.Path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        void AddToDirectory(string path, long expandedBytes)
+        {
+            if (!totals.TryGetValue(path, out var total))
+            {
+                total = new DirectoryTotals();
+                totals[path] = total;
+            }
+            total.FileCount++;
+            if (expandedBytes > long.MaxValue - total.ExpandedBytes)
+            {
+                throw new InvalidDataException("Суммарный распакованный размер архива выходит за допустимый диапазон.");
+            }
+            total.ExpandedBytes += expandedBytes;
+        }
+    }
+
+    private static string ResolveSelectedRoot(
+        Mo2ManualArchivePackage package,
+        string selectedRoot)
+    {
+        ArgumentNullException.ThrowIfNull(selectedRoot);
+        var separatorsNormalized = selectedRoot.Replace('\\', '/');
+        if (separatorsNormalized.Contains("//", StringComparison.Ordinal)
+            || separatorsNormalized.StartsWith('/')
+            || separatorsNormalized.EndsWith('/'))
+        {
+            throw new ArgumentException("Выбранный корень архива задан в неоднозначном виде.", nameof(selectedRoot));
+        }
+        var normalized = separatorsNormalized.Length == 0
+            ? string.Empty
+            : FomodPath.NormalizeRelativePath(separatorsNormalized, allowEmpty: false);
+        var directory = package.Directories.FirstOrDefault(candidate =>
+            candidate.Path.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+        return directory?.Path
+               ?? throw new ArgumentException(
+                   $"Выбранной папки нет в проверенном архиве: {selectedRoot}",
+                   nameof(selectedRoot));
+    }
+
+    private static ArchiveFileEntry[] SelectEntries(
+        Mo2ManualArchivePackage package,
+        string selectedRoot)
+    {
+        var prefix = selectedRoot.Length == 0 ? string.Empty : selectedRoot + "/";
+        var entries = package.Entries
+            .Where(entry => prefix.Length == 0
+                            || entry.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (entries.Length == 0)
+        {
+            throw new InvalidDataException($"Выбранная папка архива пуста: {selectedRoot}");
+        }
+        return entries;
+    }
+
+    private static string GetRelativeToSelectedRoot(string archivePath, string selectedRoot)
+    {
+        if (selectedRoot.Length == 0)
+        {
+            return archivePath;
+        }
+
+        var prefix = selectedRoot + "/";
+        if (!archivePath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                $"Файл архива находится вне выбранной папки: {archivePath}");
+        }
+        return archivePath[prefix.Length..];
+    }
+
+    private static string FindSuggestedRoot(IEnumerable<string> paths)
     {
         var values = paths.Where(path => path.Length > 0).ToArray();
         var firstSegments = values
@@ -481,7 +829,7 @@ public static class Mo2ArchiveInstaller
 
         var prefix = firstSegments[0] + "/";
         return values.Any(path => path.StartsWith(prefix + "gamedata/", StringComparison.OrdinalIgnoreCase))
-            ? prefix
+            ? firstSegments[0]
             : string.Empty;
     }
 
@@ -554,6 +902,13 @@ public static class Mo2ArchiveInstaller
         1024 * 1024,
         FileOptions.SequentialScan);
 
+    private sealed class DirectoryTotals
+    {
+        public int FileCount { get; set; }
+
+        public long ExpandedBytes { get; set; }
+    }
+
     private sealed record InstallTarget(
         string ModsRoot,
         string Destination,
@@ -621,6 +976,29 @@ public static class Mo2ArchiveInstaller
             {
                 throw new InvalidDataException(
                     $"Распакованные данные превысят безопасный предел {_allowedBytes} байт: {entryName}");
+            }
+        }
+
+        public void ValidateManifest(IEnumerable<(long Size, string EntryName)> entries)
+        {
+            var total = _expandedBytes;
+            foreach (var (size, entryName) in entries)
+            {
+                if (size < 0)
+                {
+                    continue;
+                }
+                if (size > _limits.MaxSingleEntryBytes)
+                {
+                    throw new InvalidDataException(
+                        $"Файл архива превышает безопасный предел {_limits.MaxSingleEntryBytes} байт: {entryName}");
+                }
+                if (size > _allowedBytes - total)
+                {
+                    throw new InvalidDataException(
+                        $"Распакованные данные превысят безопасный предел {_allowedBytes} байт: {entryName}");
+                }
+                total += size;
             }
         }
 

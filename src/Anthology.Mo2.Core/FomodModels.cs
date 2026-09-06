@@ -129,6 +129,7 @@ public sealed record FomodModule(
 public sealed class FomodPackage : IDisposable
 {
     private readonly FileStream _archiveLease;
+    private readonly NativeSevenZipCache? _nativeCache;
     private readonly object _assetCacheLock = new();
     private readonly Dictionary<string, byte[]> _assetCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _planLock = new();
@@ -143,16 +144,19 @@ public sealed class FomodPackage : IDisposable
         string moduleConfigArchivePath,
         FomodModule module,
         FomodMetadata metadata,
-        IReadOnlyList<string> archiveFiles,
-        FileStream archiveLease)
+        IReadOnlyList<ArchiveFileEntry> archiveEntries,
+        FileStream archiveLease,
+        NativeSevenZipCache? nativeCache)
     {
         ArchivePath = archivePath;
         ContentPrefix = contentPrefix;
         ModuleConfigArchivePath = moduleConfigArchivePath;
         Module = module;
         Metadata = metadata;
-        ArchiveFiles = archiveFiles;
+        ArchiveEntries = archiveEntries;
+        ArchiveFiles = archiveEntries.Select(entry => entry.Path).ToArray();
         _archiveLease = archiveLease;
+        _nativeCache = nativeCache;
         InspectionId = Guid.NewGuid();
     }
 
@@ -167,6 +171,10 @@ public sealed class FomodPackage : IDisposable
     public FomodMetadata Metadata { get; }
 
     internal IReadOnlyList<string> ArchiveFiles { get; }
+
+    internal IReadOnlyList<ArchiveFileEntry> ArchiveEntries { get; }
+
+    internal NativeSevenZipCache? NativeCache => _nativeCache;
 
     internal Guid InspectionId { get; }
 
@@ -245,6 +253,7 @@ public sealed class FomodPackage : IDisposable
             _issuedPlan = null;
             _issuedPlanSnapshot = null;
         }
+        _nativeCache?.Dispose();
         _archiveLease.Dispose();
     }
 

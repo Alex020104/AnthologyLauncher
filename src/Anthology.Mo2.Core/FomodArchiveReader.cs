@@ -12,6 +12,8 @@ public static class FomodArchiveReader
     private const int MaxConfigurationBytes = 8 * 1024 * 1024;
     private const int MaxArchiveEntries = 1_000_000;
     private const long MaxCachedAssetBytes = 18L * 1024 * 1024;
+    private const long MaxNativeInspectionCacheBytes = 128L * 1024 * 1024;
+    private const int MaxNativeInspectionCacheEntries = 258;
 
     public static FomodArchiveInspection Inspect(
         string archivePath,
@@ -24,13 +26,15 @@ public static class FomodArchiveReader
 
         var isFomod = false;
         FileStream? archiveLease = null;
+        NativeSevenZipCache? nativeCache = null;
         try
         {
             // Keep a non-writable, non-deletable handle for the lifetime of the
             // wizard. The reviewed package and plan must describe the exact file
             // later extracted by the installer.
             archiveLease = OpenArchiveStream(archivePath);
-            var archiveFiles = ReadFileKeys(archivePath, cancellationToken);
+            var archiveEntries = ArchiveFileAccess.ReadFileEntries(archivePath, cancellationToken);
+            var archiveFiles = archiveEntries.Select(entry => entry.Path).ToArray();
             var candidates = archiveFiles
                 .Where(IsModuleConfigPath)
                 .OrderBy(path => path.Count(character => character == '/'))
@@ -56,14 +60,44 @@ public static class FomodArchiveReader
                 _ = FomodPath.NormalizeRelativePath(contentPrefix, allowEmpty: false);
             }
 
+            var infoPath = FindArchiveFile(archiveFiles, contentPrefix + "fomod/info.xml");
+            if (ArchiveFileAccess.UsesNativeSevenZip(archivePath))
+            {
+                var moduleEntry = archiveEntries.Single(entry =>
+                    entry.Path.Equals(moduleConfigPath, StringComparison.OrdinalIgnoreCase));
+                if (moduleEntry.Size > MaxConfigurationBytes)
+                {
+                    throw new InvalidDataException(
+                        $"FOMOD ModuleConfig.xml exceeds the safe limit of {MaxConfigurationBytes} bytes.");
+                }
+                if (infoPath is not null)
+                {
+                    var infoEntry = archiveEntries.Single(entry =>
+                        entry.Path.Equals(infoPath, StringComparison.OrdinalIgnoreCase));
+                    if (infoEntry.Size > MaxConfigurationBytes)
+                    {
+                        infoPath = null;
+                    }
+                }
+
+                nativeCache = NativeSevenZipCache.Create(archivePath, archiveEntries);
+                nativeCache.EnsureExtracted(
+                    SelectNativeInspectionEntries(
+                        archiveEntries,
+                        contentPrefix,
+                        moduleConfigPath,
+                        infoPath),
+                    cancellationToken);
+            }
+
             var moduleBytes = ReadEntryBytes(
                 archivePath,
                 moduleConfigPath,
                 MaxConfigurationBytes,
+                nativeCache,
                 cancellationToken);
             var module = new FomodModuleConfigParser().Parse(moduleBytes);
 
-            var infoPath = FindArchiveFile(archiveFiles, contentPrefix + "fomod/info.xml");
             var metadata = new FomodMetadata(null, null, null, null, null, null);
             if (infoPath is not null)
             {
@@ -73,6 +107,7 @@ public static class FomodArchiveReader
                         archivePath,
                         infoPath,
                         MaxConfigurationBytes,
+                        nativeCache,
                         cancellationToken);
                     metadata = ParseMetadata(infoBytes);
                 }
@@ -88,9 +123,11 @@ public static class FomodArchiveReader
                 moduleConfigPath,
                 module,
                 metadata,
-                archiveFiles,
-                archiveLease);
+                archiveEntries,
+                archiveLease,
+                nativeCache);
             archiveLease = null;
+            nativeCache = null;
             return new FomodArchiveInspection(true, "Мастер FOMOD готов к выбору компонентов.", package);
         }
         catch (Exception exception) when (exception is InvalidDataException
@@ -105,6 +142,7 @@ public static class FomodArchiveReader
         }
         finally
         {
+            nativeCache?.Dispose();
             archiveLease?.Dispose();
         }
     }
@@ -123,6 +161,62 @@ public static class FomodArchiveReader
         return assets.TryGetValue(safePath, out var bytes)
             ? bytes
             : throw new FileNotFoundException("Ресурс FOMOD не найден в архиве.", relativePath);
+    }
+
+    private static List<string> SelectNativeInspectionEntries(
+        IReadOnlyList<ArchiveFileEntry> archiveEntries,
+        string contentPrefix,
+        string moduleConfigPath,
+        string? infoPath)
+    {
+        var selected = new List<string> { moduleConfigPath };
+        long selectedBytes = archiveEntries.Single(entry =>
+            entry.Path.Equals(moduleConfigPath, StringComparison.OrdinalIgnoreCase)).Size;
+        if (infoPath is not null)
+        {
+            selected.Add(infoPath);
+            selectedBytes += archiveEntries.Single(entry =>
+                entry.Path.Equals(infoPath, StringComparison.OrdinalIgnoreCase)).Size;
+        }
+
+        // A solid 7z stream may otherwise be decompressed from the beginning
+        // again for every wizard picture. Cache the ordinary FOMOD artwork in
+        // the same native extraction pass as ModuleConfig.xml. The cache is
+        // temporary, bounded and owned by FomodPackage.
+        var fomodPrefix = contentPrefix + "fomod/";
+        foreach (var entry in archiveEntries)
+        {
+            if (selected.Count >= MaxNativeInspectionCacheEntries)
+            {
+                break;
+            }
+            if (!entry.Path.StartsWith(fomodPrefix, StringComparison.OrdinalIgnoreCase)
+                || selected.Contains(entry.Path, StringComparer.OrdinalIgnoreCase)
+                || entry.Size > 16L * 1024 * 1024
+                || !IsWizardImagePath(entry.Path))
+            {
+                continue;
+            }
+            if (entry.Size > MaxNativeInspectionCacheBytes - selectedBytes)
+            {
+                continue;
+            }
+
+            selected.Add(entry.Path);
+            selectedBytes += entry.Size;
+        }
+        return selected;
+    }
+
+    private static bool IsWizardImagePath(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".gif", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase)
+               || extension.Equals(".webp", StringComparison.OrdinalIgnoreCase);
     }
 
     public static IReadOnlyDictionary<string, byte[]> ReadAssets(
@@ -175,6 +269,43 @@ public static class FomodArchiveReader
                 return result;
             }
 
+            if (package.NativeCache is not null)
+            {
+                var entriesByPath = package.ArchiveEntries
+                    .ToDictionary(entry => entry.Path, StringComparer.OrdinalIgnoreCase);
+                var declaredTotal = totalBytes;
+                foreach (var archivePath in pendingByArchivePath.Keys)
+                {
+                    if (!entriesByPath.TryGetValue(archivePath, out var entry))
+                    {
+                        throw new InvalidDataException($"Archive entry is missing: {archivePath}");
+                    }
+                    EnsureAssetBudget(entry.Size, declaredTotal, maxBytesPerAsset, maxTotalBytes);
+                    declaredTotal += entry.Size;
+                }
+                package.NativeCache.EnsureExtracted(pendingByArchivePath.Keys, cancellationToken);
+                foreach (var pair in pendingByArchivePath)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    using var source = new FileStream(
+                        package.NativeCache.GetPath(pair.Key),
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.Read,
+                        81920,
+                        FileOptions.SequentialScan);
+                    var bytes = ReadBoundedBytes(
+                        source,
+                        maxBytesPerAsset,
+                        maxTotalBytes - totalBytes,
+                        cancellationToken);
+                    _ = package.TryCacheAsset(pair.Value, bytes, MaxCachedAssetBytes);
+                    result[pair.Value] = bytes;
+                    totalBytes += bytes.LongLength;
+                }
+                return result;
+            }
+
             var entryCount = 0;
             using var archiveStream = OpenArchiveStream(package.ArchivePath);
             using var reader = ReaderFactory.OpenReader(archiveStream);
@@ -221,6 +352,13 @@ public static class FomodArchiveReader
         string archivePath,
         CancellationToken cancellationToken)
     {
+        if (ArchiveFileAccess.UsesNativeSevenZip(archivePath))
+        {
+            return ArchiveFileAccess.ReadFileEntries(archivePath, cancellationToken)
+                .Select(entry => entry.Path)
+                .ToList();
+        }
+
         var keys = new List<string>();
         var entryCount = 0;
         using var archiveStream = OpenArchiveStream(archivePath);
@@ -251,8 +389,22 @@ public static class FomodArchiveReader
         string archivePath,
         string entryPath,
         int maxBytes,
+        NativeSevenZipCache? nativeCache,
         CancellationToken cancellationToken)
     {
+        if (nativeCache is not null)
+        {
+            nativeCache.EnsureExtracted([entryPath], cancellationToken);
+            using var cached = new FileStream(
+                nativeCache.GetPath(entryPath),
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                81920,
+                FileOptions.SequentialScan);
+            return ReadBoundedBytes(cached, maxBytes, maxBytes, cancellationToken);
+        }
+
         var entryCount = 0;
         using var archiveStream = OpenArchiveStream(archivePath);
         using var reader = ReaderFactory.OpenReader(archiveStream);
@@ -520,6 +672,12 @@ internal sealed class FomodModuleConfigParser
 
         return patterns.Elements()
             .Where(child => FomodArchiveReader.IsNamed(child, "pattern"))
+            // Some installers produced by common FOMOD tools leave an empty
+            // placeholder pattern behind. MO2 ignores it, so accepting the
+            // same harmless shape keeps otherwise valid packages compatible.
+            .Where(pattern => pattern.HasElements
+                              || pattern.HasAttributes
+                              || !string.IsNullOrWhiteSpace(pattern.Value))
             .Select(pattern =>
             {
                 var dependencies = Element(pattern, "dependencies")

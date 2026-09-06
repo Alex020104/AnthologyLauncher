@@ -395,7 +395,7 @@ public static class Mo2WorkspaceReader
 {
     private static readonly HashSet<string> ArchiveExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".zip", ".7z", ".rar", ".001",
+        ".zip", ".7z", ".rar",
     };
 
     public static IReadOnlyList<Mo2DownloadEntry> ReadDownloads(string root)
