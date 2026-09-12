@@ -2,39 +2,39 @@
   "payload": {
     "schemaVersion": 4,
     "channel": "next",
-    "version": "2.1.172",
-    "publishedAt": "2026-09-12T17:17:57.5632125+00:00",
+    "version": "2.1.175",
+    "publishedAt": "2026-09-12T19:46:13.8390737+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.25",
-        "version": "0.7.0-alpha.25",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.26",
+        "version": "0.7.0-alpha.26",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 6797524,
-        "sha256": "6abd5406cb19d1ea8c1ad326d1b8e0d0affa1a4492f929945762af637220d160",
+        "size": 6798113,
+        "sha256": "28f118b173d7f5ffcd577e4c566d5404faa0ee671dbbdf58e5e5c6ff8ee4acd9",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.172/anthology-launcher-0.7.0-alpha.25-6abd5406cb19d1ea.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.175/anthology-launcher-0.7.0-alpha.26-28f118b173d7f5ff.zip",
             "priority": 5
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.172/anthology-launcher-0.7.0-alpha.25-6abd5406cb19d1ea.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.175/anthology-launcher-0.7.0-alpha.26-28f118b173d7f5ff.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.172/anthology-launcher-0.7.0-alpha.25-6abd5406cb19d1ea.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.175/anthology-launcher-0.7.0-alpha.26-28f118b173d7f5ff.zip",
             "priority": 20
           }
         ],
         "files": [
           "AnomalyLauncher.exe",
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.25.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.26.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -44,8 +44,8 @@
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.172",
-      "publishedAt": "2026-09-09T21:49:52.693817+00:00",
+      "version": "2.1.175",
+      "publishedAt": "2026-09-12T19:20:36.3776001+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -64,18 +64,13 @@
             "sha256": "469ce0e53f886292cdcd9a9746acad2a8a0be662c533dde31e5ef462406eda3d",
             "mirrors": [
               {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/file/d/1Xq5axpHLd3idSTgmrfqY21XtrZh6Q5OV/view?usp=sharing",
-                "priority": 5
-              },
-              {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.172/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.175/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.172/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.175/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               }
             ],
@@ -355,13 +350,8 @@
             "sha256": "4ca0144e4570e30282e1b02678735d41c1d6d299e216a27b9e9464cb61fc4d58",
             "mirrors": [
               {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/file/d/1lgYIFc5TChIqKWj0BSCHdm7SfOs1sa3s/view?usp=sharing",
-                "priority": 5
-              },
-              {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.172/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.175/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               }
             ],
@@ -595,9 +585,9 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.171. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
-        "summary": "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u043B\u0438\u0448\u043D\u0435\u0433\u043E",
-        "body": "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u043B\u0438\u0448\u043D\u0435\u0433\u043E",
+        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.175",
+        "summary": "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0445 \u043C\u043E\u0434\u0443\u043B\u0435\u0439 \u043A \u043E\u0440\u0443\u0436\u0435\u0439\u043D\u043E\u043C\u0443 \u043F\u0430\u043A\u0443",
+        "body": "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0445 \u043C\u043E\u0434\u0443\u043B\u0435\u0439 \u043A \u043E\u0440\u0443\u0436\u0435\u0439\u043D\u043E\u043C\u0443 \u043F\u0430\u043A\u0443",
         "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 Mod Organizer 2. \u0412 \u0440\u0443\u0447\u043D\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0439 \u043A\u043E\u0440\u0435\u043D\u044C: \u0432 \u043C\u043E\u0434 \u043F\u043E\u043F\u0430\u0434\u0451\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u044D\u0442\u043E\u0439 \u043F\u0430\u043F\u043A\u0438. \u0418\u0441\u0445\u043E\u0434\u043D\u044B\u0439 \u0430\u0440\u0445\u0438\u0432 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F.",
         "translations": {}
       }
@@ -606,6 +596,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "OVkoR5OKzJF8OvCYPp5/7z7k6TixpEJRWio7bdulWQJAtF5s5lyz1WOqOboKuGrELCmRiotQ85NYQCRw7Xb7ZA=="
+    "value": "zP2YGJcWbNQZyzd2dz8NZNKvKaEoEo\u002B/Od9b2p7qNm3\u002B9M6hXGVeb7dawo8cOdUgAfIsWTXYfYDJrIHouVqvxQ=="
   }
 }
