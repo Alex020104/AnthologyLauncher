@@ -2,39 +2,39 @@
   "payload": {
     "schemaVersion": 4,
     "channel": "next",
-    "version": "2.1.175",
-    "publishedAt": "2026-09-13T03:03:28.6243176+00:00",
+    "version": "2.1.176",
+    "publishedAt": "2026-09-13T18:19:03.5559428+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.31",
-        "version": "0.7.0-alpha.31",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.32",
+        "version": "0.7.0-alpha.32",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 6843927,
-        "sha256": "3d0be5f27cde040f5752b0b9877140681368a514e2522a79df5955b0d2fd8be7",
+        "size": 6847326,
+        "sha256": "47f6d66dec7c1b0a3b85a5933457dab32bac51c0ce4a1f57f9698d7b8da8a045",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.175/anthology-launcher-0.7.0-alpha.31-3d0be5f27cde040f.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.176/anthology-launcher-0.7.0-alpha.32-47f6d66dec7c1b0a.zip",
             "priority": 5
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.175/anthology-launcher-0.7.0-alpha.31-3d0be5f27cde040f.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.176/anthology-launcher-0.7.0-alpha.32-47f6d66dec7c1b0a.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.175/anthology-launcher-0.7.0-alpha.31-3d0be5f27cde040f.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.176/anthology-launcher-0.7.0-alpha.32-47f6d66dec7c1b0a.zip",
             "priority": 20
           }
         ],
         "files": [
           "AnomalyLauncher.exe",
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.31.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.32.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -44,8 +44,8 @@
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.175",
-      "publishedAt": "2026-09-12T19:20:36.3776001+00:00",
+      "version": "2.1.176",
+      "publishedAt": "2026-09-13T12:22:40.2674663+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -65,12 +65,12 @@
             "mirrors": [
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.175/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.176/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.175/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.176/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               }
             ],
@@ -351,7 +351,7 @@
             "mirrors": [
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.175/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.176/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               }
             ],
@@ -596,6 +596,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "wqJ64s4RvaCZR\u002BVhjkRLs\u002BlwaZPNu5cLQsRWRpHkAz3JVzl\u002BBjV4VXxpTiD4sOXL816UEjlH0AqHk1uU0ka9SA=="
+    "value": "7GaP4mdhOjcJKoKTVmbN0Pf5XNMbVtdm3S0IjbviLO6bFW5mR0VLdDj32xY15md1rF9uoxc\u002B6dwJRPVqI55VfA=="
   }
 }
