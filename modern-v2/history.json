@@ -2,8 +2,19 @@
   "payload": {
     "schemaVersion": 1,
     "channel": "next",
-    "updatedAt": "2026-09-21T17:51:44.8604817+00:00",
+    "updatedAt": "2026-09-21T18:06:54.710532+00:00",
     "entries": [
+      {
+        "version": "2.1.192",
+        "publishedAt": "2026-09-21T18:06:54.710532+00:00",
+        "changelog": {
+          "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.191",
+          "summary": "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0430\u0434\u0434\u043E\u043D\u043E\u0432",
+          "body": "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435:\n1.  \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0432\u044B\u043B\u0435\u0442\u0430 \u0441 BHS\n2. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u043B\u0438\u0448\u043D\u0438\u0445 \u0430\u0434\u0434\u043E\u043D\u043E\u0432.",
+          "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 Mod Organizer 2. \u0412 \u0440\u0443\u0447\u043D\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0439 \u043A\u043E\u0440\u0435\u043D\u044C: \u0432 \u043C\u043E\u0434 \u043F\u043E\u043F\u0430\u0434\u0451\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u044D\u0442\u043E\u0439 \u043F\u0430\u043F\u043A\u0438. \u0418\u0441\u0445\u043E\u0434\u043D\u044B\u0439 \u0430\u0440\u0445\u0438\u0432 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F.",
+          "translations": {}
+        }
+      },
       {
         "version": "2.1.191",
         "publishedAt": "2026-09-21T17:51:44.8604817+00:00",
@@ -636,6 +647,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "ad1nuBVUfNeWKp1T4weu1jPt/xuBKOzY7UFwGnRdSmuuRHoKs7FtDh39j63u62Ak6tf4KFoxalOLmj9siqILOQ=="
+    "value": "we/ob5J6UWqPM/Gzh1uLPyvUeMzY0ObA9GIXSGFtU9PrinN2Y7L7QwDEj/oUUxc8N8ih50LCB07\u002B\u002BVgHCYKp\u002Bg=="
   }
 }
