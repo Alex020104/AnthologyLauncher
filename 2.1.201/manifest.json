@@ -3,7 +3,7 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.201",
-    "publishedAt": "2026-09-24T19:54:08.6694726+00:00",
+    "publishedAt": "2026-09-24T19:57:55.3141434+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
@@ -313505,7 +313505,7 @@
     "content": {
       "schemaVersion": 4,
       "version": "2.1.201",
-      "publishedAt": "2026-09-24T19:54:08.668361+00:00",
+      "publishedAt": "2026-09-24T19:57:55.3131152+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -314143,6 +314143,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "rcr6/LRKhZS3k5Rl9PqioF0dCZro6bdAJonKtqJkpyigt2LYlgVl7jExjnj3gxuC1NRHtdav99MM3ACP0EmPVw=="
+    "value": "Qy2NhTAfuDS0ioebqxbFOR88tuRzu8\u002BJ8Udfp9XkNlSPxaThtIVit76Pc9xcljjZAv3OEYGxrf2fEByXSe7zPg=="
   }
 }
