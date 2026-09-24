@@ -3,7 +3,7 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.201",
-    "publishedAt": "2026-09-24T20:05:41.3740751+00:00",
+    "publishedAt": "2026-09-24T20:38:48.9641337+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
@@ -300121,7 +300121,7 @@
         "installRoot": "game",
         "archiveFormat": "loose",
         "size": 52744619479,
-        "sha256": "3af55fc69ab252d0f7060494d1d1ab4bde915c5fc195f35241db92507f6fc97e",
+        "sha256": "9e828ff89cd1fbf32d6ee33195e1bbe5320cef11d62b7617c22cc14abdfa8f2f",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -311700,7 +311700,7 @@
           {
             "path": "db/textures/textures_grnd.xdb0",
             "size": 514737786,
-            "sha256": "96040172772ce098f13118cf1a35b01c125f738c55b2ce1b89aeb18ff1a4c6a0",
+            "sha256": "fa226e03a08460f0a6888a9e7d1e91a6144077916c2bae31203ef25ff5ea6c2f",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -313505,7 +313505,7 @@
     "content": {
       "schemaVersion": 4,
       "version": "2.1.201",
-      "publishedAt": "2026-09-24T20:05:41.3727521+00:00",
+      "publishedAt": "2026-09-24T20:38:48.9629182+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -314143,6 +314143,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "paaG4F9nMt/hCFB7XadcBe5z8rAJJF2bYiPdBY4AY4EBV5fGTmFxDKRAANk8g/Rxn6OgGUsj90SUaX8yctypYw=="
+    "value": "ZV\u002B907dN8Jiv0rOQusNs2ygG8q9WkFKzU0\u002BNWv4R4AAJFVpHOYHoj5O/orhPJDZ9/58AG0/hzQMZ/ASc4kdDVw=="
   }
 }
