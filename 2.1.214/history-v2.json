@@ -2,11 +2,11 @@
   "payload": {
     "schemaVersion": 2,
     "channel": "next",
-    "updatedAt": "2026-10-04T19:20:58.3254858+00:00",
+    "updatedAt": "2026-10-05T03:40:20.2260508+00:00",
     "entries": [
       {
         "version": "2.1.214",
-        "publishedAt": "2026-10-04T19:20:58.3254858+00:00",
+        "publishedAt": "2026-10-05T03:40:20.2260508+00:00",
         "changelog": {
           "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.213",
           "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u0434\u043B\u044F \u0441\u0435\u0437\u043E\u043D\u043E\u0432",
@@ -20,7 +20,8 @@
           "added": [],
           "changed": [
             "game/db/configs/scripts_anthology.xdb0",
-            "game/db/textures/textures_grnd_lfo.xdb0"
+            "game/db/textures/textures_grnd_lfo.xdb0",
+            "game/fsgame_lan.ltx"
           ],
           "deleted": []
         }
@@ -96247,6 +96248,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "1xhqN\u002BJBl/ryJRhzob/xplgxWGA6LEkM5DOCLQbyq6EOkdG6sx9rv0ZQFL3uR4Akg8H5QffD7D5kQ\u002BSpHMvI5w=="
+    "value": "sNFvHj9Vw6rYtd5t9NdQA06S5xBPkkAOMyHMb0dixSzTahE8fbL4Ne0MEfKrdMX2EOuMpsYuOqVdYbuZxFCsfA=="
   }
 }
