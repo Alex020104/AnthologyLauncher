@@ -2,39 +2,39 @@
   "payload": {
     "schemaVersion": 4,
     "channel": "next",
-    "version": "2.1.211",
-    "publishedAt": "2026-10-04T15:24:40.2506388+00:00",
+    "version": "2.1.216",
+    "publishedAt": "2026-10-09T03:50:13.1510022+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.38",
-        "version": "0.7.0-alpha.38",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.39",
+        "version": "0.7.0-alpha.39",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 7203094,
-        "sha256": "f64a6eab597a8d419c0b80cb91c0ac082fa68972b571eb68b01cdbd8041917f0",
+        "size": 7208851,
+        "sha256": "7584fc2ca5fb2b355319ed6c07bae6dc9e9aec9ab4ac8241837336cbb68a5258",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.211/anthology-launcher-0.7.0-alpha.38-f64a6eab597a8d41.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.216/anthology-launcher-0.7.0-alpha.39-7584fc2ca5fb2b35.zip",
             "priority": 5
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.211/anthology-launcher-0.7.0-alpha.38-f64a6eab597a8d41.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.216/anthology-launcher-0.7.0-alpha.39-7584fc2ca5fb2b35.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.211/anthology-launcher-0.7.0-alpha.38-f64a6eab597a8d41.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.216/anthology-launcher-0.7.0-alpha.39-7584fc2ca5fb2b35.zip",
             "priority": 20
           }
         ],
         "files": [
           "AnomalyLauncher.exe",
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.38.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.39.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -44,8 +44,8 @@
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.211",
-      "publishedAt": "2026-10-04T13:47:50.7931941+00:00",
+      "version": "2.1.216",
+      "publishedAt": "2026-10-09T01:17:48.265578+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -65,17 +65,17 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.211/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.215/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.211/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.215/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.211/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.215/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 30
               }
             ],
@@ -356,12 +356,12 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.211/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.215/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.211/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.215/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 20
               }
             ],
@@ -672,17 +672,16 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.212",
-        "summary": "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
-        "body": "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0432\u0441\u0435\u0445 \u0442\u0435\u043A\u0441\u0442\u0443\u0440 \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0438\u0433\u0440\u044B",
-        "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 Mod Organizer 2. \u0412 \u0440\u0443\u0447\u043D\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0439 \u043A\u043E\u0440\u0435\u043D\u044C: \u0432 \u043C\u043E\u0434 \u043F\u043E\u043F\u0430\u0434\u0451\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u044D\u0442\u043E\u0439 \u043F\u0430\u043F\u043A\u0438. \u0418\u0441\u0445\u043E\u0434\u043D\u044B\u0439 \u0430\u0440\u0445\u0438\u0432 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F.",
-        "translations": {}
+        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.216 \u2014 \u043E\u0447\u0438\u0441\u0442\u043A\u0430 \u043B\u043E\u043A\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438",
+        "summary": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u044B \u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u0430 \u0438 \u0430\u0434\u0434\u043E\u043D\u043E\u0432; \u0443\u0434\u0430\u043B\u0435\u043D\u044B \u0434\u0443\u0431\u043B\u0438\u0440\u0443\u044E\u0449\u0438\u0435 XML-\u0444\u0430\u0439\u043B\u044B.",
+        "body": "\u041F\u0435\u0440\u0435\u043D\u0435\u0441\u0435\u043D\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043D\u044B\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u0438\u0437 \u00AB\u041F\u0435\u0440\u0435\u043F\u0438\u0441\u0430\u0442\u044C \u043A\u043E\u043D\u0444\u0438\u0433\u0438\u00BB. \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0430\u0440\u0445\u0438\u0432\u044B \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u0439 \u0438 \u0444\u0430\u0439\u043B\u044B \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u043E\u0432 \u0430\u0434\u0434\u043E\u043D\u043E\u0432. \u0412\u043A\u043B\u044E\u0447\u0435\u043D\u044B 280 \u043D\u043E\u0432\u044B\u0445 \u0438\u043B\u0438 \u0437\u0430\u043C\u0435\u043D\u044F\u0435\u043C\u044B\u0445 \u0444\u0430\u0439\u043B\u043E\u0432 \u0438 416 \u0442\u043E\u0447\u043D\u044B\u0445 \u043F\u0443\u0442\u0435\u0439 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F XML-\u0434\u0443\u0431\u043B\u0438\u043A\u0430\u0442\u043E\u0432. \u0423\u0442\u043E\u0447\u043D\u0435\u043D\u0430 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u044C\u043D\u0430\u044F \u0441\u0443\u043C\u043C\u0430 scripts_anthology.xdb0 \u043F\u043E \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043D\u043E\u043C\u0443 \u043A\u043E\u043C\u043F\u043B\u0435\u043A\u0442\u0443 \u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u0430. \u041F\u0440\u043E\u0444\u0438\u043B\u0438 MO2, \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, user.ltx, axr_options \u0438 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0430\u0434\u0434\u043E\u043D\u043E\u0432 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F. \u0421\u043A\u0430\u0447\u0438\u0432\u0430\u043D\u0438\u0435 \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E \u0438\u0437 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0445 \u043F\u0440\u043E\u0435\u043A\u0442\u043E\u0432 \u042F\u043D\u0434\u0435\u043A\u0441.\u0414\u0438\u0441\u043A\u0430 \u0438 Google Drive; \u0431\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0439 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0432\u0441\u0435\u0439 \u0441\u0431\u043E\u0440\u043A\u0438.",
+        "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E."
       }
     }
   },
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "a2fnOguM9LTag\u002BdW\u002BN\u002ByXSq4XBYh2/Y9DJcUyV3oHA1/6sK9ZGldzJd6LaFc9PUoUlNEfYUnf2xEO\u002BNZQx/XAQ=="
+    "value": "7WRYSY5L7R4NI\u002BhvAEIutoTQkOrjEatxpitQRkxuqNfZcVda1tWGyUO7ZrDYLdCC2X0waMsz8Ed6iKRCOG5WsA=="
   }
 }

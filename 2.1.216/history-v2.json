@@ -2,11 +2,11 @@
   "payload": {
     "schemaVersion": 2,
     "channel": "next",
-    "updatedAt": "2026-10-09T01:17:48.265578+00:00",
+    "updatedAt": "2026-10-09T03:50:13.1510022+00:00",
     "entries": [
       {
         "version": "2.1.216",
-        "publishedAt": "2026-10-09T01:17:48.265578+00:00",
+        "publishedAt": "2026-10-09T03:50:13.1510022+00:00",
         "changelog": {
           "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.216 \u2014 \u043E\u0447\u0438\u0441\u0442\u043A\u0430 \u043B\u043E\u043A\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438",
           "summary": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u044B \u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u0430 \u0438 \u0430\u0434\u0434\u043E\u043D\u043E\u0432; \u0443\u0434\u0430\u043B\u0435\u043D\u044B \u0434\u0443\u0431\u043B\u0438\u0440\u0443\u044E\u0449\u0438\u0435 XML-\u0444\u0430\u0439\u043B\u044B.",
@@ -96991,6 +96991,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "Re55eMTjotNFf9lVvR56t1IAZ0S4IC5tFoSbcj2EWrG8H4VvruBhDqJ9tgiqUFdStT30h60GXmiMYKJxhhvvIw=="
+    "value": "mNq6SvWSgw0O9zRtih9DtXPpPd86gFkAZ6Wt6X1PhyY\u002BUK0y9m2LFxfk/n18pL9WmeLTShhGMOTNfhSTYy/erQ=="
   }
 }
