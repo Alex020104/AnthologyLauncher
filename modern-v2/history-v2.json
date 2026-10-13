@@ -2,8 +2,104 @@
   "payload": {
     "schemaVersion": 2,
     "channel": "next",
-    "updatedAt": "2026-10-13T21:17:48.2490426+00:00",
+    "updatedAt": "2026-10-13T23:06:03.8312718+00:00",
     "entries": [
+      {
+        "version": "2.1.220",
+        "publishedAt": "2026-10-13T23:06:03.8312718+00:00",
+        "changelog": {
+          "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.220",
+          "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
+          "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u043F\u0438\u043B\u044F\u0446\u0438\u0438 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432 \u043F\u0440\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0438 \u0441\u0442\u0430\u0440\u044B\u0445 \u0448\u0435\u0439\u0434\u0435\u0440\u043D\u044B\u0445 \u043F\u0440\u0438\u0446\u0435\u043B\u043E\u0432 \u043E\u0442 BaS\n2. DLSS \u0438 FSR \u0434\u043E\u043B\u0436\u043D\u044B \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C, \u0437\u0430\u0432\u0435\u0440\u044F\u0442\u044C \u043E \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u043D\u0435 \u043C\u043E\u0433\u0443.\n3. \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 CMS \u0432 \u0447\u0451\u0440\u043D\u044B\u0439 \u0440\u044B\u043D\u043E\u043A \u041F\u0414\u0410 \u0438 \u0438\u0445 \u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u0438\u0435 \u0446\u0435\u043D\u044B.\n4. \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043D\u043E\u0432\u044B\u0445 \u0441\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0445 \u043B\u0443\u0447\u0435\u0439 \u043E\u0442 \u0410\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0438\u043A\u0441\u0430\n5. \u0412\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 Wearable Devices \u0441 \u041F\u041D\u0412 \u0438 \u0422\u0435\u043F\u043B\u043E\u0432\u0438\u0437\u043E\u0440\u043E\u043C \u043A\u0430\u043A \u043E\u0442 \u041F\u0414\u0410\n6. \u0414\u043E\u043B\u0436\u043D\u044B \u0431\u044B\u0442\u044C \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B \u043B\u043E\u0434\u044B \u0442\u0435\u0440\u0440\u0435\u0439\u043D\u0430\n7. \u0424\u0438\u043A\u0441 \u0432\u044B\u043B\u0435\u0442\u0430 \u043F\u0440\u0438 \u0443\u0434\u0430\u0440\u0435 \u043D\u043E\u0436\u043E\u043C.\n8. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0434\u043E\u043B\u0433\u043E\u0439 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A \u043D\u0430 \u0445\u0430\u0440\u0434\u0435",
+          "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
+          "translations": {}
+        },
+        "changes": {
+          "previousVersion": "2.1.219",
+          "complete": true,
+          "added": [
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/dlss_contract.h"
+          ],
+          "changed": [
+            "game/bin/AnomalyDX11.exe",
+            "game/bin/AnomalyDX11AVX.exe",
+            "game/db/shaders_anthology_runtime_seasons.xdb0",
+            "modpack/mods/[GAM] Heat Vision \u2014 \u0422\u0435\u043F\u043B\u043E\u0432\u0438\u0437\u043E\u0440/gamedata/shaders/r3/heatvision.ps",
+            "modpack/mods/[GAM] Heat Vision \u2014 \u0422\u0435\u043F\u043B\u043E\u0432\u0438\u0437\u043E\u0440/gamedata/shaders/r3/infrared.h",
+            "modpack/mods/[GAM] Interactive PDA/gamedata/configs/plugins/pda_market.ltx",
+            "modpack/mods/[GAM] Wearable Devices/gamedata/shaders/r3/wd_body.vs",
+            "modpack/mods/[GAM] Wearable Devices/gamedata/shaders/r3/wd_crt.s",
+            "modpack/mods/[GAM] Wearable Devices/gamedata/shaders/r3/wd_crt_vektor.s",
+            "modpack/mods/[GAM] Wearable Devices/gamedata/shaders/r3/wd_occlude.h",
+            "modpack/mods/[GAM] Wearable Devices/gamedata/shaders/r3/wd_ui.s",
+            "modpack/mods/[GFX] Beefs NVGs Shaders \u2014 \u0428\u0435\u0439\u0434\u0435\u0440\u044B \u0434\u043B\u044F \u043F\u0440\u0438\u0431\u043E\u0440\u043E\u0432 \u043D\u043E\u0447\u043D\u043E\u0433\u043E \u0432\u0438\u0434\u0435\u043D\u0438\u044F2/gamedata/shaders/r3/night_vision.h",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/accum_volumetric.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/accum_volumetric.vs",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/deffer_impl_flat.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/screenspace_common.h",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_ao.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_il.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_ssr.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_sss.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_sss_ext.ps",
+            "modpack/mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_water_ssr.ps",
+            "modpack/mods/[QUE] STORYLINES 3.0.2 \u2014 \u0421\u044E\u0436\u0435\u0442\u043D\u044B\u0435 \u043B\u0438\u043D\u0438\u0438 \u041E\u0445\u043E\u0442\u043D\u0438\u043A\u0438 \u0437\u0430 \u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u0430\u043C\u0438, \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0420\u0430\u0441\u0441\u0432\u0435\u0442 \u0438 \u041E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u041C\u043E\u043D\u043E\u043B\u0438\u0442/gamedata/configs/gameplay/character_desc_ah.xml",
+            "modpack/mods/[QUE] STORYLINES 3.0.2 \u2014 \u0421\u044E\u0436\u0435\u0442\u043D\u044B\u0435 \u043B\u0438\u043D\u0438\u0438 \u041E\u0445\u043E\u0442\u043D\u0438\u043A\u0438 \u0437\u0430 \u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u0430\u043C\u0438, \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0420\u0430\u0441\u0441\u0432\u0435\u0442 \u0438 \u041E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u041C\u043E\u043D\u043E\u043B\u0438\u0442/gamedata/configs/misc/squad_descr/squad_descr_storylines_anthology.ltx",
+            "modpack/mods/[QUE] STORYLINES 3.0.2 \u2014 \u0421\u044E\u0436\u0435\u0442\u043D\u044B\u0435 \u043B\u0438\u043D\u0438\u0438 \u041E\u0445\u043E\u0442\u043D\u0438\u043A\u0438 \u0437\u0430 \u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u0430\u043C\u0438, \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0420\u0430\u0441\u0441\u0432\u0435\u0442 \u0438 \u041E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u041C\u043E\u043D\u043E\u043B\u0438\u0442/gamedata/configs/misc/task/tm_ahsky.ltx",
+            "modpack/mods/[QUE] STORYLINES 3.0.2 \u2014 \u0421\u044E\u0436\u0435\u0442\u043D\u044B\u0435 \u043B\u0438\u043D\u0438\u0438 \u041E\u0445\u043E\u0442\u043D\u0438\u043A\u0438 \u0437\u0430 \u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u0430\u043C\u0438, \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0420\u0430\u0441\u0441\u0432\u0435\u0442 \u0438 \u041E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u041C\u043E\u043D\u043E\u043B\u0438\u0442/gamedata/scripts/storylines_brodyaga.script",
+            "modpack/mods/[QUE] STORYLINES 3.0.2 \u2014 \u0421\u044E\u0436\u0435\u0442\u043D\u044B\u0435 \u043B\u0438\u043D\u0438\u0438 \u041E\u0445\u043E\u0442\u043D\u0438\u043A\u0438 \u0437\u0430 \u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u0430\u043C\u0438, \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0420\u0430\u0441\u0441\u0432\u0435\u0442 \u0438 \u041E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u041C\u043E\u043D\u043E\u043B\u0438\u0442/gamedata/scripts/storylines_character_fixes.script",
+            "modpack/mods/[TMA] CMS New Factions Medkits \u2014 \u041D\u043E\u0432\u0430\u044F \u0444\u0440\u0430\u043A\u0446\u0438\u043E\u043D\u043D\u0430\u044F \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0430 CMS/gamedata/configs/mod_system_tma_cms_factions_items.ltx",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043F\u0442\u0435\u0447\u043A\u0438 \u0434\u043B\u044F BHS/gamedata/configs/mod_system_tma_cms_items.ltx",
+            "modpack/mods/[WPN][0][WPN][R.A.K Weapon Pack Adaptation Global Anomaly BASE (OBT)]/gamedata/shaders/r3/models_lfo_light_dot_weapons_simple.ps",
+            "modpack/mods/[WPN][1][SCP][R.A.K Weapon Pack Adaptation Global Anomaly 3DSS (OBT)]/gamedata/shaders/r3/models_lfo_light_dot_weapons.ps",
+            "modpack/mods/[WPN][1][SCP][R.A.K Weapon Pack Adaptation Global Anomaly 3DSS (OBT)]/gamedata/shaders/r3/models_lfo_light_dot_weapons_simple.ps",
+            "modpack/profiles/Anthology 2.1 HARD \u0421\u043B\u043E\u0436\u043D\u044B\u0439/modlist.txt"
+          ],
+          "deleted": [
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/anims/eft_anm/eft_cms_kit_new.anm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/configs/items/items/anims_list.ltx",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/configs/mod_system_zzz_eft_cmskit.ltx",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/configs/text/eng/st_eft_cmskit.xml",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/configs/text/spa/st_eft_cmskit.xml",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/anomaly_weapons/hud_hands_animation/eft_cms_kit_hand.omf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/dynamics/eft_medical/eft_cms_kit/eft_cmskit_lod.ogf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/dynamics/eft_medical/eft_cms_kit/eft_cms_kit.ogf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/dynamics/eft_medical/eft_cms_kit/eft_cms_kit_hud.ogf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/dynamics/eft_medical/eft_cms_kit/eft_cms_kit_hud.omf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/dynamics/eft_medical/eft_cms_kit/eft_cms_kit_mil_hud.ogf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/meshes/dynamics/eft_medical/eft_cms_kit/eft_cms_kit_sci_hud.ogf",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/sounds/interface/eft_medical/eft_cmskit_use.ogg",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_LOD0_bump#.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_LOD0_bump.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_LOD0_bump.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_LOD0_diff.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_LOD0_diff.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_MILI_diff.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_MILI_diff.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_SCI_diff.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_cms_kit/item_meds_core_medical_surgical_kit_SCI_diff.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_scissors_LOD0_bump#.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_scissors_LOD0_bump.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_scissors_LOD0_bump.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_scissors_LOD0_diff.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_scissors_LOD0_diff.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_stapler_LOD0_bump#.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_stapler_LOD0_bump.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_stapler_LOD0_bump.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_stapler_LOD0_diff.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/item_meds_stapler_LOD0_diff.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/patron_556x45nato_bump#.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/patron_556x45nato_bump.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/patron_556x45nato_bump.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/patron_556x45nato_dif.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/item/eft_medical/eft_tool/patron_556x45nato_dif.thm",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/ui_eft/Backup/ui_icon_cmskit.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/gamedata/textures/ui_eft/ui_icon_cmskit.dds",
+            "modpack/mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A/meta.ini"
+          ]
+        }
+      },
       {
         "version": "2.1.219",
         "publishedAt": "2026-10-13T21:17:48.2490426+00:00",
@@ -119789,6 +119885,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "AbhcbtEYzXQReb6a80QmI7guNES43z/DHQgVspb/Jwuat229/0ZVnQO/zeASeztmBlVf7G43yLaYUtkzk9Nw3A=="
+    "value": "SlLck4PDqsSSw7W//XTqUfWyD3VLV9/ky9wNrtkn\u002BklrJME5U5a9GRlj2DP3O3Jg9MDTYwT5GBYTLyA\u002BXS9ppg=="
   }
 }
