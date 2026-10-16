@@ -3,7 +3,7 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.220",
-    "publishedAt": "2026-10-16T06:37:00.4597678+00:00",
+    "publishedAt": "2026-10-16T10:08:26.9365478+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
@@ -370605,27 +370605,27 @@
       },
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.45",
-        "version": "0.7.0-alpha.45",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.46",
+        "version": "0.7.0-alpha.46",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 14019204,
-        "sha256": "1dc7094e0261a56c084452fe865312ee241edd7bea15bbdd9758e43bd59f3d0d",
+        "size": 14022214,
+        "sha256": "045569560e308154d66028d6792eab5dbf005cf2185ac0b8de55b3c53d682fe7",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/anthology-launcher-0.7.0-alpha.45-1dc7094e0261a56c.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
             "priority": 5
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/anthology-launcher-0.7.0-alpha.45-1dc7094e0261a56c.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/anthology-launcher-0.7.0-alpha.45-1dc7094e0261a56c.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
             "priority": 20
           }
         ],
@@ -370633,7 +370633,7 @@
           "AnomalyLauncher.exe",
           "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.45.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.46.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -371283,6 +371283,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "BauJcm1dBHoAeFrDuXSBhKjUFpDZK0XxaN2xT488sR2bmKk55TXw9Fz0ZA\u002BJJL3aCQHMO4fulAf1D8IFoTcVBQ=="
+    "value": "1jzEms1GDQkmEjt5vbf1JYAqwOtU6TJh7HY8KoJUVU3Wbv8j5VRw6vSAmc0\u002BsidzKusXn0TpLdsqcY4bOEWajg=="
   }
 }
