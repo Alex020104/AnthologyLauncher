@@ -2,19 +2,57 @@
   "payload": {
     "schemaVersion": 5,
     "channel": "next",
-    "version": "2.1.220",
-    "publishedAt": "2026-10-16T10:08:26.9365478+00:00",
+    "version": "2.1.221",
+    "publishedAt": "2026-10-16T15:18:00.8567492+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.46",
+        "version": "0.7.0-alpha.46",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 14022214,
+        "sha256": "045569560e308154d66028d6792eab5dbf005cf2185ac0b8de55b3c53d682fe7",
+        "mirrors": [
+          {
+            "provider": "google-drive",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
+            "priority": 5
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnomalyLauncher.exe",
+          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.46.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": []
+      },
+      {
         "id": "anthology-game",
         "displayName": "Anthology \u2014 \u043A\u043E\u0440\u0435\u043D\u044C \u0438\u0433\u0440\u044B",
-        "version": "2.1.220",
+        "version": "2.1.221",
         "kind": "game",
         "installRoot": "game",
         "archiveFormat": "loose",
-        "size": 52226558346,
-        "sha256": "19922f0bc835d31118c848f1d3475b63718bc5252068320e778498fcf4c5573d",
+        "size": 51945270206,
+        "sha256": "411b86a00939daf90dca6690c0bb2d8073a8c1d8c73e0cb9b8b3bcbd02e9fab2",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -492,6 +530,12 @@
           "[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/textures/water/water_perlin.dds",
           "[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/textures/water/water_sbumpvolume.dds",
           "[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/meta.ini",
+          "db/meshes/meshes.db0",
+          "db/meshes/meshes_actors_gnra.xdb0",
+          "db/meshes/meshes_attribute.xdb0",
+          "db/meshes/meshes_dynamics.db0",
+          "db/meshes/meshes_dynamics_anthology.xdb0",
+          "db/meshes/meshes_weapons.db0",
           "db/shaders_anthology.xdb0",
           "db/textures/textures.xdb0",
           "db/textures/textures.xdb1",
@@ -1548,8 +1592,8 @@
           },
           {
             "path": "bin/AnomalyDX11.exe",
-            "size": 31116288,
-            "sha256": "08ea2b0ba9bd1e99e5161109e3fc3816a9c3c02cedc488a83d7b6884092ff156",
+            "size": 31119872,
+            "sha256": "8d496f8f6d12142e974d520e614bad55ac70dc441500ac6df0c8bd3233933b2d",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1565,8 +1609,8 @@
           },
           {
             "path": "bin/AnomalyDX11AVX.exe",
-            "size": 31015936,
-            "sha256": "96ef2d472feda265b7ce03ad9f09174e4dd313030621ddc86e46fc97b3ccd5d8",
+            "size": 31023104,
+            "sha256": "5528627925745d1672f862be5b80ceaf45f66689357576b522300c3c9fd00e6d",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1888,8 +1932,8 @@
           },
           {
             "path": "db/configs/configs_anthology.xdb0",
-            "size": 12990632,
-            "sha256": "88f1ba685068724eff20aa4bd39feb1c122b1e687f0c1beb534e35e0cfa94a86",
+            "size": 12230420,
+            "sha256": "696704a95601c3e03e8801f45feb159197f60ec41df927e0c0a5319d16ca118c",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1956,8 +2000,8 @@
           },
           {
             "path": "db/configs/scripts_anthology.xdb0",
-            "size": 1556286,
-            "sha256": "93ec133d64503bfb975202793397175a9d0b27b46ae612179ed52723b976ac1c",
+            "size": 1539921,
+            "sha256": "ea41cb522d88759026334afb573802965e466de5d2a6c17f32e31037bee324df",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -3519,23 +3563,6 @@
             ]
           },
           {
-            "path": "db/meshes/meshes.db0",
-            "size": 105828115,
-            "sha256": "907e28db58a51b84bfea53cc01d11db1140cf9b74a268e5f73a24eccf97aac98",
-            "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes.db0",
-                "priority": 10
-              },
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/meshes/meshes.db0",
-                "priority": 5
-              }
-            ]
-          },
-          {
             "path": "db/meshes/meshes.xdb0",
             "size": 175664725,
             "sha256": "ee7a32a7028f6a6a996deb0460abb18cce93c37073ae45ed50d7b26819a2341b",
@@ -3570,23 +3597,6 @@
             ]
           },
           {
-            "path": "db/meshes/meshes_actors_gnra.xdb0",
-            "size": 244476796,
-            "sha256": "bccd8a17c5905e5c67e1b976c1bd9c2ca0264c235143d657da217f35af675847",
-            "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes_actors_gnra.xdb0",
-                "priority": 10
-              },
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/meshes/meshes_actors_gnra.xdb0",
-                "priority": 5
-              }
-            ]
-          },
-          {
             "path": "db/meshes/meshes_actors_omf.xdb0",
             "size": 245341889,
             "sha256": "7cf2d1c30383f0e08abe63d3077f96eec06c401cfcad28ad299595648151708b",
@@ -3604,40 +3614,6 @@
             ]
           },
           {
-            "path": "db/meshes/meshes_attribute.xdb0",
-            "size": 407308,
-            "sha256": "c5ce791ebed7da69f38e723c0ff7ed879ac3eb8038cbec6cf0fccaee199db64c",
-            "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes_attribute.xdb0",
-                "priority": 10
-              },
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/meshes/meshes_attribute.xdb0",
-                "priority": 5
-              }
-            ]
-          },
-          {
-            "path": "db/meshes/meshes_dynamics.db0",
-            "size": 444009913,
-            "sha256": "12b06a1a7fedf07d2a3164055a07f4b24c8fa269144daa1d10c252ab223432e5",
-            "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes_dynamics.db0",
-                "priority": 10
-              },
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/meshes/meshes_dynamics.db0",
-                "priority": 5
-              }
-            ]
-          },
-          {
             "path": "db/meshes/meshes_dynamics.xdb0",
             "size": 558633217,
             "sha256": "a4c012f93b0ce7404a89fc4eefd4a8f394f7770146157a9d91b90a6f873765db",
@@ -3650,40 +3626,6 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes_dynamics.xdb0",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "db/meshes/meshes_dynamics_anthology.xdb0",
-            "size": 254375830,
-            "sha256": "6e4eb3994a4a26d9e9d1d5e98ec32f739d9c6c77ba4fe307cd89a571a15018cf",
-            "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes_dynamics_anthology.xdb0",
-                "priority": 10
-              },
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/meshes/meshes_dynamics_anthology.xdb0",
-                "priority": 5
-              }
-            ]
-          },
-          {
-            "path": "db/meshes/meshes_weapons.db0",
-            "size": 462575032,
-            "sha256": "ee391fdcb417f5ac00ba6f9cb12e36943fd656e6655065adf623d638e539e331",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/meshes/meshes_weapons.db0",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/meshes/meshes_weapons.db0",
                 "priority": 10
               }
             ]
@@ -3826,8 +3768,8 @@
           },
           {
             "path": "db/mods/R1_Animated_Knife_Kill.xdb0",
-            "size": 19054822,
-            "sha256": "668ff1df7429033632d2094dbf34f7452b21b49fbdbf047977559cd27efb7d9d",
+            "size": 19147258,
+            "sha256": "185ade245c3efa1e741c15e2eb3f01c2135d273bd046207965585a58d92ff035",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -3979,8 +3921,8 @@
           },
           {
             "path": "db/mods/[ANT] Sota ui for Anthology.xdb0",
-            "size": 239325573,
-            "sha256": "f5afa781cfdbc85dd46377659040deddb43076639160b19fcdf49c034fd3fa33",
+            "size": 239442929,
+            "sha256": "5eb2d2c812114dabe17d97331bbf9c9c4f42cd3371beceb59c89ef5dd6e3fbd7",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4013,8 +3955,8 @@
           },
           {
             "path": "db/mods/anthology_warfare_front.xdb0",
-            "size": 145070,
-            "sha256": "97ed0bfe5740ba818b6aa9e2e5134e7e21b3af3539445663d848db5dfb8f751b",
+            "size": 92534,
+            "sha256": "aa32a8030864f723f93b145578afff0901969f174032930355887a7bc53f75e2",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4047,8 +3989,8 @@
           },
           {
             "path": "db/mods/fpv_drone.xdb0",
-            "size": 1335399,
-            "sha256": "87c6c0c5d24a0365d43abed3e04c2aa55eb3fd2114e8bac8773b1193b1d51b86",
+            "size": 1335342,
+            "sha256": "88ab0d1b342c9bd2c10dca2727136f99633816f633442ab3cc073d9d2bc7b6fb",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4234,8 +4176,8 @@
           },
           {
             "path": "db/shaders_anthology_runtime_seasons.xdb0",
-            "size": 25235321,
-            "sha256": "0f39564107c9f17ef8348afab52f4145ff670105c39dff992f1b0177a33c0a23",
+            "size": 25267039,
+            "sha256": "8ed151fcb5807a903ff6d25bac0893db3e10133b25ed0386d54a8f6b4dfd006d",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4353,8 +4295,8 @@
           },
           {
             "path": "db/textures/textures_actors.xdb0",
-            "size": 1998318635,
-            "sha256": "43c1cadbc34838698c9a5a1d2a43e81a54ede1a076d10f4c514cd7e9cb349ae1",
+            "size": 1998318611,
+            "sha256": "bc526d279e9f58cba14758e06bbfd78dc2e80f83f59e34e5cf9b180e00fdd91e",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4370,8 +4312,8 @@
           },
           {
             "path": "db/textures/textures_actors.xdb1",
-            "size": 1337763509,
-            "sha256": "a4ba1d42879bb95aa1f1ac1a47588a17953701ce6a85c104addad34f5fdd7f72",
+            "size": 1996913366,
+            "sha256": "b8bf4c9808338724e54ada52a98dfbdea91242158c4af3f1b3854241587fd46e",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4381,6 +4323,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/textures/textures_actors.xdb1",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "db/textures/textures_actors.xdb2",
+            "size": 533675398,
+            "sha256": "2bb377aa2449e443465852a8cd41a17ec60af2ad3a9b76d70f631169c3ce7b0a",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/textures/textures_actors.xdb2",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/textures/textures_actors.xdb2",
                 "priority": 10
               }
             ]
@@ -4761,8 +4720,8 @@
           },
           {
             "path": "db/textures/textures_trees.xdb0",
-            "size": 621780880,
-            "sha256": "9acfdd601ff0cd2bb0dd72e604967b70a49279fd5a0d15aacc120c6a99265d5d",
+            "size": 659917411,
+            "sha256": "3aa9bbda54eb0c1c2f59a5f401bdb8c41e62673cbd23f87c9ca96211f94d43dd",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -6073,12 +6032,12 @@
       {
         "id": "anthology-mo2",
         "displayName": "Anthology \u2014 Mod Organizer 2",
-        "version": "2.1.220",
+        "version": "2.1.221",
         "kind": "modpack",
         "installRoot": "modpack",
         "archiveFormat": "loose",
-        "size": 72331873593,
-        "sha256": "fecea2732ba60e3344869f416905242b758e7fb8122d1b8dc2694378acb04915",
+        "size": 72343845940,
+        "sha256": "55afc342b91b28e2cc7bc5d501785bbf8fc1b9acb6d74d173a22b12adab4225d",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -14282,6 +14241,1111 @@
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BCOM%5D%20Friendly%20Fire%20Off%20%E2%80%94%20%D0%94%D1%80%D1%83%D0%B6%D0%B5%D1%81%D0%BA%D0%B8%D0%B9%20%D0%BE%D0%B3%D0%BE%D0%BD%D1%8C%20%D0%BE%D1%82%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD/meta.ini",
                 "priority": 5
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/README.md",
+            "size": 47096,
+            "sha256": "afc45f74b5b6113a5c762250f6f9ba5ebe04490ed0c5771ef465f71ea34fddd8",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/README.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/README.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/docs/ADDON_COMPATIBILITY.md",
+            "size": 41372,
+            "sha256": "f5e19ccfd75215feb17718f327901a2a3a149a5d2707430d9732a4dcc7f4dbc5",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/ADDON_COMPATIBILITY.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/ADDON_COMPATIBILITY.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/docs/ALL_STORIES.md",
+            "size": 12647,
+            "sha256": "5dd9b3dc2d84ae760e7bbc69c5136e7c641f73bf3857275aad4d933f01f643cf",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/ALL_STORIES.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/ALL_STORIES.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/docs/FORMAT_ADAPTERS.md",
+            "size": 15946,
+            "sha256": "3afdf3f82666b218be0141da828beae2a02ce9009c8878e359a71078e0bd3278",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/FORMAT_ADAPTERS.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/FORMAT_ADAPTERS.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/docs/QA.md",
+            "size": 35969,
+            "sha256": "dbe762c4a5854511c418a8170fa482aa36859f8dc2c399841ee1859385c69b1d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/QA.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/QA.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/docs/STORY_COMPATIBILITY.md",
+            "size": 21284,
+            "sha256": "ee7f44bbdc547beeaa14f238265117aa9d635ded490f351bd34192d61558b05e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/STORY_COMPATIBILITY.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/STORY_COMPATIBILITY.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/docs/STORY_SOURCE_INDEX.md",
+            "size": 16069,
+            "sha256": "d8a74773e7828b51802e72161b320922e45ee9df8f01bd3e8feeef1932b5fbac",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/STORY_SOURCE_INDEX.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/docs/STORY_SOURCE_INDEX.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/configs/acp_storage.ltx",
+            "size": 465,
+            "sha256": "60bdb8cbc2dbf6599757695d4c4199d35e62dcb6839104d31c1e6237a1f87cf2",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/acp_storage.ltx",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/acp_storage.ltx",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/configs/mod_system_acp_profile.ltx",
+            "size": 425,
+            "sha256": "1aff20c2102ed092725545a934acc9a8ad6589f1e85e9a50a1b23f0b81b383ad",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/mod_system_acp_profile.ltx",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/mod_system_acp_profile.ltx",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/configs/text/eng/st_acp_profile.xml",
+            "size": 10944,
+            "sha256": "7088ee7cff6c338c15bce64e653b6d05ee4a7b89508e3efb4f47b6adae2acb35",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/text/eng/st_acp_profile.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/text/eng/st_acp_profile.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/configs/text/rus/st_acp_profile.xml",
+            "size": 11295,
+            "sha256": "c32ee2cb56dbc676ff08f0e9baac1be893c8dc962c9932563cf384fa94e62b8c",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/text/rus/st_acp_profile.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/text/rus/st_acp_profile.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/configs/ui/acp_loading.xml",
+            "size": 529,
+            "sha256": "927d6f82bf469735c2a7cb66180bee7b5f7bf04956d0b00058e335530edce5f6",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/ui/acp_loading.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/ui/acp_loading.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/configs/ui/acp_profile.xml",
+            "size": 7227,
+            "sha256": "2095ecf8079f09528a08e4b700ccd0cbeaaeebd0fe1339f1b7c27d550ee0081b",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/ui/acp_profile.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/configs/ui/acp_profile.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_adapters.script",
+            "size": 7084,
+            "sha256": "f3ece1e6ff83361c7a84f07f65a4469845dbe99325d098b3e46effe6442325b8",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_adapters.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_adapters.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_anomalous.script",
+            "size": 5781,
+            "sha256": "d7fbba55113aa8f0ffba991397b2581ef8129ac066f51ef4843d0aad45727e8f",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_anomalous.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_anomalous.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_character.script",
+            "size": 12552,
+            "sha256": "638fdd54c9fe6bf1e1e0f620a17aef5919c82100bdf8d84391623db7eb340835",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_character.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_character.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_codec.script",
+            "size": 4975,
+            "sha256": "fc48ddd4113f2e4b2ddb0674c52851743f4c5981fa9d31b5ae56bfb7b439eb47",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_codec.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_codec.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_compat.script",
+            "size": 20191,
+            "sha256": "69c87a9c153102af262022efc33546e84e7918bbb3c2c7f5365fbee2f46edaf8",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_compat.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_compat.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_directory.script",
+            "size": 2549,
+            "sha256": "32fa5af76e38139863abc709116ec1ca8124bd6808e9bf18ca008b22974f6074",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_directory.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_directory.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_info_catalog.script",
+            "size": 6043,
+            "sha256": "0fa4e77e6cc9d5f598016e0785444050a6233937b816463d63cb8d20dbb33575",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_info_catalog.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_info_catalog.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_launch.script",
+            "size": 1489,
+            "sha256": "6a4e09ec871907bf0f853d69c1a63915fcac43c4160777cb2e6ad9b16cbe32ab",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_launch.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_launch.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_loading.script",
+            "size": 2913,
+            "sha256": "795260f2c778a51108908833eaac5eda22e6dd7a602ec00d4b01e393606366d6",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_loading.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_loading.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_paths.script",
+            "size": 2231,
+            "sha256": "ec97d29556cf749d9c90a8d437587969df71fd9d87bb299bdf3b57c05dd77c72",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_paths.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_paths.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_profile.script",
+            "size": 30893,
+            "sha256": "4b4d321dfd480ecee64cf592c532f047b8e9d140704f32746847adc2760b73f7",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_profile.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_profile.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_progress.script",
+            "size": 11628,
+            "sha256": "d1d69044da37304cbe42d2e1eaf0c3dfb5cf19903fad9c8af795e603048b097f",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_progress.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_progress.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_quest_items.script",
+            "size": 11924,
+            "sha256": "bddd99774642695c8cc1c229f4eb5df5947ad1f54d69807e28c2cb2ae78d8eec",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_quest_items.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_quest_items.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_scenes.script",
+            "size": 13499,
+            "sha256": "de38ef6e5189626a345f7990d39819e4f61ce04bc81429d858bc374ee836229d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_scenes.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_scenes.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_stashes.script",
+            "size": 7193,
+            "sha256": "099f47f5906d7dd12638ab6791875a5e34a441bbdb99eb199193d312e02fd2db",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_stashes.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_stashes.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_store.script",
+            "size": 6254,
+            "sha256": "f5ea792488d497280f469316cdc691c7dafe10a8d47c5c81ba4c7eb5a3ae46d8",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_store.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_store.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_story.script",
+            "size": 13614,
+            "sha256": "352f864028c89d6868917db1dc64c0008cbf9344c90ba5e104120d10eb0fe88e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_story.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_story.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_story_catalog.script",
+            "size": 120865,
+            "sha256": "7e6ad7254ec5ec08a42a753ade8cfc10512872bf17dc1a955ead5b3adf752897",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_story_catalog.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_story_catalog.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_ui.script",
+            "size": 13646,
+            "sha256": "ca2df2d9ef1e4bc890ae3a86151f06ab70138f75743cf2852972ff568de9210b",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_ui.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_ui.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_world.script",
+            "size": 18151,
+            "sha256": "059fd167a2fefebac3b3890128ea3914887bdb8434a501808cbdb2010af0b2ba",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_world.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_world.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/acp_wtf.script",
+            "size": 18623,
+            "sha256": "e5b582f4cad25bb4cdc637a4559102e96551776d10688c3a7db74af5403d93d5",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_wtf.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/acp_wtf.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/modxml_acp_map_spots.script",
+            "size": 1661,
+            "sha256": "b06e9e24d8249e4bb934dd1949dfccf26ea919d855342e09bf2e2495bf056eb9",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/modxml_acp_map_spots.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/modxml_acp_map_spots.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/scripts/modxml_zzzz_acp_menu.script",
+            "size": 4133,
+            "sha256": "e894541b20924be378898330fb7ef705cb0e9ef6322489ae1069af23cab98941",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/modxml_zzzz_acp_menu.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/scripts/modxml_zzzz_acp_menu.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/textures/ui/acp/loading_background.dds",
+            "size": 192,
+            "sha256": "dd4b0d325bbac3267ee8ea3bee91a1d0ee448c89ecd30897a639b0b4a4701694",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/textures/ui/acp/loading_background.dds",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/textures/ui/acp/loading_background.dds",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/gamedata/textures/ui/acp/profile_stash.dds",
+            "size": 4224,
+            "sha256": "f7d068a86be9e4357cd40f785489886da9fdc878378b289d55ba987a2da75750",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/textures/ui/acp/profile_stash.dds",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/gamedata/textures/ui/acp/profile_stash.dds",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/meta.ini",
+            "size": 188,
+            "sha256": "312f9d61ce85bebd4183426e07986ee23eecb26b6823ee173f2da809316d90b4",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/meta.ini",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/meta.ini",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/all-story-audit.json",
+            "size": 6254980,
+            "sha256": "7ac44a102d4d278e1ae97260e90626084271210531f2eccda30089a5b909ed54",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/all-story-audit.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/all-story-audit.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/compatibility-review-0.3.0.json",
+            "size": 1967,
+            "sha256": "f351e6c62497e50e15760a7400bbf192a0f7e90d5ec4a3ac83c488736dd4a8c0",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/compatibility-review-0.3.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/compatibility-review-0.3.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/compatibility-review-0.4.0.json",
+            "size": 3177,
+            "sha256": "c235070ae008f84a58f38c516d22d2897e62017b59d06b81e44653539c32248a",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/compatibility-review-0.4.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/compatibility-review-0.4.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/crash-review-0.4.1.json",
+            "size": 1033,
+            "sha256": "eb255637f281cb8a6024a6a149c599cc57bd4407b9a9e76402eb1774a042d9cf",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/crash-review-0.4.1.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/crash-review-0.4.1.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/crash-review-0.4.2.json",
+            "size": 1160,
+            "sha256": "96a9af57363857bb3cb4790b8d4f7b4c25093e5923dad8292cfd409bf24f91e5",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/crash-review-0.4.2.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/crash-review-0.4.2.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/crash-review-0.4.3.json",
+            "size": 1726,
+            "sha256": "5c4315c86a65dbddf92b84ae1c0ad31042e5c432844686e8478b5275407abb42",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/crash-review-0.4.3.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/crash-review-0.4.3.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/info-catalog-0.4.3.json",
+            "size": 7371,
+            "sha256": "1042925dc0ce47ac87f4682f0ae5078b19b075279730526fd38716a202aa75dd",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/info-catalog-0.4.3.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/info-catalog-0.4.3.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/interface-review-0.5.0.json",
+            "size": 2039,
+            "sha256": "8c3dd3b971b675656ea54716b0eea74a55435b9f97981e32fea186bf5ab36714",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/interface-review-0.5.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/interface-review-0.5.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/menu-xml-0.5.1.json",
+            "size": 1715,
+            "sha256": "148a67520a29d33d8a4858da2258a62b023b5945384a64e6902e4fb82619586d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/menu-xml-0.5.1.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/menu-xml-0.5.1.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/menu-xml-0.6.0.json",
+            "size": 1715,
+            "sha256": "148a67520a29d33d8a4858da2258a62b023b5945384a64e6902e4fb82619586d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/menu-xml-0.6.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/menu-xml-0.6.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/native-storage-0.4.2.json",
+            "size": 693,
+            "sha256": "7aaf55388cea707a82ded1ccea84f0f0943bb00af06a420496327a8dfcc0309d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.4.2.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.4.2.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/native-storage-0.5.0.json",
+            "size": 786,
+            "sha256": "ecca7f7982782073752a589da89f491cb5ef5e885dd987f2570c696162090477",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.5.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.5.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/quality-review-0.3.0.json",
+            "size": 78349,
+            "sha256": "d30390c7c877beb1701c01d06b32875a0791a8d9cec73e31377046e68453876c",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-review-0.3.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-review-0.3.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/quality-review-0.4.0.json",
+            "size": 1622,
+            "sha256": "a26361896f9787c44a0ff6eb858072b770e164100eabf3a1d78ee08b2906ac29",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-review-0.4.0.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-review-0.4.0.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/quality-review.json",
+            "size": 115588,
+            "sha256": "fcd28d6c32a61dc73ceb7b69fa4508d7312cc3d99c07c365869383f6b9bfb768",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-review.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-review.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/quality-scan.json",
+            "size": 100976,
+            "sha256": "dc1949146859f8547e105e4238db2fa3926bb48e95e2990f218044bcf7dd35d9",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-scan.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/quality-scan.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/story-coverage.json",
+            "size": 38460,
+            "sha256": "e0b02fb25b8d4502c5e9a424d02de3f8af527d728d79b66c090e5e60b2a313b8",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/story-coverage.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/story-coverage.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/story-source-audit.json",
+            "size": 4698107,
+            "sha256": "21def00072955a607f113580f575497bbf25f05756a3030159bafedfc722c2e0",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/story-source-audit.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/story-source-audit.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/summary.json",
+            "size": 5495,
+            "sha256": "643a64a0f4b88f15de9195e236e3d90f94ee48ce3be3244b0544aa641367e7b5",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/summary.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/summary.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/ui-layout-0.6.0.png",
+            "size": 72914,
+            "sha256": "1d42be25c0814be89b8dc99ab447f29876494e399cd5b8bffa053a59cc37a230",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/ui-layout-0.6.0.png",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/ui-layout-0.6.0.png",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/ui-review-0.5.1.md",
+            "size": 2111,
+            "sha256": "be83bb450762d0c65b3ef2c9445479e86c20a9fd06c0e33d587d946abbfda5ce",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/ui-review-0.5.1.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/ui-review-0.5.1.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/ui-review-0.6.0.md",
+            "size": 2158,
+            "sha256": "0044cfd01e612fb1fef7f8e8e34877f5138f1c30bde9db5e4ace9f423dda735d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/ui-review-0.6.0.md",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/ui-review-0.6.0.md",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/unpack-configs.xdb0.log",
+            "size": 57,
+            "sha256": "12465756cfca43632b33eed1d63a0401a2fb5e0097605ba426529460f30f097e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-configs.xdb0.log",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-configs.xdb0.log",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/unpack-configs_anthology.xdb0.log",
+            "size": 57,
+            "sha256": "74853df70d463720ce67dc09002d6a8f59e077a91dad84e5a9a90270f27cd87d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-configs_anthology.xdb0.log",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-configs_anthology.xdb0.log",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/unpack-scripts.xdb0.log",
+            "size": 57,
+            "sha256": "ab9d56c40ff9f675adf358d7995d2d63f52614ee1c81646b518dc2aec38cbf0e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-scripts.xdb0.log",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-scripts.xdb0.log",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/unpack-scripts_anthology.xdb0.log",
+            "size": 57,
+            "sha256": "76c0c38cdf9491f198d8f983ee2687b188ff0baa5c5b77bc06d4c1fab0746473",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-scripts_anthology.xdb0.log",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/unpack-scripts_anthology.xdb0.log",
+                "priority": 10
               }
             ]
           },
@@ -85853,8 +86917,8 @@
           },
           {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/accum_sun_far.ps",
-            "size": 2631,
-            "sha256": "f5f8f034a604b8db3625a5c3ab95baf26f0c59b22e54e71fcdfe8a11b99d1679",
+            "size": 2587,
+            "sha256": "47ce6eb30cc3cfd9d1c8f16d24d16c6e8c607071c4b899ac5c3e1230dfd7e638",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -85887,8 +86951,8 @@
           },
           {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/accum_sun_near.ps",
-            "size": 2155,
-            "sha256": "1534dc1b406d0797e8626d4c61398b1c4dc3a5b72e09d4fe42e3cd8f3649b495",
+            "size": 2111,
+            "sha256": "63d5e6e2bf5418baaae55960df29c3c764abb5bb4d87a6146fde0aa36a01e1b9",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -85989,8 +87053,8 @@
           },
           {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/accum_volumetric_sun.ps",
-            "size": 11834,
-            "sha256": "29736f353d0c7c5470a6e240cabc3b12fe3530175d099db17d9fc1ce7c1372b2",
+            "size": 15219,
+            "sha256": "bb9a70ce397066cd6b42101d46473daf78586751dc46728c150016efbe410373",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -86000,6 +87064,57 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/accum_volumetric_sun.ps",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/anthology_combine_2_upscaled.ps",
+            "size": 2215,
+            "sha256": "fbe218bdabbbecfe691e0e8fac2a39ea62df0d30354a040dd3c969da93ceec7a",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_combine_2_upscaled.ps",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_combine_2_upscaled.ps",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/anthology_particle.ps",
+            "size": 2337,
+            "sha256": "9eaeb2ae6388312533e518b2673cc24662990d409efd1337a882071ef84c3dc0",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_particle.ps",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_particle.ps",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/anthology_particle.vs",
+            "size": 1050,
+            "sha256": "a265d95f4580b18e4a6067d0b396bcb6eb0d64c59bedb648b7b1213d52ce8050",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_particle.vs",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_particle.vs",
                 "priority": 10
               }
             ]
@@ -86051,6 +87166,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_snow_step.ps",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/anthology_upscale_resolve.ps",
+            "size": 1890,
+            "sha256": "38f37a6dc4a3a7a650b5c67b72c929f1d9bca751cabbf3d2a344d8fa96d96b5b",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_upscale_resolve.ps",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/anthology_upscale_resolve.ps",
                 "priority": 10
               }
             ]
@@ -87604,8 +88736,8 @@
           },
           {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/gbuffer_stage.h",
-            "size": 4465,
-            "sha256": "76717843053144cdcfaf8f84db7add757110f712733911a5b9a42588be319b93",
+            "size": 4597,
+            "sha256": "34c4b64555889fc2bca61244ae28346aec3bce4dd598b3a20e04a0dc96076165",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -87649,6 +88781,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/img_corrections.h",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/lmapE.vs",
+            "size": 1247,
+            "sha256": "238551cdfb689b0ab7c20364d0bac10e41f62790a5b62235ff167e0e7600982e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/lmapE.vs",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/lmapE.vs",
                 "priority": 10
               }
             ]
@@ -87960,6 +89109,23 @@
             ]
           },
           {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/particle.vs",
+            "size": 1185,
+            "sha256": "283a04acd83fbc24d4b06890e1bff814a2aeaa7c37530b3c6c798dda673a939f",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/particle.vs",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/particle.vs",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/pbr_brdf.h",
             "size": 10618,
             "sha256": "c447739c9620f2973ba489105a6e086a87bd2f0d46d2f46f34fc8a5926f75998",
@@ -88057,6 +89223,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/pda_overlay.vs",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/pfx_volumetric_light.vs",
+            "size": 361,
+            "sha256": "b3f64c95b9fa80e16aded89099ceb64838dca6a9d2039073b8826ff501e16e4e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/pfx_volumetric_light.vs",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGFX%5D%20ScreenSpaceShaders%20Update%2023.5%20%E2%80%94%20%D0%9E%D0%B1%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%88%D0%B5%D0%B9%D0%B4%D0%B5%D1%80%D0%BE%D0%B2/gamedata/shaders/r3/pfx_volumetric_light.vs",
                 "priority": 10
               }
             ]
@@ -88896,8 +90079,8 @@
           },
           {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/ssfx_sss.ps",
-            "size": 3401,
-            "sha256": "6d4fc9d38f8e15a4528a933f60944f339b0b71b1afaeb8e00781c7444fbf7750",
+            "size": 3770,
+            "sha256": "75914df44f7038d1b4f92e22f1eff5c4ad91fe913d152c5ba4ada1439c30616e",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -89202,8 +90385,8 @@
           },
           {
             "path": "mods/[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/shaders/r3/vert.vs",
-            "size": 804,
-            "sha256": "936580f04af7274595782496ba6c0c642bec466af88ed931e4cc6eeb13724a70",
+            "size": 934,
+            "sha256": "fd3fd43a6a1f2abe459c1c6c87138c4694342aff415709e7b91b35b329cfe6d5",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -370602,50 +371785,12 @@
             ]
           }
         ]
-      },
-      {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.46",
-        "version": "0.7.0-alpha.46",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 14022214,
-        "sha256": "045569560e308154d66028d6792eab5dbf005cf2185ac0b8de55b3c53d682fe7",
-        "mirrors": [
-          {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
-            "priority": 5
-          },
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
-            "priority": 10
-          },
-          {
-            "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
-            "priority": 20
-          }
-        ],
-        "files": [
-          "AnomalyLauncher.exe",
-          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.46.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false,
-        "deletedFiles": []
       }
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.220",
-      "publishedAt": "2026-10-13T23:06:03.8301696+00:00",
+      "version": "2.1.221",
+      "publishedAt": "2026-10-16T15:18:00.8554265+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -370665,17 +371810,17 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.221/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.221/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.221/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 30
               }
             ],
@@ -370956,12 +372101,12 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.221/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.221/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 20
               }
             ],
@@ -371272,9 +372417,9 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.220",
+        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.221",
         "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
-        "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u043F\u0438\u043B\u044F\u0446\u0438\u0438 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432 \u043F\u0440\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0438 \u0441\u0442\u0430\u0440\u044B\u0445 \u0448\u0435\u0439\u0434\u0435\u0440\u043D\u044B\u0445 \u043F\u0440\u0438\u0446\u0435\u043B\u043E\u0432 \u043E\u0442 BaS\n2. DLSS \u0438 FSR \u0434\u043E\u043B\u0436\u043D\u044B \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C, \u0437\u0430\u0432\u0435\u0440\u044F\u0442\u044C \u043E \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u043D\u0435 \u043C\u043E\u0433\u0443.\n3. \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 CMS \u0432 \u0447\u0451\u0440\u043D\u044B\u0439 \u0440\u044B\u043D\u043E\u043A \u041F\u0414\u0410 \u0438 \u0438\u0445 \u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u0438\u0435 \u0446\u0435\u043D\u044B.\n4. \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043D\u043E\u0432\u044B\u0445 \u0441\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0445 \u043B\u0443\u0447\u0435\u0439 \u043E\u0442 \u0410\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0438\u043A\u0441\u0430\n5. \u0412\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 Wearable Devices \u0441 \u041F\u041D\u0412 \u0438 \u0422\u0435\u043F\u043B\u043E\u0432\u0438\u0437\u043E\u0440\u043E\u043C \u043A\u0430\u043A \u043E\u0442 \u041F\u0414\u0410\n6. \u0414\u043E\u043B\u0436\u043D\u044B \u0431\u044B\u0442\u044C \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B \u043B\u043E\u0434\u044B \u0442\u0435\u0440\u0440\u0435\u0439\u043D\u0430\n7. \u0424\u0438\u043A\u0441 \u0432\u044B\u043B\u0435\u0442\u0430 \u043F\u0440\u0438 \u0443\u0434\u0430\u0440\u0435 \u043D\u043E\u0436\u043E\u043C.\n8. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0434\u043E\u043B\u0433\u043E\u0439 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A \u043D\u0430 \u0445\u0430\u0440\u0434\u0435",
+        "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0431\u0430\u043C\u043F\u043E\u0432 \u0443 1 \u0432\u0438\u0434\u0430 \u0434\u0435\u0440\u0435\u0432\u044C\u0435\u0432\n2. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0442\u0435\u043A\u0441\u0442\u0443\u0440 \u043C\u043E\u0434\u0435\u043B\u0435\u0439 Azetrix \u0443 NPC\n3. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0439.\n4. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0432\u044B\u043B\u0435\u0442\u0430 \u043F\u043E \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0443\u0431\u0438\u0439\u0441\u0442\u0432\u0430 \u043D\u043E\u0436\u043E\u043C \u0438\u0437-\u0437\u0430 \u0441\u043F\u0438\u043D\u044B\n5. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u0444\u0444\u043B\u0430\u0439\u043D \u043F\u0435\u0440\u0435\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u043F\u043E \u0433\u0440\u0430\u0444 \u043F\u043E\u0438\u043D\u0442\u0430\u043C \u0443 NPC (\u0431\u043E\u043B\u0435\u0435 \u043F\u043B\u0430\u0432\u043D\u043E)\n6. \u041E\u0431\u043D\u043E\u0432\u0438\u043B\u0430\u0441\u044C \u0432\u043E\u0439\u043D\u0430 \u0433\u0440\u0443\u043F\u043F\u0438\u0440\u043E\u0432\u043E\u043A\n7. \u0425\u0443\u0434 \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044F \u0431\u0435\u0437 \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0438\u0433\u0440\u044B \u0438 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B 2 \u0441\u0442\u0438\u043B\u044F \u043A\u0430\u043A \u0432 ST2\n8. \u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435 \u0438\u0437\u043D\u0430\u0447\u0430\u043B\u044C\u043D\u044B\u0445 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043A \u0440\u0435\u043D\u0434\u0435\u0440\u0430 DX11 (\u0438 \u0435\u0433\u043E \u043E\u0431\u0440\u0430\u0437\u0443\u044E\u0449\u0438\u0445)\n\u0422\u0435\u043F\u0435\u0440\u044C \u0440\u0435\u043D\u0434\u0435\u0440 \u043D\u0435 \u0431\u0443\u0434\u0435\u0442 \u043D\u0430\u0432\u044F\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438,\u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u043F\u0440\u0438\u0432\u043E\u0434\u044F\u0442 \u043A \u043A\u0440\u0430\u0448\u0443 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u0438\u0433\u0440\u044B.\n9. \u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0430\u0434\u0434\u043E\u043D \u043D\u0430 \u043F\u0435\u0440\u0435\u043D\u043E\u0441 \u043F\u0440\u043E\u0444\u0438\u043B\u0435\u0439.\n\u0414\u0430\u043D\u043D\u044B\u0439 \u0430\u0434\u0434\u043E\u043D \u043F\u043E\u0437\u043E\u0432\u043B\u044F\u0435\u0442 \u043F\u0435\u0440\u0435\u043D\u0435\u0441\u0442\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u044C \u0438 \u0445\u0430\u0431\u0430\u0440, \u043E\u0431\u0445\u043E\u0434\u044F \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u044B \u0441 all.spawn \u0438 \u043F\u0440\u043E\u0447\u0438\u043C\u0438 \u0442\u0435\u0445. \u0441\u043B\u043E\u0436\u043D\u043E\u0441\u0442\u044F\u043C\u0438, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043D\u043E\u0432\u043E\u0439 \u0438\u0433\u0440\u044B \u002B \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0430.\n10. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u043B\u0438\u0448\u043D\u0438\u0445 \u043C\u043E\u0434\u0435\u043B\u0435\u0439.\n11. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0440\u0435\u043D\u0434\u0435\u0440\u0430 \u0432 \u043B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u0438\u044F\u0445.",
         "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
         "translations": {}
       }
@@ -371283,6 +372428,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "1jzEms1GDQkmEjt5vbf1JYAqwOtU6TJh7HY8KoJUVU3Wbv8j5VRw6vSAmc0\u002BsidzKusXn0TpLdsqcY4bOEWajg=="
+    "value": "ps/TNQhBkx6nPr6AqNiz\u002BDqKpUNnQqPtOcyinW0cpbagqQOGRbl501XYxSi4JmX4BZepTflnFIWxHVZtHdeCCg=="
   }
 }
