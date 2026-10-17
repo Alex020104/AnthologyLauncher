@@ -2,8 +2,8 @@
   "payload": {
     "schemaVersion": 5,
     "channel": "next",
-    "version": "2.1.221",
-    "publishedAt": "2026-10-16T15:18:00.8567492+00:00",
+    "version": "2.1.222",
+    "publishedAt": "2026-10-17T09:52:36.0959253+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
@@ -6032,12 +6032,12 @@
       {
         "id": "anthology-mo2",
         "displayName": "Anthology \u2014 Mod Organizer 2",
-        "version": "2.1.221",
+        "version": "2.1.222",
         "kind": "modpack",
         "installRoot": "modpack",
         "archiveFormat": "loose",
-        "size": 72343845940,
-        "sha256": "55afc342b91b28e2cc7bc5d501785bbf8fc1b9acb6d74d173a22b12adab4225d",
+        "size": 72343845154,
+        "sha256": "2dd8839c951f04a02d830b61bbc1f65f30492e33e488a4c2017d90200f6f94ce",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -6429,6 +6429,7 @@
           "mods/[BS] Attachments \u2014 \u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u0430\u0442\u0442\u0430\u0447\u043C\u0435\u043D\u0442\u043E\u0432/gamedata/configs/text/rus/st_items_attachments.xml",
           "mods/[BS] Exo System - new_system/gamedata/configs/text/eng/st_items_devices_exo.xml",
           "mods/[BS] Exo System - new_system/gamedata/configs/text/eng/ui_mcm_haruka_exo_servo_sounds.xml",
+          "mods/[DBG] Create Profile and New Game \u002B/validation/native-storage-0.5.0.json",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/eng/burnshit_inventory_destroy.xml",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/eng/st_fix_hip_quest_text.xml",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/eng/st_fix_nimble_order_desc.xml",
@@ -15090,23 +15091,6 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.4.2.json",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "mods/[DBG] Create Profile and New Game \u002B/validation/native-storage-0.5.0.json",
-            "size": 786,
-            "sha256": "ecca7f7982782073752a589da89f491cb5ef5e885dd987f2570c696162090477",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.5.0.json",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Create%20Profile%20and%20New%20Game%20%2B/validation/native-storage-0.5.0.json",
                 "priority": 10
               }
             ]
@@ -371789,8 +371773,8 @@
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.221",
-      "publishedAt": "2026-10-16T15:18:00.8554265+00:00",
+      "version": "2.1.222",
+      "publishedAt": "2026-10-17T09:52:36.0959253+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -372417,17 +372401,16 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.221",
-        "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
-        "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0431\u0430\u043C\u043F\u043E\u0432 \u0443 1 \u0432\u0438\u0434\u0430 \u0434\u0435\u0440\u0435\u0432\u044C\u0435\u0432\n2. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0442\u0435\u043A\u0441\u0442\u0443\u0440 \u043C\u043E\u0434\u0435\u043B\u0435\u0439 Azetrix \u0443 NPC\n3. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0439.\n4. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0432\u044B\u043B\u0435\u0442\u0430 \u043F\u043E \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0443\u0431\u0438\u0439\u0441\u0442\u0432\u0430 \u043D\u043E\u0436\u043E\u043C \u0438\u0437-\u0437\u0430 \u0441\u043F\u0438\u043D\u044B\n5. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u0444\u0444\u043B\u0430\u0439\u043D \u043F\u0435\u0440\u0435\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u043F\u043E \u0433\u0440\u0430\u0444 \u043F\u043E\u0438\u043D\u0442\u0430\u043C \u0443 NPC (\u0431\u043E\u043B\u0435\u0435 \u043F\u043B\u0430\u0432\u043D\u043E)\n6. \u041E\u0431\u043D\u043E\u0432\u0438\u043B\u0430\u0441\u044C \u0432\u043E\u0439\u043D\u0430 \u0433\u0440\u0443\u043F\u043F\u0438\u0440\u043E\u0432\u043E\u043A\n7. \u0425\u0443\u0434 \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044F \u0431\u0435\u0437 \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0438\u0433\u0440\u044B \u0438 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B 2 \u0441\u0442\u0438\u043B\u044F \u043A\u0430\u043A \u0432 ST2\n8. \u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435 \u0438\u0437\u043D\u0430\u0447\u0430\u043B\u044C\u043D\u044B\u0445 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043A \u0440\u0435\u043D\u0434\u0435\u0440\u0430 DX11 (\u0438 \u0435\u0433\u043E \u043E\u0431\u0440\u0430\u0437\u0443\u044E\u0449\u0438\u0445)\n\u0422\u0435\u043F\u0435\u0440\u044C \u0440\u0435\u043D\u0434\u0435\u0440 \u043D\u0435 \u0431\u0443\u0434\u0435\u0442 \u043D\u0430\u0432\u044F\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438,\u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u043F\u0440\u0438\u0432\u043E\u0434\u044F\u0442 \u043A \u043A\u0440\u0430\u0448\u0443 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u0438\u0433\u0440\u044B.\n9. \u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0430\u0434\u0434\u043E\u043D \u043D\u0430 \u043F\u0435\u0440\u0435\u043D\u043E\u0441 \u043F\u0440\u043E\u0444\u0438\u043B\u0435\u0439.\n\u0414\u0430\u043D\u043D\u044B\u0439 \u0430\u0434\u0434\u043E\u043D \u043F\u043E\u0437\u043E\u0432\u043B\u044F\u0435\u0442 \u043F\u0435\u0440\u0435\u043D\u0435\u0441\u0442\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u044C \u0438 \u0445\u0430\u0431\u0430\u0440, \u043E\u0431\u0445\u043E\u0434\u044F \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u044B \u0441 all.spawn \u0438 \u043F\u0440\u043E\u0447\u0438\u043C\u0438 \u0442\u0435\u0445. \u0441\u043B\u043E\u0436\u043D\u043E\u0441\u0442\u044F\u043C\u0438, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043D\u043E\u0432\u043E\u0439 \u0438\u0433\u0440\u044B \u002B \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0430.\n10. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u043B\u0438\u0448\u043D\u0438\u0445 \u043C\u043E\u0434\u0435\u043B\u0435\u0439.\n11. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0440\u0435\u043D\u0434\u0435\u0440\u0430 \u0432 \u043B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u0438\u044F\u0445.",
-        "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
-        "translations": {}
+        "title": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 2.1.222",
+        "summary": "\u0423\u0431\u0440\u0430\u043D\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0441\u043B\u0443\u0436\u0435\u0431\u043D\u043E\u0433\u043E \u043E\u0442\u0447\u0451\u0442\u0430 \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.",
+        "body": "\u0418\u0441\u043A\u043B\u044E\u0447\u0451\u043D validation/native-storage-0.5.0.json \u0438\u0437 \u0430\u0434\u0434\u043E\u043D\u0430 Create Profile and New Game \u002B: \u042F\u043D\u0434\u0435\u043A\u0441.\u0414\u0438\u0441\u043A \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u043B HTTP 500 \u043F\u0440\u0438 \u0435\u0433\u043E \u0441\u043A\u0430\u0447\u0438\u0432\u0430\u043D\u0438\u0438. \u0418\u0433\u0440\u043E\u0432\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0430\u0434\u0434\u043E\u043D\u0430, \u0438\u0433\u0440\u0430 \u0438 Launcher alpha.46 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u044B.",
+        "warnings": "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u0435 \u0441\u0432\u0435\u0436\u0438\u0439 \u043C\u0430\u043D\u0438\u0444\u0435\u0441\u0442 \u043A\u043D\u043E\u043F\u043A\u043E\u0439 \u00AB\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C\u00BB \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443."
       }
     }
   },
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "ps/TNQhBkx6nPr6AqNiz\u002BDqKpUNnQqPtOcyinW0cpbagqQOGRbl501XYxSi4JmX4BZepTflnFIWxHVZtHdeCCg=="
+    "value": "jNwso\u002BlXU7578aOGVeSW3QiUS\u002B5rwWIPcm9\u002Bypq3ITEWh\u002Bo3vUPwuR/8vuXmIfLsqIBTbX6cIFBxTvsznMAAEQ=="
   }
 }
