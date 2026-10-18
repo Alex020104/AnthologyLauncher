@@ -2,11 +2,11 @@
   "payload": {
     "schemaVersion": 1,
     "channel": "next",
-    "updatedAt": "2026-10-17T09:52:36.0959253+00:00",
+    "updatedAt": "2026-10-18T06:06:35.9314939+00:00",
     "entries": [
       {
         "version": "2.1.222",
-        "publishedAt": "2026-10-17T09:52:36.0959253+00:00",
+        "publishedAt": "2026-10-18T06:06:35.9314939+00:00",
         "changelog": {
           "title": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 2.1.222",
           "summary": "\u0423\u0431\u0440\u0430\u043D\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0441\u043B\u0443\u0436\u0435\u0431\u043D\u043E\u0433\u043E \u043E\u0442\u0447\u0451\u0442\u0430 \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.",
@@ -964,6 +964,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "9aWlq87V7R99XY4bauRGhGhPrOR1ml440dCnqSXWgj4FrVRgyE4dcemC\u002Bn\u002BV45dMXuJ8IMYTaMCgZm1YP7RXxA=="
+    "value": "N1pVI7GnVZ6\u002Bs9HbV6QUS1/sxRWBEpwLSU9/YsbyY6oSRx2fF\u002BJ9P78HZ/CcZPsSdci52PBmT2r0cD\u002BVhLQ1OA=="
   }
 }

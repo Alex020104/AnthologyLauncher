@@ -2,32 +2,32 @@
   "payload": {
     "schemaVersion": 4,
     "channel": "next",
-    "version": "2.1.220",
-    "publishedAt": "2026-10-16T10:08:26.9365478+00:00",
+    "version": "2.1.222",
+    "publishedAt": "2026-10-18T06:06:35.9314939+00:00",
     "packages": [
       {
         "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.46",
-        "version": "0.7.0-alpha.46",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.47",
+        "version": "0.7.0-alpha.47",
         "kind": "launcher",
         "installRoot": "game",
         "archiveFormat": "zip",
-        "size": 14022214,
-        "sha256": "045569560e308154d66028d6792eab5dbf005cf2185ac0b8de55b3c53d682fe7",
+        "size": 16112356,
+        "sha256": "8ea35ed4f721018b88ae01c350e1ebab3b0ecd1040c124c8fb6d32eeec1042e2",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.222/anthology-launcher-0.7.0-alpha.47-8ea35ed4f721018b.zip",
             "priority": 5
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.222/anthology-launcher-0.7.0-alpha.47-8ea35ed4f721018b.zip",
             "priority": 10
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/anthology-launcher-0.7.0-alpha.46-045569560e308154.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.222/anthology-launcher-0.7.0-alpha.47-8ea35ed4f721018b.zip",
             "priority": 20
           }
         ],
@@ -35,7 +35,7 @@
           "AnomalyLauncher.exe",
           "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
           "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.46.zip",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.47.zip",
           "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
           "AnthologyLauncher/Update/channel.json"
         ],
@@ -46,8 +46,8 @@
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.220",
-      "publishedAt": "2026-10-13T23:06:03.8301696+00:00",
+      "version": "2.1.222",
+      "publishedAt": "2026-10-17T09:52:36.0959253+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -67,17 +67,17 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.221/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.221/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.220/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.221/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 30
               }
             ],
@@ -358,12 +358,12 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.220/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.221/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.220/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.221/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 20
               }
             ],
@@ -674,17 +674,16 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.220",
-        "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
-        "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u043F\u0438\u043B\u044F\u0446\u0438\u0438 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432 \u043F\u0440\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0438 \u0441\u0442\u0430\u0440\u044B\u0445 \u0448\u0435\u0439\u0434\u0435\u0440\u043D\u044B\u0445 \u043F\u0440\u0438\u0446\u0435\u043B\u043E\u0432 \u043E\u0442 BaS\n2. DLSS \u0438 FSR \u0434\u043E\u043B\u0436\u043D\u044B \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C, \u0437\u0430\u0432\u0435\u0440\u044F\u0442\u044C \u043E \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u043D\u0435 \u043C\u043E\u0433\u0443.\n3. \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 CMS \u0432 \u0447\u0451\u0440\u043D\u044B\u0439 \u0440\u044B\u043D\u043E\u043A \u041F\u0414\u0410 \u0438 \u0438\u0445 \u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u0438\u0435 \u0446\u0435\u043D\u044B.\n4. \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043D\u043E\u0432\u044B\u0445 \u0441\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0445 \u043B\u0443\u0447\u0435\u0439 \u043E\u0442 \u0410\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0438\u043A\u0441\u0430\n5. \u0412\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 Wearable Devices \u0441 \u041F\u041D\u0412 \u0438 \u0422\u0435\u043F\u043B\u043E\u0432\u0438\u0437\u043E\u0440\u043E\u043C \u043A\u0430\u043A \u043E\u0442 \u041F\u0414\u0410\n6. \u0414\u043E\u043B\u0436\u043D\u044B \u0431\u044B\u0442\u044C \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B \u043B\u043E\u0434\u044B \u0442\u0435\u0440\u0440\u0435\u0439\u043D\u0430\n7. \u0424\u0438\u043A\u0441 \u0432\u044B\u043B\u0435\u0442\u0430 \u043F\u0440\u0438 \u0443\u0434\u0430\u0440\u0435 \u043D\u043E\u0436\u043E\u043C.\n8. \u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0434\u043E\u043B\u0433\u043E\u0439 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A \u043D\u0430 \u0445\u0430\u0440\u0434\u0435",
-        "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
-        "translations": {}
+        "title": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 2.1.222",
+        "summary": "\u0423\u0431\u0440\u0430\u043D\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0441\u043B\u0443\u0436\u0435\u0431\u043D\u043E\u0433\u043E \u043E\u0442\u0447\u0451\u0442\u0430 \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.",
+        "body": "\u0418\u0441\u043A\u043B\u044E\u0447\u0451\u043D validation/native-storage-0.5.0.json \u0438\u0437 \u0430\u0434\u0434\u043E\u043D\u0430 Create Profile and New Game \u002B: \u042F\u043D\u0434\u0435\u043A\u0441.\u0414\u0438\u0441\u043A \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u043B HTTP 500 \u043F\u0440\u0438 \u0435\u0433\u043E \u0441\u043A\u0430\u0447\u0438\u0432\u0430\u043D\u0438\u0438. \u0418\u0433\u0440\u043E\u0432\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0430\u0434\u0434\u043E\u043D\u0430, \u0438\u0433\u0440\u0430 \u0438 Launcher alpha.46 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u044B.",
+        "warnings": "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u0435 \u0441\u0432\u0435\u0436\u0438\u0439 \u043C\u0430\u043D\u0438\u0444\u0435\u0441\u0442 \u043A\u043D\u043E\u043F\u043A\u043E\u0439 \u00AB\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C\u00BB \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443."
       }
     }
   },
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "urZqZ1nudvNdkHX4IN5372hqBLh2u/buN/0/AR\u002BhC7XQKo4RIYLzzeNFrtYPsGJoVnkWE9OnRb/R2r7h5riPYg=="
+    "value": "LlHTJqYcxoklCb0cGkusqIJm5cUGlGIwAonIGOgR6dl51MRqHZMpGKIACbgALLft2wJTVFvlael32NoMvFhYbg=="
   }
 }
