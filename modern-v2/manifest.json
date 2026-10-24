@@ -2,8 +2,8 @@
   "payload": {
     "schemaVersion": 5,
     "channel": "next",
-    "version": "2.1.224",
-    "publishedAt": "2026-10-22T06:21:32.2044012+00:00",
+    "version": "2.1.225",
+    "publishedAt": "2026-10-24T12:45:50.3271672+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
@@ -47,12 +47,12 @@
       {
         "id": "anthology-game",
         "displayName": "Anthology \u2014 \u043A\u043E\u0440\u0435\u043D\u044C \u0438\u0433\u0440\u044B",
-        "version": "2.1.224",
+        "version": "2.1.225",
         "kind": "game",
         "installRoot": "game",
         "archiveFormat": "loose",
-        "size": 51822237506,
-        "sha256": "0e803131d7397df5650d4881b45c03f8667fba07a25656b68bc0033b5605a3f9",
+        "size": 52094982850,
+        "sha256": "938dcac09a6cc2eada5cb3d4c3caf8d3613d424d38bbb2112b8819258da3c83b",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -1596,8 +1596,8 @@
           },
           {
             "path": "bin/AnomalyDX11.exe",
-            "size": 32610816,
-            "sha256": "3ed732b148f3f28aae1db9cc527f34eacfb9c68bf3482e63ff662b5cddc9230a",
+            "size": 32613888,
+            "sha256": "ecc6bef5c9558f940423c729180474411251d948cce82fb91bbe09cfe6280de2",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1613,8 +1613,8 @@
           },
           {
             "path": "bin/AnomalyDX11AVX.exe",
-            "size": 32509440,
-            "sha256": "e16aa78fb3cd0ded7cf12d443bdd7f21242ecaf6bb0b4b37ec1e123c9c04a1cb",
+            "size": 32513024,
+            "sha256": "5c10558eb5e7a76c492007db3a55b7517aaa182f022ba99a29a82b560a1b0d05",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -4554,8 +4554,8 @@
           },
           {
             "path": "db/textures/textures_intro_ogm.xdb0",
-            "size": 1112222177,
-            "sha256": "890f4747e53fd8d261516b8d9267ab3c89934b2d1adde54592ea6c8ba49f6344",
+            "size": 1384960865,
+            "sha256": "20a6af74a3a888b63111fa49c6aa1b55e9222557b9985bf84c4127290a4348c5",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -6002,12 +6002,12 @@
       {
         "id": "anthology-mo2",
         "displayName": "Anthology \u2014 Mod Organizer 2",
-        "version": "2.1.224",
+        "version": "2.1.225",
         "kind": "modpack",
         "installRoot": "modpack",
         "archiveFormat": "loose",
-        "size": 72356239183,
-        "sha256": "7a539b5a524a913c853638ed96a39f554304c8d1e83c734b98378d3b89f679a2",
+        "size": 72356256912,
+        "sha256": "c0aa0f5c905e1036f8ee020588394cee0a3aaa1e160f1094229a18286f4a8c2d",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -8352,6 +8352,108 @@
             ]
           },
           {
+            "path": "mods/[AOE] Native Addons Core/gamedata/configs/text/eng/st_anthology_upscaler.xml",
+            "size": 2884,
+            "sha256": "c34ec3412e5cf7290a42486905387c28b563259474c4f439f99b76ce36c15a46",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/eng/st_anthology_upscaler.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/eng/st_anthology_upscaler.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[AOE] Native Addons Core/gamedata/configs/text/eng/st_anthology_upscaler_backend.xml",
+            "size": 1116,
+            "sha256": "cd40b0dc86347821528bdd5b2c0757acc1cc0fdee4384ddd3fe3d66e27a200b6",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/eng/st_anthology_upscaler_backend.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/eng/st_anthology_upscaler_backend.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[AOE] Native Addons Core/gamedata/configs/text/eng/ui_mm_anthology_upscaler.xml",
+            "size": 2556,
+            "sha256": "b071c1a05fc79108956febe3e329973121c17767c4f0cfb7c134a0ba1b05f656",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/eng/ui_mm_anthology_upscaler.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/eng/ui_mm_anthology_upscaler.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[AOE] Native Addons Core/gamedata/configs/text/rus/st_anthology_upscaler.xml",
+            "size": 3032,
+            "sha256": "71f83d090c4ae2a6240dd21e937db32064f676b2bfc2044f173c3fe747169314",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/rus/st_anthology_upscaler.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/rus/st_anthology_upscaler.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[AOE] Native Addons Core/gamedata/configs/text/rus/st_anthology_upscaler_backend.xml",
+            "size": 1099,
+            "sha256": "6c78ec48dc33963bb2228d3925c40cb5d70ef05de45438650edd34217a98c670",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/rus/st_anthology_upscaler_backend.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/rus/st_anthology_upscaler_backend.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[AOE] Native Addons Core/gamedata/configs/text/rus/ui_mm_anthology_upscaler.xml",
+            "size": 2671,
+            "sha256": "17b3aa1312c94ef56a6ff12730f8a2bfa5c81ee1a768fed58ec3f864525e92a1",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/rus/ui_mm_anthology_upscaler.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/configs/text/rus/ui_mm_anthology_upscaler.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[AOE] Native Addons Core/gamedata/scripts/anthology_native_queries.script",
             "size": 1280,
             "sha256": "c798f847ffdaecccfe7b0fea339e788b6a69873da1c91984dca10fa2ad90601e",
@@ -8364,6 +8466,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/scripts/anthology_native_queries.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[AOE] Native Addons Core/gamedata/scripts/anthology_upscaler_mcm.script",
+            "size": 1868,
+            "sha256": "0baf17b9406b3c2af5470da9ba461a450a8cf11eb186461ace963e90a298f1dd",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/scripts/anthology_upscaler_mcm.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BAOE%5D%20Native%20Addons%20Core/gamedata/scripts/anthology_upscaler_mcm.script",
                 "priority": 10
               }
             ]
@@ -17788,8 +17907,8 @@
           },
           {
             "path": "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/scripts/fix_rvr_active_storages_nil.script",
-            "size": 4610,
-            "sha256": "697e9e9b86884e5c98fe3a5d3392af0daf60ac57c0d69480e789a33b61988512",
+            "size": 4893,
+            "sha256": "eccba937d7b522c05b4cb5dd6a12b293f0a9aed7033ccb62fbdac0e925833ba4",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -45226,8 +45345,8 @@
           },
           {
             "path": "mods/[GAM] R.A.K Balance/gamedata/scripts/rak_monolith_supply_dialogs.script",
-            "size": 7108,
-            "sha256": "1ffccef85588a91f4ed7d42e3c93ab032d480abeb0e290ffde102316e8fe9fce",
+            "size": 7653,
+            "sha256": "b3940abff246e59deb2f48a1dfc14c0114419217d9ca2f5f379a221d5f014d6c",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -256553,14 +256672,14 @@
             "sha256": "eea0524853e9621725889ee25f56e0e6188c4d54bd393d258263a34a418d4db0",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/hui/hui.ltx",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/hui/hui.ltx",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/hui/hui.ltx",
+                "priority": 10
               }
             ]
           },
@@ -256570,14 +256689,14 @@
             "sha256": "6b696b885bfe61157c06a3b0dd2f463c4fa71a4390f64b04a9aa7fdf52b95c8a",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/text/eng/ui_mcm_hui.xml",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/text/eng/ui_mcm_hui.xml",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/text/eng/ui_mcm_hui.xml",
+                "priority": 10
               }
             ]
           },
@@ -256587,14 +256706,14 @@
             "sha256": "16e9a524782d6894bac053a99e9e918b41f75c7c23967c8ea8554434dc1d658d",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/text/rus/ui_mcm_hui.xml",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/text/rus/ui_mcm_hui.xml",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/text/rus/ui_mcm_hui.xml",
+                "priority": 10
               }
             ]
           },
@@ -256604,31 +256723,31 @@
             "sha256": "45b982e7f572baf050738e8fcb47c17646479ab8433ef1463317ee94e9967e39",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/ui/ui_hui_marker.xml",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/ui/ui_hui_marker.xml",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/configs/ui/ui_hui_marker.xml",
+                "priority": 10
               }
             ]
           },
           {
             "path": "mods/[UI] H.U.I. - Health User Interface/gamedata/scripts/hui_main.script",
-            "size": 66599,
-            "sha256": "6f3e8c27734a19ac89eae0d01d4b468b40d18ea95f7f5cb834a3435823eba5a4",
+            "size": 67307,
+            "sha256": "24cef5f2552bd5727599c06e09dd0867cb948490abb6979fb9ecd5e05c00e341",
             "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/scripts/hui_main.script",
-                "priority": 10
-              },
               {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/scripts/hui_main.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/scripts/hui_main.script",
+                "priority": 10
               }
             ]
           },
@@ -256638,14 +256757,14 @@
             "sha256": "7db25a828d8d05797a66c7d0e86d0d2cf0c94e1ca2ccc1f1da4c49bec66ef4cb",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/scripts/hui_mcm.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/scripts/hui_mcm.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BUI%5D%20H.U.I.%20-%20Health%20User%20Interface/gamedata/scripts/hui_mcm.script",
+                "priority": 10
               }
             ]
           },
@@ -258389,14 +258508,14 @@
             "sha256": "35b80251b954bebe2ea6e3c4a78ed34b442792f1bb3fbefd3f2ac94cc28abc3c",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/configs/text/eng/ui_st_weapon_cover_tilt_mcm.xml",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/configs/text/eng/ui_st_weapon_cover_tilt_mcm.xml",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/configs/text/eng/ui_st_weapon_cover_tilt_mcm.xml",
+                "priority": 10
               }
             ]
           },
@@ -258406,31 +258525,31 @@
             "sha256": "3afa9e6dc288d408d47f5d212fdb6f29a59096708c78d6224df92fe73fc5c7a1",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/configs/text/rus/ui_st_weapon_cover_tilt_mcm.xml",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/configs/text/rus/ui_st_weapon_cover_tilt_mcm.xml",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/configs/text/rus/ui_st_weapon_cover_tilt_mcm.xml",
+                "priority": 10
               }
             ]
           },
           {
             "path": "mods/[WPN] Weapon Cover Tilt \u2014 \u041D\u0430\u043A\u043B\u043E\u043D \u043E\u0440\u0443\u0436\u0438\u044F \u0438\u0437-\u0437\u0430 \u0443\u043A\u0440\u044B\u0442\u0438\u044F/gamedata/scripts/weapon_cover_tilt.script",
-            "size": 35290,
-            "sha256": "08132c4f50fa011182d6c28054349b7709c71e409cd67ae98ac286d705d6b793",
+            "size": 35284,
+            "sha256": "3304574d77e5b004db627e91fbec3b664cc3c032b2044703fde8c9e20cfc178d",
             "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt.script",
-                "priority": 10
-              },
               {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt.script",
+                "priority": 10
               }
             ]
           },
@@ -258440,14 +258559,14 @@
             "sha256": "e3a18f5b3cb1bc364d69a3127314ef03cbc704da1ef9102567e5a29f33153449",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_gun_trigger_radii.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_gun_trigger_radii.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_gun_trigger_radii.script",
+                "priority": 10
               }
             ]
           },
@@ -258457,14 +258576,14 @@
             "sha256": "67db968be3332004c6d8b1251facd2bb7bd3cfd2b637f483717b18ac47f4f6f9",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_mcm.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_mcm.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_mcm.script",
+                "priority": 10
               }
             ]
           },
@@ -258474,14 +258593,14 @@
             "sha256": "86c86bde94c990b60298d099d9ca753aaea13ac02e0b3a0e91c0026b7880234a",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions.script",
+                "priority": 10
               }
             ]
           },
@@ -258491,14 +258610,14 @@
             "sha256": "1a32bffa60fa4a9017d39e40ef55e5d8e45fdf4dffba7bac2009bf0622c2d0b4",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_ash_tactical.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_ash_tactical.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_ash_tactical.script",
+                "priority": 10
               }
             ]
           },
@@ -258508,14 +258627,14 @@
             "sha256": "efa2553bddb750f9ad54b68a7126f6aeadd4f58ad587999bd6b0ecb6a73ed1ee",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_bas.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_bas.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_bas.script",
+                "priority": 10
               }
             ]
           },
@@ -258525,14 +258644,14 @@
             "sha256": "2bc72d123ca27d938501101b071f42e9260bb9f0ad565b2d0022578393dfd9a8",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_bas_new.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_bas_new.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_bas_new.script",
+                "priority": 10
               }
             ]
           },
@@ -258542,14 +258661,14 @@
             "sha256": "06a807308d996abfc7a5705a60207e8b79529ffc0345a718a90d96204024012f",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_berettas.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_berettas.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_berettas.script",
+                "priority": 10
               }
             ]
           },
@@ -258559,14 +258678,14 @@
             "sha256": "a5a4e1a2a0f95c8077b01e3cf69ee2525e33a9ecf47049bc9fe889fc17b58f7d",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_deg.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_deg.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_deg.script",
+                "priority": 10
               }
             ]
           },
@@ -258576,14 +258695,14 @@
             "sha256": "9743f41ad485685a83e24863ba0e9dbb3eb48174085e74a97d07014077904c43",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_mp153.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_mp153.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_mp153.script",
+                "priority": 10
               }
             ]
           },
@@ -258593,14 +258712,14 @@
             "sha256": "c00ad9e956c6e1956e0853ceab99a981c530ed33ca03a67539e5f04747cbb516",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_pb_pm.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_pb_pm.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_pb_pm.script",
+                "priority": 10
               }
             ]
           },
@@ -258610,14 +258729,14 @@
             "sha256": "51e1d6057741d8c2fad11201a9ea8e7522d0cb6b9b0f54b7100b4e6cb1be70e0",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_saiga9.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_saiga9.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_eft_saiga9.script",
+                "priority": 10
               }
             ]
           },
@@ -258627,14 +258746,14 @@
             "sha256": "d79ee04a81b173ef66d8692d0baf70fe2cb62ba7995d3c678128726977fa434d",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_spas12.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_spas12.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_spas12.script",
+                "priority": 10
               }
             ]
           },
@@ -258644,14 +258763,14 @@
             "sha256": "d853692f490107f147afb2bfcb67ce9294cd439dcd81f04e3e8e49d1c0adc9b9",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_z_vityaz_virilized.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_z_vityaz_virilized.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_positions_z_vityaz_virilized.script",
+                "priority": 10
               }
             ]
           },
@@ -258661,14 +258780,14 @@
             "sha256": "266530c72e3778e11b1a6febe8f59d93511256e31c80fd18fbc7259552ec1615",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_rattle.script",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_rattle.script",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/gamedata/scripts/weapon_cover_tilt_rattle.script",
+                "priority": 10
               }
             ]
           },
@@ -258678,14 +258797,14 @@
             "sha256": "e4fd425cbc7145bf646eb3dd67a01fde840ae237bcaa55c255be924b92714b4a",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/meta.ini",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/meta.ini",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BWPN%5D%20Weapon%20Cover%20Tilt%20%E2%80%94%20%D0%9D%D0%B0%D0%BA%D0%BB%D0%BE%D0%BD%20%D0%BE%D1%80%D1%83%D0%B6%D0%B8%D1%8F%20%D0%B8%D0%B7-%D0%B7%D0%B0%20%D1%83%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D1%8F/meta.ini",
+                "priority": 10
               }
             ]
           },
@@ -338302,8 +338421,8 @@
           },
           {
             "path": "mods/[[HUD] Interaction Dot Marks/gamedata/scripts/ui_hud_dotmarks.script",
-            "size": 260375,
-            "sha256": "7f77b0f0e08646c0e89ff2f7333f11b92b9194263fa0b3e6f0e92e5c47d5fac1",
+            "size": 261348,
+            "sha256": "2e8ac51e357ec16e83b9db252747edc13ad25c8ee19ca0f902a6904ff97a9061",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -372305,8 +372424,8 @@
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.224",
-      "publishedAt": "2026-10-22T06:21:32.2031587+00:00",
+      "version": "2.1.225",
+      "publishedAt": "2026-10-24T12:45:50.324997+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -372326,17 +372445,17 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.224/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.225/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.224/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.225/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.224/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.225/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 30
               }
             ],
@@ -372617,12 +372736,12 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.224/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.225/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.224/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.225/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 20
               }
             ],
@@ -372933,9 +373052,9 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.224",
+        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.225",
         "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
-        "body": "1. \u0418\u0437\u043C\u0435\u043D\u0451\u043D \u0434\u0432\u0438\u0436\u043E\u043A\n\u0422\u0435\u043F\u0435\u0440\u044C \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C \u0434\u043E\u043B\u0436\u043D\u0430 \u0432\u044B\u0440\u0430\u0441\u0442\u0438, \u0431\u043E\u043B\u044C\u0448\u0435 \u0432\u0441\u0435\u0433\u043E \u043D\u0430\u0433\u0440\u0443\u0437\u043A\u0443 \u043D\u0430 \u0432\u0438\u0434\u0435\u043E\u043A\u0430\u0440\u0442\u0443 \u0434\u0430\u0451\u0442 \u0442\u0440\u0430\u0432\u0430, \u0431\u044B\u043B \u0441\u0434\u0435\u043B\u0430\u043D \u043C\u043D\u043E\u0433\u043E\u043F\u043E\u0442\u043E\u0447\u043D\u044B\u0439 \u0440\u0435\u043D\u0434\u0435\u0440\u0438\u043D\u0433 \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u043E\u043C \u0438\u0437 AOE.\n\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B \u0448\u0435\u0439\u0434\u0435\u0440\u044B \u0434\u043B\u044F \u043F\u0440\u0438\u0446\u0435\u043B\u043E\u0432 \u043F\u043E\u0434 \u043D\u043E\u0432\u044B\u0439 \u0434\u0432\u0438\u0436\u043E\u043A\n\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D DLSS \u0438 FSR \u0441\u043D\u043E\u0432\u0430(\u0434\u043E\u043B\u0436\u0435\u043D \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C)\n\u0410\u0434\u0434\u043E\u043D\u044B \n2. \u041E\u0431\u043D\u043E\u0432\u043B\u0451\u043D [GAM] R.A.K Balance\n\u0422\u0435\u043F\u0435\u0440\u044C \u0413\u0440\u0443\u043F\u043F\u0438\u0440\u043E\u0432\u043A\u0430 \u041C\u043E\u043D\u043E\u043B\u0438\u0442 \u043D\u0435 \u0442\u043E\u0440\u0433\u0443\u0435\u0442 \u0441 \u0438\u0433\u0440\u043E\u043A\u043E\u043C,\u0430 \u0432\u044B\u0434\u0430\u0451\u0442 \u043D\u0443\u0436\u043D\u044B\u0435 \u0435\u043C\u0443 \u043F\u043E \u0442\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u044E \u0432\u0435\u0449\u0438(\u0432 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043D\u043E\u043C \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0435 \u043F\u0440\u0438 \u0432\u044B\u0431\u043E\u0440\u0435 \u0432 \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u0438 \u043E\u0442 \u0420\u0430\u043D\u0433\u0430 \u0438\u0433\u0440\u043E\u043A\u0430 \u0432 \u044D\u0442\u043E\u0439 \u0433\u0440\u0443\u043F\u043F\u0438\u0440\u043E\u0432\u043A\u0435).\u041C\u0435\u0434\u0438\u043A \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E \u043B\u0435\u0447\u0438\u0442, \u0438\u043D\u0436\u0435\u043D\u0435\u0440 \u0434\u0435\u043B\u0430\u0435\u0442 \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E \u0430\u043F\u0433\u0440\u0435\u0439\u0434\u044B.\n3. \u041E\u0431\u043D\u043E\u0432\u043B\u0451\u043D \u0430\u0434\u0434\u043E\u043D [GAM] Wearable Devices\n\u0422\u0435\u043F\u0435\u0440\u044C \u043E\u043D \u0434\u043E\u043B\u0436\u0435\u043D \u0431\u044B\u0442\u044C \u043F\u0435\u0440\u0435\u0432\u043E\u0434 \u043D\u0430 \u0440\u0443\u0441\u0441\u043A\u0438\u0439 \u044F\u0437\u044B\u043A \u0438 \u0431\u043E\u043B\u0435\u0435 \u0443\u0434\u043E\u0431\u043D\u0430\u044F \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \n\u0412 \u043E\u0431\u0449\u0435\u043C:\n\u0421\u0434\u0435\u043B\u0430\u043B \u043F\u0435\u0440\u0435\u0432\u043E\u0434 \u0434\u043B\u044F \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u0432\u044B\u043F\u0430\u0434\u0430\u044E\u0449\u0438\u0435 \u043C\u0435\u043D\u044E, \u041C\u0421\u041C, \u0438 \u0441\u0430\u043C\u0438 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F\n\u0414\u043E\u0431\u0430\u0432\u0438\u043B \u0441\u0440\u0430\u0437\u0443 \u043F\u043E \u0441\u0442\u043E\u043A\u0443 \u0437\u0430\u0435\u0431\u0430\u0442\u0443\u044E \u043F\u043E\u0437\u0438\u0446\u0438\u044E \u0434\u043B\u044F \u0447\u0430\u0441\u043E\u0432 \u0447\u0442\u043E\u0431\u044B \u0438\u0445 \u0431\u044B\u043B\u043E \u0432\u0438\u0434\u043D\u043E\n\u0414\u043E\u0431\u0430\u0432\u0438\u043B \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u043A\u0440\u0443\u0442\u0438\u0442\u044C \u0432\u043E\u043A\u0440\u0443\u0433 \u0440\u0443\u043A\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E \u043E\u0442 \u043D\u0430\u0440\u0443\u0447\u0430 \u043F\u043B\u0430\u043D\u0448\u0435\u0442 Promin\n\u0414\u043E\u0431\u0430\u0432\u0438\u043B \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u043A\u0440\u0443\u0442\u0438\u0442\u044C \u0432\u043E\u043A\u0440\u0443\u0433 \u0440\u0443\u043A\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E \u043E\u0442 \u043D\u0430\u0440\u0443\u0447\u0430 \u0447\u0430\u0441\u044B Vektor \u0438 \u0447\u0430\u0441\u044B \u0423\u043B\u044C\u043C\u0430\u043D\u0430\n\u041D\u043E \u043F\u0440\u0438 \u044D\u0442\u043E\u043C \u0435\u0441\u043B\u0438 \u043A\u0440\u0443\u0442\u0438\u0448\u044C \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E \u043F\u043B\u0430\u043D\u0448\u0435\u0442 \u0438\u043B\u0438 \u0447\u0430\u0441\u044B, \u0442\u043E \u043E\u043D\u0438 \u0432\u0441\u0451 \u0440\u0430\u0432\u043D\u043E \u043E\u0441\u0442\u0430\u044E\u0442\u0441\u044F \u043F\u0440\u0438\u043B\u0438\u043F\u0448\u0438\u0435 \u043A \u043D\u0430\u0440\u0443\u0447\u0443 \u0438 \u0435\u0441\u043B\u0438 \u043A\u0440\u0443\u0442\u0438\u0442\u044C \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E \u043D\u0430\u0440\u0443\u0447 \u0442\u043E \u043E\u043D \u0431\u0443\u0434\u0435\u0442 \u0432\u0440\u0430\u0449\u0430\u0442\u044C \u0432\u0441\u0451 \u0432\u043C\u0435\u0441\u0442\u0435\n\u0412 \u043E\u0431\u0449\u0435\u043C \u043F\u043E\u0434\u043E\u0433\u043D\u0430\u043B \u0432 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u0443\u044E \u043F\u043E\u0437\u0438\u0446\u0438\u044E \u0432\u043E\u043A\u0440\u0443\u0433 \u0440\u0443\u043A\u0438 \u043D\u0430\u0440\u0443\u0447, \u043F\u043B\u0430\u043D\u0448\u0435\u0442 \u0438 \u0447\u0430\u0441\u044B. \u041E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u043D\u0435 \u043A\u0430\u043A\u0438\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043F\u043E\u0437\u0438\u0446\u0438\u0439 \u043D\u0435 \u0442\u0440\u043E\u0433\u0430\u043B. \u0422\u043E\u043B\u044C\u043A\u043E Roll Z \u0434\u043B\u044F Bracer.\n\u0422\u0430\u043A \u0436\u0435 \u041F\u041E\u0427\u0418\u041D\u0418\u041B toxic air \u0434\u043B\u044F \u0447\u0430\u0441\u043E\u0432 - \u0442\u0435\u043F\u0435\u0440\u044C \u0432\u0435\u043A\u0442\u043E\u0440 \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0444\u0438\u043B\u044C\u0442\u0440\u0430 \u0438\u043B\u0438 \u0431\u0430\u043B\u043B\u043E\u043D \u0432\u0432\u0438\u0434\u0435 \u043F\u043E\u043B\u043E\u0441\u043A\u0438, \u043A\u0430\u043A \u0438 \u0447\u0430\u0441\u044B \u0443\u043B\u044C\u043C\u0430\u043D\u0430 \u0432\u0432\u0438\u0434\u0435 \u0446\u0438\u0444\u0440 \u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C \u0436\u0438\u0442\u044C \u0431\u0430\u043B\u043B\u043E\u043D\u0443 \u0438\u043B\u0438 \u0444\u0438\u043B\u044C\u0442\u0440\u0443, \u0435\u0441\u043B\u0438 \u0432\u044B\u0431\u0440\u0430\u043D \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0439 \u0440\u0435\u0436\u0438\u043C\n\u0414\u043E\u0431\u0430\u0432\u0438\u043B \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u043C\u0435\u043D\u044F\u0442\u044C \u0446\u0432\u0435\u0442 \u0446\u0438\u0444\u0440 \u0447\u0430\u0441\u043E\u0432 \u043D\u0430 \u0447\u0430\u0441\u0430\u0445 VEKTOR\n\u0414\u043E\u0431\u0430\u0432\u0438\u043B \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u0432\u043A\u043B-\u0432\u044B\u043A\u043B \u0446\u0432\u0435\u0442\u043D\u043E\u0435 \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u043F\u043E\u043B\u043E\u0441\u043A\u0438 toxic air \u043D\u0430 \u0447\u0430\u0441\u0430\u0445 Vektor. \u0410 \u0438\u043C\u0435\u043D\u043D\u043E \u043A\u043E\u0433\u0434\u0430 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u043C\u0435\u043D\u044C\u0448\u0435 20% \u0442\u043E \u043F\u043E\u043B\u043E\u0441\u043A\u0430 \u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0441\u044F \u043A\u0440\u0430\u0441\u043D\u0430\u044F, \u043A\u043E\u0433\u0434\u0430 \u043C\u0435\u043D\u044C\u0448\u0435 50% \u0442\u043E \u043E\u0440\u0430\u043D\u0436\u0435\u0432\u0430\u044F, \u0435\u0441\u043B\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 50% \u0442\u043E \u0431\u0435\u043B\u0430\u044F\n\u0414\u043E\u0431\u0430\u0432\u0438\u043B \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u0432\u043A\u043B-\u0432\u044B\u043A\u043B \u0446\u0432\u0435\u0442\u043D\u043E\u0435 \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u0440\u0430\u0441\u0441\u0442\u043E\u044F\u043D\u0438\u044F \u0434\u043E \u0446\u0435\u043B\u0438. \u0415\u0441\u043B\u0438 \u0440\u0430\u0441\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0434\u043E 50 \u043C\u0435\u0442\u0440\u043E\u0432 \u0442\u043E \u0446\u0438\u0444\u0440\u044B \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u044E\u0449\u0438\u0435 \u0434\u0438\u0441\u0442\u0430\u043D\u0446\u0438\u044E \u043D\u0430 \u0447\u0430\u0441\u0430\u0445 Vektor \u0437\u0435\u043B\u0451\u043D\u043E\u0433\u043E \u0446\u0432\u0435\u0442\u0430, \u0435\u0441\u043B\u0438 \u0440\u0430\u0441\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0432\u044B\u0448\u0435 50 \u043C\u0435\u0442\u0440\u043E\u0432, \u043D\u043E \u043C\u0435\u043D\u044C\u0448\u0435 400 \u043C\u0435\u0442\u0440\u043E\u0432, \u0442\u043E \u0446\u0438\u0444\u0440\u044B \u043E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0435, \u0435\u0441\u043B\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 400 \u043C\u0435\u0442\u0440\u043E\u0432, \u0442\u043E \u0446\u0438\u0444\u0440\u044B \u0434\u0438\u0441\u0442\u0430\u043D\u0446\u0438\u0438 \u043A\u0440\u0430\u0441\u043D\u044B\u0435.\n\n\u0427\u0442\u043E\u0431\u044B \u0432\u0441\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E \u043F\u0440\u0438\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C. \u041D\u0443\u0436\u043D\u043E \u0437\u0430\u043A\u0438\u043D\u0443\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0432 \u043C\u043E2 \u0432 \u043A\u043E\u043D\u0435\u0446 \u043E\u043D\u0438 \u0437\u0430\u043C\u0435\u043D\u044F\u0442 \u0447\u0430\u0441\u0442\u044C \u0444\u0430\u0439\u043B\u043E\u0432 \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0443\u0436\u0435 \u0435\u0441\u0442\u044C. \u0414\u0430\u043B\u0435\u0435 \u0437\u0430\u0439\u0442\u0438 \u0432 \u0438\u0433\u0440\u0443, \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u043A\u0443.\n\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u0438 \u0432\u043E \u0432\u043A\u043B\u0430\u0434\u043A\u0430\u0445 BRACER, PROMIN, VEKTOR, METRO \u0437\u0430\u0439\u0442\u0438 \u0438 \u043D\u0430\u0436\u0430\u0442\u044C \u043A\u043B\u0430\u0432\u0438\u0448\u0443 DEFAULT \u0438 \u043F\u043E\u0442\u043E\u043C SAVE\n\n4. WPO \u0431\u044B\u043B \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\n\u0422\u0435\u043F\u0435\u0440\u044C \u043C\u0435\u043B\u043A\u0438\u0435 \u0441\u043F\u0440\u0435\u0438 \u0434\u043E\u043B\u0436\u043D\u044B \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0442\u044C \u043E\u0442 75-85 % \u043E\u0440\u0443\u0436\u0438\u0435(\u043A\u0430\u043A \u0431\u044B\u043B\u043E \u0432 Anomaly \u0438\u0437\u043D\u0430\u0447\u0430\u043B\u044C\u043D\u043E).\n5. \u0414\u043E\u043B\u0436\u0435\u043D \u0442\u0435\u043F\u0435\u0440\u044C \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0438 \u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B,\u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E \u043E\u0441\u0442\u0430\u0432\u0438\u043B \u0432 \u043F\u0440\u043E\u0448\u043B\u044B\u0439 \u0440\u0430\u0437 \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u044C \u043E\u0442 SSS",
+        "body": "1. \u0418\u0437\u043C\u0435\u043D\u0451\u043D \u0434\u0432\u0438\u0436\u043E\u043A\n\u0422\u0435\u043F\u0435\u0440\u044C \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C \u0434\u043E\u043B\u0436\u043D\u0430 \u0432\u044B\u0440\u0430\u0441\u0442\u0438, \u0431\u043E\u043B\u044C\u0448\u0435 \u0432\u0441\u0435\u0433\u043E \u043D\u0430\u0433\u0440\u0443\u0437\u043A\u0443 \u043D\u0430 \u0432\u0438\u0434\u0435\u043E\u043A\u0430\u0440\u0442\u0443 \u0434\u0430\u0451\u0442 \u0442\u0440\u0430\u0432\u0430, \u0431\u044B\u043B \u0441\u0434\u0435\u043B\u0430\u043D \u043C\u043D\u043E\u0433\u043E\u043F\u043E\u0442\u043E\u0447\u043D\u044B\u0439 \u0440\u0435\u043D\u0434\u0435\u0440\u0438\u043D\u0433 \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u043E\u043C \u0438\u0437 AOE.\n\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B \u0448\u0435\u0439\u0434\u0435\u0440\u044B \u0434\u043B\u044F \u043F\u0440\u0438\u0446\u0435\u043B\u043E\u0432 \u043F\u043E\u0434 \u043D\u043E\u0432\u044B\u0439 \u0434\u0432\u0438\u0436\u043E\u043A\n\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D DLSS \u0438 FSR \u0441\u043D\u043E\u0432\u0430(\u0434\u043E\u043B\u0436\u0435\u043D \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C).\n\u0421\u0435\u0439\u0447\u0430\u0441 \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u043E:\n- \u0414\u0435\u0444\u0435\u043A\u0442 \u0441 UI\n\u0414\u043E\u043B\u0436\u0435\u043D \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C\u0441\u044F \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u044C \u0438 \u0432 \u043F\u0440\u0438\u043D\u0446\u0438\u043F\u0435 \u043E\u043D \u0434\u043E\u043B\u0436\u0435\u043D \u0444\u0443\u043D\u043A\u0446\u0438\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0430\u0434\u0435\u043A\u0432\u0430\u0442\u043D\u043E\n- \u0420\u0435\u0437\u043A\u0438\u0435 \u0440\u044B\u0432\u043A\u0438\n\u0411\u044B\u043B \u043F\u0435\u0440\u0435\u0434\u0435\u043B\u0430\u043D \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043F\u043E\u0442\u043E\u043A \u0438 \u0442\u0435\u043F\u0435\u0440\u044C \u043D\u0435\u0442 \u0022\u0434\u0443\u0431\u043B\u044F\u0022 \u0442\u0435\u043A\u0441\u0442\u0443\u0440 \u0438\u043B\u0438 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u044F\n- Busyhands mob_trader\n\u0421\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u0431\u0443\u0434\u0435\u0442 \u0432\u044B\u043B\u0435\u0437\u0430\u0442\u044C \u044D\u0442\u043E\u0442 \u0434\u0435\u0444\u0435\u043A\u0442\n- \u041C\u0435\u0440\u0446\u0430\u043D\u0438\u044F \u0442\u0440\u0430\u0432\u044B \u0438 \u0442\u0435\u043A\u0441\u0442\u0443\u0440\n\u0421\u0435\u0439\u0447\u0430\u0441 \u044D\u0442\u043E \u0434\u043E\u043B\u0436\u043D\u043E \u0431\u044B\u0442\u044C \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u043E \u0438 \u043D\u0435 \u0434\u043E\u043B\u0436\u043D\u044B \u0438\u0441\u0447\u0435\u0437\u0430\u0442\u044C \u043E\u0431\u044A\u0435\u043A\u0442\u044B \u0438 \u043F\u0440\u043E\u0447\u0435\u0435\n- \u041A\u0432\u0435\u0441\u0442 \u0441 \u0411\u0430\u0431\u043E\u0439 \u042F\u0433\u043E\u0439\n\u0421\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u0434\u043E\u043B\u0436\u043D\u043E \u0431\u044B\u0442\u044C \u0432\u044B\u043B\u0435\u0442\u0430 \u043F\u043E\u0441\u043B\u0435 \u0432\u0437\u044F\u0442\u0438\u044F \u0430\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u0430 \u043D\u0430 \u0421\u0432\u0430\u043B\u043A\u0435\n2. \u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u043F\u043E\u0442\u0435\u0440\u044F\u043D\u043D\u044B\u0435 OGM \u0440\u043E\u043B\u0438\u043A\u0438\n3. \u0410\u0434\u0434\u043E\u043D [GAM] R.A.K Balance\n- \u0411\u044B\u043B \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D \u0441\u043F\u0438\u0441\u043E\u043A \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u043E\u0432 \u043F\u0440\u0438 \u0441\u043D\u0430\u0431\u0436\u0435\u043D\u0438\u0438 \u0443 \u041C\u043E\u043D\u043E\u043B\u0438\u0442\u043E\u0432\u0446\u0435\u0432\n- \u0415\u0441\u043B\u0438 \u043D\u0435\u0442 \u043C\u0435\u0434\u0438\u043A\u0430 \u043D\u0430 \u0431\u0430\u0437\u0435, \u0442\u043E \u0432\u044B\u0434\u0430\u0451\u0442 \u0442\u043E\u0440\u0433\u0430\u0448 \u043C\u0435\u0434\u0438\u043A\u043E\u043C\u0435\u043D\u0442\u044B\n- \u0422\u0435\u0445\u043D\u0438\u043A \u0447\u0438\u043D\u0438\u0442 \u0432\u0441\u0451 \u0437\u0430 \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E.\u0410\u043F\u0433\u0440\u0435\u0439\u0434\u0438\u0442 \u0442\u043E\u0436\u0435 \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E, \u043D\u043E \u043D\u0443\u0436\u043D\u044B \u0430\u043F\u0433\u0440\u0435\u0439\u0434\u044B\n- \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B \u0413\u0440\u0430\u043D\u0430\u0442\u043E\u043C\u0451\u0442\u044B, \u0413\u0440\u0430\u043D\u0430\u0442\u044B, \u0410\u043F\u0433\u0440\u0435\u0439\u0434\u044B \u0438 \u0420\u0430\u0441\u0445\u043E\u0434\u043D\u0438\u043A\u0438 \u0432 \u0441\u043D\u0430\u0431\u0436\u0435\u043D\u0438\u0435.",
         "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
         "translations": {}
       }
@@ -372944,6 +373063,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "odETflv6Cx1o0ONIwtvKI7UBt6ZpXXrc5k1gR4ZtsXTE4RjwU\u002BfxQaJOCnKe0pInowAZCggeVMOM7xcRwUXDJw=="
+    "value": "WRW/wkmR0njMTTbaYSpDGKPece2/\u002BKhc2bXvJS36WU3szW7cOQfSNWI1kgS6cHGoH7PB8OFb\u002BN6macsAQpIw5Q=="
   }
 }
