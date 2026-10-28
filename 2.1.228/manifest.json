@@ -3,47 +3,9 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.228",
-    "publishedAt": "2026-10-26T22:26:17.1600769+00:00",
+    "publishedAt": "2026-10-28T21:33:57.3073956+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
-      {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.49",
-        "version": "0.7.0-alpha.49",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 16762057,
-        "sha256": "5611999cf9383bdfefc2f967a328f26304c73b6d6589633bb5d56492483baaa5",
-        "mirrors": [
-          {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.227/anthology-launcher-0.7.0-alpha.49-5611999cf9383bdf.zip",
-            "priority": 5
-          },
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.227/anthology-launcher-0.7.0-alpha.49-5611999cf9383bdf.zip",
-            "priority": 10
-          },
-          {
-            "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.227/anthology-launcher-0.7.0-alpha.49-5611999cf9383bdf.zip",
-            "priority": 20
-          }
-        ],
-        "files": [
-          "AnomalyLauncher.exe",
-          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.49.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false,
-        "deletedFiles": []
-      },
       {
         "id": "anthology-game",
         "displayName": "Anthology \u2014 \u043A\u043E\u0440\u0435\u043D\u044C \u0438\u0433\u0440\u044B",
@@ -378317,6 +378279,44 @@
             ]
           }
         ]
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.50",
+        "version": "0.7.0-alpha.50",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 16763679,
+        "sha256": "503376f83841e783bedcdd358c618ae3c07b07a4cae65b72520bb5650de99998",
+        "mirrors": [
+          {
+            "provider": "google-drive",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.228/anthology-launcher-0.7.0-alpha.50-503376f83841e783.zip",
+            "priority": 5
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.228/anthology-launcher-0.7.0-alpha.50-503376f83841e783.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.228/anthology-launcher-0.7.0-alpha.50-503376f83841e783.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnomalyLauncher.exe",
+          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.50.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": []
       }
     ],
     "content": {
@@ -378960,6 +378960,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "FUcm6HAFmp5bBqnqMHrdd8JPJoeBEw/KBl8ZMUCRyizn/eFXHLyvkcufsM134W2svU6c5ExQIZIMj3htWfqudw=="
+    "value": "toVvtDmpHYr45TLq1dkC\u002BTuOXfHPUspSVpPaNNgR0Di3ztvWALFC3giEmHPHlVNBmhS38nqrctNElfQ6yuzkNw=="
   }
 }
