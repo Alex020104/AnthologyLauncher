@@ -2,19 +2,57 @@
   "payload": {
     "schemaVersion": 5,
     "channel": "next",
-    "version": "2.1.228",
-    "publishedAt": "2026-10-28T22:11:15.1027034+00:00",
+    "version": "2.1.229",
+    "publishedAt": "2026-10-28T22:50:06.0705744+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
       {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.52",
+        "version": "0.7.0-alpha.52",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 16763678,
+        "sha256": "94581311da35fea47e7c0b8dbceeed6166219eb37026a407c318bc6f1ed29d0e",
+        "mirrors": [
+          {
+            "provider": "google-drive",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
+            "priority": 5
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnomalyLauncher.exe",
+          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.52.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": []
+      },
+      {
         "id": "anthology-game",
         "displayName": "Anthology \u2014 \u043A\u043E\u0440\u0435\u043D\u044C \u0438\u0433\u0440\u044B",
-        "version": "2.1.228",
+        "version": "2.1.229",
         "kind": "game",
         "installRoot": "game",
         "archiveFormat": "loose",
-        "size": 52127186094,
-        "sha256": "6d6f1d7a70eec7248ef3d891027fc10c622cbda4cbf887ecb069238772b48bc3",
+        "size": 52366452012,
+        "sha256": "92ad222965ba1093a50abd314b6fc9bfffacd03735726645e24e983624d0e1ed",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -492,6 +530,15 @@
           "[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/textures/water/water_perlin.dds",
           "[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/gamedata/textures/water/water_sbumpvolume.dds",
           "[GFX] ScreenSpaceShaders Update 23.5 \u2014 \u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0448\u0435\u0439\u0434\u0435\u0440\u043E\u0432/meta.ini",
+          "bin/AnomalyDX10.exe",
+          "bin/AnomalyDX10AVX.exe",
+          "bin/AnomalyDX11AVX_LAN.exe",
+          "bin/AnomalyDX11_LAN.exe",
+          "bin/AnomalyDX8.exe",
+          "bin/AnomalyDX8AVX.exe",
+          "bin/AnomalyDX9.exe",
+          "bin/AnomalyDX9AVX.exe",
+          "bin/AnomalyID32AVX.exe",
           "db/meshes/meshes.db0",
           "db/meshes/meshes_actors_gnra.xdb0",
           "db/meshes/meshes_attribute.xdb0",
@@ -640,18 +687,18 @@
           },
           {
             "path": "Lan_anthology.bat",
-            "size": 3148,
-            "sha256": "0e4d22eb65f25ef43a64e46a90484583abfb5560eda7bc4c9df7abc8bf692478",
+            "size": 3144,
+            "sha256": "048fa275c0efba48ada220409e83c3b0f3cef753ebc37c2279dcc31c871a063e",
             "mirrors": [
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/Lan_anthology.bat",
-                "priority": 10
-              },
               {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/Lan_anthology.bat",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/Lan_anthology.bat",
+                "priority": 10
               }
             ]
           },
@@ -1523,43 +1570,9 @@
             ]
           },
           {
-            "path": "bin/AnomalyDX10.exe",
-            "size": 22386688,
-            "sha256": "9392cd5eeb45c97a505ea7085cab9846a7925f4edf0e5f1e74e0910e539df6d7",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX10.exe",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX10.exe",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "bin/AnomalyDX10AVX.exe",
-            "size": 22285824,
-            "sha256": "3ae1ace35360277f84342a837380d31fdc69a560345cb50c462edb0b9bab0b4d",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX10AVX.exe",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX10AVX.exe",
-                "priority": 10
-              }
-            ]
-          },
-          {
             "path": "bin/AnomalyDX11.exe",
-            "size": 32611840,
-            "sha256": "2829db36a693c79eb5cf85c8d06959e6020451a6d2b9456453c31615682e6440",
+            "size": 32767488,
+            "sha256": "d96fabc8227f087d4814a448b577301ce7191695f01f61b2716634f688b1cdd2",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1575,8 +1588,8 @@
           },
           {
             "path": "bin/AnomalyDX11AVX.exe",
-            "size": 32512000,
-            "sha256": "d08025388f8bfecd72f7eb81daf1eefbbd98d386a72e028f82375eb00fb2d791",
+            "size": 32667648,
+            "sha256": "153c600a560f78d6c663e082d88737e193824e024f20446913641aac58b2c01f",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1591,120 +1604,69 @@
             ]
           },
           {
-            "path": "bin/AnomalyDX11AVX_LAN.exe",
-            "size": 28031488,
-            "sha256": "c6d1f6906b72ab6f63ffe3c365314ad6c307ae446d0e4b39f87d034eac29bcdb",
+            "path": "bin/AnthologyCoop.exe",
+            "size": 6656,
+            "sha256": "a2b70b55a4235b86cfd8f63c7bc9674115ab8ba09aa18e8aab5d5c361ba300ce",
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX11AVX_LAN.exe",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnthologyCoop.exe",
                 "priority": 5
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX11AVX_LAN.exe",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnthologyCoop.exe",
                 "priority": 10
               }
             ]
           },
           {
-            "path": "bin/AnomalyDX11_LAN.exe",
-            "size": 28131328,
-            "sha256": "726fad629c170bbed608eee3b8e39e0d060a9552963953b383cae7c9b6d46b92",
+            "path": "bin/AnthologyCoop_noAVX.exe",
+            "size": 6656,
+            "sha256": "a2b70b55a4235b86cfd8f63c7bc9674115ab8ba09aa18e8aab5d5c361ba300ce",
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX11_LAN.exe",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnthologyCoop_noAVX.exe",
                 "priority": 5
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX11_LAN.exe",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnthologyCoop_noAVX.exe",
                 "priority": 10
               }
             ]
           },
           {
-            "path": "bin/AnomalyDX8.exe",
-            "size": 21977600,
-            "sha256": "907e6d635beabbbb9815864392a3df9da6250b87848efebb68a782d5a6be539f",
+            "path": "bin/AnthologyLAN.exe",
+            "size": 6656,
+            "sha256": "a2b70b55a4235b86cfd8f63c7bc9674115ab8ba09aa18e8aab5d5c361ba300ce",
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX8.exe",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnthologyLAN.exe",
                 "priority": 5
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX8.exe",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnthologyLAN.exe",
                 "priority": 10
               }
             ]
           },
           {
-            "path": "bin/AnomalyDX8AVX.exe",
-            "size": 21881344,
-            "sha256": "7ab0bf3d550ebab4ee0f675d65af4aa77ae67817e6a996586a53c2d7a9570368",
+            "path": "bin/GameNetworkingSockets.dll",
+            "size": 6358016,
+            "sha256": "329d4188dd82135a0016d794fb7dcb4ad3fc3dd380523345cabe81ca95a6f0d8",
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX8AVX.exe",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/GameNetworkingSockets.dll",
                 "priority": 5
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX8AVX.exe",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "bin/AnomalyDX9.exe",
-            "size": 22145024,
-            "sha256": "ea0df2a04b8d4e586624e28876896875cd526ce8cb076f7bd535037baaf3d2c0",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX9.exe",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX9.exe",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "bin/AnomalyDX9AVX.exe",
-            "size": 22045184,
-            "sha256": "c99c15fa69d4c1b22d4de76f6682e4c065e9c3b5f03c695247c421bb5b681e8e",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyDX9AVX.exe",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyDX9AVX.exe",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "bin/AnomalyID32AVX.exe",
-            "size": 32505856,
-            "sha256": "4b89388acbf51df705859dd9215580d988c2e3901725cb9c24f35affc1f46f03",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/bin/AnomalyID32AVX.exe",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/AnomalyID32AVX.exe",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/bin/GameNetworkingSockets.dll",
                 "priority": 10
               }
             ]
@@ -1830,8 +1792,8 @@
           },
           {
             "path": "bin/steam_api64.dll",
-            "size": 319128,
-            "sha256": "8de54d32508e216c9135b8bf025749243d44e404c1c22a8e5fe35acecabe7a9c",
+            "size": 317080,
+            "sha256": "eb17909a76668cf9ae0b92a618a34a50f6c73d3a6787cb4dd8ce36a8b10bfb75",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1885,14 +1847,14 @@
             "sha256": "1b0186b0681d59fc4451279f90083336bc96064faef6660d9623e551ac561156",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/ai.db0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/configs/ai.db0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/ai.db0",
+                "priority": 10
               }
             ]
           },
@@ -1915,8 +1877,8 @@
           },
           {
             "path": "db/configs/configs_anthology.xdb0",
-            "size": 12233924,
-            "sha256": "c5d2ba605c693672b1de8036d223eaf4cd5f112f155d13b1c0babeb0ce2e25d4",
+            "size": 12237858,
+            "sha256": "39f315b9202878834611cac85b731d115391bd1853c5c8b6bf2ba71c4d65e855",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -1936,14 +1898,14 @@
             "sha256": "1a3610053e2c76de23c3d38fe715a71207d7e3a267f77e19caccd8184d90aa3d",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/configs_deanon_artefact.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/configs/configs_deanon_artefact.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/configs_deanon_artefact.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -1953,14 +1915,14 @@
             "sha256": "337c0986ea12c822fb3f788f383457cdc04aa64980df86f84519d4d0897777b9",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/configs_gnra.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/configs/configs_gnra.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/configs_gnra.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -1983,8 +1945,8 @@
           },
           {
             "path": "db/configs/scripts_anthology.xdb0",
-            "size": 1558279,
-            "sha256": "899f83ca76d9f5af604ac0960a4478731168d6ef7c8e9cd256815821d6158c49",
+            "size": 1570812,
+            "sha256": "6ed6f0766f92065bf4c898b328d39f034e6f756625753bef9dd365e9636838cf",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -2004,14 +1966,14 @@
             "sha256": "fe664cc14cb522eccc90399be765b8f39100def09db78e50c97689a697246055",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/scripts_smart_covers_cs.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/configs/scripts_smart_covers_cs.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/scripts_smart_covers_cs.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -2021,14 +1983,14 @@
             "sha256": "b7b56efe07a7852b47d2650a1bcf9132b28206bfed8d4aec8d3c4394e060297a",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/spawns.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/configs/spawns.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/configs/spawns.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -3653,14 +3615,14 @@
             "sha256": "88b4369ceeb774c771900751bd09258fbe6d5f2bc81ae54f400e4048290a3165",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/Anthology_particles.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/Anthology_particles.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/Anthology_particles.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -3670,14 +3632,14 @@
             "sha256": "cfd84a14a7ae251644a313a947e6deaf90300b66581024e4cf9cf2da0a1898cb",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/Chernobyl%20Relay%20Chat.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/Chernobyl%20Relay%20Chat.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/Chernobyl%20Relay%20Chat.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -3687,14 +3649,14 @@
             "sha256": "5497b3abd63adea17511c58fc9ad0b49190ccfc2895d09c44fa528cd06eb2b8e",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/Combat_ai_scripts.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/Combat_ai_scripts.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/Combat_ai_scripts.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -3904,8 +3866,8 @@
           },
           {
             "path": "db/mods/[ANT] Sota ui for Anthology.xdb0",
-            "size": 239442619,
-            "sha256": "00908fb804af49e47d31e9743d2575c9f94ca6d5ae8665eeb343f8db990b0a3a",
+            "size": 239442967,
+            "sha256": "1098a968f4c469ddc707254e3f1daf9c5048d022bb333bc1494e751ab34ada40",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -3932,6 +3894,40 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/alarm_wake_up.xdb0",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "db/mods/anthology_coop/anthology_native.xdb0",
+            "size": 6578,
+            "sha256": "dcd59df3adbe2b29725ca1125e3246e93f58b9043952cea39dced33f14590650",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/anthology_coop/anthology_native.xdb0",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/anthology_coop/anthology_native.xdb0",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "db/mods/anthology_lan/anthology_network.xdb0",
+            "size": 453945633,
+            "sha256": "d475255d975c340bc963166590b08ce7b70b2bec7e08565401ae74aee2720807",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/anthology_lan/anthology_network.xdb0",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/anthology_lan/anthology_network.xdb0",
                 "priority": 10
               }
             ]
@@ -4010,14 +4006,14 @@
             "sha256": "448c1d94562a6f33c47ab680bd02cd7f0041aea65942532d665f4473faa2a9f7",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/monolith_prisoners.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/monolith_prisoners.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/monolith_prisoners.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -4078,14 +4074,14 @@
             "sha256": "08cbbbbcc37bda059ec1619646cbf311149b785da78854ae433d435e3a8610ea",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/shaders_look_better.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/shaders_look_better.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/shaders_look_better.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -4095,14 +4091,14 @@
             "sha256": "22199422eb8da5da1ed18e1a8a3b3318c140c238d39139d7b49723ae970c03ff",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/tactical_light_presets.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/tactical_light_presets.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/tactical_light_presets.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -4112,14 +4108,14 @@
             "sha256": "abad348f034327b69bd83452e9245455b0c3638777120c961fb59b12a7e89d67",
             "mirrors": [
               {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/trader_autoinject.xdb0",
-                "priority": 10
-              },
-              {
                 "provider": "google-drive",
                 "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Anomaly%201.5.3%20%E2%80%94%20Anthology/db/mods/trader_autoinject.xdb0",
                 "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Anomaly 1.5.3 \u2014 Anthology/db/mods/trader_autoinject.xdb0",
+                "priority": 10
               }
             ]
           },
@@ -5981,12 +5977,12 @@
       {
         "id": "anthology-mo2",
         "displayName": "Anthology \u2014 Mod Organizer 2",
-        "version": "2.1.228",
+        "version": "2.1.229",
         "kind": "modpack",
         "installRoot": "modpack",
         "archiveFormat": "loose",
-        "size": 72787422895,
-        "sha256": "a97e4e2b9f0786e4b305dd4ea922ba6e6170f6553004fd95db44edcd760fa55c",
+        "size": 72787537048,
+        "sha256": "066e91717f3351909782e9d361a0ee18a9fdff92be9ef641616d02ba84a104fd",
         "mirrors": [
           {
             "provider": "yandex-disk",
@@ -6389,6 +6385,7 @@
           "mods/[BS] Exo System - new_system/gamedata/configs/text/eng/st_items_devices_exo.xml",
           "mods/[BS] Exo System - new_system/gamedata/configs/text/eng/ui_mcm_haruka_exo_servo_sounds.xml",
           "mods/[DBG] Create Profile and New Game \u002B/validation/native-storage-0.5.0.json",
+          "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/scripts/stancia_1/aes_crow_spawner.ltx",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/eng/burnshit_inventory_destroy.xml",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/eng/st_fix_hip_quest_text.xml",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/eng/st_fix_nimble_order_desc.xml",
@@ -6399,6 +6396,7 @@
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/rus/st_fix_nimble_order_desc.xml",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/rus/ui_mcm_tooltip_control.xml",
           "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/text/rus/ui_st_inventory_fix_loot_space.xml",
+          "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/scripts/zzzzzz_anthology_bhs_crow_spawner_patch.script",
           "mods/[GAM] Arena Gambling \u2014 \u0421\u0442\u0430\u0432\u043A\u0438 \u043D\u0430 \u0430\u0440\u0435\u043D\u0435/gamedata/configs/text/eng/mlr_addon_arena.xml",
           "mods/[GAM] Catspaw All Pack \u2014 \u041C\u0438\u043B\u0441\u043F\u0435\u043A \u041F\u0414\u0410 \u0441 \u043C\u0435\u0442\u043A\u0430\u043C\u0438 \u0442\u0440\u0443\u043F\u043E\u0432/gamedata/configs/text/eng/st_catsy_nerfs.xml",
           "mods/[GAM] Catspaw All Pack \u2014 \u041C\u0438\u043B\u0441\u043F\u0435\u043A \u041F\u0414\u0410 \u0441 \u043C\u0435\u0442\u043A\u0430\u043C\u0438 \u0442\u0440\u0443\u043F\u043E\u0432/gamedata/configs/text/eng/ui_st_encyclopedia_rf_receiver_nerfs.xml",
@@ -6861,6 +6859,7 @@
         ],
         "deletedDirectories": [
           "mods/[AOE] Native Addons Core",
+          "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/scripts/stancia_1",
           "mods/[GAM] New Game Export \u2014 \u0418\u043C\u043F\u043E\u0440\u0442 \u043C\u0435\u0436\u0434\u0443 \u0441\u0435\u0439\u0432\u0430\u043C\u0438",
           "mods/[HARD] SYS Cold System \u2014 \u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u0445\u043E\u043B\u043E\u0434\u0430",
           "mods/[TMA] CMS \u2014 \u041D\u043E\u0432\u044B\u0435 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0438 \u0430\u043F\u0442\u0435\u0447\u0435\u043A"
@@ -16438,23 +16437,6 @@
             ]
           },
           {
-            "path": "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/scripts/stancia_1/aes_crow_spawner.ltx",
-            "size": 178,
-            "sha256": "e00c1c25bb858b129492727efae5146024988d74232fe481e29712bc1744fc4d",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Kristiano%20Fixes%20ALL%20IN%20ONE/gamedata/configs/scripts/stancia_1/aes_crow_spawner.ltx",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Kristiano%20Fixes%20ALL%20IN%20ONE/gamedata/configs/scripts/stancia_1/aes_crow_spawner.ltx",
-                "priority": 10
-              }
-            ]
-          },
-          {
             "path": "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/configs/scripts/zaton/mod_zat_b12_item_spawner_fix_zat_b12_box.ltx",
             "size": 956,
             "sha256": "219ffb824635d44d4ebc065d139b0d547feb5cfc86aabb43a6748d34b4bfcaf7",
@@ -18422,23 +18404,6 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Kristiano%20Fixes%20ALL%20IN%20ONE/gamedata/scripts/zzzz_zzz_anthology_bhs_repair_capture_vendor_base.script",
-                "priority": 10
-              }
-            ]
-          },
-          {
-            "path": "mods/[DBG] Kristiano Fixes ALL IN ONE/gamedata/scripts/zzzzzz_anthology_bhs_crow_spawner_patch.script",
-            "size": 4242,
-            "sha256": "b2078bcb6a3cd959b0ad30f982365418f86159b4b78e887bbc8dd76c06792690",
-            "mirrors": [
-              {
-                "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BDBG%5D%20Kristiano%20Fixes%20ALL%20IN%20ONE/gamedata/scripts/zzzzzz_anthology_bhs_crow_spawner_patch.script",
-                "priority": 5
-              },
-              {
-                "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BDBG%5D%20Kristiano%20Fixes%20ALL%20IN%20ONE/gamedata/scripts/zzzzzz_anthology_bhs_crow_spawner_patch.script",
                 "priority": 10
               }
             ]
@@ -29222,6 +29187,40 @@
             ]
           },
           {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/items/settings/mod_death_generic_pda_scam_recovery.ltx",
+            "size": 57,
+            "sha256": "23c8af673a0ef86ad656014decfb7a7b90dcfe01fcd2c32108f8f95515ec0c44",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/items/settings/mod_death_generic_pda_scam_recovery.ltx",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/items/settings/mod_death_generic_pda_scam_recovery.ltx",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/mod_system_pda_scam_recovery.ltx",
+            "size": 770,
+            "sha256": "998b4d849e4fcc9eea9820204ade1c4d5d26175cc37d1d851a07a57d4890d421",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/mod_system_pda_scam_recovery.ltx",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/mod_system_pda_scam_recovery.ltx",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GAM] Interactive PDA/gamedata/configs/plugins/key_to_DIK.ltx",
             "size": 2956,
             "sha256": "6ed29f783507e3f8b0bf60431b35fbe3c08ad569335c75d7336c576e5537bda9",
@@ -29308,8 +29307,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/configs/plugins/pda_monolith_service.ltx",
-            "size": 254,
-            "sha256": "b5a59bfbe805d88229a59c0d47733114c3ef2b91cbb3c38cec6ac3e9287bee8f",
+            "size": 280,
+            "sha256": "0ebd2fcc6c4bf6f9bcc12837e8cba77436c093747743334e3bcbc4747779647e",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -29528,6 +29527,40 @@
             ]
           },
           {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/text/eng/ui_st_pda_monolith_supply.xml",
+            "size": 1929,
+            "sha256": "dd59a2a107d98f4b6defe18f0adf1471568ef36aa648a6e6383ffc3f869541b8",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/eng/ui_st_pda_monolith_supply.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/eng/ui_st_pda_monolith_supply.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/text/eng/ui_st_pda_scam_recovery.xml",
+            "size": 4122,
+            "sha256": "8fff7df35f5f32857ee04ad54ad7eb80291191b91218499e501a69c47b122bf7",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/eng/ui_st_pda_scam_recovery.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/eng/ui_st_pda_scam_recovery.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GAM] Interactive PDA/gamedata/configs/text/eng/ui_st_pda_sellers.xml",
             "size": 1753,
             "sha256": "359edece3468cd5d73966a9c1ca4636b1671e5bbf46bfd8edd5b2c593cf37588",
@@ -29732,6 +29765,40 @@
             ]
           },
           {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/text/rus/ui_st_pda_monolith_supply.xml",
+            "size": 1899,
+            "sha256": "b63e68e93e5e236c202f75f97848535bcbd947e9e2453bd75df5a1d47609aa26",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/rus/ui_st_pda_monolith_supply.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/rus/ui_st_pda_monolith_supply.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/text/rus/ui_st_pda_scam_recovery.xml",
+            "size": 3960,
+            "sha256": "3f4621fdd160f05655a183e1156c93b88ccc16e8f465cc5acc48b4e0005555f5",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/rus/ui_st_pda_scam_recovery.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/text/rus/ui_st_pda_scam_recovery.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GAM] Interactive PDA/gamedata/configs/text/rus/ui_st_pda_sellers.xml",
             "size": 1811,
             "sha256": "c6539e4b3f8f4523b85bb830bfb738df76e343ecd1135392783c45e981736b05",
@@ -29851,6 +29918,23 @@
             ]
           },
           {
+            "path": "mods/[GAM] Interactive PDA/gamedata/configs/ui/pda_monolith_supply.xml",
+            "size": 5273,
+            "sha256": "a21f6de68a2dd6d88d701a65cd7af565a1986959b8577bda4a2cd6890ca94fe5",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/ui/pda_monolith_supply.xml",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/configs/ui/pda_monolith_supply.xml",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GAM] Interactive PDA/gamedata/configs/ui/pda_xcvb.xml",
             "size": 30,
             "sha256": "c86033d463c7fcfe57cbafe1913bee66f3a3d514efa116592b9974e987adb6bd",
@@ -29953,6 +30037,23 @@
             ]
           },
           {
+            "path": "mods/[GAM] Interactive PDA/gamedata/scripts/modxml_pda_scam_recovery.script",
+            "size": 1827,
+            "sha256": "4ab3ee1960a03c9a7b38291586344de15404d3feed7b48300f2d4489966fb6df",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/modxml_pda_scam_recovery.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/modxml_pda_scam_recovery.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_auction.script",
             "size": 18577,
             "sha256": "4dde22ab4e31d862fe95de952c9f2bdb8b74dc183903817a69d526041e2c0de0",
@@ -30039,8 +30140,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_gui.script",
-            "size": 43730,
-            "sha256": "d5654af9b855c427bee798872882230ac3f8ce685adef33d1cca1c5855d98008",
+            "size": 43744,
+            "sha256": "aaf7bbd0284a591f84376bbad4f3effc3cc1628aa717dfab502536777655d924",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -30294,8 +30395,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_gui_k_monolith.script",
-            "size": 8780,
-            "sha256": "411427c492d854b1215f3669783f55116ac839863a4a0afb1f8f15d1bd9ba7dc",
+            "size": 8404,
+            "sha256": "7881673421f1eb16ed0c430931821363785f14ecd72c84bd3b3e746441eecf8c",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -30305,6 +30406,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_gui_k_monolith.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_gui_l_supply.script",
+            "size": 11394,
+            "sha256": "4d0d761616f434d005fbe8c3cfd93fbf32392de2529e4516a528a5e8819d765d",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_gui_l_supply.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_gui_l_supply.script",
                 "priority": 10
               }
             ]
@@ -30345,8 +30463,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_locations.script",
-            "size": 4129,
-            "sha256": "5a7188c081027484c773cc4f52bac3ef45b2605db7acff7aba3727ff437f206a",
+            "size": 4164,
+            "sha256": "b81bac6c739606e9cf9d581ad480de6428305a90705a4a7c499c9f74f6d68b6f",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -30396,8 +30514,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_monolith.script",
-            "size": 12602,
-            "sha256": "f92c604730a6e0065010d3621b38166c5e64cb48c35e151b61ad2b5b2779fabf",
+            "size": 12468,
+            "sha256": "1c1c578ec00ca13ce3e50ae967fa7e76feec74894fc550f1f420ceb665f7bf2f",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -30413,8 +30531,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_monolith_world.script",
-            "size": 14577,
-            "sha256": "0aa508a566b01ac886f49c2751c7dd2b18d982ae98a7246746ef1c23444cd73a",
+            "size": 13301,
+            "sha256": "4a2c63826d34331bb06955795ac154b4790d3c7c1978af8d87fb262d2056c27c",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -30463,9 +30581,43 @@
             ]
           },
           {
+            "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_recovery.script",
+            "size": 13104,
+            "sha256": "85284f2d91aa4791e65a6c882d0084bdcb3c4c96838dbbd68daa896a58993dac",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_recovery.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_recovery.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_recovery_dialogs.script",
+            "size": 11179,
+            "sha256": "7b1377b867156d01f899f82ac17fc1c1fb50b30d2f54075c22389bbfaf3fad34",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_recovery_dialogs.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_recovery_dialogs.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_sales.script",
-            "size": 17870,
-            "sha256": "e32a634a558bf44fdac0aac8e914bd43dee6c043a0d9cffef006259221d6dae8",
+            "size": 18372,
+            "sha256": "2d534da2dab3f359d4eb4de9ebf002796b49e1906fa59427ae8cd8baf8c1f20e",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -30492,6 +30644,23 @@
               {
                 "provider": "yandex-disk",
                 "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_stock.script",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_supply.script",
+            "size": 6606,
+            "sha256": "05973909bd10bb6c69bab6a7e28b2bad7baf871e71ef5fdda0d4a53c4919ed11",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_supply.script",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BGAM%5D%20Interactive%20PDA/gamedata/scripts/pda_inter_supply.script",
                 "priority": 10
               }
             ]
@@ -30600,8 +30769,8 @@
           },
           {
             "path": "mods/[GAM] Interactive PDA/gamedata/scripts/pda_inter_x_trade.script",
-            "size": 27687,
-            "sha256": "6a455e1e62215ffd209c3282ea206df7798bde233a646da28a869370fadb5223",
+            "size": 28206,
+            "sha256": "f004ed84f6d945ca298d819d9c45133ee03f33369a7f76ab4a37c0e57c446147",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -162719,6 +162888,295 @@
             ]
           },
           {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/README.txt",
+            "size": 5757,
+            "sha256": "71a9612880551bcf12de50d70b1f1408c909fa65eb77ff5cafe94f47064f6474",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/README.txt",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/README.txt",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/build.py",
+            "size": 4321,
+            "sha256": "35bb9c8ec948667a281c9aa98faf5cad0fbed6ee99f15740ea6e1465cedb82c2",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/build.py",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/build.py",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/checks.json",
+            "size": 1944,
+            "sha256": "9b7050ad2ece4989a9fd87bb56073b302431a506ab5bd673b5610a93de2f34fe",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/checks.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/checks.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/checks.py",
+            "size": 1085,
+            "sha256": "d7ab438202ba3b168428968267b3a16db61f5c92421e80da643c53979617c4a2",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/checks.py",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/checks.py",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/deploy.py",
+            "size": 3170,
+            "sha256": "a2bdfc4fa709bc85053ece75a5501e2911e688674ca8ff3dd4574d639d5a9db0",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/deploy.py",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/deploy.py",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/deployment.json",
+            "size": 770,
+            "sha256": "dea1cc7d2cd36ef4e63771a5958e56a1b598ec28a6a2101bf71e6e73710e6c7f",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/deployment.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/deployment.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/manifest.json",
+            "size": 453,
+            "sha256": "fa2238b193bca1901820229ce808c20e66cd38316364a20cd6f2ee567690875b",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/manifest.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/manifest.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/prepare_tests.py",
+            "size": 5822,
+            "sha256": "67661bfdd775a2d98194918eef7d9208df75084910c38acc4ce0ef1d444b859b",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/prepare_tests.py",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/prepare_tests.py",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/quality_review.json",
+            "size": 2820,
+            "sha256": "a785569c76a7dc40190132f368669c20068e7a96e907bb955cce33f45af97d35",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/quality_review.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/quality_review.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/reinstall_20261027.json",
+            "size": 734,
+            "sha256": "7f41973a01e96267fc7bff6414b632c64384ce1aae56f362d032f5158e21774e",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/reinstall_20261027.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/reinstall_20261027.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/review.py",
+            "size": 4957,
+            "sha256": "93b7ce79ed4bc52bbc015eb392371abda4113ff6c3cc172c14dc4e57428ad09f",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/review.py",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/review.py",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/saved_profiles.lua",
+            "size": 1194,
+            "sha256": "9fdd2b1380992aa18d62aad022b1da11533ee6d081dcabc56f1f7ba3d7b98136",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/saved_profiles.lua",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/saved_profiles.lua",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/state_report.json",
+            "size": 3743,
+            "sha256": "5ea33977f1511bd64f60915c21ac7b314b5cd2fca188be5de719026cd65d3504",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/state_report.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/state_report.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/test_stock_v2.lua",
+            "size": 12712,
+            "sha256": "222d79bb0ecd03cf7ffcae2b757bc79ed5ee50fa930d9e7d6165ba90791eb509",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/test_stock_v2.lua",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/test_stock_v2.lua",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/trade_profile_v2.diff",
+            "size": 1404,
+            "sha256": "2482da0dd99a86ca3c2d4c9add4b9cccb105a4f2a9db27fb0621498dd72ab3f9",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/trade_profile_v2.diff",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/trade_profile_v2.diff",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/trade_restock_v2.diff",
+            "size": 3544,
+            "sha256": "714bd3dea8ab2e361ad761387f3d25ce023debfe4cc75642db8355fd6419d69c",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/trade_restock_v2.diff",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/trade_restock_v2.diff",
+                "priority": 10
+              }
+            ]
+          },
+          {
+            "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/docs/hades_stock_fix_v2_20261026/validation.json",
+            "size": 163,
+            "sha256": "8e3a4c158f4ac99e779a90be149081b807e4250fe87f669518f173853f1005a7",
+            "mirrors": [
+              {
+                "provider": "google-drive",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/Modpack%201.5.3%20%E2%80%94%20Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/validation.json",
+                "priority": 5
+              },
+              {
+                "provider": "yandex-disk",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/Modpack 1.5.3 \u2014 Anthology/mods/%5BQUE%5D%20Western%20Goods%20%E2%80%94%20%D0%97%D0%B0%D0%BF%D0%B0%D0%B4%D0%BD%D1%8B%D0%B5%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B8%20%D0%BA%D0%B2%D0%B5%D1%81%D1%82/docs/hades_stock_fix_v2_20261026/validation.json",
+                "priority": 10
+              }
+            ]
+          },
+          {
             "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/gamedata/anims/western_goods_anims/wg_beer_86_can_use.anm",
             "size": 23645,
             "sha256": "4b3d573b908a2cc059774c1e0d559a37e70d35d3296bdaa07abdc3293e8135fd",
@@ -163672,8 +164130,8 @@
           },
           {
             "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/gamedata/configs/items/trade/trade_western_goods_trader.ltx",
-            "size": 4139,
-            "sha256": "c2f24dd63b760e9756f9f11109a3d7f10c7a8202ebae79fa5e57066a12c9bc43",
+            "size": 4445,
+            "sha256": "119e8716c6cc0d04e977651ca6188de4ef183ea0bc1e2cdfa21ed6f15ae1ea2a",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -168925,8 +169383,8 @@
           },
           {
             "path": "mods/[QUE] Western Goods \u2014 \u0417\u0430\u043F\u0430\u0434\u043D\u044B\u0435 \u0442\u043E\u0432\u0430\u0440\u044B \u0438 \u043A\u0432\u0435\u0441\u0442/gamedata/scripts/western_goods_trade_eur_usd.script",
-            "size": 19750,
-            "sha256": "8527cfde16b69c6cfca6be1845ab59685c0ee28207180e26f19ccb2bd4c8a171",
+            "size": 21994,
+            "sha256": "5a2f7ca2450c44dccd1ec98d81df9d96c78ef9e671563852c66c08d2e86ec0d9",
             "mirrors": [
               {
                 "provider": "google-drive",
@@ -378279,50 +378737,12 @@
             ]
           }
         ]
-      },
-      {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.52",
-        "version": "0.7.0-alpha.52",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 16763678,
-        "sha256": "94581311da35fea47e7c0b8dbceeed6166219eb37026a407c318bc6f1ed29d0e",
-        "mirrors": [
-          {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
-            "priority": 5
-          },
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
-            "priority": 10
-          },
-          {
-            "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
-            "priority": 20
-          }
-        ],
-        "files": [
-          "AnomalyLauncher.exe",
-          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.52.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false,
-        "deletedFiles": []
       }
     ],
     "content": {
       "schemaVersion": 4,
-      "version": "2.1.228",
-      "publishedAt": "2026-10-26T22:26:17.1588313+00:00",
+      "version": "2.1.229",
+      "publishedAt": "2026-10-28T22:50:06.0688454+00:00",
       "items": [
         {
           "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -378342,17 +378762,17 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.228/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.229/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.228/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.229/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 20
               },
               {
                 "provider": "github",
-                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.228/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+                "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.229/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
                 "priority": 30
               }
             ],
@@ -378633,12 +379053,12 @@
             "mirrors": [
               {
                 "provider": "google-drive",
-                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.228/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.229/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 10
               },
               {
                 "provider": "yandex-disk",
-                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.228/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+                "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.229/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
                 "priority": 20
               }
             ],
@@ -378949,9 +379369,9 @@
       ],
       "liveStreams": [],
       "changelog": {
-        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.228",
+        "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.229",
         "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
-        "body": "1. \u0414\u0432\u0438\u0436\u043E\u043A\n- \u041F\u043E\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B \u043E\u0442\u0441\u0435\u0447\u0435\u043D\u0438\u044F \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u043E\u0432 \u0441\u0432\u0435\u0442\u0430, \u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C\u043D\u043E \u0442\u0435\u043D\u0438 \u0431\u043E\u043B\u0435\u0435 \u0430\u0434\u0435\u043A\u0432\u0430\u0442\u043D\u043E \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u044E\u0442\u0441\u044F\n- \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 DLSS \u0438 FSR\n- \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 PiP \u0432 \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0438 \u0441 \u041F\u041D\u0412\n- \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0438\u0441\u0447\u0435\u0437\u043D\u043E\u0432\u0435\u043D\u0438\u044F \u0442\u0440\u0430\u0432\u044B, \u0440\u0443\u043A, \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u043E\u0432 \u0432 \u0440\u0443\u043A\u0430\u0445 \u0438 \u043F\u0430\u0442\u0440\u043E\u043D\u043E\u0432 \u0432 hud \u0438\u0433\u0440\u043E\u043A\u0430\n2. [GAM] R.A.K Balance\n- \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0022\u0424\u0430\u0440\u043C\u0022 \u043B\u0443\u0442\u0430 \u0447\u0435\u0440\u0435\u0437 \u0441\u043D\u0430\u0431\u0436\u0435\u043D\u0438\u0435(\u0432\u044B \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442\u0435 1 \u0440\u0430\u0437, \u0442\u0435\u043F\u0435\u0440\u044C \u0435\u0441\u0442\u044C \u0441\u0432\u044F\u0437\u044C \u0441 \u0434\u0440\u0443\u0433\u0438\u043C\u0438 \u0431\u0430\u0437\u0430\u043C\u0438, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u0431\u044B\u043B\u043E \u0444\u0430\u0440\u043C\u0430)\n3. [GAM] Interactive PDA\n- \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430 \u0441\u043B\u0443\u0436\u0431\u0430 \u041C\u043E\u043D\u043E\u043B\u0438\u0442\u0430 \u0432\u043D\u0435 \u0441\u044E\u0436\u0435\u0442\u043D\u043E\u0439 \u043B\u0438\u043D\u0438\u0438\n- \u0422\u0435\u043F\u0435\u0440\u044C \u0443 \u0432\u0430\u0441 \u0432\u043E \u0424\u0440\u0438\u043F\u043B\u0435\u0435 \u041E\u0411\u042F\u0417\u0410\u0422\u0415\u041B\u042C\u041D\u0410\u042F \u0441\u043B\u0443\u0436\u0431\u0430 \u043F\u043E \u043A\u0432\u0435\u0441\u0442\u0430\u043C \u043E\u0442 \u041C\u043E\u043D\u043E\u043B\u0438\u0442\u0430.\n- \u0412\u044B\u0434\u0430\u0451\u0442\u0441\u044F \u0441\u043D\u0430\u0431\u0436\u0435\u043D\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 \u041A\u041F\u041A (\u0443\u0447\u0442\u0451\u043D\u0430 \u0432\u044B\u0434\u0430\u0447\u0430 \u0447\u0435\u0440\u0435\u0437 \u0434\u0438\u0430\u043B\u043E\u0433, \u0444\u0430\u0440\u043C \u043D\u0435\u0432\u043E\u0437\u043C\u043E\u0436\u0435\u043D)\n- \u041C\u043E\u0436\u043D\u043E \u0437\u0430\u043F\u0440\u043E\u0441\u0438\u0442\u044C \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044E\n4. [HARD] FATAL ERROR by Ncenka \u2014 \u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u043F\u043E\u043B\u043E\u043C\u043A\u0438 \u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\n\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0430\u0434\u0434\u043E\u043D, \u043D\u043E \u0430\u0434\u0430\u043F\u0442\u0438\u0440\u043E\u0432\u0430\u043D \u043F\u043E\u0434 \u043D\u0430\u0441, \u0443\u0431\u0440\u0430\u043D\u044B \u043B\u0438\u0448\u043D\u0438\u0435 \u043C\u043E\u0434\u0435\u043B\u0438 \u041A\u041F\u041A \u0438 \u0431\u0430\u0442\u0430\u0440\u0435\u0439\u043A\u0438, \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432\u0441\u044F \u043C\u0435\u0445\u0430\u043D\u0438\u043A\u0430 \u043F\u043E\u043B\u043E\u043C\u043A\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u0438 \u043E\u043F\u0442\u0438\u043C\u0438\u0437\u0430\u0446\u0438\u044F.\n5. \u0423\u0434\u0430\u043B\u0435\u043D\u0430 \u0410\u043F\u0442\u0435\u0447\u043A\u0430 \u0413\u0443\u0431\u043A\u0438 \u0411\u043E\u0431\u0430\n6. Medik Health Monitor\n\u0412\u0435\u0440\u0441\u0438\u044F \u043C\u043E\u0434\u0430 \u043F\u0440\u0435\u0436\u043D\u044F\u044F, v1.4. \u0418\u0437\u043C\u0435\u043D\u0451\u043D \u043E\u0434\u0438\u043D \u0441\u043A\u0440\u0438\u043F\u0442 \u0438 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430 \u043E\u0434\u043D\u0430 \u0442\u0435\u043A\u0441\u0442\u0443\u0440\u0430.\n\n\u0427\u0442\u043E \u0431\u044B\u043B\u043E \u0438 \u0447\u0442\u043E \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C\n\u0410\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u043F\u043E\u0434 SYS BHS \u0432 medik_ui.script \u0431\u044B\u043B\u0430 \u0438 \u0440\u0430\u043D\u044C\u0448\u0435 (\u0441\u043A\u0440\u0438\u043F\u0442\u044B \u0438 \u0434\u0430\u043D\u043D\u044B\u0435 SYS \u0432 \u0441\u0442\u0438\u043B\u0435 \u0434\u043B\u044F Medik) \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430. \u041E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u0441\u043A\u0440\u0438\u043F\u0442\u044B \u0438 \u043A\u043E\u043D\u0444\u0438\u0433\u0438 Medik \u043D\u0435 \u043C\u0435\u043D\u044F\u043B\u0438\u0441\u044C.\n\n\u0427\u0442\u043E \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u043E\n\u0421\u0442\u0438\u043B\u044C SYS (hard) \u043D\u0430 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0435 Medik \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u043B \u043F\u043E\u043B\u043E\u0441\u043A\u0438 \u0432\u0441\u0435\u0433\u0434\u0430 \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u043C\u0438 \u043D\u0430 100%, \u043F\u043E\u0442\u043E\u043C\u0443 \u0447\u0442\u043E \u043F\u043E\u0434\u043B\u043E\u0436\u043A\u0430-\u00AB\u0442\u0440\u0435\u043A\u00BB \u044D\u0442\u043E\u0433\u043E \u0441\u0442\u0438\u043B\u044F \u0440\u0438\u0441\u043E\u0432\u0430\u043B\u0430\u0441\u044C \u0442\u043E\u0439 \u0436\u0435 \u043E\u0431\u043B\u0430\u0441\u0442\u044C\u044E \u0442\u0435\u043A\u0441\u0442\u0443\u0440\u044B \u0438 \u043E\u0442\u043B\u0438\u0447\u0430\u043B\u0430\u0441\u044C \u043E\u0442 \u043F\u043E\u043B\u043E\u0441\u043A\u0438 \u0442\u043E\u043B\u044C\u043A\u043E \u043E\u043A\u0440\u0430\u0441\u043A\u043E\u0439, \u0430 \u043D\u0430 \u043C\u043E\u0434\u0435\u043B\u0438 Medik \u043E\u043A\u0440\u0430\u0441\u043A\u0430 \u043D\u0435 \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F. \u0422\u0435\u043F\u0435\u0440\u044C \u043F\u043E\u0434\u043B\u043E\u0436\u043A\u0430\u043C \u043F\u043E\u0434\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0437\u0430\u0440\u0430\u043D\u0435\u0435 \u043E\u043A\u0440\u0430\u0448\u0435\u043D\u043D\u0430\u044F \u043A\u043E\u043F\u0438\u044F \u0442\u0435\u043A\u0441\u0442\u0443\u0440\u044B, \u0438 \u043F\u043E\u043B\u043E\u0441\u043A\u0438 \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u044F, \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u0438 \u0438 \u043F\u0441\u0438 \u0434\u0432\u0438\u0433\u0430\u044E\u0442\u0441\u044F \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E.\n\u041A\u0440\u0430\u0441\u043D\u044B\u0439 \u0441\u0438\u043B\u0443\u044D\u0442 \u043F\u043E\u0442\u0435\u0440\u044F\u043D\u043D\u043E\u0433\u043E \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u044F \u043D\u0430 \u044D\u043A\u0440\u0430\u043D\u0435 Medik \u0442\u0435\u043F\u0435\u0440\u044C \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0442\u0430\u043A \u0436\u0435, \u043A\u0430\u043A \u043D\u0430 \u043F\u043B\u0430\u043D\u0448\u0435\u0442\u0435 WD.\n\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u043D\u0430 \u0441\u0442\u0438\u043B\u0435 hard, \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u0441\u0442\u0438\u043B\u0438 \u043D\u0435 \u0437\u0430\u0442\u0440\u043E\u043D\u0443\u0442\u044B.\n\n\u0427\u0442\u043E \u0432\u043D\u0443\u0442\u0440\u0438\ngamedata/scripts/medik_ui.script \u2014 \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u0439 \u0431\u043B\u043E\u043A \u0445\u0443\u043A\u0430 SYS \u0432 \u043A\u043E\u043D\u0446\u0435 \u0444\u0430\u0439\u043B\u0430.\ngamedata/textures/ui/medik/sys_hard_track.dds \u2014 \u043A\u043E\u043F\u0438\u044F hard.dds, \u0433\u0434\u0435 \u043F\u043E\u0434\u043B\u043E\u0436\u043A\u0438 \u043E\u043A\u0440\u0430\u0448\u0435\u043D\u044B \u0437\u0430\u0440\u0430\u043D\u0435\u0435. \u0421\u0430\u043C hard.dds \u043D\u0435 \u043C\u0435\u043D\u044F\u043B\u0441\u044F, \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 BHS \u0432 \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u0435 \u0438 \u043D\u0430 WD \u043D\u0435 \u0437\u0430\u0442\u0440\u043E\u043D\u0443\u0442\u043E.\n\n\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u043E\n\u041B\u044E\u0431\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0430\u0434\u0430\u043F\u0442\u0435\u0440\u0430 \u043F\u0438\u0448\u0435\u0442\u0441\u044F \u0432 \u043B\u043E\u0433 \u0441 \u043F\u043E\u043C\u0435\u0442\u043A\u043E\u0439 [MEDIK SYS BHS] \u0438 \u043D\u0435 \u043B\u043E\u043C\u0430\u0435\u0442 \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441.\n\u0415\u0441\u043B\u0438 \u0444\u0430\u0439\u043B\u0430 \u0442\u0435\u043A\u0441\u0442\u0443\u0440\u044B \u043D\u0435\u0442, \u043F\u043E\u0434\u043B\u043E\u0436\u043A\u0438 \u043F\u0440\u043E\u0441\u0442\u043E \u0441\u043A\u0440\u044B\u0432\u0430\u044E\u0442\u0441\u044F.\n\u0414\u043B\u044F \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0438 \u0432 \u043D\u0430\u0447\u0430\u043B\u0435 \u0431\u043B\u043E\u043A\u0430 \u0435\u0441\u0442\u044C \u0444\u043B\u0430\u0433 SYS_BHS_LOG, \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u0432\u044B\u043A\u043B\u044E\u0447\u0435\u043D.\n7. [GAM] Wearable Devices",
+        "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D Busyhands xr_knife\n2. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0430 \u043B\u043E\u0433\u0438\u043A\u0430 \u0421\u0438\u0434\u043E\u0440\u043E\u0432\u0438\u0447\u0430( \u0442\u0435\u043F\u0435\u0440\u044C \u0432 \u0422\u0427 \u043E\u043D \u0432\u0441\u0435\u0433\u0434\u0430 \u0433\u043E\u0432\u043E\u0440\u0438\u0442 \u043D\u0430\u0447\u0430\u043B\u044C\u043D\u0443\u044E \u0444\u0440\u0430\u0437\u0443 \u0438\u0437 \u0441\u044E\u0436\u0435\u0442\u0430)\n3. \u0418\u043A\u043E\u043D\u043A\u0438 \u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u043E\u0432 \u0441 \u041F\u041C\u0410 \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u044B\n4. \u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043D\u0430 \u043C\u0438\u043D\u0438\u043A\u0430\u0440\u0442\u0435 \u0438 \u0437\u0432\u0443\u043A\u043E\u0432\u043E\u0435 \u043E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435, \u0447\u0442\u043E \u041D\u041F\u0421 \u0441\u0442\u0440\u0435\u043B\u044F\u044E\u0442 \u043F\u043E \u0442\u0435\u0431\u0435 \u0438\u0437 \u043F\u043E\u0434\u0441\u0442\u0432\u043E\u043B\u0430.\n5. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0423\u0438\u043B\u044C\u044F\u043C\u0430 \u0425\u044D\u0434\u0435\u0441\u0430\n6. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0442\u0430\u0439\u043C\u0435\u0440\u0430 HUD \u0431\u0430\u0444\u0444\u043E\u0432 \u0438 \u0434\u0435\u0431\u0430\u0444\u0444\u043E\u0432 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436\u0430\n7. \u0418\u043D\u0442\u0435\u0440\u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u041F\u0414\u0410\n\u0422\u0435\u043F\u0435\u0440\u044C \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043D\u0430\u0439\u0442\u0438 \u041D\u041F\u0421, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u0432\u0430\u0441 \u043A\u0438\u043D\u0443\u043B \u0438 \u0431\u0443\u0434\u0435\u0442 \u0440\u0430\u0437\u0432\u0438\u043B\u043A\u0430 \u043A\u0430\u043A \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0432\u0430\u0448 \u0437\u0430\u043A\u0430\u0437\n8. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0425\u044D\u0434\u0435\u0441\u0430\n9. \u0412\u0432\u0435\u0434\u0435\u043D\u044B \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0435 \u041A\u043E\u043E\u043F\u0435\u0440\u0430\u0442\u0438\u0432\u043D\u044B\u0439 \u0438 \u0414\u0435\u0437\u043C\u0430\u0442\u0447\u0438 \u0434\u043B\u044F \u041E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u0430.\n10 .\u0423\u0434\u0430\u043B\u0435\u043D\u044B \u0432\u0441\u0435 \u043B\u0438\u0448\u043D\u0438\u0435 \u0440\u0435\u043D\u0434\u0435\u0440\u044B DX",
         "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
         "translations": {}
       }
@@ -378960,6 +379380,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "//og5B8qswGEtfy9jpRycA0mHXU\u002BBeIRf\u002BiJJuEdaDZucIG35Z84Xs54i5T1UOAqIhVmkMp2R/Ub65btv19\u002BTQ=="
+    "value": "Xk6bw9xiXicEWpYUhjMp8fpuKCp3CeCJvYYny55QR19BHNv9X0XFXdZJepZPKEVYXy/veg4gQ7tQHJMGBT01/g=="
   }
 }
