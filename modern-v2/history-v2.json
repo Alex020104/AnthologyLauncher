@@ -2,8 +2,32 @@
   "payload": {
     "schemaVersion": 2,
     "channel": "next",
-    "updatedAt": "2026-10-28T22:50:06.0705744+00:00",
+    "updatedAt": "2026-11-04T07:45:28.7228014+00:00",
     "entries": [
+      {
+        "version": "2.1.230",
+        "publishedAt": "2026-11-04T07:45:28.7228014+00:00",
+        "changelog": {
+          "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.230",
+          "summary": "\u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u002B \u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
+          "body": "1. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0431\u0430\u0433 \u0441 \u043B\u043E\u043A\u0430\u0446\u0438\u0435\u0439 X-16\n2. \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0431\u0430\u0433 \u0441 \u0430\u0441\u0441\u043E\u0440\u0442\u0438\u043C\u0435\u043D\u0442\u043E\u043C \u041C\u043E\u043D\u043E\u043B\u0438\u0442\u0430 \u043F\u043E \u0430\u043F\u0433\u0440\u0435\u0439\u0434\u0430\u043C \u0438 \u0440\u0430\u0441\u0445\u043E\u0434\u043D\u0438\u043A\u0430\u043C",
+          "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
+          "translations": {}
+        },
+        "changes": {
+          "previousVersion": "2.1.229",
+          "complete": true,
+          "added": [
+            "game/db/levels/l08u_brainlab.xdb0"
+          ],
+          "changed": [
+            "modpack/mods/[GAM] R.A.K Balance/gamedata/configs/plugins/rak_monolith_supply_pools.ltx"
+          ],
+          "deleted": [
+            "game/db/levels/l08u_brainlab.db0"
+          ]
+        }
+      },
       {
         "version": "2.1.229",
         "publishedAt": "2026-10-28T22:50:06.0705744+00:00",
@@ -120901,6 +120925,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "xS5lUfCnLkLPgML0gEMmEH1NuJuNRGxagcGBi61\u002Bg0i/Nb2zxpBjWygO\u002B5gH54gXAe7Ne29aaP05DdJWqYHboQ=="
+    "value": "9iuWmiqLGcn5HSkQjBNBHPCDaZz7ls7JVsww7Fyt6YOyG1aJ0sOtfqiw734J0lHNHn8JS0ALncrp/\u002BbxBhq1qg=="
   }
 }
