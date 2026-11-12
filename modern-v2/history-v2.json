@@ -2,8 +2,28 @@
   "payload": {
     "schemaVersion": 2,
     "channel": "next",
-    "updatedAt": "2026-11-09T22:10:53.8265366+00:00",
+    "updatedAt": "2026-11-12T16:12:21.0718773+00:00",
     "entries": [
+      {
+        "version": "2.1.232",
+        "publishedAt": "2026-11-12T16:12:21.0718773+00:00",
+        "changelog": {
+          "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.232",
+          "summary": "\u041E\u0442\u043A\u0430\u0442",
+          "body": "\u041E\u0442\u043A\u0430\u0442 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0439 NPC \u043D\u0430 \u043F\u0440\u043E\u0448\u043B\u0443\u044E \u0432\u0435\u0440\u0441\u0438\u044E",
+          "warnings": "\u041F\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u043E\u0439 \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 \u0438\u0433\u0440\u0443 \u0438 Mod Organizer 2. \u0414\u043B\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u043A\u0430\u0442\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0439\u0442\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u0443\u044E \u043A\u043E\u043F\u0438\u044E.B",
+          "translations": {}
+        },
+        "changes": {
+          "previousVersion": "2.1.231",
+          "complete": true,
+          "added": [],
+          "changed": [
+            "game/db/meshes/meshes_actors_omf.xdb0"
+          ],
+          "deleted": []
+        }
+      },
       {
         "version": "2.1.231",
         "publishedAt": "2026-11-09T22:10:53.8265366+00:00",
@@ -120949,6 +120969,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "aItAE5UN6\u002Bd6vcQpe4QHQxWNsrbQnmunR1FHAEqyMGR1mtm\u002BfvybPXfbpzp9TyijcN8b43ec/TAURr7Jl2wBtQ=="
+    "value": "kJ56cYuLh4cdxqnwn9EJHqQ7lvS9hlm4a0pUqtkjxEnvTtL7MQ45OAYvJ0y/om6P673QQLMT3T6h47vohkxg0w=="
   }
 }
