@@ -2,11 +2,11 @@
   "payload": {
     "schemaVersion": 2,
     "channel": "next",
-    "updatedAt": "2026-11-12T16:12:21.0718773+00:00",
+    "updatedAt": "2026-11-13T10:09:04.59098+00:00",
     "entries": [
       {
         "version": "2.1.232",
-        "publishedAt": "2026-11-12T16:12:21.0718773+00:00",
+        "publishedAt": "2026-11-13T10:09:04.59098+00:00",
         "changelog": {
           "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.232",
           "summary": "\u041E\u0442\u043A\u0430\u0442",
@@ -19,7 +19,9 @@
           "complete": true,
           "added": [],
           "changed": [
-            "game/db/meshes/meshes_actors_omf.xdb0"
+            "game/db/meshes/meshes_actors_omf.xdb0",
+            "Mod/Z.H.O.P.A. ALIFE 2.0",
+            "Mod/\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0439 \u041A\u041F\u041A \u043D\u0430 \u0432\u0430\u0448\u0435\u043C \u0441\u043C\u0430\u0440\u0442\u0444\u043E\u043D\u0435"
           ],
           "deleted": []
         }
@@ -120969,6 +120971,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "kJ56cYuLh4cdxqnwn9EJHqQ7lvS9hlm4a0pUqtkjxEnvTtL7MQ45OAYvJ0y/om6P673QQLMT3T6h47vohkxg0w=="
+    "value": "rHnBbXvwjySniljUF89MpTRFMk/I4lG1AixkWZ0pvA\u002BpwJ6GGRyb4F4CeHE44bhEymwAqsdJJAtmN9G1SgCC\u002BA=="
   }
 }

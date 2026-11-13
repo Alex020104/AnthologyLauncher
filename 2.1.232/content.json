@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "version": "2.1.232",
-  "publishedAt": "2026-11-12T16:12:21.0696425+00:00",
+  "publishedAt": "2026-11-13T10:09:04.5903986+00:00",
   "items": [
     {
       "id": "material-2037ebdea1e44f658a3abcda7686ba5c",
@@ -15,23 +15,23 @@
       ],
       "videos": [],
       "download": {
-        "fileName": "zhopa-main.zip",
-        "size": 457265,
-        "sha256": "469ce0e53f886292cdcd9a9746acad2a8a0be662c533dde31e5ef462406eda3d",
+        "fileName": "[MOD] Z.H.O.P.A. ALIFE 2.3.1.7z",
+        "size": 246172,
+        "sha256": "db7f5bcf2c5f160619a4c33b5c4a0cad71c0f604188aa2b224457a89f269ac2f",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.232/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.232/addons/material-2037ebdea1e44f658a3abcda7686ba5c/[MOD] Z.H.O.P.A. ALIFE 2.3.1.7z",
             "priority": 10
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.232/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.232/addons/material-2037ebdea1e44f658a3abcda7686ba5c/[MOD] Z.H.O.P.A. ALIFE 2.3.1.7z",
             "priority": 20
           },
           {
             "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.232/addons/material-2037ebdea1e44f658a3abcda7686ba5c/zhopa-main.zip",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.232/addons/material-2037ebdea1e44f658a3abcda7686ba5c/[MOD] Z.H.O.P.A. ALIFE 2.3.1.7z",
             "priority": 30
           }
         ],
@@ -45,7 +45,7 @@
           "id": "discord",
           "title": "Discord",
           "subtitle": "\u041A\u043E\u0441\u0442\u044F\u043D \u0424\u0435\u043D\u0438\u043A\u0441",
-          "url": "https://discordapp.com/channels/1239150205153312769/1528408274410672158/1528408274410672158"
+          "url": "https://discord.com/channels/1239150205153312769/1528408274410672158/1563959218002726983"
         },
         {
           "id": "moddb",
@@ -306,18 +306,18 @@
         }
       ],
       "download": {
-        "fileName": "MUZZPAD_Anthology 2.1.zip",
+        "fileName": "[MOD] MUZZPAD Anthology 2.1.zip",
         "size": 482480428,
         "sha256": "4ca0144e4570e30282e1b02678735d41c1d6d299e216a27b9e9464cb61fc4d58",
         "mirrors": [
           {
             "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.232/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.232/addons/material-a996b4ea58194a7c8b263715870db099/[MOD] MUZZPAD Anthology 2.1.zip",
             "priority": 10
           },
           {
             "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.232/addons/material-a996b4ea58194a7c8b263715870db099/MUZZPAD_Anthology 2.1.zip",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.232/addons/material-a996b4ea58194a7c8b263715870db099/[MOD] MUZZPAD Anthology 2.1.zip",
             "priority": 20
           }
         ],
