@@ -3,47 +3,9 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.232",
-    "publishedAt": "2026-11-13T10:09:04.59098+00:00",
+    "publishedAt": "2026-11-15T01:13:37.2805079+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
-      {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.52",
-        "version": "0.7.0-alpha.52",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 16763678,
-        "sha256": "94581311da35fea47e7c0b8dbceeed6166219eb37026a407c318bc6f1ed29d0e",
-        "mirrors": [
-          {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
-            "priority": 5
-          },
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
-            "priority": 10
-          },
-          {
-            "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.228/anthology-launcher-0.7.0-alpha.52-94581311da35fea4.zip",
-            "priority": 20
-          }
-        ],
-        "files": [
-          "AnomalyLauncher.exe",
-          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.52.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false,
-        "deletedFiles": []
-      },
       {
         "id": "anthology-mo2",
         "displayName": "Anthology \u2014 Mod Organizer 2",
@@ -378722,6 +378684,44 @@
             ]
           }
         ]
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.53",
+        "version": "0.7.0-alpha.53",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 16765031,
+        "sha256": "d6e0a3b537a4ab3183f4eaffed50038cd25ffa480ba8989be00f5d181278c24c",
+        "mirrors": [
+          {
+            "provider": "google-drive",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.232/anthology-launcher-0.7.0-alpha.53-d6e0a3b537a4ab31.zip",
+            "priority": 5
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.232/anthology-launcher-0.7.0-alpha.53-d6e0a3b537a4ab31.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.232/anthology-launcher-0.7.0-alpha.53-d6e0a3b537a4ab31.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnomalyLauncher.exe",
+          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.53.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": []
       }
     ],
     "content": {
@@ -379365,6 +379365,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "qRzCwtyjzO/jlyF6UIm0ULcowBbSry08rK/5ldsb0V5Ja7cQ4BK6cgytsUwulrQZMFLOXd9Q2wtn8oEJP2YK1A=="
+    "value": "WnqfFMB5kz6MJkutSkZ\u002ByImKhhTvpYJtUheFGafGhVqlc1qpVJvKudnzM8mONae08rUZjyNShK46OJ2vHmogNA=="
   }
 }
