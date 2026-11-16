@@ -3,47 +3,9 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.233",
-    "publishedAt": "2026-11-16T13:35:58.8769365+00:00",
+    "publishedAt": "2026-11-16T14:52:40.2155593+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
-      {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.54",
-        "version": "0.7.0-alpha.54",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 16767278,
-        "sha256": "810d460e8f5d2f67b02cb5b0e0db7db3377f84603d0467f02f62a5705bbc7ec8",
-        "mirrors": [
-          {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.232/anthology-launcher-0.7.0-alpha.54-810d460e8f5d2f67.zip",
-            "priority": 5
-          },
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.232/anthology-launcher-0.7.0-alpha.54-810d460e8f5d2f67.zip",
-            "priority": 10
-          },
-          {
-            "provider": "github",
-            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.232/anthology-launcher-0.7.0-alpha.54-810d460e8f5d2f67.zip",
-            "priority": 20
-          }
-        ],
-        "files": [
-          "AnomalyLauncher.exe",
-          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.54.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false,
-        "deletedFiles": []
-      },
       {
         "id": "anthology-mo2",
         "displayName": "Anthology \u2014 Mod Organizer 2",
@@ -419020,6 +418982,44 @@
             ]
           }
         ]
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.55",
+        "version": "0.7.0-alpha.55",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 16767739,
+        "sha256": "3e7f0ab5ebf3234ade04a7fdb0491bd6c9cc514192ab257803f2ee3897b4991f",
+        "mirrors": [
+          {
+            "provider": "google-drive",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.233/anthology-launcher-0.7.0-alpha.55-3e7f0ab5ebf3234a.zip",
+            "priority": 5
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.233/anthology-launcher-0.7.0-alpha.55-3e7f0ab5ebf3234a.zip",
+            "priority": 10
+          },
+          {
+            "provider": "github",
+            "url": "https://raw.githubusercontent.com/Alex020104/AnthologyLauncher/addons-unified-library/2.1.233/anthology-launcher-0.7.0-alpha.55-3e7f0ab5ebf3234a.zip",
+            "priority": 20
+          }
+        ],
+        "files": [
+          "AnomalyLauncher.exe",
+          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.55.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": []
       }
     ],
     "content": {
@@ -419663,6 +419663,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "8krdxcCZLEbje/JPGKudaW8vZKPnRNNBYspF\u002BBg217rNnJoKQvY1xmjWVVYK6Sb/xAfQbMMjhoxxL8IlNPdxxA=="
+    "value": "x5So26dwgSEfv1Z1SL/TOsn631\u002BYyaxYEoDTVhWU0BgnZpgqtWkR78pqOQXPTA\u002BoiOGrvDmTY2p/lHv4ClYw/w=="
   }
 }
