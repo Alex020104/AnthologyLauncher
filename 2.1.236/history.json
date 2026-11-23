@@ -2,11 +2,11 @@
   "payload": {
     "schemaVersion": 1,
     "channel": "next",
-    "updatedAt": "2026-11-23T19:05:07.5068352+00:00",
+    "updatedAt": "2026-11-23T19:12:25.7114603+00:00",
     "entries": [
       {
         "version": "2.1.236",
-        "publishedAt": "2026-11-23T19:05:07.5068352+00:00",
+        "publishedAt": "2026-11-23T19:12:25.7114603+00:00",
         "changelog": {
           "title": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 2.1.236",
           "summary": "\u0418\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F\u002B\u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F",
@@ -1098,6 +1098,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "ikFx6uW9egGoQo66Lq9srYdv4hCg3xopq79sRwfF\u002B3tcnC/yi0RD0P1n7aujsQFncfoCema2ByTkgnf3YOkzVg=="
+    "value": "m4Ep6ifaDiIdBkHL4KsNFEDj4nCBqGLx2ZvWLQk7HJLbYksbfzfT0pvuGGC4s\u002Bm\u002BPP5xBnlVSetLDi6\u002BhHx9Iw=="
   }
 }
