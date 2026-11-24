@@ -3,42 +3,9 @@
     "schemaVersion": 5,
     "channel": "next",
     "version": "2.1.238",
-    "publishedAt": "2026-11-24T09:37:59.4365401+00:00",
+    "publishedAt": "2026-11-24T13:02:44.4827255+00:00",
     "minimumLauncherVersion": "0.7.0-alpha.25",
     "packages": [
-      {
-        "id": "anthology-launcher",
-        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.59",
-        "version": "0.7.0-alpha.59",
-        "kind": "launcher",
-        "installRoot": "game",
-        "archiveFormat": "zip",
-        "size": 1898990719,
-        "sha256": "7aedefa30b739be5520e420475d3bb86575cac7a0ff8759b005d6573d7d34e4b",
-        "mirrors": [
-          {
-            "provider": "google-drive",
-            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.236/anthology-launcher-0.7.0-alpha.59-7aedefa30b739be5.zip",
-            "priority": 5
-          },
-          {
-            "provider": "yandex-disk",
-            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.236/anthology-launcher-0.7.0-alpha.59-7aedefa30b739be5.zip",
-            "priority": 10
-          }
-        ],
-        "files": [
-          "AnomalyLauncher.exe",
-          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
-          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
-          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.59.zip",
-          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
-          "AnthologyLauncher/Update/channel.json"
-        ],
-        "updateMode": "merge",
-        "pruneInstallRoot": false,
-        "deletedFiles": []
-      },
       {
         "id": "anthology-game",
         "displayName": "Anthology \u2014 \u043A\u043E\u0440\u0435\u043D\u044C \u0438\u0433\u0440\u044B",
@@ -417070,6 +417037,39 @@
             ]
           }
         ]
+      },
+      {
+        "id": "anthology-launcher",
+        "displayName": "A.N.T.H.O.L.O.G.Y Launcher 0.7.0-alpha.60",
+        "version": "0.7.0-alpha.60",
+        "kind": "launcher",
+        "installRoot": "game",
+        "archiveFormat": "zip",
+        "size": 1899368965,
+        "sha256": "816deed9d25d6d31a4a8e446e9ee502d48c2c343a1e0b86007c20f21651bfb55",
+        "mirrors": [
+          {
+            "provider": "google-drive",
+            "url": "https://drive.google.com/drive/folders/15OYFSL9EasraV1qrCCGGm5mkcV7EVURu?path=/2.1.238/anthology-launcher-0.7.0-alpha.60-816deed9d25d6d31.zip",
+            "priority": 5
+          },
+          {
+            "provider": "yandex-disk",
+            "url": "https://disk.yandex.ru/d/V7pISmMO9ApI5w?path=/2.1.238/anthology-launcher-0.7.0-alpha.60-816deed9d25d6d31.zip",
+            "priority": 10
+          }
+        ],
+        "files": [
+          "AnomalyLauncher.exe",
+          "AnthologyLauncher/Bootstrap/AnthologyLauncher.Proton.exe",
+          "AnthologyLauncher/Start-AnthologyLauncherNext.ps1",
+          "AnthologyLauncher/Update/LauncherPending/anthology-launcher-payload-0.7.0-alpha.60.zip",
+          "AnthologyLauncher/Update/LauncherPending/launcher-update.json",
+          "AnthologyLauncher/Update/channel.json"
+        ],
+        "updateMode": "merge",
+        "pruneInstallRoot": false,
+        "deletedFiles": []
       }
     ],
     "content": {
@@ -417713,6 +417713,6 @@
   "signature": {
     "algorithm": "ecdsa-p256-sha256",
     "keyId": "anthology-production-01",
-    "value": "FWUqrV2wBj8Sa400VfS7bf7ryjeGtPT2Ema1fopnP94G3qZ6U7G3hoq\u002Bq29/\u002Byq1H0rLw5Q\u002BeKzbpIFPTFzRxg=="
+    "value": "F1GeGtoTqrGU9gbx3hkVDHv9qhRzzIoFRHL8xdNXvijVvWNDxLHG1183nsI2YOpJMCYSXvbq5wvjaAGv36ekgA=="
   }
 }
